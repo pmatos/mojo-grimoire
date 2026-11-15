@@ -51,6 +51,10 @@ Phase 1 on 2026-11-15. In order:
    destroys each field of `self` inside `__deinit__` at its last use, as the
    compiler does: the human ruled on 2026-11-15 that the model gets the
    Isabelle model's two divergences (`d05`, `d13`) right from the start.
+   Then lists and references: `List[T]` and indexing, `ref` bindings, and
+   references returned with an origin (`-> ref[a, b] T`), with the lifetime
+   extension that such a reference implies. The human added them to Phase 1
+   on 2026-11-15 (#12).
 3. An executable big-step interpreter with fuel and explicit run-time
    errors.
 4. A parser written in Lean from `.mojo` source to the abstract syntax, so
