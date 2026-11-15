@@ -1,0 +1,84 @@
+import VersoManual
+import MojoGrimoire.Parse.Stmt
+import MojoSpecSite.ReadableElab
+
+open Verso.Genre Manual
+open MojoSpecSite
+
+/-!
+The readable blocks of the section that renders `MojoGrimoire.Parse.Stmt`
+(ADR-2026-11-15-2030). Each block explains declarations of that module and
+pins their fingerprint; the build fails when the Lean changes under it.
+-/
+
+#doc (Manual) "Statements and declarations: readable blocks" =>
+
+:::moduleDocs (fingerprint := "15996223734491639344")
+:::
+
+:::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.exprStmt (fingerprint := "4168575402372941327")
+*Definition: sugar.* `p += e`, `p -= e` and `p *= e` are `p = p + e`,
+`p = p - e` and `p = p * e`. A call of `print` on a line of its own is the
+$`\mathsf{print}` statement; any other expression there is evaluated and
+its value discarded.
+:::
+
+:::readable MojoGrimoire.Parse.simpleStmt MojoGrimoire.Parse.exprTail MojoGrimoire.Parse.stmt MojoGrimoire.Parse.ifRest MojoGrimoire.Parse.block MojoGrimoire.Parse.stmts (fingerprint := "12642228634953323282")
+*Definition: statements and blocks.*
+
+$$`\begin{array}{lcl}
+s & ::= & \mathsf{pass} \mid \mathsf{return}~e^? \\
+ & \mid & \mathsf{var}~x~(:\mathit{type})^?~(= e)^? \mid \mathsf{ref}~x = e \\
+ & \mid & p = e \mid p \mathrel{\mathit{op}{=}} e \mid e \\
+ & \mid & \mathsf{if}~e~\mathit{block}~(\mathsf{elif}~e~\mathit{block})^*~(\mathsf{else}~\mathit{block})^? \\
+ & \mid & \mathsf{while}~e~\mathit{block} \\
+\mathit{block} & ::= & :~s \mid :~\mathsf{newline}~\mathsf{indent}~s^*~\mathsf{dedent}
+\end{array}`
+
+A block follows a `:`: one simple statement on the same line, or an
+indented sequence of statements. `elif` is an `if` alone in the `else`
+block. A string literal alone on a line, a docstring, is skipped. A
+statement that starts with a postfix chain is an assignment when the chain
+is a place followed by `=` or an augmented operator, and otherwise an
+expression whose first operand is that chain.
+:::
+
+:::readable MojoGrimoire.Parse.conv MojoGrimoire.Parse.params MojoGrimoire.Parse.originNames MojoGrimoire.Parse.funDecl (fingerprint := "10151670689596070118")
+*Definition: functions.*
+
+$$`\begin{array}{lcl}
+\mathit{fun} & ::= & (\mathsf{def} \mid \mathsf{fn})~f(\mathit{param}^*)~\mathsf{raises}^?~(\to \mathit{result})^?~\mathit{block} \\
+\mathit{param} & ::= & \mathit{conv}^?~x~(:\mathit{type})^? \\
+\mathit{conv} & ::= & \mathsf{read} \mid \mathsf{mut} \mid \mathsf{var} \mid \mathsf{owned} \mid \mathsf{ref} \mid \mathsf{out} \mid \mathsf{deinit} \\
+\mathit{result} & ::= & \mathit{type} \mid \mathsf{ref}~[x^*]~\mathit{type}
+\end{array}`
+
+A parameter without a convention is $`\mathsf{read}`, and `var` and `owned`
+both mean $`\mathsf{owned}`. A parameter must have a type, except `self` in
+a method, whose type is its struct. A function without a result returns
+$`\mathsf{None}`. `raises` is read and ignored: the subset raises no
+errors. A result `ref [a, b] T` is a reference with the origins of the
+parameters named.
+:::
+
+:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "237252837874664005")
+*Definition: structs.*
+
+$$`\begin{array}{lcl}
+\mathit{struct} & ::= & (@\mathsf{fieldwise\_init})^?~\mathsf{struct}~S~((\mathit{name}^*))^?:~\mathit{member}^* \\
+\mathit{member} & ::= & \mathsf{var}~x:\mathit{type} \mid \mathit{fun} \mid \mathsf{pass} \mid \mathit{string}
+\end{array}`
+
+A struct's conformances say how its values are copied: `ImplicitlyCopyable`
+implicitly, `Copyable` explicitly, and otherwise not at all; other
+conformances, such as `Movable`, are read and ignored. The method
+`__init__` is the initializer and the body of `__deinit__` is the
+destructor; every other function is a method.
+:::
+
+:::readable MojoGrimoire.Parse.decls MojoGrimoire.Parse.parseRaw (fingerprint := "18250684152060520694")
+*Definition: programs.* A program is a sequence of structs and functions,
+in any order. The only decorator is `@fieldwise_init`. The parser is given
+ten times the number of tokens, plus a hundred, as fuel, which is more than
+any program spends.
+:::

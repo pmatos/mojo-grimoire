@@ -113,6 +113,26 @@ with the compiler.
 
 {includeReadable "." MojoGrimoire.Interp.Run "Running a program" MojoSpec.Interp.Run (level := 2)}
 
+# The parser
+
+The parser reads the text of a `.mojo` file into a program of the core
+calculus: the lexer splits it into tokens and marks its indentation, the
+parser builds the abstract syntax, and inference fills in the types that
+the program leaves implicit. The driver runs the result from the command
+line, as the compiler's `mojo run` does.
+
+{includeReadable "." MojoGrimoire.Parse.Lexer "The lexer" MojoSpec.Parse.Lexer (level := 2)}
+
+{includeReadable "." MojoGrimoire.Parse.Parser "The parser's monad and types" MojoSpec.Parse.Parser (level := 2)}
+
+{includeReadable "." MojoGrimoire.Parse.Expr "Expressions" MojoSpec.Parse.Expr (level := 2)}
+
+{includeReadable "." MojoGrimoire.Parse.Stmt "Statements and declarations" MojoSpec.Parse.Stmt (level := 2)}
+
+{includeReadable "." MojoGrimoire.Parse.Infer "Type inference" MojoSpec.Parse.Infer (level := 2)}
+
+{includeReadable "." MojoGrimoire.Driver.Main "The command-line driver" MojoSpec.Driver.Main (level := 2)}
+
 # Architecture decision records
 %%%
 tag := "adrs"

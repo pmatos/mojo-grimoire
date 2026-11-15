@@ -7,3 +7,5 @@ import MojoGrimoireTest.Elab.Elaborate
 import MojoGrimoireTest.Check.Lists
 import MojoGrimoireTest.Check.Refs
 import MojoGrimoireTest.Interp.Run
+import MojoGrimoireTest.Parse.Programs
+import MojoGrimoireCli

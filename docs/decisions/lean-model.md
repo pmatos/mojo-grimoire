@@ -6,11 +6,18 @@ organised.
 ## The package
 
 `lean/` is one Lake package with no dependencies, pinned to Lean 4.35.0 in
-`lean/lean-toolchain` (ADR-2026-11-15-1905). It has three libraries:
+`lean/lean-toolchain` (ADR-2026-11-15-1905). It has three libraries and an
+executable:
 
 - `MojoGrimoire`, the model;
 - `MojoGrimoireTest`, its tests, whose root imports every module of `lean/`;
-- `MojoGrimoireCheck`, which runs the axiom check.
+- `MojoGrimoireCheck`, which runs the axiom check;
+- the executable `mojo-grimoire`, whose root is the one module
+  `MojoGrimoireCli` (#23). It holds only the top-level `main`, which calls
+  `MojoGrimoire.Driver.main`. It is outside `MojoGrimoire` because the spec
+  document imports that library and is an executable with its own `main`.
+  The axiom check names `MojoGrimoireCli` as a root, so it is checked like
+  the rest, and every build links the executable.
 
 `scripts/build-lean.sh` is the one way to build it. It applies the build's
 guards and runs `lake build --wfail`. The roadmap's layers, the core calculus,

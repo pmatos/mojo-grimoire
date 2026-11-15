@@ -18,3 +18,9 @@ import MojoGrimoire.Interp.Value
 import MojoGrimoire.Interp.Machine
 import MojoGrimoire.Interp.Eval
 import MojoGrimoire.Interp.Run
+import MojoGrimoire.Parse.Lexer
+import MojoGrimoire.Parse.Parser
+import MojoGrimoire.Parse.Expr
+import MojoGrimoire.Parse.Stmt
+import MojoGrimoire.Parse.Infer
+import MojoGrimoire.Driver.Main
