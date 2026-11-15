@@ -20,6 +20,12 @@ package «mojo-grimoire» where
 @[default_target]
 lean_lib MojoGrimoire
 
+/-- The interpreter as a command: `mojo-grimoire FILE.mojo` runs a file. It
+is a default target, so every build links it. -/
+@[default_target]
+lean_exe «mojo-grimoire» where
+  root := `MojoGrimoireCli
+
 /-- The Lean tests: building them runs their checks. -/
 @[default_target]
 lean_lib MojoGrimoireTest

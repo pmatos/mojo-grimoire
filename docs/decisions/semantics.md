@@ -147,3 +147,28 @@ against the compiler when the suite records results:
   value after storing the new one.
 - `return` evaluates its value, then destroys what the function still
   owns, in declaration order.
+
+## The parser and the driver
+
+`MojoGrimoire.Parse` reads a `.mojo` file into the core calculus, and
+`mojo-grimoire FILE [--fuel N]` runs it (#23). It reads the subset the
+model covers and fails with a syntax error, line and message, on anything
+else. These choices hold:
+
+- A struct's conformances give its copying: `ImplicitlyCopyable` implicit,
+  `Copyable` explicit, and otherwise none. Other conformances, `raises` and
+  the decorator `@fieldwise_init` aside, are read and ignored.
+- `var` and `owned` parameters are both owned; a parameter with no
+  convention is `read`; `self` may omit its type.
+- `p += e`, `-=` and `*=` are `p = p op e`; `print(...)` on a line of its
+  own is the print statement; docstrings are skipped.
+- The parser writes the type `None` where the program leaves a type
+  implicit, since no variable of the subset has that type. Inference then
+  gives `var x = e` the type of `e`, and a list literal the type of its
+  first element, or, when empty, the element type it is expected to have.
+  What it cannot find stays `None`, and the checker rejects it.
+- The exit code says how a run ended: 0 finished, 1 rejected
+  (`rejected: CLASS in DECL` on standard error), 2 a run-time error
+  (`run-time error: NAME`), 3 a syntax error (`syntax error: line N:
+  MESSAGE`), 4 a command line or file that cannot be used. The conformance
+  suite compares these, and the printed lines, with the compiler's.

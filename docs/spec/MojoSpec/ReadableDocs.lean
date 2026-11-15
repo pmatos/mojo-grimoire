@@ -18,6 +18,12 @@ import MojoSpec.Interp.Value
 import MojoSpec.Interp.Machine
 import MojoSpec.Interp.Eval
 import MojoSpec.Interp.Run
+import MojoSpec.Parse.Lexer
+import MojoSpec.Parse.Parser
+import MojoSpec.Parse.Expr
+import MojoSpec.Parse.Stmt
+import MojoSpec.Parse.Infer
+import MojoSpec.Driver.Main
 
 /-!
 The readable documents that `MojoSpec.lean` renders with `{includeReadable}`,
