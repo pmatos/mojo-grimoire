@@ -1,0 +1,157 @@
+default_install_hook_types: [pre-commit, commit-msg]
+# A hook runs on commit, on the commit message as before, and in the smoke
+# run before a push: `pre-commit run --all-files --hook-stage pre-push`. A
+# slow hook, one that builds Lean, sets `stages: [pre-commit]`: CI runs it on
+# every file (ADR-2026-11-15-1903).
+default_stages: [pre-commit, commit-msg, pre-push]
+minimum_pre_commit_version: 4.4.0
+
+repos:
+  - repo: local
+    hooks:
+      # ADR-2026-11-15-1901.
+      - id: file-size-budget
+        name: Text files are at most 20,000 bytes
+        entry: python scripts/check_file_size.py
+        language: python
+        types: [text]
+        # Generated or vendored files only; never exclude authored code.
+        exclude: (^|/)(package-lock\.json|[^/]*\.lock)$|^docs/adrs/INDEX\.md$
+      - id: hidden-chars
+        name: Text files hold no raw bidi controls, marks, BOM or separators
+        entry: python scripts/check_hidden_chars.py
+        language: python
+        types: [text]
+      # It reads every tracked ADR, so a new one is checked against main's
+      # (ADR-2026-11-15-1902).
+      - id: adr-ids
+        name: ADRs are well named and no two share a timestamp id
+        entry: python scripts/check_adr_ids.py
+        language: python
+        pass_filenames: false
+        files: ^(docs/adrs/|scripts/check_adr_ids\.py$)
+      - id: adr-ids-test
+        name: The adr-ids check passes its tests
+        entry: python scripts/run_unittests.py adr-ids-test scripts/test_check_adr_ids.py
+        language: python
+        pass_filenames: false
+        files: ^scripts/((test_)?check_adr_ids|run_unittests)\.py$
+      # The committed docs/adrs/INDEX.md is the one that adr_index.py makes,
+      # every ADR has a tier and an area, and every accepted ADR is cited by
+      # a page of its area in docs/decisions/ (ADR-2026-11-15-1902).
+      - id: adr-index
+        name: The ADR index is current, and every ADR has a tier, an area and a page
+        entry: python scripts/adr_index.py
+        language: python
+        pass_filenames: false
+        files: ^(docs/adrs/|docs/decisions/|scripts/(adr_index|check_adr_ids|check_adr_citations)\.py$)
+      - id: adr-index-test
+        name: The adr-index check passes its tests
+        entry: python scripts/run_unittests.py adr-index-test scripts/test_adr_index.py
+        language: python
+        pass_filenames: false
+        files: ^scripts/((test_)?adr_index|check_adr_(ids|citations)|run_unittests)\.py$
+      # Every ADR citation in every tracked text file names an ADR. It runs on
+      # every commit: a deleted or renamed ADR breaks citations in files the
+      # commit does not touch, and pre-commit passes no deleted file.
+      - id: adr-citations
+        name: Every ADR citation in a tracked text file names an ADR
+        entry: python scripts/check_adr_citations.py
+        language: python
+        pass_filenames: false
+        always_run: true
+      - id: adr-citations-test
+        name: The adr-citations check passes its tests and the shared cases
+        entry: python scripts/run_unittests.py adr-citations-test scripts/test_check_adr_citations.py
+        language: python
+        pass_filenames: false
+        files: ^scripts/(((test_)?check_adr_(citations|ids)|run_unittests)\.py|adr-citation-cases\.json)$
+      # Builds lean/ with --wfail, which runs the Lean tests and the axiom
+      # check (ADR-2026-11-15-1905, ADR-2026-11-15-1906).
+      - id: lean-build
+        name: Build the Lean model, run its tests and check its axioms
+        entry: scripts/build-lean.sh
+        language: unsupported_script
+        stages: [pre-commit]
+        pass_filenames: false
+        files: ^(lean/|scripts/(build-lean\.sh|suite_summary\.py)$)
+      # CI runs each hook above and below in exactly one job of
+      # .github/workflows/, and its required check needs every job
+      # (ADR-2026-11-15-1903).
+      - id: ci-hooks
+        name: CI runs every hook in exactly one job
+        entry: python scripts/check_ci_hooks.py
+        language: python
+        additional_dependencies: [pyyaml==6.0.3]
+        pass_filenames: false
+        files: ^(\.pre-commit-config\.yaml|\.github/workflows/.*|scripts/check_ci_hooks\.py)$
+      - id: ci-hooks-test
+        name: The ci-hooks check passes its tests
+        entry: python scripts/run_unittests.py ci-hooks-test scripts/test_check_ci_hooks.py
+        language: python
+        additional_dependencies: [pyyaml==6.0.3]
+        pass_filenames: false
+        files: ^(\.pre-commit-config\.yaml|\.github/workflows/.*|scripts/((test_)?check_ci_hooks|run_unittests)\.py)$
+      - id: suite-summary-test
+        name: The test suites' summary writer passes its tests
+        entry: python scripts/run_unittests.py suite-summary-test scripts/test_suite_summary.py
+        language: python
+        pass_filenames: false
+        files: ^scripts/((test_)?suite_summary|run_unittests)\.py$
+      - id: run-unittests-test
+        name: The Python test hooks' runner passes its tests
+        entry: python scripts/run_unittests.py run-unittests-test scripts/test_run_unittests.py
+        language: python
+        pass_filenames: false
+        files: ^scripts/((test_)?run_unittests|suite_summary)\.py$
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-yaml
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.51.1
+    hooks:
+      - id: typos
+        args: []
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.3
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.31.1
+    hooks:
+      - id: zizmor
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]

@@ -1,1 +1,4 @@
-/.lake/
+/lean/.lake/
+__pycache__/
+.claude/worktrees/
+.claude/scheduled_tasks.lock
