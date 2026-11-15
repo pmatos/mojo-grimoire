@@ -99,6 +99,20 @@ compiler destroys a value, so that the interpreter destroys only what a
 
 {includeReadable "." MojoGrimoire.Elab.Strip "Elaboration only inserts drops" MojoSpec.Elab.Strip (level := 2)}
 
+# The interpreter
+
+The interpreter runs an elaborated program, step by step, with fuel: what
+it prints, and how the run ends, is what the conformance suite compares
+with the compiler.
+
+{includeReadable "." MojoGrimoire.Interp.Value "Values" MojoSpec.Interp.Value (level := 2)}
+
+{includeReadable "." MojoGrimoire.Interp.Machine "The machine" MojoSpec.Interp.Machine (level := 2)}
+
+{includeReadable "." MojoGrimoire.Interp.Eval "Evaluation" MojoSpec.Interp.Eval (level := 2)}
+
+{includeReadable "." MojoGrimoire.Interp.Run "Running a program" MojoSpec.Interp.Run (level := 2)}
+
 # Architecture decision records
 %%%
 tag := "adrs"

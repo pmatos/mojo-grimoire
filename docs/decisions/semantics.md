@@ -126,3 +126,24 @@ the compiler when the suite records results.
   point die in the order of declaration, parameters first.
 - A `return` gets no drops: the interpreter destroys what remains after
   evaluating the returned value.
+
+## The interpreter
+
+The interpreter, `MojoGrimoire.Interp`, runs an elaborated program with
+fuel (#21). Its outcome is the class of error that rejects the program, or
+the lines printed and how the run ends. These choices are to be confirmed
+against the compiler when the suite records results:
+
+- `Int` is 64-bit and wraps around on overflow. `//` rounds toward
+  negative infinity and `%` takes the sign of the divisor. Division by zero
+  stops the run with an error.
+- A list index may be negative, counting from the end; an index out of
+  bounds stops the run with an error.
+- A struct without a `__deinit__` has its fields destroyed in declaration
+  order, and a list its elements in index order.
+- A temporary passed to a borrowing parameter is destroyed right after the
+  call; the unused result of an expression statement is destroyed at once.
+- An assignment evaluates its value, then its place, and destroys the old
+  value after storing the new one.
+- `return` evaluates its value, then destroys what the function still
+  owns, in declaration order.

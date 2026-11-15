@@ -14,6 +14,10 @@ import MojoSpec.Elab.Live
 import MojoSpec.Elab.Origins
 import MojoSpec.Elab.Elaborate
 import MojoSpec.Elab.Strip
+import MojoSpec.Interp.Value
+import MojoSpec.Interp.Machine
+import MojoSpec.Interp.Eval
+import MojoSpec.Interp.Run
 
 /-!
 The readable documents that `MojoSpec.lean` renders with `{includeReadable}`,
