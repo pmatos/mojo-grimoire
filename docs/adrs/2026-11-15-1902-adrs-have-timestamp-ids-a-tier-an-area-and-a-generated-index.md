@@ -12,7 +12,7 @@ Tier: direction; area: process
 - Its form is Decision, Why and Rejected alternatives, in about 300 words.
   The status paragraph ends with `Tier: TIER; area: AREA`. The tier is
   `direction` or `implementation`; the area is one of `semantics`,
-  `lean-model`, `conformance` and `process`.
+  `lean-model`, `conformance`, `spec` and `process`.
 - Each area has a page, `docs/decisions/AREA.md`, that says what holds today
   and cites the ADRs it rests on. The page is the record: when a page and an
   ADR disagree, the page wins, and the ADR is fixed or deleted.

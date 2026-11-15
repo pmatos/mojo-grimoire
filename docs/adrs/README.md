@@ -87,7 +87,8 @@ The last line of each ADR's status paragraph is `Tier: TIER; area: AREA`
 - The area is one of `semantics` (what Mojo means and what the model takes as
   its reference), `lean-model` (how the Lean code is built, checked and
   organised), `conformance` (the differential tests against the compiler and
-  the decision log) and `process`.
+  the decision log), `spec` (the Verso document and its checks) and
+  `process`.
 
 [`INDEX.md`](INDEX.md) lists every ADR with its tier, area and what holds now,
 then the Removed table. It is generated, so never edit it by hand. After

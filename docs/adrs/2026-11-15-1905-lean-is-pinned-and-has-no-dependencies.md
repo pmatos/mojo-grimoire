@@ -10,7 +10,8 @@ Tier: direction; area: lean-model
   PR, which fixes every warning the new release raises.
 - **`lean/` is one Lake package, `mojo-grimoire`, with no dependencies:** no
   Mathlib, no Lean-MLIR. Adding one means editing this ADR first, with the
-  human's ruling.
+  human's ruling. The spec document in `docs/spec/` is a separate package
+  that requires Verso (ADR-2026-11-15-2030); `lean/` never does.
 - **Three libraries.** `MojoGrimoire` is the model, `MojoGrimoireTest` its
   tests, whose root imports every module, and `MojoGrimoireCheck` runs the
   axiom check (ADR-2026-11-15-1906).

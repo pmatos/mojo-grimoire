@@ -70,11 +70,11 @@ grow. This repository starts with no oversized file.
 ## ADRs
 
 ADRs are named by their UTC timestamp, carry a tier and an area, and are
-listed in a generated index (ADR-2026-11-15-1902). The areas are `semantics`,
-`lean-model`, `conformance` and `process`, each with a page here. An ADR is
-written only for a direction decision that binds more than one module, is
-edited in place when the decision changes, and is deleted with a row in
-`docs/adrs/removed/AREA.json`. `docs/adrs/README.md` has the rules and the
+listed in a generated index (ADR-2026-11-15-1902). The areas are
+`semantics`, `lean-model`, `conformance`, `spec` and `process`, each with a
+page here. An ADR is written only for a direction decision that binds more
+than one module, is edited in place when the decision changes, and is deleted
+with a row in `docs/adrs/removed/AREA.json`. `docs/adrs/README.md` has the rules and the
 template.
 
 Rejected: immutable ADRs with `superseded by` chains, which in funk grew

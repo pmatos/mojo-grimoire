@@ -32,6 +32,7 @@ AREAS = (
     "semantics",
     "lean-model",
     "conformance",
+    "spec",
     "process",
 )
 
