@@ -1,7 +1,7 @@
 struct Account(Movable):
     var balance: Int
 
-    fn __init__(out self, balance: Int):
+    def __init__(out self, balance: Int):
         self.balance = balance
 
     def deposit(mut self, amount: Int):
