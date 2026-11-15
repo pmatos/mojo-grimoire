@@ -13,23 +13,23 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Places, expressions and statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10803418811913311223")
+:::moduleDocs (fingerprint := "15154038860719106450")
 :::
 
-:::readable MojoGrimoire.Core.Place (fingerprint := "9288142318960950821")
-*Definition: places.* A place $`p` names a location that holds a value:
+:::readable MojoGrimoire.Core.Place MojoGrimoire.Core.Expr (fingerprint := "5147792290193113691")
+*Definition: places and expressions.* A place $`p` names a location that holds a value:
 
 ```grammar MojoGrimoire.Core.Place
 p
 var    x
 field  p.f
+index  p[e]
 ```
 
-$`x` is a variable, and $`p.f` the field $`f` of the value in $`p`.
-:::
-
-:::readable MojoGrimoire.Core.Expr (fingerprint := "17071127942261054996")
-*Definition: expressions.* An expression $`e` is one of:
+$`x` is a variable, $`p.f` the field $`f` of the value in $`p`, and
+$`p[e]` the element at index $`e` of the list in $`p`. Places and
+expressions are defined together, since an index is an expression.
+An expression $`e` is one of:
 
 ```grammar MojoGrimoire.Core.Expr
 e
@@ -41,6 +41,7 @@ call          f(e^*)
 method        p.m(e^*)
 unary         \mathit{unop}~e
 binary        e~\mathit{binop}~e
+list          [e^*]_t
 ```
 
 Here $`n` is an integer, $`b` a boolean and $`s` a string literal.
@@ -55,6 +56,8 @@ Here $`n` is an integer, $`b` a boolean and $`s` a string literal.
 * $`f(e^*)` calls the function $`f`, or constructs the struct $`f` when $`f`
   names a struct, as Mojo's `S(args)` does.
 * $`p.m(e^*)` calls the method $`m` on the value in $`p`.
+* $`[e^*]_t` builds a list of elements of type $`t`: Mojo's literal
+  `[e1, e2]`, or `List[t]()` when it is empty.
 :::
 
 :::readable MojoGrimoire.Core.Stmt (fingerprint := "2781332869060647278")

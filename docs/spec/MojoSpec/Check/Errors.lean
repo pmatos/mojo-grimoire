@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Errors: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10759422094023618243")
+:::moduleDocs (fingerprint := "5770653131559990890")
 :::
 
-:::readable MojoGrimoire.Check.CheckError (fingerprint := "5332598606602861103")
+:::readable MojoGrimoire.Check.CheckError (fingerprint := "3477601208644791450")
 *Definition: the classes of error.* The checker rejects a program with one
 of these classes, each with the names or types it concerns:
 
@@ -24,7 +24,8 @@ of these classes, each with the names or types it concerns:
   declared twice where it must be unique (`duplicate`);
 * types: a type that may not be declared, such as that of string literals
   (`invalidType`), a struct that contains itself (`recursiveStruct`), a
-  type other than the one expected (`typeMismatch`), a value that
+  type other than the one expected (`typeMismatch`), an index into a
+  value that is not a list (`notAList`), a value that
   `print` cannot print (`notPrintable`), a string literal outside
   `print` (`stringOutsidePrint`), and a call with the wrong number of
   arguments (`arityMismatch`);
@@ -38,7 +39,8 @@ of these classes, each with the names or types it concerns:
   (`uninitializedUse`), an implicit copy of a value that is not implicitly
   copyable (`implicitCopy`), `.copy()` of a value that is not copyable
   (`notCopyable`), a transfer out of a value the function does not own
-  (`transferFromBorrowed`), a change to a place the function may not
+  (`transferFromBorrowed`) or out of an element of a list
+  (`transferFromElement`), a change to a place the function may not
   change (`immutablePlace`), a `mut` argument that is not a place
   (`notAPlace`) or that aliases another argument
   (`argumentExclusivity`), a loop that moves a value from before it

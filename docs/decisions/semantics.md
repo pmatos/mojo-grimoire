@@ -67,6 +67,19 @@ Phase 1), and any disagreement goes in the decision log.
   reuse a name. ASAP elaboration relies on this, since it tracks
   variables by name.
 
+### Lists
+
+Lists, `List[T]`, follow the same rules, with these choices (#17):
+
+- An element is part of its list for initialization: it is initialized
+  whenever the list is, and cannot be transferred out (`xs[i]^`).
+- Two places that go through elements of the same list overlap for
+  argument exclusivity, whatever their indices.
+- A list is copied only explicitly, with `.copy()`, and only when its
+  elements can be copied.
+- The only methods modelled are `append` and the built-in `len`, which a
+  function named `len` hides. An index must be an `Int`.
+
 ## ASAP elaboration
 
 Elaboration, `MojoGrimoire.Elab`, makes Mojo's destruction points explicit:

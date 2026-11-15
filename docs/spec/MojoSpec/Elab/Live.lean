@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Uses, moves and liveness: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4175478937422233731")
+:::moduleDocs (fingerprint := "3847688564485713696")
 :::
 
 :::readable MojoGrimoire.Elab.Slots MojoGrimoire.Elab.Slots.of MojoGrimoire.Elab.Slots.isSlot (fingerprint := "11658020554862647065")
@@ -26,21 +26,24 @@ place is a whole slot when transferring it or assigning to it moves or
 defines the slot: a variable, or a field of `self` in `__deinit__`.
 :::
 
-:::readable MojoGrimoire.Elab.union MojoGrimoire.Elab.diff (fingerprint := "15200647114027732180")
+:::readable MojoGrimoire.Elab.union MojoGrimoire.Elab.diff (fingerprint := "14856447206105194588")
 *Definition: sets of slots.* Sets of slots are lists without repeats, kept
 in the order they are found. $`A \cup B` keeps $`A` and adds the slots of
 $`B` not in it; $`A \setminus B` keeps the slots of $`A` not in $`B`.
 :::
 
-:::readable MojoGrimoire.Elab.uses MojoGrimoire.Elab.usesList (fingerprint := "14300740005845817175")
+:::readable MojoGrimoire.Elab.indexUses MojoGrimoire.Elab.uses MojoGrimoire.Elab.usesList (fingerprint := "14515175716647013049")
 *Definition: uses.* An expression uses the slots of every place it reads,
-copies, transfers or calls a method on, and of its arguments.
+copies, transfers or calls a method on, the slots its index expressions
+use, and those of its arguments. A use of an element of a list uses the
+slot of the list.
 :::
 
-:::readable MojoGrimoire.Elab.moves MojoGrimoire.Elab.movesList (fingerprint := "10178125217492431984")
+:::readable MojoGrimoire.Elab.indexMoves MojoGrimoire.Elab.moves MojoGrimoire.Elab.movesList (fingerprint := "15428857798748576165")
 *Definition: moves.* An expression moves away the whole slots it
 transfers with `^`. Transferring a part of a slot does not move the slot:
-what is left of it is still destroyed.
+what is left of it is still destroyed. Moves inside index expressions
+count too.
 :::
 
 :::readable MojoGrimoire.Elab.usesOpt (fingerprint := "1969760738466055816")

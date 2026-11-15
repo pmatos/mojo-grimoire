@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Names, types, conventions and operators: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8313403371895628552")
+:::moduleDocs (fingerprint := "8567564222336604753")
 :::
 
 :::readable MojoGrimoire.Core.Name (fingerprint := "17987575212195285839")
@@ -21,7 +21,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 methods and structs are all named by names, and the context says which.
 :::
 
-:::readable MojoGrimoire.Core.Ty (fingerprint := "2018854013612493727")
+:::readable MojoGrimoire.Core.Ty (fingerprint := "8754002877626675602")
 *Definition: types.* A type $`t` is one of:
 
 ```grammar MojoGrimoire.Core.Ty
@@ -31,9 +31,11 @@ bool       \mathsf{Bool}
 str        \mathsf{Str}
 noneType   \mathsf{None}
 struct     S
+list       \mathsf{List}[t]
 ```
 
-Here $`S` is the name of a struct. $`\mathsf{Str}` is the type of string
+Here $`S` is the name of a struct, and $`\mathsf{List}[t]` is a list of
+values of type $`t`. $`\mathsf{Str}` is the type of string
 literals, which a program may only print, and $`\mathsf{None}` the type of a
 call to a function that returns nothing.
 :::

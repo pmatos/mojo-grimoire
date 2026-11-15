@@ -112,8 +112,12 @@ def checkStmt (prog : Program) (fn : Name) (result : Ty) : Stmt → CheckM Unit
     modify fun s => { s with vars := ⟨x, t, .owned, us⟩ :: s.vars }
   | .assign p e => do
     let t ← checkExpr prog e
+    checkIndices prog p
     expect (← placeTy prog p) t
     requireMutable p
+    if splitPlace.indexed p then
+      let _ ← readPlace prog p
+      return
     let (x, path) := splitPlace p
     let v ← lookup x
     let below := (v.uninit.filter fun u => path.isPrefixOf u && u != path).map (·.drop path.length)

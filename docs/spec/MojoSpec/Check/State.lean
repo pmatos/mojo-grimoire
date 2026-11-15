@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8735751188840914890")
+:::moduleDocs (fingerprint := "8640306526871944527")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "17649564089541233699")
@@ -45,10 +45,12 @@ point can be reached; after a `return` it cannot. The checker runs in a
 monad that reads and updates this state and may reject the program.
 :::
 
-:::readable MojoGrimoire.Check.splitPlace (fingerprint := "6247421424538755781")
+:::readable MojoGrimoire.Check.splitPlace MojoGrimoire.Check.splitPlace.indexed (fingerprint := "12772070633194086704")
 *Definition: the parts of a place.* A place is a variable and a path:
 $`x` is $`x` with $`\epsilon`, and $`p.f` is the variable of $`p`
-with the path of $`p` followed by $`f`.
+with the path of $`p` followed by $`f`. The checker does not follow the
+elements of a list: the path of a place that goes through $`p[e]` stops at
+$`p`, so an element counts as initialized when its list is.
 :::
 
 :::readable MojoGrimoire.Check.initialized MojoGrimoire.Check.uninitialize (fingerprint := "11992667982633253845")
@@ -79,9 +81,10 @@ scope with that name, and updating a variable's uninitialized parts updates
 that variable. An unknown name is rejected.
 :::
 
-:::readable MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.readPlace (fingerprint := "8537506672346119578")
+:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.readPlace (fingerprint := "7655404263589481946")
 *Definition: reading a place.* The type of a place is the type of its
-variable, then of each field on its path. Reading a place's value needs the
+variable, then of each field or element on the way; only a list has
+elements. Reading a place's value needs the
 part it names to be initialized, and is otherwise rejected as a use of an
 uninitialized value.
 :::

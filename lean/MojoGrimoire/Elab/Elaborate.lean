@@ -21,8 +21,8 @@ Inside `__deinit__(deinit self)`, each field of `self` is destroyed on its own,
 at the same points, so a field the body never uses is destroyed before the
 body runs.
 
-Only values of struct type are dropped: values of the other types of the core
-calculus have no destruction that can be observed. Several values destroyed
+Only values of struct type, and lists of them, are dropped: values of the
+other types of the core calculus have no destruction that can be observed. Several values destroyed
 at the same point are destroyed in the order of their declaration, parameters
 first.
 -/
@@ -31,9 +31,11 @@ namespace MojoGrimoire.Elab
 
 open MojoGrimoire.Core MojoGrimoire.Check
 
-/-- Whether a value of type `t` is dropped: one of struct type. -/
+/-- Whether a value of type `t` is dropped: one of struct type, or a list
+of them. -/
 def needsDrop : Ty → Bool
   | .struct _ => true
+  | .list t => needsDrop t
   | _ => false
 
 /-- The statements that drop the slots of `d`, in the order of `owned`, the
@@ -53,14 +55,16 @@ def defs (sl : Slots) : Stmt → List Place
 a slot uses the slot. -/
 def usesStmt (sl : Slots) : Stmt → List Place
   | .decl _ _ init => usesOpt sl init
-  | .assign p e => if sl.isSlot p then uses sl e else union (uses sl e) (sl.of p)
+  | .assign p e =>
+    if sl.isSlot p then uses sl e else union (uses sl e) (union (sl.of p) (indexUses sl p))
   | .expr e => uses sl e
   | .print args => usesList sl args
   | _ => []
 
 /-- The slots that the simple statement `s` moves away whole. -/
 def movesStmt (sl : Slots) : Stmt → List Place
-  | .decl _ _ (some e) | .assign _ e | .expr e => moves sl e
+  | .decl _ _ (some e) | .expr e => moves sl e
+  | .assign p e => union (moves sl e) (indexMoves sl p)
   | .print args => movesList sl args
   | _ => []
 

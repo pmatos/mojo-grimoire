@@ -51,14 +51,22 @@ def union (a b : List Place) : List Place := a ++ b.filter (!a.contains ·)
 def diff (a b : List Place) : List Place := a.filter (!b.contains ·)
 
 mutual
-/-- The slots that the expression `e` uses. -/
+/-- The slots that the index expressions of the place `p` use. -/
+def indexUses (sl : Slots) : Place → List Place
+  | .var _ => []
+  | .field p _ => indexUses sl p
+  | .index p i => union (indexUses sl p) (uses sl i)
+
+/-- The slots that the expression `e` uses. A place uses its own slot and
+those its index expressions use. -/
 def uses (sl : Slots) : Expr → List Place
   | .int _ | .bool _ | .str _ => []
-  | .place p | .transfer p | .copy p => sl.of p
+  | .place p | .transfer p | .copy p => union (sl.of p) (indexUses sl p)
   | .call _ args => usesList sl args
-  | .method p _ args => union (sl.of p) (usesList sl args)
+  | .method p _ args => union (union (sl.of p) (indexUses sl p)) (usesList sl args)
   | .unary _ a => uses sl a
   | .binary _ a b => union (uses sl a) (uses sl b)
+  | .list _ es => usesList sl es
 
 /-- The slots that the expressions `es` use. -/
 def usesList (sl : Slots) : List Expr → List Place
@@ -67,15 +75,23 @@ def usesList (sl : Slots) : List Expr → List Place
 end
 
 mutual
+/-- The slots that the index expressions of the place `p` move away. -/
+def indexMoves (sl : Slots) : Place → List Place
+  | .var _ => []
+  | .field p _ => indexMoves sl p
+  | .index p i => union (indexMoves sl p) (moves sl i)
+
 /-- The slots that the expression `e` moves away whole, with `p^` of a
 whole slot. -/
 def moves (sl : Slots) : Expr → List Place
-  | .transfer p => if sl.isSlot p then [p] else []
+  | .int _ | .bool _ | .str _ => []
+  | .transfer p => union (if sl.isSlot p then [p] else []) (indexMoves sl p)
+  | .place p | .copy p => indexMoves sl p
   | .call _ args => movesList sl args
-  | .method _ _ args => movesList sl args
+  | .method p _ args => union (indexMoves sl p) (movesList sl args)
   | .unary _ a => moves sl a
   | .binary _ a b => union (moves sl a) (moves sl b)
-  | _ => []
+  | .list _ es => movesList sl es
 
 /-- The slots that the expressions `es` move away whole. -/
 def movesList (sl : Slots) : List Expr → List Place
@@ -101,7 +117,7 @@ def liveStmt (sl : Slots) (s : Stmt) (after : List Place) : List Place :=
   | .decl x _ init => union (usesOpt sl init) (diff after [.var x])
   | .assign p e =>
     if sl.isSlot p then union (uses sl e) (diff after [p])
-    else union (uses sl e) (union (sl.of p) after)
+    else union (uses sl e) (union (union (sl.of p) (indexUses sl p)) after)
   | .expr e => union (uses sl e) after
   | .print args => union (usesList sl args) after
   | .ifElse c a b =>
