@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Functions, structs and programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16555158738056274582")
+:::moduleDocs (fingerprint := "11478824429510958497")
 :::
 
 :::readable MojoGrimoire.Core.Param (fingerprint := "15254264730588750988")
@@ -21,11 +21,14 @@ pins their fingerprint; the build fails when the Lean changes under it.
 name $`x` and a type $`t`.
 :::
 
-:::readable MojoGrimoire.Core.FunDecl (fingerprint := "3868834581323395352")
+:::readable MojoGrimoire.Core.FunDecl (fingerprint := "15043811440320529459")
 *Definition: functions.* A function
 $`\mathsf{def}~f(c_1~x_1 : t_1, \dots, c_n~x_n : t_n) \to t : s^*` has a
 name $`f`, parameters, a result type $`t` and a body $`s^*`. A function that
-returns nothing has the result type $`\mathsf{None}`.
+returns nothing has the result type $`\mathsf{None}`. A function may return
+a reference instead of a value, Mojo's
+$`\to \mathsf{ref}~[x_1, \dots, x_k]~t`: its origin names the parameters
+whose values the reference may point into.
 
 A method is a function whose first parameter is $`\mathsf{self}`, and an
 initializer a method whose $`\mathsf{self}` has the convention

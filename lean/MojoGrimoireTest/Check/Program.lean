@@ -30,19 +30,19 @@ private def pairDecl : StructDecl :=
 
 /-- `def consume(var r: Res): print(r.id)` -/
 private def consume : FunDecl := ⟨"consume", [⟨.owned, "r", res⟩], .noneType,
-  [.print [.place (fld "r" "id")]]⟩
+  [.print [.place (fld "r" "id")]], none⟩
 
 /-- `def show(r: Res): print(r.id)` -/
 private def showRes : FunDecl := ⟨"show", [⟨.read, "r", res⟩], .noneType,
-  [.print [.place (fld "r" "id")]]⟩
+  [.print [.place (fld "r" "id")]], none⟩
 
 /-- `def bump(mut r: Res, other: Res): r.id = r.id + other.id` -/
 private def bump : FunDecl := ⟨"bump", [⟨.mutable, "r", res⟩, ⟨.read, "other", res⟩], .noneType,
-  [.assign (fld "r" "id") (.binary .add (.place (fld "r" "id")) (.place (fld "other" "id")))]⟩
+  [.assign (fld "r" "id") (.binary .add (.place (fld "r" "id")) (.place (fld "other" "id")))], none⟩
 
 /-- `def addInts(mut a: Int, b: Int): a = a + b` -/
 private def addInts : FunDecl := ⟨"addInts", [⟨.mutable, "a", .int⟩, ⟨.read, "b", .int⟩], .noneType,
-  [.assign (v "a") (.binary .add (use "a") (use "b"))]⟩
+  [.assign (v "a") (.binary .add (use "a") (use "b"))], none⟩
 
 private def lib : List FunDecl := [consume, showRes, bump, addInts]
 
@@ -50,7 +50,7 @@ private def lib : List FunDecl := [consume, showRes, bump, addInts]
 `main` whose body is `body`. -/
 private def prog (body : List Stmt) (funs : List FunDecl := []) (structs : List StructDecl := []) :
     Program :=
-  ⟨[resDecl, ptDecl, pairDecl] ++ structs, lib ++ funs ++ [⟨"main", [], .noneType, body⟩]⟩
+  ⟨[resDecl, ptDecl, pairDecl] ++ structs, lib ++ funs ++ [⟨"main", [], .noneType, body, none⟩]⟩
 
 private def newRes (x : Name) (n : Int) : Stmt := .decl x res (some (.call "Res" [.int n]))
 
@@ -86,11 +86,11 @@ private def verdict (p : Program) : Option CheckError :=
 
 -- `def take(r: Res): consume(r^)`: a transfer out of a `read` parameter.
 #guard verdict (prog [] [⟨"take", [⟨.read, "r", res⟩], .noneType,
-  [.expr (.call "consume" [.transfer (v "r")])]⟩]) == some (.transferFromBorrowed (v "r"))
+  [.expr (.call "consume" [.transfer (v "r")])], none⟩]) == some (.transferFromBorrowed (v "r"))
 
 -- `def set(r: Res): r.id = 0`: an assignment through a `read` parameter.
 #guard verdict (prog [] [⟨"set", [⟨.read, "r", res⟩], .noneType,
-  [.assign (fld "r" "id") (.int 0)]⟩]) == some (.immutablePlace (fld "r" "id"))
+  [.assign (fld "r" "id") (.int 0)], none⟩]) == some (.immutablePlace (fld "r" "id"))
 
 -- `bump(a, a)`: `a` passed `mut` and also as a location.
 #guard verdict (prog [newRes "a" 1, .expr (.call "bump" [use "a", use "a"])]) ==
@@ -139,20 +139,20 @@ private def verdict (p : Program) : Option CheckError :=
 -- `__init__` must initialize every field of `self`.
 #guard verdict (prog [] [] [⟨"Two", [("x", .int), ("y", .int)], .none, false,
   some ⟨"__init__", [⟨.out, "self", .struct "Two"⟩], .noneType,
-    [.assign (fld "self" "x") (.int 1)]⟩, none, []⟩]) == some (.uninitializedAtExit "self")
+    [.assign (fld "self" "x") (.int 1)], none⟩, none, []⟩]) == some (.uninitializedAtExit "self")
 
 -- It may initialize them one by one.
 #guard verdict (prog [.decl "t" (.struct "Two") (some (.call "Two" []))] []
   [⟨"Two", [("x", .int), ("y", .int)], .none, false,
   some ⟨"__init__", [⟨.out, "self", .struct "Two"⟩], .noneType,
-    [.assign (fld "self" "x") (.int 1), .assign (fld "self" "y") (.int 2)]⟩, none, []⟩]) == none
+    [.assign (fld "self" "x") (.int 1), .assign (fld "self" "y") (.int 2)], none⟩, none, []⟩]) == none
 
 -- `def f() -> Int: pass`: a function with a result must return.
-#guard verdict (prog [] [⟨"f", [], .int, [.pass]⟩]) == some (.missingReturn "f")
+#guard verdict (prog [] [⟨"f", [], .int, [.pass], none⟩]) == some (.missingReturn "f")
 
 -- Returning an owned local moves it; returning a `read` parameter copies it.
-#guard verdict (prog [] [⟨"make", [], res, [newRes "r" 1, .ret (some (use "r"))]⟩]) == none
-#guard verdict (prog [] [⟨"same", [⟨.read, "r", res⟩], res, [.ret (some (use "r"))]⟩]) ==
+#guard verdict (prog [] [⟨"make", [], res, [newRes "r" 1, .ret (some (use "r"))], none⟩]) == none
+#guard verdict (prog [] [⟨"same", [⟨.read, "r", res⟩], res, [.ret (some (use "r"))], none⟩]) ==
   some (.implicitCopy res)
 
 -- Types: `1 + True`, `if 1:`, and `print(a)` of a struct.

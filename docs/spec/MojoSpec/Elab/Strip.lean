@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Elaboration only inserts drops: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18400297853986621084")
+:::moduleDocs (fingerprint := "2137699260014510000")
 :::
 
 :::readable MojoGrimoire.Elab.stripStmt MojoGrimoire.Elab.stripBlock (fingerprint := "17318067068892795592")
@@ -21,7 +21,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 removed, inside branches and loop bodies too.
 :::
 
-:::readable MojoGrimoire.Elab.stripFun MojoGrimoire.Elab.stripStruct MojoGrimoire.Elab.stripProgram (fingerprint := "10888270265757704745")
+:::readable MojoGrimoire.Elab.stripFun MojoGrimoire.Elab.stripStruct MojoGrimoire.Elab.stripProgram (fingerprint := "12505016125399784277")
 *Definition: erasing the drops of a program.* Every body of the program,
 with its drops erased.
 :::

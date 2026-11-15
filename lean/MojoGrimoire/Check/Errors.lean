@@ -43,6 +43,9 @@ inductive CheckError where
   | missingReturn (name : Name)
   | invalidReturn (name : Name)
   | noMain
+  | notAReference
+  | invalidOrigin (name : Name)
+  | escapingReference (name : Name)
   deriving BEq
 
 /-- A rejection: the error, and the declaration it was found in, a function,

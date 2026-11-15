@@ -23,14 +23,17 @@ open MojoGrimoire.Core
 parameter; `constructing` the `self` of `__init__`, which starts
 uninitialized and must be initialized when the function returns; `mutable` a
 `mut` parameter; `readOnly` a `read` or `ref` parameter; and `dying` the
-`self` of `__deinit__`, which owns its value and may leave fields moved out. -/
+`self` of `__deinit__`, which owns its value and may leave fields moved out.
+`alias os m` is a reference bound with `ref`: it points into the places `os`,
+and may be changed when `m` holds. -/
 inductive Access where
   | owned
   | constructing
   | mutable
   | readOnly
   | dying
-  deriving DecidableEq, Repr
+  | alias (origins : List Place) (mutable : Bool)
+  deriving BEq
 
 /-- A path of field names, from a variable to one of its parts. -/
 abbrev Path := List Name
@@ -42,14 +45,14 @@ structure VarState where
   ty : Ty
   access : Access
   uninit : List Path
-  deriving DecidableEq, Repr
+  deriving BEq
 
 /-- The checker's state: the variables in scope, innermost first, and
 whether the current point can be reached. After a `return`, it cannot. -/
 structure State where
   vars : List VarState
   live : Bool
-  deriving DecidableEq, Repr
+  deriving BEq
 
 /-- The monad of the checker: it reads and updates the state, and may reject
 the program. -/
@@ -138,13 +141,27 @@ where
   /-- Lifts a result of the program's tables into the checker. -/
   liftM {α : Type} (r : Except CheckError α) : CheckM α := StateT.lift r
 
+/-- The places that the place `p` may be, given the variables `vars`: the
+origins of a reference, or `p` itself. -/
+def resolvePlace (vars : List VarState) (p : Place) : List Place :=
+  match vars.find? (·.name == (splitPlace p).1) with
+  | some ⟨_, _, .alias os _, _⟩ => os
+  | _ => [p]
+
+/-- Rejects unless the place `p`, of a variable whose uninitialized parts are
+`us`, is initialized. -/
+def requireInit (us : List Path) (p : Place) : CheckM Unit :=
+  unless initialized us (splitPlace p).2 do throw (CheckError.uninitializedUse p)
+
 /-- The type of a place that is initialized, so that its value may be read;
-it rejects a use of a part that is uninitialized. -/
+it rejects a use of a part that is uninitialized. A place reached through a
+reference needs every place the reference may point into initialized. -/
 def readPlace (prog : Program) (p : Place) : CheckM Ty := do
   let t ← placeTy prog p
-  let (x, path) := splitPlace p
-  let v ← lookup x
-  unless initialized v.uninit path do throw (CheckError.uninitializedUse p)
+  let v ← lookup (splitPlace p).1
+  match v.access with
+  | .alias os _ => for o in os do requireInit (← lookup (splitPlace o).1).uninit o
+  | _ => requireInit v.uninit p
   pure t
 
 end MojoGrimoire.Check

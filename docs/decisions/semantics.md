@@ -80,6 +80,30 @@ Lists, `List[T]`, follow the same rules, with these choices (#17):
 - The only methods modelled are `append` and the built-in `len`, which a
   function named `len` hides. An index must be an `Int`.
 
+### References
+
+`ref x = e` bindings and functions that return `ref [a, b] T` follow these
+choices (#18):
+
+- A reference's origins are the places it may point into: the place it is
+  bound to, or the arguments passed to the parameters a returned
+  reference's origin names. Those arguments must be places.
+- A use of a reference needs every origin initialized, so a value moved
+  away cannot be used through a reference to it. A value cannot be
+  transferred out through a reference.
+- A reference may be changed when every origin allows it: a `mut`
+  parameter does, a `ref` parameter as its argument does, a `read`
+  parameter does not.
+- An origin names only `read`, `mut` or `ref` parameters, and a returned
+  reference must stay within the function's origin.
+- A reference overlaps what its origins overlap, for argument
+  exclusivity. Changing an origin while a reference to it is live is not
+  rejected.
+- A call that returns a reference, used as a value, copies the value
+  implicitly.
+- Elaboration counts each use of a reference as a use of its origins, so
+  their values live until the reference's last use.
+
 ## ASAP elaboration
 
 Elaboration, `MojoGrimoire.Elab`, makes Mojo's destruction points explicit:

@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.Expr
+import MojoGrimoire.Check.Ref
 
 /-!
 The checking of statements and blocks.
@@ -99,9 +99,9 @@ def checkReturnValue (prog : Program) : Expr → CheckM Ty
   | e => checkExpr prog e
 
 mutual
-/-- Checks the statement `s` of the function `fn`, whose result type is
-`result`. -/
-def checkStmt (prog : Program) (fn : Name) (result : Ty) : Stmt → CheckM Unit
+/-- Checks the statement `s` of the function `sig`, whose name, result type
+and origin a `return` is checked against. -/
+def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
   | .pass => pure ()
   | .decl x t init => do
     if (← get).vars.any (·.name == x) then throw (CheckError.duplicate x)
@@ -110,6 +110,10 @@ def checkStmt (prog : Program) (fn : Name) (result : Ty) : Stmt → CheckM Unit
       | some e => do expect t (← checkExpr prog e); pure []
       | none => pure [[]]
     modify fun s => { s with vars := ⟨x, t, .owned, us⟩ :: s.vars }
+  | .refDecl x e => do
+    if (← get).vars.any (·.name == x) then throw (CheckError.duplicate x)
+    let (t, origins, m) ← refTarget prog e
+    modify fun s => { s with vars := ⟨x, t, .alias origins m, []⟩ :: s.vars }
   | .assign p e => do
     let t ← checkExpr prog e
     checkIndices prog p
@@ -129,41 +133,46 @@ def checkStmt (prog : Program) (fn : Name) (result : Ty) : Stmt → CheckM Unit
   | .ifElse c thenBlock elseBlock => do
     expect .bool (← checkExpr prog c)
     let s0 ← get
-    checkScope prog fn result thenBlock
+    checkScope prog sig thenBlock
     let s1 ← get
     set s0
-    checkScope prog fn result elseBlock
+    checkScope prog sig elseBlock
     set (joinStates s1 (← get))
   | .whileLoop c body => do
     expect .bool (← checkExpr prog c)
     let s0 ← get
-    checkScope prog fn result body
+    checkScope prog sig body
     checkLoop s0 (← get)
     set s0
   | .ret value => do
-    match value with
-    | none => unless result == .noneType do throw (CheckError.invalidReturn fn)
-    | some e => do
-      if result == .noneType then throw (CheckError.invalidReturn fn)
-      expect result (← checkReturnValue prog e)
+    match value, sig.origin with
+    | none, _ => unless sig.result == .noneType do throw (CheckError.invalidReturn sig.name)
+    | some e, none => do
+      if sig.result == .noneType then throw (CheckError.invalidReturn sig.name)
+      expect sig.result (← checkReturnValue prog e)
+    | some e, some os => do
+      let (t, origins, _) ← refTarget prog e
+      expect sig.result t
+      unless origins.all (fun o => os.contains (splitPlace o).1) do
+        throw (CheckError.escapingReference sig.name)
     checkExit prog
     modify fun s => { s with live := false }
   | .drop p => do
     let _ ← transferPlace prog p
 
 /-- Checks the block `b` as a scope of its own. -/
-def checkScope (prog : Program) (fn : Name) (result : Ty) (b : List Stmt) :
+def checkScope (prog : Program) (sig : FunDecl) (b : List Stmt) :
     CheckM Unit := do
   let n := (← get).vars.length
-  checkBlock prog fn result b
+  checkBlock prog sig b
   endScope prog n
 
 /-- Checks the statements of a block in order. -/
-def checkBlock (prog : Program) (fn : Name) (result : Ty) : List Stmt → CheckM Unit
+def checkBlock (prog : Program) (sig : FunDecl) : List Stmt → CheckM Unit
   | [] => pure ()
   | s :: rest => do
-    checkStmt prog fn result s
-    checkBlock prog fn result rest
+    checkStmt prog sig s
+    checkBlock prog sig rest
 end
 
 end MojoGrimoire.Check

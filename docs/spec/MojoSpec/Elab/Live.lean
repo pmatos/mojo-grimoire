@@ -13,17 +13,19 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Uses, moves and liveness: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3847688564485713696")
+:::moduleDocs (fingerprint := "10349283650853575679")
 :::
 
-:::readable MojoGrimoire.Elab.Slots MojoGrimoire.Elab.Slots.of MojoGrimoire.Elab.Slots.isSlot (fingerprint := "11658020554862647065")
+:::readable MojoGrimoire.Elab.Slots MojoGrimoire.Elab.Slots.of MojoGrimoire.Elab.Slots.isSlot (fingerprint := "1330877572997400442")
 *Definition: slots.* A slot is what elaboration destroys on its own. It is
 a variable, except in `__deinit__`, where each field $`f` of `self` is
 the slot $`\mathit{self}.f`. A use of a place touches the slot of its
 variable; in `__deinit__`, a use of $`\mathit{self}.f.\ldots` touches
 $`\mathit{self}.f`, and a use of `self` itself touches every field. A
 place is a whole slot when transferring it or assigning to it moves or
-defines the slot: a variable, or a field of `self` in `__deinit__`.
+defines the slot: a variable, or a field of `self` in `__deinit__`. A
+reference is no slot: a use of it touches every slot it may point into, so
+that their values live as long as it is used.
 :::
 
 :::readable MojoGrimoire.Elab.union MojoGrimoire.Elab.diff (fingerprint := "14856447206105194588")

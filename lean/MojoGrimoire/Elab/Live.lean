@@ -21,23 +21,30 @@ open MojoGrimoire.Core MojoGrimoire.Check
 
 /-- The slots of a function: `fieldwise` is `some fs` in a `__deinit__`,
 where the fields `fs` of `self` are slots of their own, and `none`
-elsewhere. -/
+elsewhere. `aliases` maps each reference bound with `ref` to the slots it
+may point into. -/
 structure Slots where
   fieldwise : Option (List Name)
-  deriving DecidableEq, Repr
+  aliases : List (Name × List Place)
 
 /-- The slots that a use of the place `p` touches: the slot of its variable,
 or, for `self` in a `__deinit__`, the slot of the field of `self` it is in,
-or every field's slot for `self` itself. -/
+or every field's slot for `self` itself. A use through a reference touches
+every slot it may point into, so that they live as long as it is used. -/
 def Slots.of (sl : Slots) (p : Place) : List Place :=
-  match sl.fieldwise, splitPlace p with
-  | some fs, ("self", []) => fs.map (.field (.var "self") ·)
-  | some _, ("self", f :: _) => [.field (.var "self") f]
-  | _, (x, _) => [.var x]
+  match sl.aliases.lookup (splitPlace p).1 with
+  | some os => os
+  | none =>
+    match sl.fieldwise, splitPlace p with
+    | some fs, ("self", []) => fs.map (.field (.var "self") ·)
+    | some _, ("self", f :: _) => [.field (.var "self") f]
+    | _, (x, _) => [.var x]
 
 /-- Whether the place `p` is a whole slot, so that transferring it or
-assigning to it moves or defines the slot. -/
+assigning to it moves or defines the slot. A reference is not a slot:
+assigning to it writes through it. -/
 def Slots.isSlot (sl : Slots) (p : Place) : Bool :=
+  if (sl.aliases.lookup (splitPlace p).1).isSome then false else
   match sl.fieldwise, p with
   | some _, .var "self" => false
   | some _, .field (.var "self") _ => true
@@ -107,7 +114,7 @@ def usesOpt (sl : Slots) : Option Expr → List Place
 mutual
 /-- The slots live before the statement `s`, given those live after it. A
 declaration or an assignment to a whole slot defines it, so it is not live
-before unless the value uses it. A loop's live slots are those of its
+before unless the value uses it. A `ref` binding uses what it binds to. A loop's live slots are those of its
 condition, those live after it, and those its body uses before defining
 them; one pass through the body reaches that fixed point, since the body's
 liveness only adds the slots it uses and keeps or removes the others. -/
@@ -115,6 +122,7 @@ def liveStmt (sl : Slots) (s : Stmt) (after : List Place) : List Place :=
   match s with
   | .pass | .drop _ => after
   | .decl x _ init => union (usesOpt sl init) (diff after [.var x])
+  | .refDecl _ e => union (uses sl e) after
   | .assign p e =>
     if sl.isSlot p then union (uses sl e) (diff after [p])
     else union (uses sl e) (union (union (sl.of p) (indexUses sl p)) after)

@@ -19,15 +19,18 @@ structure Param where
   ty : Ty
   deriving BEq
 
-/-- A function: its name, parameters, result type and body. A function that
-returns nothing has the result type `noneType`. A method is a function whose
-first parameter is `self`; an initializer is a method whose `self` has the
-convention `out`. -/
+/-- A function: its name, parameters, result type, body and origin. A
+function that returns nothing has the result type `noneType`. A function
+whose `origin` is `some os` returns a reference into the values of its
+parameters named `os`, Mojo's `-> ref [a, b] T`; one whose origin is `none`
+returns a value. A method is a function whose first parameter is `self`; an
+initializer is a method whose `self` has the convention `out`. -/
 structure FunDecl where
   name : Name
   params : List Param
   result : Ty
   body : List Stmt
+  origin : Option (List Name) := none
   deriving BEq
 
 /-- How the values of a struct can be copied: not at all, only with an
