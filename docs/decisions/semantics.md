@@ -7,10 +7,13 @@ the model takes as its reference.
 
 The open-source Mojo compiler at a pinned release is the reference
 (ADR-2026-11-15-1907). The pin is the 1.2 release line,
-`MojoGrimoire.referenceMojo`, and moves forward with new releases as needed;
-each move updates the conformance suite's recorded results and this page in
-the same PR. The human chose this on 2026-11-15. Every disagreement between
-the model and the compiler goes in
+`MojoGrimoire.referenceMojo`, and within it the commit of the tag
+`mojo/v1.2.0` of `modular/modular`. `scripts/build-mojo.sh` builds the
+compiler from a checkout at that commit and refuses any other. The pin moves
+forward with new releases as needed; each move updates the conformance
+suite's recorded results, the script, the decision log and this page in the
+same PR. The human chose this on 2026-11-15. Every disagreement between the
+model and the compiler goes in
 [the decision log](../conformance/decision-log.md).
 
 Rejected: testing against the compiler's tip, where expected results would go

@@ -10,6 +10,13 @@ Every disagreement between the model and the compiler is recorded in
 bug or a spec decision. The reference is set on
 [semantics.md](semantics.md#the-reference).
 
+## The Phase 0 baseline
+
+[phase0-baseline.md](../conformance/phase0-baseline.md) records gate G0. The
+compiler built from the pinned commit by `scripts/build-mojo.sh`, and the
+Isabelle formalisation, both reproduce that formalisation's recorded results.
+Only our counts and summaries are kept here.
+
 ## The suite
 
 The conformance suite does not exist yet; Phase 1 starts it. It is written
