@@ -7,9 +7,11 @@ import MojoSpec.Check.Errors
 import MojoSpec.Check.Env
 import MojoSpec.Check.State
 import MojoSpec.Check.Expr
+import MojoSpec.Check.Ref
 import MojoSpec.Check.Stmt
 import MojoSpec.Check.Program
 import MojoSpec.Elab.Live
+import MojoSpec.Elab.Origins
 import MojoSpec.Elab.Elaborate
 import MojoSpec.Elab.Strip
 

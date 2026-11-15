@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8640306526871944527")
+:::moduleDocs (fingerprint := "2426889899264939731")
 :::
 
-:::readable MojoGrimoire.Check.Access (fingerprint := "17649564089541233699")
+:::readable MojoGrimoire.Check.Access (fingerprint := "4845031522016519524")
 *Definition: access.* How a function holds a variable:
 
 ```grammar MojoGrimoire.Check.Access
@@ -26,13 +26,16 @@ constructing  \mathsf{constructing}
 mutable       \mathsf{mutable}
 readOnly      \mathsf{readOnly}
 dying         \mathsf{dying}
+alias         \mathsf{alias}(p^*, m)
 ```
 
 A local variable or a `var` parameter is $`\mathsf{owned}`; the `self`
 of `__init__` is $`\mathsf{constructing}`; a `mut` parameter is
 $`\mathsf{mutable}`; a `read` or `ref` parameter is
 $`\mathsf{readOnly}`; and the `self` of `__deinit__` is
-$`\mathsf{dying}`.
+$`\mathsf{dying}`. A reference bound with `ref` is
+$`\mathsf{alias}(p^*, m)`: it may point into the places $`p^*`, its
+origins, and may be changed when $`m` holds.
 :::
 
 :::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.State MojoGrimoire.Check.CheckM (fingerprint := "2523236488195471872")
@@ -81,10 +84,12 @@ scope with that name, and updating a variable's uninitialized parts updates
 that variable. An unknown name is rejected.
 :::
 
-:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.readPlace (fingerprint := "7655404263589481946")
+:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "14149781558776094629")
 *Definition: reading a place.* The type of a place is the type of its
 variable, then of each field or element on the way; only a list has
 elements. Reading a place's value needs the
 part it names to be initialized, and is otherwise rejected as a use of an
-uninitialized value.
+uninitialized value. Through a reference, every origin must be
+initialized: a value moved away cannot be used through a reference to it.
+A reference resolves to its origins, and any other place to itself.
 :::

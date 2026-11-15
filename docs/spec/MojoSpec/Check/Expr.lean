@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5399371917858782510")
+:::moduleDocs (fingerprint := "14623421781753299618")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -21,18 +21,19 @@ pins their fingerprint; the build fails when the Lean changes under it.
 the checker, and `expect` rejects a type other than the one expected.
 :::
 
-:::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.requireMutable (fingerprint := "1009883049977035658")
+:::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.requireMutable (fingerprint := "8302185228131285645")
 *Definition: places that may change.* A function may change a place, by
 assigning to it or passing it `mut`, unless its variable is a `read` or
-`ref` parameter.
+`ref` parameter, or a reference that may not be changed.
 :::
 
-:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.transferPlace (fingerprint := "16790588590062624610")
+:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.transferPlace (fingerprint := "15204379235399540026")
 *Rule: reading and moving a place.* Using a place $`p` as a value copies it
 implicitly: $`p` must be initialized, and its type implicitly copyable.
 Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable
 that the function may change, owned or held `mut`; afterwards $`p` is
-uninitialized. An element of a list cannot be transferred out.
+uninitialized. An element of a list cannot be transferred out, nor can a
+value through a reference.
 :::
 
 :::readable MojoGrimoire.Check.binaryTy MojoGrimoire.Check.unaryTy (fingerprint := "1780888884152816192")
@@ -45,14 +46,15 @@ and give $`\mathsf{Bool}`. Negation takes an $`\mathsf{Int}`, and
 $`\mathsf{not}` a $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "14443904418390470930")
+:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "15076359769503551250")
 *Rule: argument exclusivity.* Two places overlap when they have the same
 variable and one path is a prefix of the other. The arguments of a call
 that are passed as locations are the places whose parameters are `read`,
 `mut` or `ref`, and the receiver of a method unless its `self` is
 `var`. A call is rejected when a location passed `mut` overlaps another
 location of the same call, unless it is an $`\mathsf{Int}` or a
-$`\mathsf{Bool}`, which Mojo passes by copy.
+$`\mathsf{Bool}`, which Mojo passes by copy. A reference overlaps what its
+origins overlap.
 :::
 
 :::readable MojoGrimoire.Check.passPlace (fingerprint := "12400455311882201308")
@@ -62,7 +64,7 @@ also be a place the function may change; one passed `var` is copied
 implicitly. No argument may be passed `out` or `deinit`.
 :::
 
-:::readable MojoGrimoire.Check.checkExpr MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices (fingerprint := "15783014465473280222")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "12024872483503844693")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -83,6 +85,8 @@ type:
   declares no function `len`, takes a list and gives an $`\mathsf{Int}`.
 
 Every index in a place is checked first, and must be an $`\mathsf{Int}`.
+A call of a function that returns a reference gives the value it points to,
+which must be implicitly copyable, unless the call is bound with `ref`.
 
 The arguments of a call are checked in order against the parameters, after
 the exclusivity rule: a place by `passPlace`, and any other expression by

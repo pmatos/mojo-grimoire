@@ -54,6 +54,7 @@ mutual
 def Stmt.beq : Stmt → Stmt → Bool
   | .pass, .pass => true
   | .decl x t e, .decl y u f => x == y && t == u && Expr.beqOption e f
+  | .refDecl x e, .refDecl y f => x == y && Expr.beq e f
   | .assign p e, .assign q f => p == q && Expr.beq e f
   | .expr e, .expr f => Expr.beq e f
   | .print as, .print bs => Expr.beqList as bs

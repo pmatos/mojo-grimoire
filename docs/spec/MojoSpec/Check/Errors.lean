@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Errors: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5770653131559990890")
+:::moduleDocs (fingerprint := "1398389244927822096")
 :::
 
-:::readable MojoGrimoire.Check.CheckError (fingerprint := "3477601208644791450")
+:::readable MojoGrimoire.Check.CheckError (fingerprint := "12810947781111785992")
 *Definition: the classes of error.* The checker rejects a program with one
 of these classes, each with the names or types it concerns:
 
@@ -34,7 +34,9 @@ of these classes, each with the names or types it concerns:
   (`invalidSelf`), a construction of a struct with no initializer
   (`noInitializer`), a `return` that does not fit the result type
   (`invalidReturn`), a function with a result that can end without
-  returning (`missingReturn`), and a program with no `main` (`noMain`);
+  returning (`missingReturn`), a program with no `main` (`noMain`), and
+  an origin that names something other than a parameter passed as a
+  location (`invalidOrigin`);
 * ownership: a use of a part that is not initialized
   (`uninitializedUse`), an implicit copy of a value that is not implicitly
   copyable (`implicitCopy`), `.copy()` of a value that is not copyable
@@ -47,7 +49,10 @@ of these classes, each with the names or types it concerns:
   (`movedInLoop`), a `mut` parameter or the `self` of `__init__`
   not wholly initialized when the function returns
   (`uninitializedAtExit`), and a value with a destructor of its own that
-  ends with a field moved out (`partiallyDestroyed`).
+  ends with a field moved out (`partiallyDestroyed`);
+* references: a `ref` binding to something that is not a location
+  (`notAReference`), and a returned reference that may point outside the
+  function's origin (`escapingReference`).
 :::
 
 :::readable MojoGrimoire.Check.Rejection (fingerprint := "11806667538347354827")

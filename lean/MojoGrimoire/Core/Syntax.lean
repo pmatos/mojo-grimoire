@@ -49,11 +49,14 @@ end
 /-- The statements. `decl x t e` is Mojo's `var x: t = e`, or `var x: t`
 when `e` is absent. `ifElse` and `whileLoop` hold blocks, sequences of
 statements; an `if` with no `else` has an empty else block. `ret` is
-`return`, with or without a value. `drop p` destroys the value in `p`;
-only elaboration inserts it. -/
+`return`, with or without a value. `refDecl x e` is Mojo's `ref x = e`,
+which binds `x` to the location that `e` names: a place, or a call that
+returns a reference. `drop p` destroys the value in `p`; only elaboration
+inserts it. -/
 inductive Stmt where
   | pass
   | decl (name : Name) (ty : Ty) (init : Option Expr)
+  | refDecl (name : Name) (target : Expr)
   | assign (target : Place) (value : Expr)
   | expr (e : Expr)
   | print (args : List Expr)

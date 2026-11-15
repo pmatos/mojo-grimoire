@@ -31,20 +31,21 @@ def checkDistinct : List Name → Except CheckError Unit
   | [] => pure ()
   | x :: xs => if xs.contains x then throw (.duplicate x) else checkDistinct xs
 
-/-- Checks a function body with the parameters `params` and the result type
-`result`: the body must be accepted, and, unless the function returns
-nothing, every path through it must return. -/
-def checkBody (prog : Program) (fn : Name) (params : List Param) (result : Ty)
-    (body : List Stmt) : Except CheckError Unit := do
-  checkDistinct (params.map (·.name))
-  for prm in params do
+/-- Checks the body of the function `fd`: its parameters and result must
+have declarable types, its origin must name parameters passed as locations,
+the body must be accepted, and, unless the function returns nothing, every
+path through it must return. -/
+def checkBody (prog : Program) (fd : FunDecl) : Except CheckError Unit := do
+  checkDistinct (fd.params.map (·.name))
+  for prm in fd.params do
     unless validTy prog prm.ty do throw (.invalidType prm.ty)
-  unless result == .noneType || validTy prog result do throw (.invalidType result)
-  let start : State := ⟨params.reverse.map paramState, true⟩
+  unless fd.result == .noneType || validTy prog fd.result do throw (.invalidType fd.result)
+  checkOrigin fd
+  let start : State := ⟨fd.params.reverse.map paramState, true⟩
   let ((), _) ← (do
-      checkBlock prog fn result body
+      checkBlock prog fd fd.body
       if (← get).live then
-        unless result == Ty.noneType do throw (CheckError.missingReturn fn)
+        unless fd.result == Ty.noneType do throw (CheckError.missingReturn fd.name)
         checkExit prog).run start
 
 /-- Rejects a parameter list in which a parameter has the convention `out` or
@@ -56,7 +57,7 @@ def checkConventions (fn : Name) (params : List Param) : Except CheckError Unit 
 /-- Checks a function. -/
 def checkFun (prog : Program) (fd : FunDecl) : Except CheckError Unit := do
   checkConventions fd.name fd.params
-  checkBody prog fd.name fd.params fd.result fd.body
+  checkBody prog fd
 
 /-- Checks a method of the struct `s`: its first parameter is `self`, of the
 struct's type, with the convention `read`, `mut`, `var` or `ref`. -/
@@ -65,7 +66,7 @@ def checkMethod (prog : Program) (s : Name) (fd : FunDecl) : Except CheckError U
   unless self.name == "self" && self.ty == .struct s do throw (.invalidSelf fd.name)
   if self.conv == .out || self.conv == .deinit then throw (.invalidSelf fd.name)
   checkConventions fd.name fd.params.tail
-  checkBody prog fd.name fd.params fd.result fd.body
+  checkBody prog fd
 
 /-- Checks the initializer of the struct `s`: its first parameter is
 `out self`, and it returns nothing. -/
@@ -74,7 +75,7 @@ def checkInit (prog : Program) (s : Name) (fd : FunDecl) : Except CheckError Uni
   unless self == ⟨.out, "self", .struct s⟩ do throw (.invalidSelf fd.name)
   unless fd.result == .noneType do throw (.invalidReturn fd.name)
   checkConventions fd.name fd.params.tail
-  checkBody prog fd.name fd.params .noneType fd.body
+  checkBody prog fd
 
 /-- Checks a struct: its fields, its initializer, its destructor and its
 methods. A failure is located at `S`, or at `S.m` for a method `m`. -/
@@ -89,7 +90,7 @@ def checkStruct (prog : Program) (sd : StructDecl) : Except Rejection Unit := do
   if let some fd := sd.init then at_ (sd.name ++ ".__init__") (checkInit prog sd.name fd)
   if let some body := sd.deinit then
     at_ (sd.name ++ ".__deinit__")
-      (checkBody prog "__deinit__" [⟨.deinit, "self", .struct sd.name⟩] .noneType body)
+      (checkBody prog ⟨"__deinit__", [⟨.deinit, "self", .struct sd.name⟩], .noneType, body, none⟩)
   for fd in sd.methods do
     at_ (sd.name ++ "." ++ fd.name) (checkMethod prog sd.name fd)
 

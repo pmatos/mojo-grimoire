@@ -18,6 +18,7 @@ def stripStmt : Stmt → List Stmt
   | .whileLoop c body => [.whileLoop c (stripBlock body)]
   | .pass => [.pass]
   | .decl x t init => [.decl x t init]
+  | .refDecl x e => [.refDecl x e]
   | .assign p e => [.assign p e]
   | .expr e => [.expr e]
   | .print args => [.print args]
@@ -68,7 +69,7 @@ theorem stripBlock_elabStmt (sl : Slots) (owned : List Place) (s : Stmt)
   | .whileLoop c body =>
     simp [elabStmt, stripBlock, stripStmt, stripBlock_drops, stripBlock_elabBlock]
   | .ret _ | .pass | .drop _ => simp [elabStmt, stripBlock, stripStmt]
-  | .decl .. | .assign .. | .expr _ | .print _ =>
+  | .decl .. | .refDecl .. | .assign .. | .expr _ | .print _ =>
     simp [elabStmt, stripBlock, stripStmt, stripBlock_drops]
 
 /-- Elaborating a block only inserts drops. -/
@@ -90,10 +91,10 @@ theorem stripBlock_elabBody (sl : Slots) (params : List Place) (body : List Stmt
 same once their drops are erased. -/
 theorem stripProgram_elabProgram (prog : Program) :
     stripProgram (elabProgram prog) = stripProgram prog := by
-  have hf : ∀ fd : FunDecl, stripFun (elabFun fd) = stripFun fd := by
+  have hf : ∀ fd : FunDecl, stripFun (elabFun prog fd) = stripFun fd := by
     intro fd
     simp [stripFun, elabFun, stripBlock_elabBody]
-  have hs : ∀ sd : StructDecl, stripStruct (elabStruct sd) = stripStruct sd := by
+  have hs : ∀ sd : StructDecl, stripStruct (elabStruct prog sd) = stripStruct sd := by
     intro sd
     cases sd
     simp [stripStruct, elabStruct, elabDeinit, stripBlock_elabBody, Option.map_map,

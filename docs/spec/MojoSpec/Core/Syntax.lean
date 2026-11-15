@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Places, expressions and statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15154038860719106450")
+:::moduleDocs (fingerprint := "14748316690280824463")
 :::
 
 :::readable MojoGrimoire.Core.Place MojoGrimoire.Core.Expr (fingerprint := "5147792290193113691")
@@ -60,7 +60,7 @@ Here $`n` is an integer, $`b` a boolean and $`s` a string literal.
   `[e1, e2]`, or `List[t]()` when it is empty.
 :::
 
-:::readable MojoGrimoire.Core.Stmt (fingerprint := "2781332869060647278")
+:::readable MojoGrimoire.Core.Stmt (fingerprint := "14081413901527619483")
 *Definition: statements.* A statement $`s` is one of the following, where a
 block $`s^*` is a sequence of statements:
 
@@ -68,6 +68,7 @@ block $`s^*` is a sequence of statements:
 s
 pass       \mathsf{pass}
 decl       \mathsf{var}~x : t~(= e)^?
+refDecl    \mathsf{ref}~x = e
 assign     p = e
 expr       e
 print      \mathsf{print}(e^*)
@@ -79,6 +80,8 @@ drop       \mathsf{drop}~p
 
 An $`\mathsf{if}` with no $`\mathsf{else}` has an empty else block. The Lean
 calls the declaration `decl`, the loop `whileLoop` and the return `ret`.
+$`\mathsf{ref}~x = e` binds $`x` to the location that $`e` names, a place
+or a call that returns a reference, so that $`x` is another name for it.
 
 $`\mathsf{drop}~p` destroys the value in $`p`. No Mojo program contains it:
 Mojo destroys each value as soon as possible, after its last use, and

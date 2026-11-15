@@ -23,13 +23,13 @@ private def resDecl : StructDecl :=
     some [.print [.place (.field (v "self") "id")]], []⟩
 
 private def lib : List FunDecl :=
-  [⟨"show", [⟨.read, "r", res⟩], .noneType, []⟩,
-   ⟨"bump", [⟨.mutable, "r", res⟩], .noneType, []⟩,
-   ⟨"swapRes", [⟨.mutable, "a", res⟩, ⟨.mutable, "b", res⟩], .noneType, []⟩]
+  [⟨"show", [⟨.read, "r", res⟩], .noneType, [], none⟩,
+   ⟨"bump", [⟨.mutable, "r", res⟩], .noneType, [], none⟩,
+   ⟨"swapRes", [⟨.mutable, "a", res⟩, ⟨.mutable, "b", res⟩], .noneType, [], none⟩]
 
 /-- A program whose `main` has the body `body`. -/
 private def prog (body : List Stmt) : Program :=
-  ⟨[resDecl], lib ++ [⟨"main", [], .noneType, body⟩]⟩
+  ⟨[resDecl], lib ++ [⟨"main", [], .noneType, body, none⟩]⟩
 
 private def verdict (p : Program) : Option CheckError :=
   match checkProgram p with
@@ -92,7 +92,7 @@ private def ress : Stmt := .decl "rs" (.list res) (some (.list res [newRes 1, ne
 
 /-- The body of `main` once elaborated. -/
 private def elabMain (body : List Stmt) : List Stmt :=
-  (elabFun ⟨"main", [], .noneType, body⟩).body
+  (elabFun ⟨[resDecl], lib⟩ ⟨"main", [], .noneType, body, none⟩).body
 
 -- `var i = 0; var rs = [Res(1)]; show(rs[i])`: `rs` dies after its last use;
 -- `i` is an `Int`.

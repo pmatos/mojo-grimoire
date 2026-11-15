@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9585335225477747060")
+:::moduleDocs (fingerprint := "13734985254724151347")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "12326641341485961637")
@@ -30,9 +30,9 @@ variables in order of declaration. A slot the function does not own, such
 as a borrowed parameter, is never dropped.
 :::
 
-:::readable MojoGrimoire.Elab.defs MojoGrimoire.Elab.usesStmt MojoGrimoire.Elab.movesStmt MojoGrimoire.Elab.dying (fingerprint := "18101635392119367358")
-*Definition: what dies at a simple statement.* A declaration, assignment,
-expression or `print` uses, moves and defines slots as its parts do; an
+:::readable MojoGrimoire.Elab.defs MojoGrimoire.Elab.usesStmt MojoGrimoire.Elab.movesStmt MojoGrimoire.Elab.dying (fingerprint := "10096514676331244690")
+*Definition: what dies at a simple statement.* A declaration, `ref`
+binding, assignment, expression or `print` uses, moves and defines slots as its parts do; an
 assignment to an element or a field uses the slot that holds it. The
 slots that die right after it are those it uses but does not move away,
 and those it defines, unless they are live after it. A value defined and
@@ -59,21 +59,22 @@ name, and then share a slot, since neither is live in the other.
 A block elaborates each statement with the slots live after it.
 :::
 
-:::readable MojoGrimoire.Elab.elabBody MojoGrimoire.Elab.ownedParams MojoGrimoire.Elab.elabFun (fingerprint := "15755492251377003521")
+:::readable MojoGrimoire.Elab.elabBody MojoGrimoire.Elab.ownedParams MojoGrimoire.Elab.elabFun (fingerprint := "8893828889134879944")
 *Definition: function bodies.* A function owns its `var` parameters of
 struct type and its local variables of struct type. A `var` parameter its
 body never uses is dropped before the body runs; the rest of the body is
-elaborated with nothing live at its end.
+elaborated with nothing live at its end, and with the references the body
+binds, which `slotsOf` finds.
 :::
 
-:::readable MojoGrimoire.Elab.elabDeinit (fingerprint := "4508317085367363934")
+:::readable MojoGrimoire.Elab.elabDeinit (fingerprint := "6250051218112492798")
 *Definition: destructors.* In `__deinit__(deinit self)` the fields of
 `self` are slots of their own, owned on entry. So a field the body never
 uses is destroyed before the body runs, and every other field right after
 its own last use, as the compiler does.
 :::
 
-:::readable MojoGrimoire.Elab.elabStruct MojoGrimoire.Elab.elabProgram (fingerprint := "8120113390903795418")
+:::readable MojoGrimoire.Elab.elabStruct MojoGrimoire.Elab.elabProgram (fingerprint := "8521216551808215384")
 *Definition: programs.* A program is elaborated function by function:
 every function, initializer, method and destructor.
 :::

@@ -5,3 +5,4 @@ import MojoGrimoireTest.Core.Syntax
 import MojoGrimoireTest.Check.Program
 import MojoGrimoireTest.Elab.Elaborate
 import MojoGrimoireTest.Check.Lists
+import MojoGrimoireTest.Check.Refs

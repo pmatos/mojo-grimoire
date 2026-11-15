@@ -30,6 +30,7 @@ def expect (expected actual : Ty) : CheckM Unit :=
 `mut`. -/
 def Access.canChange : Access → Bool
   | .readOnly => false
+  | .alias _ m => m
   | _ => true
 
 /-- Rejects unless the place `p` may be changed. -/
@@ -54,6 +55,7 @@ def transferPlace (prog : Program) (p : Place) : CheckM Ty := do
   let (x, path) := splitPlace p
   let v ← lookup x
   unless v.access.canChange do throw (CheckError.transferFromBorrowed p)
+  if let .alias _ _ := v.access then throw (CheckError.transferFromBorrowed p)
   setUninit x (uninitialize v.uninit path)
   pure t
 
@@ -102,19 +104,22 @@ def locationArgs : List Param → List Expr → List (Conv × Place)
   | _, _ => []
 
 /-- Rejects a `mut` location among `locs` that overlaps another one, unless
-it is an `Int` or a `Bool`. -/
-def checkExclusive (prog : Program) (locs : List (Conv × Place)) : CheckM Unit :=
-  go locs []
+it is an `Int` or a `Bool`. A reference counts as every place it may point
+into. -/
+def checkExclusive (prog : Program) (locs : List (Conv × Place)) : CheckM Unit := do
+  go (← get).vars locs []
 where
   /-- Checks each location against those before and after it. -/
-  go : List (Conv × Place) → List (Conv × Place) → CheckM Unit
+  go (vars : List VarState) : List (Conv × Place) → List (Conv × Place) → CheckM Unit
     | [], _ => pure ()
     | (c, p) :: rest, seen => do
       let others := seen ++ rest
-      if c == .mutable && others.any (overlaps p ·.2) then
+      let clash (q : Place) :=
+        (resolvePlace vars p).any fun a => (resolvePlace vars q).any (overlaps a)
+      if c == .mutable && others.any (clash ·.2) then
         let t ← placeTy prog p
         unless t == .int || t == .bool do throw (CheckError.argumentExclusivity p)
-      go rest ((c, p) :: seen)
+      go vars rest ((c, p) :: seen)
 
 /-- Passes the place `p` to a parameter of convention `c` and type `t`. -/
 def passPlace (prog : Program) (callee : Name) (c : Conv) (t : Ty) (p : Place) :
@@ -127,10 +132,19 @@ def passPlace (prog : Program) (callee : Name) (c : Conv) (t : Ty) (p : Place) :
   | .owned => expect t (← copyPlace prog p)
   | .out | .deinit => throw (CheckError.invalidConvention callee)
 
+/-- The type of a call of `fd`. A call that returns a reference, used as a
+value, copies the value it points to implicitly, unless `asRef` holds. -/
+def refResult (prog : Program) (asRef : Bool) (fd : FunDecl) : CheckM Ty := do
+  if fd.origin.isSome && !asRef && copyingOf prog fd.result != .implicit then
+    throw (CheckError.implicitCopy fd.result)
+  pure fd.result
+
 mutual
 /-- The type of the expression `e`. A string literal has no type here: it may
-only be printed, which `checkPrint` checks. -/
-def checkExpr (prog : Program) : Expr → CheckM Ty
+only be printed, which `checkPrint` checks. A call that returns a reference
+gives the value it points to, which is copied implicitly, unless `asRef`
+holds: then the reference itself is bound, by `ref`. -/
+def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .int _ => pure .int
   | .bool _ => pure .bool
   | .str _ => throw CheckError.stringOutsidePrint
@@ -155,7 +169,7 @@ def checkExpr (prog : Program) : Expr → CheckM Ty
     | none, some fd => do
       checkExclusive prog (locationArgs fd.params args)
       checkArgs prog f fd.params args fd.params.length args.length
-      pure fd.result
+      refResult prog asRef fd
     | none, none =>
       match f, args with
       | "len", [.place p] => do
@@ -164,7 +178,7 @@ def checkExpr (prog : Program) : Expr → CheckM Ty
         let _ ← lift (elemOf t)
         pure .int
       | "len", [e] => do
-        let t ← checkExpr prog e
+        let t ← checkExprAs prog false e
         let _ ← lift (elemOf t)
         pure .int
       | "len", _ => throw (CheckError.arityMismatch f 1 args.length)
@@ -187,11 +201,11 @@ def checkExpr (prog : Program) : Expr → CheckM Ty
     passPlace prog m self.conv t p
     let params := fd.params.tail
     checkArgs prog m params args params.length args.length
-    pure fd.result
-  | .unary op a => do lift (unaryTy op (← checkExpr prog a))
+    refResult prog asRef fd
+  | .unary op a => do lift (unaryTy op (← checkExprAs prog false a))
   | .binary op a b => do
-    let ta ← checkExpr prog a
-    let tb ← checkExpr prog b
+    let ta ← checkExprAs prog false a
+    let tb ← checkExprAs prog false b
     lift (binaryTy op ta tb)
   | .list t es => do
     unless validTy prog t do throw (CheckError.invalidType t)
@@ -204,7 +218,7 @@ def checkIndices (prog : Program) : Place → CheckM Unit
   | .field p _ => checkIndices prog p
   | .index p i => do
     checkIndices prog p
-    expect .int (← checkExpr prog i)
+    expect .int (← checkExprAs prog false i)
 
 /-- Checks the arguments `args` of a call of `callee` against its parameters
 `params`, in order. `n` and `m` are the numbers of parameters and arguments,
@@ -220,9 +234,12 @@ def checkArgs (prog : Program) (callee : Name) :
     if prm.conv == .mutable then throw (CheckError.notAPlace callee)
     if prm.conv == .out || prm.conv == .deinit then
       throw (CheckError.invalidConvention callee)
-    expect prm.ty (← checkExpr prog e)
+    expect prm.ty (← checkExprAs prog false e)
     checkArgs prog callee prms args n m
   | _, _, n, m => throw (CheckError.arityMismatch callee n m)
 end
+
+/-- The type of the expression `e`, used as a value. -/
+def checkExpr (prog : Program) (e : Expr) : CheckM Ty := checkExprAs prog false e
 
 end MojoGrimoire.Check
