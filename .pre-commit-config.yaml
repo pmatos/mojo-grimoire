@@ -85,6 +85,23 @@ repos:
         stages: [pre-commit]
         pass_filenames: false
         files: ^(lean/|docs/spec/|docs/adrs/|scripts/build-spec\.sh$)
+      # Runs the model's executable on the conformance suite and compares
+      # it with the compiler's recorded results
+      # (docs/decisions/conformance.md#the-suite). Until results are
+      # recorded, it checks only that the model reads and runs every program.
+      - id: conformance
+        name: The model agrees with the compiler on the conformance suite
+        entry: scripts/conformance.py check --allow-unrecorded
+        language: unsupported_script
+        stages: [pre-commit]
+        pass_filenames: false
+        files: ^(lean/|tests/conformance/|docs/conformance/decision-log\.md$|scripts/(conformance\.py|build-lean\.sh)$)
+      - id: conformance-test
+        name: The conformance runner passes its tests
+        entry: python scripts/run_unittests.py conformance-test scripts/test_conformance.py
+        language: python
+        pass_filenames: false
+        files: ^(scripts/((test_)?conformance|run_unittests)\.py|tests/conformance/diagnostics\.json|lean/MojoGrimoire/Driver/Main\.lean)$
       # CI runs each hook above and below in exactly one job of
       # .github/workflows/, and its required check needs every job
       # (ADR-2026-11-15-1903).

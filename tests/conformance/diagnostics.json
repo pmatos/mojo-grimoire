@@ -1,0 +1,57 @@
+{
+  "note": "Patterns that map the compiler's first error to a class of the model's CheckError, tried in order. The first patterns are guesses written before any result was recorded; recording checks them, and a diagnostic that none matches is listed for a new pattern.",
+  "patterns": [
+    {
+      "pattern": "cannot be implicitly copied|does not conform to 'ImplicitlyCopyable'|implicitly copy",
+      "class": "implicitCopy"
+    },
+    {
+      "pattern": "use of uninitialized value|uninitialized",
+      "class": "uninitializedUse"
+    },
+    {
+      "pattern": "cannot be transferred|transfer.*(borrow|immutable|read)",
+      "class": "transferFromBorrowed"
+    },
+    {
+      "pattern": "argument exclusivity|aliased argument|previously writable through another",
+      "class": "argumentExclusivity"
+    },
+    {
+      "pattern": "expression must be mutable|immutable|cannot (assign|mutate)",
+      "class": "immutablePlace"
+    },
+    {
+      "pattern": "use of unknown declaration",
+      "class": "unknownVariable"
+    },
+    {
+      "pattern": "has no attribute|no member|unknown field",
+      "class": "unknownField"
+    },
+    {
+      "pattern": "cannot implicitly convert|cannot be converted|type mismatch",
+      "class": "typeMismatch"
+    },
+    {
+      "pattern": "expected \\d+ positional arguments?|invalid call to",
+      "class": "arityMismatch"
+    },
+    {
+      "pattern": "return expected|missing return|function with results",
+      "class": "missingReturn"
+    },
+    {
+      "pattern": "does not conform to 'Copyable'|has no copy|'copy'",
+      "class": "notCopyable"
+    },
+    {
+      "pattern": "moved .*loop|loop",
+      "class": "movedInLoop"
+    },
+    {
+      "pattern": "reference.*(outlive|escape|local)|lifetime|origin",
+      "class": "escapingReference"
+    }
+  ]
+}

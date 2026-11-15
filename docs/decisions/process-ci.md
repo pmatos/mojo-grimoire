@@ -11,7 +11,9 @@ one step of one job:
 - `static`: the file checks, the ADR checks, the Python tests of the scripts,
   the linters and formatters (typos, ruff, shellcheck, actionlint, zizmor);
 - `lean`: `lean-build`, which builds `lean/` with `--wfail` and so runs the
-  Lean tests and the axiom check (ADR-2026-11-15-1906).
+  Lean tests and the axiom check (ADR-2026-11-15-1906); `spec`, which renders
+  the spec; and `conformance`, which runs the model on the conformance suite
+  ([conformance.md](conformance.md#the-suite)).
 
 The gate job `pre-commit` needs both, always runs, and passes only when both
 passed. It is the check that the ruleset requires. `.github/workflows/pr-title.yml`
