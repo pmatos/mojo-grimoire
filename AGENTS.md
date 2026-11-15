@@ -41,7 +41,7 @@ ADR-2026-11-15-1904 records these rules.
 
 | Document | Path | Answers |
 | -------- | ---- | ------- |
-| Roadmap | the human's roadmap document; its phases are summarised on [`docs/decisions/process.md`](docs/decisions/process.md) | What we build next, and in what order |
+| Roadmap | [`docs/roadmap.md`](docs/roadmap.md), the human's original plan; [`docs/decisions/process.md`](docs/decisions/process.md) records where we depart from it | What we build next, and in what order |
 | Decision pages | [`docs/decisions/`](docs/decisions/) | What holds today, per area |
 | ADRs | [`docs/adrs/`](docs/adrs/) | What we decided, and why |
 | Decision log | [`docs/conformance/decision-log.md`](docs/conformance/decision-log.md) | Where the model and the compiler disagree, and what we chose |
