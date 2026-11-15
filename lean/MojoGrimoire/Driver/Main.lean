@@ -38,6 +38,7 @@ def CheckError.className : CheckError → String
   | .recursiveStruct .. => "recursiveStruct"
   | .typeMismatch .. => "typeMismatch"
   | .notAList .. => "notAList"
+  | .negativeIndex .. => "negativeIndex"
   | .notPrintable .. => "notPrintable"
   | .stringOutsidePrint => "stringOutsidePrint"
   | .arityMismatch .. => "arityMismatch"
@@ -66,7 +67,6 @@ def CheckError.className : CheckError → String
 def RunError.name : RunError → String
   | .outOfFuel => "outOfFuel"
   | .indexOutOfBounds => "indexOutOfBounds"
-  | .divisionByZero => "divisionByZero"
   | .stuck what => s!"stuck ({what})"
 
 /-- The fuel of a run unless the command line gives another. -/

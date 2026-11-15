@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14623421781753299618")
+:::moduleDocs (fingerprint := "16874973772176836938")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -44,6 +44,12 @@ two values of the same type, $`\mathsf{Int}` or $`\mathsf{Bool}`, and
 give a $`\mathsf{Bool}`; $`\mathsf{and}` and $`\mathsf{or}` take
 and give $`\mathsf{Bool}`. Negation takes an $`\mathsf{Int}`, and
 $`\mathsf{not}` a $`\mathsf{Bool}`.
+:::
+
+:::readable MojoGrimoire.Check.constInt (fingerprint := "15094168963797231555")
+*Definition: constant indices.* An index made only of integer literals,
+negation, $`+`, $`-` and $`\times` has a value that Mojo computes when it
+compiles the program.
 :::
 
 :::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "15076359769503551250")
@@ -84,7 +90,8 @@ type:
   may change and takes its argument as `var`; `len(e)`, when the program
   declares no function `len`, takes a list and gives an $`\mathsf{Int}`.
 
-Every index in a place is checked first, and must be an $`\mathsf{Int}`.
+Every index in a place is checked first, and must be an $`\mathsf{Int}`;
+a constant index may not be negative.
 A call of a function that returns a reference gives the value it points to,
 which must be implicitly copyable, unless the call is bound with `ref`.
 

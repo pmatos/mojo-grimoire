@@ -91,7 +91,7 @@ private def res : List String := [
   "    var ys = List[Int]()",
   "    var zs: List[Int] = []",
   "    xs.append(3)",
-  "    ys.append(xs[0] + xs[-1])",
+  "    ys.append(xs[0] + xs[2])",
   "    xs[1] = 20",
   "    print(len(xs), xs[1], ys[0], len(zs))"] == .ok (.finished ["3 20 4 0"])
 

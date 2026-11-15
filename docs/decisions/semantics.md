@@ -78,7 +78,10 @@ Lists, `List[T]`, follow the same rules, with these choices (#17):
 - A list is copied only explicitly, with `.copy()`, and only when its
   elements can be copied.
 - The only methods modelled are `append` and the built-in `len`, which a
-  function named `len` hides. An index must be an `Int`.
+  function named `len` hides. An index must be an `Int`. An index made
+  only of integer literals, negation, `+`, `-` and `*` is computed when
+  the program is compiled, and is rejected when it is negative
+  (`negativeIndex`).
 
 ### References
 
@@ -135,10 +138,10 @@ the lines printed and how the run ends. These choices are to be confirmed
 against the compiler when the suite records results:
 
 - `Int` is 64-bit and wraps around on overflow. `//` rounds toward
-  negative infinity and `%` takes the sign of the divisor. Division by zero
-  stops the run with an error.
-- A list index may be negative, counting from the end; an index out of
-  bounds stops the run with an error.
+  negative infinity and `%` takes the sign of the divisor. Both give 0 for
+  a zero divisor, as Mojo's standard library defines them.
+- An index out of bounds stops the run with an error. A negative index
+  is out of bounds: Mojo's `List` does not count from the end.
 - A struct without a `__deinit__` has its fields destroyed in declaration
   order, and a list its elements in index order.
 - A temporary passed to a borrowing parameter is destroyed right after the

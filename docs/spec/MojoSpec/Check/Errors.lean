@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Errors: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1398389244927822096")
+:::moduleDocs (fingerprint := "771499616414258062")
 :::
 
-:::readable MojoGrimoire.Check.CheckError (fingerprint := "12810947781111785992")
+:::readable MojoGrimoire.Check.CheckError (fingerprint := "6246754793453168398")
 *Definition: the classes of error.* The checker rejects a program with one
 of these classes, each with the names or types it concerns:
 
@@ -25,7 +25,8 @@ of these classes, each with the names or types it concerns:
 * types: a type that may not be declared, such as that of string literals
   (`invalidType`), a struct that contains itself (`recursiveStruct`), a
   type other than the one expected (`typeMismatch`), an index into a
-  value that is not a list (`notAList`), a value that
+  value that is not a list (`notAList`), a negative index that Mojo
+  computes when it compiles the program (`negativeIndex`), a value that
   `print` cannot print (`notPrintable`), a string literal outside
   `print` (`stringOutsidePrint`), and a call with the wrong number of
   arguments (`arityMismatch`);

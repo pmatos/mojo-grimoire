@@ -86,6 +86,16 @@ def unaryTy (op : UnOp) (a : Ty) : Except CheckError Ty :=
   | .neg => if a == .int then pure .int else throw (.typeMismatch .int a)
   | .not => if a == .bool then pure .bool else throw (.typeMismatch .bool a)
 
+/-- The value of an index made only of integer literals, negation, `+`, `-`
+and `*`: Mojo computes it when it compiles the program. -/
+def constInt : Expr → Option Int
+  | .int k => some k
+  | .unary .neg a => (constInt a).map (- ·)
+  | .binary .add a b => do pure ((← constInt a) + (← constInt b))
+  | .binary .sub a b => do pure ((← constInt a) - (← constInt b))
+  | .binary .mul a b => do pure ((← constInt a) * (← constInt b))
+  | _ => none
+
 /-- Whether two places may be the same location or overlap: one is the other
 or a field of it. -/
 def overlaps (p q : Place) : Bool :=
@@ -212,13 +222,15 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     checkArgs prog "List" (es.map fun _ => ⟨.owned, "value", t⟩) es es.length es.length
     pure (.list t)
 
-/-- Checks the index expressions of the place `p`: each is an `Int`. -/
+/-- Checks the index expressions of the place `p`: each is an `Int`, and
+one that Mojo computes when it compiles the program may not be negative. -/
 def checkIndices (prog : Program) : Place → CheckM Unit
   | .var _ => pure ()
   | .field p _ => checkIndices prog p
   | .index p i => do
     checkIndices prog p
     expect .int (← checkExprAs prog false i)
+    if (constInt i).any (· < 0) then throw (CheckError.negativeIndex (.index p i))
 
 /-- Checks the arguments `args` of a call of `callee` against its parameters
 `params`, in order. `n` and `m` are the numbers of parameters and arguments,

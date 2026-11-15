@@ -104,12 +104,20 @@ private def go (body : List Stmt) (pairDeinit : Option (List Stmt) := none)
      .assign (v "i") (.binary .add (use "i") (.int 1))],
   .print [use "s"]] == .finished ["6"]
 
--- `var xs = [1, 2]; xs.append(3); xs[0] = 9; print(len(xs), xs[-1], xs[0])`
+-- `var xs: List[Int] = [1, 2]; xs.append(3); xs[0] = 9;
+-- print(len(xs), xs[len(xs) - 1], xs[0])`
 #guard go [.decl "xs" (.list .int) (some (.list .int [.int 1, .int 2])),
   .expr (.method (v "xs") "append" [.int 3]),
   .assign (.index (v "xs") (.int 0)) (.int 9),
-  .print [.call "len" [use "xs"], .place (.index (v "xs") (.int (-1))),
+  .print [.call "len" [use "xs"],
+    .place (.index (v "xs") (.binary .sub (.call "len" [use "xs"]) (.int 1))),
     .place (.index (v "xs") (.int 0))]] == .finished ["3 3 9"]
+
+-- `var i = -1; print(xs[i])`: a negative index known only at run time is out
+-- of bounds.
+#guard go [.decl "xs" (.list .int) (some (.list .int [.int 1])),
+  .decl "i" .int (some (.int (-1))), say "x",
+  .print [.place (.index (v "xs") (use "i"))]] == .failed .indexOutOfBounds ["x"]
 
 -- `print(xs[5])` stops the run.
 #guard go [.decl "xs" (.list .int) (some (.list .int [.int 1])), say "x",
@@ -130,8 +138,9 @@ private def go (body : List Stmt) (pairDeinit : Option (List Stmt) := none)
 #guard go [.print [.binary .add (.int 9223372036854775807) (.int 1)]] ==
   .finished ["-9223372036854775808"]
 
--- `print(1 // 0)` stops the run.
-#guard go [.print [.binary .floorDiv (.int 1) (.int 0)]] == .failed .divisionByZero []
+-- `print(1 // 0, -7 % 0)`: a zero divisor gives 0.
+#guard go [.print [.binary .floorDiv (.int 1) (.int 0), .binary .mod (.int (-7)) (.int 0)]] ==
+  .finished ["0 0"]
 
 -- `while True: pass` runs out of fuel.
 #guard go [.whileLoop (.bool true) [.pass]] (fuel := 100) == .failed .outOfFuel []

@@ -11,6 +11,7 @@ change through them is a change to that place. Locations are never reused.
 
 `Int` is Mojo's 64-bit signed integer: arithmetic wraps around, `//` rounds
 toward negative infinity and `%` takes the sign of the divisor, as in Mojo.
+Both give 0 for a zero divisor, as Mojo's standard library defines them.
 -/
 
 namespace MojoGrimoire.Interp
@@ -38,7 +39,6 @@ program the checker accepts never reaches; it names what went wrong. -/
 inductive RunError where
   | outOfFuel
   | indexOutOfBounds
-  | divisionByZero
   | stuck (what : String)
   deriving DecidableEq, Repr
 
@@ -103,10 +103,8 @@ def binary (op : BinOp) (a b : Value) : EvalM Value :=
   | .add, .int x, .int y => pure (.int (wrap (x + y)))
   | .sub, .int x, .int y => pure (.int (wrap (x - y)))
   | .mul, .int x, .int y => pure (.int (wrap (x * y)))
-  | .floorDiv, .int x, .int y =>
-    if y == 0 then fail .divisionByZero else pure (.int (wrap (x.fdiv y)))
-  | .mod, .int x, .int y =>
-    if y == 0 then fail .divisionByZero else pure (.int (wrap (x.fmod y)))
+  | .floorDiv, .int x, .int y => pure (.int (if y == 0 then 0 else wrap (x.fdiv y)))
+  | .mod, .int x, .int y => pure (.int (if y == 0 then 0 else wrap (x.fmod y)))
   | .lt, .int x, .int y => pure (.bool (decide (x < y)))
   | .le, .int x, .int y => pure (.bool (decide (x ≤ y)))
   | .gt, .int x, .int y => pure (.bool (decide (x > y)))
@@ -124,11 +122,10 @@ def unary (op : UnOp) (a : Value) : EvalM Value :=
   | .not, .bool x => pure (.bool (!x))
   | _, _ => stuck "operand of the wrong type"
 
-/-- The position in a list of length `len` that the index `i` names: a
-negative index counts from the end, as in Mojo. -/
+/-- The position in a list of length `len` that the index `i` names. Mojo's
+`List` does not count a negative index from the end: it is out of bounds. -/
 def position (len : Nat) (i : Int) : EvalM Nat :=
-  let j := if i < 0 then i + len else i
-  if 0 ≤ j && j < len then pure j.toNat else fail .indexOutOfBounds
+  if 0 ≤ i && i < len then pure i.toNat else fail .indexOutOfBounds
 
 /-- The value of a struct `S` whose fields are all uninitialized, as `out
 self` starts in `__init__`. -/
