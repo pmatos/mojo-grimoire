@@ -1,0 +1,186 @@
+# Runs every pre-commit hook on every tracked file, the same checks as the
+# local hooks, in one job per suite, so that each suite is its own check
+# (ADR-2026-11-15-1903). Each step runs one hook by id with --verbose, so the
+# log shows what it ran, and its counts go to the job summary. The ci-hooks
+# hook checks that each hook runs in exactly one job. The job pre-commit is
+# the required status check: it passes only when every suite passed.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PRE_COMMIT_COLOR: always
+
+# In each job, every hook's step runs even when one before it failed.
+jobs:
+  static:
+    name: Static checks
+    runs-on: ubuntu-26.04
+    steps:
+      # Two commits deep: on a pull request, HEAD^1 is the base of the merge.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-static-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run file-size-budget --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run hidden-chars --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run adr-ids --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run adr-ids-test --all-files --verbose --show-diff-on-failure
+      # A warning, never a failure, when a pull request adds more than two
+      # ADRs, so the reviewer looks again. It is not a hook: it needs the
+      # merge's base, which `pre-commit run --all-files` does not have.
+      - name: Warn when a pull request adds more than two ADRs
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: python3 scripts/check_adr_ids.py --warn-added
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run adr-index --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run adr-index-test --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run adr-citations --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run adr-citations-test --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run ci-hooks --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run ci-hooks-test --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run suite-summary-test --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run run-unittests-test --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run check-added-large-files --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run check-case-conflict --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run check-executables-have-shebangs --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run check-json --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run check-merge-conflict --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run check-shebang-scripts-are-executable --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run check-symlinks --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run check-toml --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run check-yaml --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run detect-private-key --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run end-of-file-fixer --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run mixed-line-ending --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run trailing-whitespace --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run typos --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run ruff-check --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run ruff-format --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run shellcheck --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run actionlint --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        env:
+          # Enables zizmor's online audits (e.g. known-vulnerable actions).
+          GH_TOKEN: ${{ github.token }}
+        run: uvx pre-commit@4.6.2 run zizmor --all-files --verbose --show-diff-on-failure
+
+  lean:
+    name: Lean suite
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      # Both elan steps hold its pins: a bump edits both
+      # (docs/decisions/process-ci.md#installer-downloads).
+      - name: Restore the elan installer
+        id: elan-installer
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        env:
+          ELAN_VERSION: v4.2.4
+          ELAN_SHA256: 42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63
+        with:
+          path: ${{ runner.temp }}/elan.tar.gz
+          key: elan-installer-${{ runner.os }}-${{ env.ELAN_VERSION }}-${{ env.ELAN_SHA256 }}
+      - name: Install elan
+        env:
+          ELAN_VERSION: v4.2.4
+          ELAN_SHA256: 42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63
+        run: scripts/ci-install.sh elan
+      - name: Save the elan installer
+        if: steps.elan-installer.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/elan.tar.gz
+          key: ${{ steps.elan-installer.outputs.cache-primary-key }}
+      - name: Restore the Lean toolchain
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.elan/toolchains
+          key: lean-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain') }}
+      - name: Install the Lean toolchain
+        run: elan toolchain install "$(cat lean/lean-toolchain)"
+      # A pull request restores lean/ as main built it, and Lake rebuilds
+      # what changed. main builds from scratch and saves.
+      - name: Restore the Lean build from main
+        id: lean-build
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        env:
+          KEY: lean-build-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain', 'lean/lake*') }}-
+        with:
+          path: lean/.lake/build
+          key: ${{ env.KEY }}
+          restore-keys: ${{ env.KEY }}
+          lookup-only: ${{ github.event_name != 'pull_request' }}
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run lean-build --all-files --verbose --show-diff-on-failure
+      # Only main saves, when every hook passed, keyed by its commit.
+      - name: Save the Lean build
+        if: success() && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: lean/.lake/build
+          key: ${{ steps.lean-build.outputs.cache-primary-key }}${{ github.sha }}
+
+  # The required status check (ADR-2026-11-15-1900). It always runs, and
+  # passes only when every suite passed: a suite that failed, was cancelled
+  # or was skipped fails it. The ci-hooks hook checks that it needs every
+  # other job.
+  pre-commit:
+    name: pre-commit
+    needs: [static, lean]
+    if: ${{ always() }}
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check that every suite passed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<<"$NEEDS"
+          jq -e 'length > 0 and all(.[]; .result == "success")' <<<"$NEEDS" >/dev/null
