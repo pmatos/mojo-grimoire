@@ -8,5 +8,5 @@ def total(xs: List[Int]) -> Int:
 
 
 def main():
-    var xs = [3, 1, 4, 1, 5, 9]
+    var xs: List[Int] = [3, 1, 4, 1, 5, 9]
     print(total(xs))
