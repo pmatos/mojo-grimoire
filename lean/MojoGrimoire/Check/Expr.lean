@@ -1,0 +1,193 @@
+import MojoGrimoire.Check.State
+
+/-!
+The checking of expressions and of the arguments of calls.
+
+An expression is checked from left to right, as Mojo evaluates it, and the
+state follows: a transfer `p^` leaves `p` uninitialized for what comes after
+it. A place passed as an argument is passed by its parameter's convention:
+`read`, `mut` and `ref` pass the location, which must be initialized, and
+`mut` also needs a place the function may change; `var` passes a value, which
+is copied implicitly unless the argument transfers it.
+
+A `mut` argument may not alias another argument that is passed as a location,
+Mojo's argument exclusivity. As in Mojo, the rule does not apply to `Int`
+and `Bool`, which are always passed by copy.
+-/
+
+namespace MojoGrimoire.Check
+
+open MojoGrimoire.Core
+
+/-- Lifts a result of the program's tables into the checker. -/
+def lift {α : Type} (r : Except CheckError α) : CheckM α := StateT.lift r
+
+/-- Rejects unless the type `actual` is the type `expected`. -/
+def expect (expected actual : Ty) : CheckM Unit :=
+  unless expected == actual do throw (CheckError.typeMismatch expected actual)
+
+/-- Whether a variable held this way may be changed: assigned to, or passed
+`mut`. -/
+def Access.canChange : Access → Bool
+  | .readOnly => false
+  | _ => true
+
+/-- Rejects unless the place `p` may be changed. -/
+def requireMutable (p : Place) : CheckM Unit := do
+  let v ← lookup (splitPlace p).1
+  unless v.access.canChange do throw (CheckError.immutablePlace p)
+
+/-- Reads the place `p` as a value, which copies it implicitly: only an
+implicitly copyable value may be. -/
+def copyPlace (prog : Program) (p : Place) : CheckM Ty := do
+  let t ← readPlace prog p
+  unless copyingOf prog t == .implicit do throw (CheckError.implicitCopy t)
+  pure t
+
+/-- Transfers the value out of the place `p`, Mojo's `p^`, which leaves `p`
+uninitialized. The function must own the value, or hold it `mut`: a `read`
+or `ref` parameter cannot give its value away. -/
+def transferPlace (prog : Program) (p : Place) : CheckM Ty := do
+  let t ← readPlace prog p
+  let (x, path) := splitPlace p
+  let v ← lookup x
+  unless v.access.canChange do throw (CheckError.transferFromBorrowed p)
+  setUninit x (uninitialize v.uninit path)
+  pure t
+
+/-- The type of the result of the operator `op` on operands of types `a` and
+`b`. -/
+def binaryTy (op : BinOp) (a b : Ty) : Except CheckError Ty :=
+  match op with
+  | .add | .sub | .mul | .floorDiv | .mod => do
+    unless a == .int do throw (.typeMismatch .int a)
+    unless b == .int do throw (.typeMismatch .int b)
+    pure .int
+  | .lt | .le | .gt | .ge => do
+    unless a == .int do throw (.typeMismatch .int a)
+    unless b == .int do throw (.typeMismatch .int b)
+    pure .bool
+  | .eq | .ne => do
+    unless a == .int || a == .bool do throw (.typeMismatch .int a)
+    unless b == a do throw (.typeMismatch a b)
+    pure .bool
+  | .and | .or => do
+    unless a == .bool do throw (.typeMismatch .bool a)
+    unless b == .bool do throw (.typeMismatch .bool b)
+    pure .bool
+
+/-- The type of the result of the operator `op` on an operand of type `a`. -/
+def unaryTy (op : UnOp) (a : Ty) : Except CheckError Ty :=
+  match op with
+  | .neg => if a == .int then pure .int else throw (.typeMismatch .int a)
+  | .not => if a == .bool then pure .bool else throw (.typeMismatch .bool a)
+
+/-- Whether two places may be the same location or overlap: one is the other
+or a field of it. -/
+def overlaps (p q : Place) : Bool :=
+  let (x, a) := splitPlace p
+  let (y, b) := splitPlace q
+  x == y && (a.isPrefixOf b || b.isPrefixOf a)
+
+/-- The places among `args` that are passed as locations, with their
+conventions: every place argument whose parameter is `read`, `mut` or
+`ref`. -/
+def locationArgs : List Param → List Expr → List (Conv × Place)
+  | prm :: prms, .place p :: args =>
+    if prm.conv == .owned then locationArgs prms args
+    else (prm.conv, p) :: locationArgs prms args
+  | _ :: prms, _ :: args => locationArgs prms args
+  | _, _ => []
+
+/-- Rejects a `mut` location among `locs` that overlaps another one, unless
+it is an `Int` or a `Bool`. -/
+def checkExclusive (prog : Program) (locs : List (Conv × Place)) : CheckM Unit :=
+  go locs []
+where
+  /-- Checks each location against those before and after it. -/
+  go : List (Conv × Place) → List (Conv × Place) → CheckM Unit
+    | [], _ => pure ()
+    | (c, p) :: rest, seen => do
+      let others := seen ++ rest
+      if c == .mutable && others.any (overlaps p ·.2) then
+        let t ← placeTy prog p
+        unless t == .int || t == .bool do throw (CheckError.argumentExclusivity p)
+      go rest ((c, p) :: seen)
+
+/-- Passes the place `p` to a parameter of convention `c` and type `t`. -/
+def passPlace (prog : Program) (callee : Name) (c : Conv) (t : Ty) (p : Place) :
+    CheckM Unit := do
+  match c with
+  | .read | .ref => expect t (← readPlace prog p)
+  | .mutable => do
+    expect t (← readPlace prog p)
+    requireMutable p
+  | .owned => expect t (← copyPlace prog p)
+  | .out | .deinit => throw (CheckError.invalidConvention callee)
+
+mutual
+/-- The type of the expression `e`. A string literal has no type here: it may
+only be printed, which `checkPrint` checks. -/
+def checkExpr (prog : Program) : Expr → CheckM Ty
+  | .int _ => pure .int
+  | .bool _ => pure .bool
+  | .str _ => throw CheckError.stringOutsidePrint
+  | .place p => copyPlace prog p
+  | .transfer p => transferPlace prog p
+  | .copy p => do
+    let t ← readPlace prog p
+    if copyingOf prog t == .none then throw (CheckError.notCopyable t)
+    pure t
+  | .call f args => do
+    match findStruct prog f, findFun prog f with
+    | some sd, _ =>
+      let params ← match sd.init with
+        | some fd => pure fd.params.tail
+        | none =>
+          if sd.fieldwiseInit then pure (sd.fields.map fun (x, t) => ⟨.owned, x, t⟩)
+          else throw (CheckError.noInitializer f)
+      checkExclusive prog (locationArgs params args)
+      checkArgs prog f params args params.length args.length
+      pure (.struct f)
+    | none, some fd => do
+      checkExclusive prog (locationArgs fd.params args)
+      checkArgs prog f fd.params args fd.params.length args.length
+      pure fd.result
+    | none, none => throw (CheckError.unknownFunction f)
+  | .method p m args => do
+    let t ← placeTy prog p
+    let .struct s := t | throw (CheckError.typeMismatch (.struct "") t)
+    let some sd := findStruct prog s | throw (CheckError.unknownStruct s)
+    let some fd := findMethod sd m | throw (CheckError.unknownMethod s m)
+    let some self := fd.params.head? | throw (CheckError.invalidSelf m)
+    checkExclusive prog ((if self.conv == .owned then [] else [(self.conv, p)]) ++
+      locationArgs fd.params.tail args)
+    passPlace prog m self.conv t p
+    let params := fd.params.tail
+    checkArgs prog m params args params.length args.length
+    pure fd.result
+  | .unary op a => do lift (unaryTy op (← checkExpr prog a))
+  | .binary op a b => do
+    let ta ← checkExpr prog a
+    let tb ← checkExpr prog b
+    lift (binaryTy op ta tb)
+
+/-- Checks the arguments `args` of a call of `callee` against its parameters
+`params`, in order. `n` and `m` are the numbers of parameters and arguments,
+for the error when they differ. -/
+def checkArgs (prog : Program) (callee : Name) :
+    List Param → List Expr → Nat → Nat → CheckM Unit
+  | [], [], _, _ => pure ()
+  | prm :: prms, .place p :: args, n, m => do
+    passPlace prog callee prm.conv prm.ty p
+    checkArgs prog callee prms args n m
+  | prm :: prms, e :: args, n, m => do
+    if prm.conv == .mutable then throw (CheckError.notAPlace callee)
+    if prm.conv == .out || prm.conv == .deinit then
+      throw (CheckError.invalidConvention callee)
+    expect prm.ty (← checkExpr prog e)
+    checkArgs prog callee prms args n m
+  | _, _, n, m => throw (CheckError.arityMismatch callee n m)
+end
+
+end MojoGrimoire.Check

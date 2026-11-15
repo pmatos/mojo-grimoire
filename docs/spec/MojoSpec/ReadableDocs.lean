@@ -3,6 +3,12 @@ import MojoSpec.Core.Types
 import MojoSpec.Core.Syntax
 import MojoSpec.Core.Equality
 import MojoSpec.Core.Program
+import MojoSpec.Check.Errors
+import MojoSpec.Check.Env
+import MojoSpec.Check.State
+import MojoSpec.Check.Expr
+import MojoSpec.Check.Stmt
+import MojoSpec.Check.Program
 
 /-!
 The readable documents that `MojoSpec.lean` renders with `{includeReadable}`,

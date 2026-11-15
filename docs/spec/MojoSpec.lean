@@ -63,6 +63,25 @@ their methods, the argument conventions, moves and copies, control flow and
 
 {includeReadable "." MojoGrimoire.Core.Program "Functions, structs and programs" MojoSpec.Core.Program (level := 2)}
 
+# The static checker
+
+The static checker decides which programs of the core calculus Mojo
+accepts: it checks types, the argument conventions and ownership, and
+rejects a program with a class of error. Its classes, not its wording, are
+compared with the compiler's diagnostics.
+
+{includeReadable "." MojoGrimoire.Check.Errors "Errors" MojoSpec.Check.Errors (level := 2)}
+
+{includeReadable "." MojoGrimoire.Check.Env "The program's tables" MojoSpec.Check.Env (level := 2)}
+
+{includeReadable "." MojoGrimoire.Check.State "The checker's state" MojoSpec.Check.State (level := 2)}
+
+{includeReadable "." MojoGrimoire.Check.Expr "Expressions and arguments" MojoSpec.Check.Expr (level := 2)}
+
+{includeReadable "." MojoGrimoire.Check.Stmt "Statements and blocks" MojoSpec.Check.Stmt (level := 2)}
+
+{includeReadable "." MojoGrimoire.Check.Program "Programs" MojoSpec.Check.Program (level := 2)}
+
 # Architecture decision records
 %%%
 tag := "adrs"

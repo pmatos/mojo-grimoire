@@ -2,3 +2,4 @@ import MojoGrimoire
 import MojoGrimoireTest.Axioms
 import MojoGrimoireTest.Reference
 import MojoGrimoireTest.Core.Syntax
+import MojoGrimoireTest.Check.Program
