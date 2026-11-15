@@ -139,11 +139,17 @@ jobs:
         with:
           path: ${{ runner.temp }}/elan.tar.gz
           key: ${{ steps.elan-installer.outputs.cache-primary-key }}
-      - name: Restore the Lean toolchain
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # pages.yml copies this restore without the save; change both together.
+      # Verso's build lives in docs/spec/.lake/packages; docs/spec/.lake/build
+      # is never cached.
+      - name: Restore the Lean toolchain and Verso build
+        id: lean-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.elan/toolchains
-          key: lean-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain') }}
+          path: |
+            ~/.elan/toolchains
+            docs/spec/.lake/packages
+          key: lean-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain', 'docs/spec/lake-manifest.json') }}
       - name: Install the Lean toolchain
         run: elan toolchain install "$(cat lean/lean-toolchain)"
       # A pull request restores lean/ as main built it, and Lake rebuilds
@@ -160,6 +166,18 @@ jobs:
           lookup-only: ${{ github.event_name != 'pull_request' }}
       - if: ${{ !cancelled() }}
         run: uvx pre-commit@4.6.2 run lean-build --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run spec --all-files --verbose --show-diff-on-failure
+      # Saved once per key, by the first run that built Verso, when every
+      # hook passed.
+      - name: Save the Lean toolchain and Verso build
+        if: success() && steps.lean-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.elan/toolchains
+            docs/spec/.lake/packages
+          key: ${{ steps.lean-cache.outputs.cache-primary-key }}
       # Only main saves, when every hook passed, keyed by its commit.
       - name: Save the Lean build
         if: success() && github.ref == 'refs/heads/main'

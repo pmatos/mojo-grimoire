@@ -117,14 +117,17 @@ commands until it succeeds. Start agents in another worktree with
 
 ## The Lean code
 
-- Build only with `scripts/build-lean.sh`; it applies the guards that keep
-  Lake's git calls and CI tokens away from this repository
-  (ADR-2026-11-15-1905).
+- Build `lean/` only with `scripts/build-lean.sh` and the spec only with
+  `scripts/build-spec.sh`; they apply the guards that keep Lake's git calls
+  and CI tokens away from this repository (ADR-2026-11-15-1905).
 - The build fails on any warning, on `sorry`, on an axiom beyond Lean's
   standard three, on `unsafe` or `partial` code, and on `implemented_by` or
   `extern` (ADR-2026-11-15-1906).
 - Import every new module from `lean/MojoGrimoireTest.lean`, or the axiom
   check fails.
+- Every module ships with its spec section in the same PR: a readable
+  document under `docs/spec/MojoSpec/`, pinned to the Lean
+  ([`docs/spec/README.md`](docs/spec/README.md), ADR-2026-11-15-2030).
 
 ## File-size budget
 

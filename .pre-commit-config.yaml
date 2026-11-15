@@ -75,6 +75,16 @@ repos:
         stages: [pre-commit]
         pass_filenames: false
         files: ^(lean/|scripts/(build-lean\.sh|suite_summary\.py)$)
+      # Renders the spec, which checks every readable block against its Lean,
+      # every module's section, and every ADR citation in the spec's sources
+      # and the ADRs (docs/decisions/spec.md#building-the-spec).
+      - id: spec
+        name: Render the spec and check it against the Lean and the ADRs
+        entry: scripts/build-spec.sh
+        language: unsupported_script
+        stages: [pre-commit]
+        pass_filenames: false
+        files: ^(lean/|docs/spec/|docs/adrs/|scripts/build-spec\.sh$)
       # CI runs each hook above and below in exactly one job of
       # .github/workflows/, and its required check needs every job
       # (ADR-2026-11-15-1903).
