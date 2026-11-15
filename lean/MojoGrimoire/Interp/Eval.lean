@@ -175,10 +175,38 @@ def evalExpr (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Value 
     | .list _ es => do
       let os ← es.mapM (evalOperand prog n env)
       pure (.list (← os.mapM Operand.load))
+    | .withDrops e pre post => do
+      let v ← match e with
+        | .call .. | .method .. => do
+          match ← evalCall prog n env e pre with
+          | .value v => pure v
+          | .ref r => readRef r
+        | e => do
+          let v ← evalExpr prog n env e
+          dropAll prog n env pre
+          pure v
+      dropAll prog n env post
+      pure v
     | e => do
-      match ← evalCall prog n env e with
+      match ← evalCall prog n env e [] with
       | .value v => pure v
       | .ref r => readRef r
+
+/-- Takes the value out of the place `p` and destroys it. -/
+def dropPlace (prog : Program) (fuel : Nat) (env : Env) (p : Place) : EvalM Unit :=
+  match fuel with
+  | 0 => fail .outOfFuel
+  | n + 1 => do
+    let r ← placeRef prog n env p
+    let v ← readRef r
+    writeRef r .uninit
+    destroy prog n v
+
+/-- Destroys the values in the places `ps`, in order. -/
+def dropAll (prog : Program) (fuel : Nat) (env : Env) (ps : List Place) : EvalM Unit :=
+  match fuel with
+  | 0 => fail .outOfFuel
+  | n + 1 => ps.forM (dropPlace prog n env)
 
 /-- The operand `e`: a place is located, and any other expression
 evaluated. -/
@@ -221,8 +249,11 @@ def callFun (prog : Program) (fuel : Nat) (fd : FunDecl) (args : List Arg) : Eva
       if let .temp v := a then destroy prog n v
     pure r
 
-/-- Evaluates a call, a construction or a method call. -/
-def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Result :=
+/-- Evaluates a call, a construction or a method call. The values in the
+places `pre` are destroyed once the arguments are read, before the call is
+made. -/
+def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Place) :
+    EvalM Result :=
   match fuel with
   | 0 => fail .outOfFuel
   | n + 1 => match e with
@@ -233,16 +264,21 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Result
         | some fd => do
           let self ← alloc (emptyStruct sd)
           let rest ← Pending.loadAll (← evalArgs prog n env fd.params.tail args)
+          dropAll prog n env pre
           let _ ← callFun prog n fd (.place self :: rest)
           pure (.value (← readRef self))
         | none => do
           let os ← args.mapM (evalOperand prog n env)
           let vs ← os.mapM Operand.load
+          dropAll prog n env pre
           pure (.value (.struct sd.name (sd.fields.zip vs |>.map fun ((x, _), v) => (x, v))))
       | none, some fd, _, _ => do
-        callFun prog n fd (← Pending.loadAll (← evalArgs prog n env fd.params args))
+        let args ← Pending.loadAll (← evalArgs prog n env fd.params args)
+        dropAll prog n env pre
+        callFun prog n fd args
       | none, none, "len", [a] => do
         let .list es ← evalListArg prog n env a | stuck "len of a value that is not a list"
+        dropAll prog n env pre
         pure (.value (.int es.length))
       | _, _, _, _ => stuck s!"unknown function {f}"
     | .method p m args => do
@@ -252,6 +288,7 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Result
         let [a] := args | stuck "append takes one argument"
         let _ := es
         let v ← evalExpr prog n env a
+        dropAll prog n env pre
         let .list es' ← readRef r | stuck "append to a value that is not a list"
         writeRef r (.list (es' ++ [v]))
         pure (.value .none)
@@ -261,7 +298,9 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Result
         let rest ← evalArgs prog n env fd.params.tail args
         let recv ← if self.conv == .owned then do pure (Arg.value (← readRef r))
           else pure (Arg.place r)
-        callFun prog n fd (recv :: (← Pending.loadAll rest))
+        let args ← Pending.loadAll rest
+        dropAll prog n env pre
+        callFun prog n fd (recv :: args)
       | _ => stuck "a method call on a value that is not a struct"
     | _ => stuck "not a call"
 
@@ -284,8 +323,12 @@ def evalRef (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Ref :=
   | 0 => fail .outOfFuel
   | n + 1 => match e with
     | .place p => placeRef prog n env p
+    | .withDrops e pre post => do
+      let .ref r ← evalCall prog n env e pre | stuck "a call that returns no reference"
+      dropAll prog n env post
+      pure r
     | e => do
-      let .ref r ← evalCall prog n env e | stuck "a call that returns no reference"
+      let .ref r ← evalCall prog n env e [] | stuck "a call that returns no reference"
       pure r
 
 /-- Runs the statement `s` of a function that returns a reference when
@@ -338,10 +381,7 @@ def execStmt (prog : Program) (fuel : Nat) (refs : Bool) (env : Env) (s : Stmt) 
       destroyOwned prog n env
       throw (.returned r)
     | .drop p => do
-      let r ← placeRef prog n env p
-      let v ← readRef r
-      writeRef r .uninit
-      destroy prog n v
+      dropPlace prog n env p
       pure env
 
 /-- What `return e` gives back in a function that returns a value: `return

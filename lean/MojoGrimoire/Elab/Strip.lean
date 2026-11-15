@@ -1,9 +1,10 @@
 import MojoGrimoire.Elab.Elaborate
 
 /-!
-Elaboration only inserts drops: erasing every `drop` from an elaborated
-program gives the program it elaborated, with its drops erased too. So
-elaboration changes when values are destroyed, and nothing else.
+Elaboration only inserts drops: erasing every `drop` statement and every
+`withDrops` from an elaborated program gives the program it elaborated,
+with its drops erased too. So elaboration changes when values are
+destroyed, and nothing else.
 -/
 
 namespace MojoGrimoire.Elab
@@ -11,18 +12,46 @@ namespace MojoGrimoire.Elab
 open MojoGrimoire.Core
 
 mutual
-/-- The statement `s` with every `drop` in it erased. -/
+/-- The place `p` with every `withDrops` in its indices erased. -/
+def stripPlace : Place → Place
+  | .var x => .var x
+  | .field p f => .field (stripPlace p) f
+  | .index p i => .index (stripPlace p) (stripExpr i)
+
+/-- The expression `e` with every `withDrops` in it erased. -/
+def stripExpr : Expr → Expr
+  | .int k => .int k
+  | .bool b => .bool b
+  | .str t => .str t
+  | .place p => .place (stripPlace p)
+  | .transfer p => .transfer (stripPlace p)
+  | .copy p => .copy (stripPlace p)
+  | .call f args => .call f (stripExprs args)
+  | .method p m args => .method (stripPlace p) m (stripExprs args)
+  | .unary op a => .unary op (stripExpr a)
+  | .binary op a b => .binary op (stripExpr a) (stripExpr b)
+  | .list t es => .list t (stripExprs es)
+  | .withDrops e _ _ => stripExpr e
+
+/-- The expressions `es` with every `withDrops` in them erased. -/
+def stripExprs : List Expr → List Expr
+  | [] => []
+  | e :: es => stripExpr e :: stripExprs es
+end
+
+mutual
+/-- The statement `s` with every `drop` and `withDrops` in it erased. -/
 def stripStmt : Stmt → List Stmt
   | .drop _ => []
-  | .ifElse c a b => [.ifElse c (stripBlock a) (stripBlock b)]
-  | .whileLoop c body => [.whileLoop c (stripBlock body)]
+  | .ifElse c a b => [.ifElse (stripExpr c) (stripBlock a) (stripBlock b)]
+  | .whileLoop c body => [.whileLoop (stripExpr c) (stripBlock body)]
   | .pass => [.pass]
-  | .decl x t init => [.decl x t init]
-  | .refDecl x e => [.refDecl x e]
-  | .assign p e => [.assign p e]
-  | .expr e => [.expr e]
-  | .print args => [.print args]
-  | .ret value => [.ret value]
+  | .decl x t init => [.decl x t (init.map stripExpr)]
+  | .refDecl x e => [.refDecl x (stripExpr e)]
+  | .assign p e => [.assign (stripPlace p) (stripExpr e)]
+  | .expr e => [.expr (stripExpr e)]
+  | .print args => [.print (stripExprs args)]
+  | .ret value => [.ret (value.map stripExpr)]
 
 /-- The block `b` with every `drop` in it erased. -/
 def stripBlock : List Stmt → List Stmt
@@ -58,33 +87,70 @@ theorem stripBlock_drops (owned d : List Place) : stripBlock (drops owned d) = [
   | nil => rfl
   | cons p rest ih => simp [stripBlock, stripStmt, ih]
 
+/-- Erasing the drops of an operation leaves the operation. -/
+theorem stripExpr_withDropsOf (e : Expr) (pre post : List Place) :
+    stripExpr (withDropsOf e pre post) = stripExpr e := by
+  unfold withDropsOf
+  split <;> simp [stripExpr]
+
+mutual
+/-- Elaborating an expression only inserts drops. -/
+theorem stripExpr_elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) :
+    stripExpr (elabExpr ctx top e after) = stripExpr e := by
+  match e with
+  | .call f args => simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
+  | .method p m args =>
+    simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
+  | .binary op a b =>
+    simp only [elabExpr]
+    split <;> simp [stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
+  | .unary op a => simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
+  | .list t es => simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
+  | .copy p => simp [elabExpr, stripExpr_withDropsOf]
+  | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .withDrops .. => simp [elabExpr]
+
+/-- Elaborating operands only inserts drops. -/
+theorem stripExprs_elabOps (ctx : Ctx) (es : List Expr) (after : List Place) :
+    stripExprs (elabOps ctx es after) = stripExprs es := by
+  match es with
+  | [] => simp [elabOps, stripExprs]
+  | e :: rest =>
+    simp [elabOps, stripExprs, stripExpr_elabExpr, stripExprs_elabOps ctx rest after]
+end
+
 mutual
 /-- Elaborating a statement only inserts drops. -/
-theorem stripBlock_elabStmt (sl : Slots) (owned : List Place) (s : Stmt)
-    (after : List Place) : stripBlock (elabStmt sl owned s after) = stripStmt s := by
+theorem stripBlock_elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) :
+    stripBlock (elabStmt ctx s after) = stripStmt s := by
   match s with
   | .ifElse c a b =>
     simp [elabStmt, stripBlock, stripStmt, stripBlock_append, stripBlock_drops,
-      stripBlock_elabBlock]
+      stripBlock_elabBlock, stripExpr_elabExpr]
   | .whileLoop c body =>
     simp [elabStmt, stripBlock, stripStmt, stripBlock_drops, stripBlock_elabBlock]
-  | .ret _ | .pass | .drop _ => simp [elabStmt, stripBlock, stripStmt]
-  | .decl .. | .refDecl .. | .assign .. | .expr _ | .print _ =>
-    simp [elabStmt, stripBlock, stripStmt, stripBlock_drops]
+  | .ret value =>
+    cases value <;> simp [elabStmt, stripBlock, stripStmt, stripExpr_elabExpr]
+  | .pass | .drop _ => simp [elabStmt, stripBlock, stripStmt]
+  | .decl x t init =>
+    cases init <;> simp [elabStmt, stripBlock, stripStmt, stripBlock_drops, stripExpr_elabExpr]
+  | .refDecl .. | .assign .. | .expr _ =>
+    simp [elabStmt, stripBlock, stripStmt, stripBlock_drops, stripExpr_elabExpr]
+  | .print _ =>
+    simp [elabStmt, stripBlock, stripStmt, stripBlock_drops, stripExprs_elabOps]
 
 /-- Elaborating a block only inserts drops. -/
-theorem stripBlock_elabBlock (sl : Slots) (owned : List Place) (b : List Stmt)
-    (after : List Place) : stripBlock (elabBlock sl owned b after) = stripBlock b := by
+theorem stripBlock_elabBlock (ctx : Ctx) (b : List Stmt) (after : List Place) :
+    stripBlock (elabBlock ctx b after) = stripBlock b := by
   match b with
   | [] => simp [elabBlock, stripBlock]
   | s :: rest =>
     simp [elabBlock, stripBlock, stripBlock_append, stripBlock_elabStmt,
-      stripBlock_elabBlock sl owned rest after]
+      stripBlock_elabBlock _ rest after]
 end
 
 /-- Elaborating a function body only inserts drops. -/
-theorem stripBlock_elabBody (sl : Slots) (params : List Place) (body : List Stmt) :
-    stripBlock (elabBody sl params body) = stripBlock body := by
+theorem stripBlock_elabBody (prog : Program) (sl : Slots) (env : TyEnv) (params : List Place)
+    (body : List Stmt) : stripBlock (elabBody prog sl env params body) = stripBlock body := by
   simp [elabBody, stripBlock_append, stripBlock_drops, stripBlock_elabBlock]
 
 /-- Elaboration only inserts drops: a program and its elaboration are the

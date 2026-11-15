@@ -10,9 +10,10 @@ used as an argument is passed as a reference when the parameter's convention
 is `read`, `mut` or `ref`, and read as a value otherwise.
 
 Mojo destroys each value as soon as possible, right after its last use.
-The core calculus makes destruction explicit with the statement `drop`,
-which no Mojo program contains: elaboration inserts it, so that running a
-program never has to find a value's last use.
+The core calculus makes destruction explicit with the statement `drop`, and
+with the expression `withDrops` for a value whose last use is inside an
+expression. No Mojo program contains them: elaboration inserts them, so
+that running a program never has to find a value's last use.
 -/
 
 namespace MojoGrimoire.Core
@@ -31,7 +32,10 @@ moves the value out of `p`, and `copy p` is Mojo's explicit `p.copy()`.
 `call f args` calls the function `f` or, when `f` names a struct,
 constructs it, as Mojo's `S(args)` does. `method p m args` calls the method
 `m` on the place `p`, Mojo's `p.m(args)`. `list t es` is a list of elements
-of type `t`: Mojo's literal `[e₁, …, eₙ]`, or `List[t]()` when it is empty. -/
+of type `t`: Mojo's literal `[e₁, …, eₙ]`, or `List[t]()` when it is empty.
+`withDrops e pre post` performs the operation `e` and destroys the values
+in the places `pre` once its operands are read, before it is performed,
+and those in `post` once it is done; only elaboration inserts it. -/
 inductive Expr where
   | int (value : Int)
   | bool (value : Bool)
@@ -44,6 +48,7 @@ inductive Expr where
   | unary (op : UnOp) (arg : Expr)
   | binary (op : BinOp) (lhs rhs : Expr)
   | list (elemTy : Ty) (elems : List Expr)
+  | withDrops (e : Expr) (pre post : List Place)
 end
 
 /-- The statements. `decl x t e` is Mojo's `var x: t = e`, or `var x: t`

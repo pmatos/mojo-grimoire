@@ -124,7 +124,7 @@ private def elabMain (body : List Stmt) : List Stmt :=
 -- `ref r = pick(a, b, True); print("x"); show(r)`: `a` and `b` live until the
 -- last use of `r`.
 #guard elabMain (ab ++ [.refDecl "r" pickAB, say "x", call "show" [use "r"]]) ==
-  ab ++ [.refDecl "r" pickAB, say "x", call "show" [use "r"], .drop (v "a"), .drop (v "b")]
+  ab ++ [.refDecl "r" pickAB, say "x", call "show" [use "r"], .drop (v "b"), .drop (v "a")]
 
 -- `ref r = left(a, b)`: only `a` is in the origin, so `b` dies at once.
 #guard

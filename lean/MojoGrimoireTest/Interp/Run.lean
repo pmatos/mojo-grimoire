@@ -137,7 +137,7 @@ private def go (body : List Stmt) (pairDeinit : Option (List Stmt) := none)
 #guard go [newRes "a" 1, newRes "b" 2,
   .refDecl "r" (.call "pick" [use "a", use "b", .bool false]),
   call "bump" [use "r"], say "x", call "show" [use "r"]] ==
-  .finished ["x", "12", "drop 1", "drop 12"]
+  .finished ["x", "12", "drop 12", "drop 1"]
 
 -- `two(a.id, bumpGet(a)); print(a.id + bumpGet(a), a.id)`: an operand that is
 -- a place is read once every operand has been evaluated, so it sees the

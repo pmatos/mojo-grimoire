@@ -221,6 +221,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     unless validTy prog t do throw (CheckError.invalidType t)
     checkArgs prog "List" (es.map fun _ => ⟨.owned, "value", t⟩) es es.length es.length
     pure (.list t)
+  | .withDrops e _ _ => checkExprAs prog asRef e
 
 /-- Checks the index expressions of the place `p`: each is an `Int`, and
 one that Mojo computes when it compiles the program may not be negative. -/

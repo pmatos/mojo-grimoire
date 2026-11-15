@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17168121010135277680")
+:::moduleDocs (fingerprint := "6242404514614913019")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "17188177613617268651")
@@ -22,14 +22,15 @@ variables in scope, innermost first. An arithmetic operator gives an
 $`\mathsf{Int}`, and every other binary operator a $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "16766556602770989304")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "79296385413240963")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element its
 list's element type. A literal has its own type. A call of a struct has
 the struct's type, a call of a function its result, and `len` gives an
 $`\mathsf{Int}`. A method of a list gives $`\mathsf{None}`, and a method
 of a struct its result. A list literal left open takes the type of its
-first element. Inference fills in the literals inside an expression as it
+first element, and the drops that elaboration inserts the type of their
+operation. Inference fills in the literals inside an expression as it
 goes; where it finds no type, it gives none.
 :::
 

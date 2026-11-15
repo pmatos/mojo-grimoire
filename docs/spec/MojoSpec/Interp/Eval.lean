@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6437984508709766308")
+:::moduleDocs (fingerprint := "3937884299681944360")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "35485823105497894")
@@ -40,7 +40,7 @@ $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "15327768282521385164")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "16113056348452932004")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -60,6 +60,10 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   The operands of an operator, the elements of a list literal and the
   values printed are evaluated left to right, and those that are places
   are read after the last one is evaluated.
+  $`\mathsf{drops}(e; p^*; q^*)` evaluates $`e`, destroying the values in
+  $`p^*` once a call's arguments are read, before it is made, and those in
+  $`q^*` once $`e` is done; for an operation that is not a call, both once
+  it is done.
 - *Calls.* A struct with `__init__` is built in a location holding the
   empty struct, passed as `out self`; a `@fieldwise_init` struct from its
   arguments. A function's arguments are evaluated left to right by their
@@ -76,5 +80,5 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   result. `print` writes its arguments separated by spaces. `if` and
   `while` run their blocks in scopes of their own. `return x` of an owned
   variable moves it out. `drop p` takes the value out of $`p` and destroys
-  it.
+  it, as $`\mathsf{drops}` does for each of its places.
 :::

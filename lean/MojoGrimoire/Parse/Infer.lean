@@ -68,6 +68,9 @@ def inferExpr (prog : Program) (env : TyEnv) : Expr → Expr × Option Ty
     let es' := inferList prog env es
     let t' := if t == .noneType then ((es'.head?.bind (·.2)).getD .noneType) else t
     (.list t' (es'.map (·.1)), some (.list t'))
+  | .withDrops e pre post =>
+    let (e', t) := inferExpr prog env e
+    (.withDrops e' pre post, t)
 
 /-- Infers inside each of the expressions `es`. -/
 def inferList (prog : Program) (env : TyEnv) : List Expr → List (Expr × Option Ty)

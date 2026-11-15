@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4961755239572378153")
+:::moduleDocs (fingerprint := "10999557509629153694")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -46,7 +46,7 @@ and give $`\mathsf{Bool}`. Negation takes an $`\mathsf{Int}`, and
 $`\mathsf{not}` a $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Check.constInt (fingerprint := "15094168963797231555")
+:::readable MojoGrimoire.Check.constInt (fingerprint := "10006634048597442841")
 *Definition: constant indices.* An index made only of integer literals,
 negation, $`+`, $`-` and $`\times` has a value that Mojo computes when it
 compiles the program.
@@ -70,7 +70,7 @@ also be a place the function may change; one passed `var` is copied
 implicitly. No argument may be passed `out` or `deinit`.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "12024872483503844693")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "10866291844482346932")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -88,7 +88,9 @@ type:
 * $`[e^*]_t` passes each element as to a `var` parameter of type $`t`;
 * on a list, the only method is `append`, which needs a list the function
   may change and takes its argument as `var`; `len(e)`, when the program
-  declares no function `len`, takes a list and gives an $`\mathsf{Int}`.
+  declares no function `len`, takes a list and gives an $`\mathsf{Int}`;
+* $`\mathsf{drops}(e; p^*; q^*)`, which only elaboration inserts, after
+  checking, has the type of $`e`.
 
 Every index in a place is checked first, and must be an $`\mathsf{Int}`;
 a constant index may not be negative.

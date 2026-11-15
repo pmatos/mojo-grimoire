@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Places, expressions and statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14748316690280824463")
+:::moduleDocs (fingerprint := "2611362272338251280")
 :::
 
-:::readable MojoGrimoire.Core.Place MojoGrimoire.Core.Expr (fingerprint := "5147792290193113691")
+:::readable MojoGrimoire.Core.Place MojoGrimoire.Core.Expr (fingerprint := "1440102586692574884")
 *Definition: places and expressions.* A place $`p` names a location that holds a value:
 
 ```grammar MojoGrimoire.Core.Place
@@ -42,6 +42,7 @@ method        p.m(e^*)
 unary         \mathit{unop}~e
 binary        e~\mathit{binop}~e
 list          [e^*]_t
+withDrops     \mathsf{drops}(e; p^*; p^*)
 ```
 
 Here $`n` is an integer, $`b` a boolean and $`s` a string literal.
@@ -58,6 +59,10 @@ Here $`n` is an integer, $`b` a boolean and $`s` a string literal.
 * $`p.m(e^*)` calls the method $`m` on the value in $`p`.
 * $`[e^*]_t` builds a list of elements of type $`t`: Mojo's literal
   `[e1, e2]`, or `List[t]()` when it is empty.
+* $`\mathsf{drops}(e; p^*; q^*)` performs the operation $`e`, destroying
+  the values in the places $`p^*` once its operands are read and those in
+  $`q^*` once it is done. No program contains it: elaboration inserts it
+  where a value's last use is inside an expression.
 :::
 
 :::readable MojoGrimoire.Core.Stmt (fingerprint := "14081413901527619483")

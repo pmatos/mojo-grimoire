@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Uses, moves and liveness: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10349283650853575679")
+:::moduleDocs (fingerprint := "2269318565202964709")
 :::
 
 :::readable MojoGrimoire.Elab.Slots MojoGrimoire.Elab.Slots.of MojoGrimoire.Elab.Slots.isSlot (fingerprint := "1330877572997400442")
@@ -34,14 +34,14 @@ in the order they are found. $`A \cup B` keeps $`A` and adds the slots of
 $`B` not in it; $`A \setminus B` keeps the slots of $`A` not in $`B`.
 :::
 
-:::readable MojoGrimoire.Elab.indexUses MojoGrimoire.Elab.uses MojoGrimoire.Elab.usesList (fingerprint := "14515175716647013049")
+:::readable MojoGrimoire.Elab.indexUses MojoGrimoire.Elab.uses MojoGrimoire.Elab.usesList (fingerprint := "15538863250245669106")
 *Definition: uses.* An expression uses the slots of every place it reads,
 copies, transfers or calls a method on, the slots its index expressions
 use, and those of its arguments. A use of an element of a list uses the
 slot of the list.
 :::
 
-:::readable MojoGrimoire.Elab.indexMoves MojoGrimoire.Elab.moves MojoGrimoire.Elab.movesList (fingerprint := "15428857798748576165")
+:::readable MojoGrimoire.Elab.indexMoves MojoGrimoire.Elab.moves MojoGrimoire.Elab.movesList (fingerprint := "7077480849577509676")
 *Definition: moves.* An expression moves away the whole slots it
 transfers with `^`. Transferring a part of a slot does not move the slot:
 what is left of it is still destroyed. Moves inside index expressions

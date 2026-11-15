@@ -16,6 +16,7 @@ def Place.beq : Place → Place → Bool
   | .field p f, .field q g => Place.beq p q && f == g
   | .index p i, .index q j => Place.beq p q && Expr.beq i j
   | _, _ => false
+termination_by structural p => p
 
 /-- Whether two expressions are the same tree. -/
 def Expr.beq : Expr → Expr → Bool
@@ -30,6 +31,14 @@ def Expr.beq : Expr → Expr → Bool
   | .unary o a, .unary p b => o == p && Expr.beq a b
   | .binary o a b, .binary p c d => o == p && Expr.beq a c && Expr.beq b d
   | .list t as, .list u bs => t == u && Expr.beqList as bs
+  | .withDrops a ps qs, .withDrops b rs ss =>
+    Expr.beq a b && Place.beqList ps rs && Place.beqList qs ss
+  | _, _ => false
+
+/-- Whether two lists of places are the same, element by element. -/
+def Place.beqList : List Place → List Place → Bool
+  | [], [] => true
+  | p :: ps, q :: qs => Place.beq p q && Place.beqList ps qs
   | _, _ => false
 
 /-- Whether two lists of expressions are the same, element by element. -/

@@ -13,13 +13,13 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Equality of terms: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9553261513402311917")
+:::moduleDocs (fingerprint := "5549688951384410641")
 :::
 
-:::readable MojoGrimoire.Core.Place.beq MojoGrimoire.Core.instBEqPlace MojoGrimoire.Core.Expr.beq MojoGrimoire.Core.Expr.beqList MojoGrimoire.Core.Expr.beqOption MojoGrimoire.Core.instBEqExpr (fingerprint := "4005412166451000880")
+:::readable MojoGrimoire.Core.Place.beq MojoGrimoire.Core.instBEqPlace MojoGrimoire.Core.Expr.beq MojoGrimoire.Core.Place.beqList MojoGrimoire.Core.Expr.beqList MojoGrimoire.Core.Expr.beqOption MojoGrimoire.Core.instBEqExpr (fingerprint := "12632314759563879496")
 *Definition: equality of places and expressions.* Two places, or two
 expressions, are equal when they are the same tree: the same constructor, with equal parts. Lists of
-expressions are equal element by element, and optional expressions when both
+places and of expressions are equal element by element, and optional expressions when both
 are absent or both present and equal. This equality is a test, written `==`;
 the Lean writes it out by structural recursion, since equality derived by
 Lean would be partial on a type that nests lists of itself.

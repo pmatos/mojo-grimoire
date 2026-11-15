@@ -74,6 +74,7 @@ def uses (sl : Slots) : Expr → List Place
   | .unary _ a => uses sl a
   | .binary _ a b => union (uses sl a) (uses sl b)
   | .list _ es => usesList sl es
+  | .withDrops e _ _ => uses sl e
 
 /-- The slots that the expressions `es` use. -/
 def usesList (sl : Slots) : List Expr → List Place
@@ -99,6 +100,7 @@ def moves (sl : Slots) : Expr → List Place
   | .unary _ a => moves sl a
   | .binary _ a b => union (moves sl a) (moves sl b)
   | .list _ es => movesList sl es
+  | .withDrops e _ _ => moves sl e
 
 /-- The slots that the expressions `es` move away whole. -/
 def movesList (sl : Slots) : List Expr → List Place

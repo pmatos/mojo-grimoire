@@ -108,7 +108,7 @@ private def res : List String := [
   "    ref r = pick(a, b, False)",
   "    r.id = 12",
   "    print(\"x\")",
-  "    print(r.id)"]) == .ok (.finished ["x", "12", "drop 1", "drop 12"])
+  "    print(r.id)"]) == .ok (.finished ["x", "12", "drop 12", "drop 1"])
 
 -- A rejected program reports its class of error.
 #guard runLines (res ++ [

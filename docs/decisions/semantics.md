@@ -119,8 +119,15 @@ destroys what a `drop` names, and what is still alive when a function
 returns. As with the checker, each choice below is to be confirmed against
 the compiler when the suite records results.
 
-- A value dies right after the statement that last uses it, or right after
-  its definition when nothing uses it. A value moved away with `^` is not
+- A value dies right after its last use, which may be inside a statement:
+  right after a nested operation reads it, when the operation takes it by
+  value (a `var` argument, an `Int` or `Bool` passed `read`, an operator's
+  operand), and right after the operation is done when it takes it by
+  reference. The core calculus marks these points with `withDrops`. A
+  value last used by the statement itself, by `print` or by the operation
+  at the top of the statement, dies right after the statement, since the
+  compiler destroys a discarded result first. A value never used dies
+  right after its definition. A value moved away with `^` is not
   destroyed there.
 - A branch of an `if` that does not use a value the other branch uses
   destroys it first. A value a loop uses dies after the loop.
@@ -129,9 +136,12 @@ the compiler when the suite records results.
   last use, and a field never used dies before the body runs. The human
   ruled on 2026-11-15 that the model gets this right from the start.
 - Only values of struct type are dropped. Values destroyed at the same
-  point die in the order of declaration, parameters first.
-- A `return` gets no drops: the interpreter destroys what remains after
-  evaluating the returned value.
+  point die as the compiler destroys them: the parameters first, then the
+  local variables, each the last declared first; the fields of `self` in
+  `__deinit__` in their order; values read by value in the order they are
+  read.
+- A `return` gets no drops of its own: its value is elaborated, and the
+  interpreter destroys what remains after evaluating it.
 
 ## The interpreter
 
