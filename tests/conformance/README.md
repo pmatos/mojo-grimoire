@@ -27,5 +27,5 @@ scripts/conformance.py record --mojo "$(scripts/build-mojo.sh ../modular)" [PROG
 `record` needs the compiler, built from a checkout of `modular/modular` at the
 pinned commit by `scripts/build-mojo.sh`. It writes one `NAME.json` per
 program and lists every diagnostic that no pattern of `diagnostics.json`
-classifies. A new program is recorded before it is merged, so that `check`
+classifies. A new program is recorded before it is committed, so that `check`
 compares it.

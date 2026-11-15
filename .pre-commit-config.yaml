@@ -87,11 +87,11 @@ repos:
         files: ^(lean/|docs/spec/|docs/adrs/|scripts/build-spec\.sh$)
       # Runs the model's executable on the conformance suite and compares
       # it with the compiler's recorded results
-      # (docs/decisions/conformance.md#the-suite). Until results are
-      # recorded, it checks only that the model reads and runs every program.
+      # (docs/decisions/conformance.md#the-suite). A program with no
+      # recorded result fails it.
       - id: conformance
         name: The model agrees with the compiler on the conformance suite
-        entry: scripts/conformance.py check --allow-unrecorded
+        entry: scripts/conformance.py check
         language: unsupported_script
         stages: [pre-commit]
         pass_filenames: false

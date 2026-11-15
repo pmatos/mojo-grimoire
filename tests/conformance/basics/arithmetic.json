@@ -1,0 +1,11 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "10 -3 42",
+    "3 -4 -4 3",
+    "1 2 -2 -1",
+    "14 20 2"
+  ],
+  "class": null,
+  "diagnostic": null
+}

@@ -45,9 +45,9 @@ Python interop, async, GPU kernels and codegen correctness are out of v1.
 The checker, `MojoGrimoire.Check`, accepts a program of the core calculus
 or rejects it with a class of error, `CheckError`. The conformance suite
 compares these classes with the compiler's diagnostics, not their wording.
-Each choice below was made from Mojo's manual at the pin. Each is to be
-confirmed against the compiler when the suite records results (step 5 of
-Phase 1), and any disagreement goes in the decision log.
+Each choice below was made from Mojo's manual at the pin, and confirmed or
+corrected against the compiler when the suite recorded its results (#25):
+where the compiler and the manual disagree, the model follows the compiler.
 
 - Initialization is tracked per part of a variable: a field may be moved
   out and initialized again. A variable may end with fields moved out, and
@@ -116,8 +116,8 @@ Elaboration, `MojoGrimoire.Elab`, makes Mojo's destruction points explicit:
 it inserts a `drop` wherever the compiler destroys a value, and is proved
 to insert nothing else (`stripProgram_elabProgram`). The interpreter
 destroys what a `drop` names, and what is still alive when a function
-returns. As with the checker, each choice below is to be confirmed against
-the compiler when the suite records results.
+returns. As with the checker, each choice below was confirmed or corrected
+against the compiler's recorded results (#25).
 
 - A value dies right after its last use, which may be inside a statement:
   right after a nested operation reads it, when the operation takes it by
@@ -147,8 +147,8 @@ the compiler when the suite records results.
 
 The interpreter, `MojoGrimoire.Interp`, runs an elaborated program with
 fuel (#21). Its outcome is the class of error that rejects the program, or
-the lines printed and how the run ends. These choices are to be confirmed
-against the compiler when the suite records results:
+the lines printed and how the run ends. These choices were confirmed or
+corrected against the compiler's recorded results (#25):
 
 - `Int` is 64-bit and wraps around on overflow. `//` rounds toward
   negative infinity and `%` takes the sign of the divisor. Both give 0 for

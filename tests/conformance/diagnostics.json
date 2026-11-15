@@ -1,5 +1,5 @@
 {
-  "note": "Patterns that map the compiler's first error to a class of the model's CheckError, tried in order. The first patterns are guesses written before any result was recorded; recording checks them, and a diagnostic that none matches is listed for a new pattern.",
+  "note": "Patterns that map the compiler's first error to a class of the model's CheckError, tried in order. A failed instantiation's first error carries the note of the constraint that failed. 'has no attribute 'copy'' comes before unknownField: the compiler reports .copy() of a value that is not Copyable as a missing attribute, the model as notCopyable.",
   "patterns": [
     {
       "pattern": "cannot be implicitly copied|does not conform to 'ImplicitlyCopyable'|implicitly copy",
@@ -14,6 +14,10 @@
       "class": "transferFromBorrowed"
     },
     {
+      "pattern": "aliasing values passed mutably",
+      "class": "argumentExclusivity"
+    },
+    {
       "pattern": "argument exclusivity|aliased argument|previously writable through another",
       "class": "argumentExclusivity"
     },
@@ -26,6 +30,10 @@
       "class": "unknownVariable"
     },
     {
+      "pattern": "has no attribute 'copy'",
+      "class": "notCopyable"
+    },
+    {
       "pattern": "has no attribute|no member|unknown field",
       "class": "unknownField"
     },
@@ -34,7 +42,7 @@
       "class": "typeMismatch"
     },
     {
-      "pattern": "expected \\d+ positional arguments?|invalid call to",
+      "pattern": "expected \\d+ positional arguments?|invalid call to '[^']*': (unexpected argument|missing \\d+ required)",
       "class": "arityMismatch"
     },
     {
@@ -48,6 +56,10 @@
     {
       "pattern": "reference.*(outlive|escape|local)|lifetime|origin",
       "class": "escapingReference"
+    },
+    {
+      "pattern": "negative indexing is not supported",
+      "class": "negativeIndex"
     }
   ]
 }
