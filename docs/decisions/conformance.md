@@ -35,6 +35,30 @@ conformance suite needs the compiler in CI, by the human's ruling of
 
 ## The suite
 
-The conformance suite does not exist yet; Phase 1 starts it. It is written
-independently of the Isabelle formalisation's suite
-([semantics.md](semantics.md#independence)).
+The conformance suite is `tests/conformance/` (#25): Mojo programs of the
+Phase 1 subset, one per file, by area (basics, structs, ownership, lists,
+references, and programs the compiler rejects). They are written in this
+project's own terms, independently of the Isabelle formalisation's suite
+([semantics.md](semantics.md#independence)). Its
+[README](../../tests/conformance/README.md) says how to add a program.
+
+Each program's expected result is recorded from the pinned compiler, beside
+it as `NAME.json`, by `scripts/conformance.py record --mojo WRAPPER`, run
+where the compiler is built. The compiler builds the program with
+`mojo build`: a program it cannot build is rejected, and one it builds is
+run, and finishes or fails by its exit status. A rejection's class is the
+class of the model's `CheckError` that the compiler's first error matches in
+`tests/conformance/diagnostics.json`; the classes, not the wording, are
+compared.
+
+The `conformance` hook runs `scripts/conformance.py check` in CI. It
+compares the model's executable with every recorded result: how the run
+ended, the lines printed, and the class of a rejection. A run-time failure's
+lines are compared, but not its kind, which the compiler does not name. A
+disagreement passes only when `tests/conformance/known.json` lists the
+program with its decision-log entry. Until the first results are recorded,
+the hook runs with `--allow-unrecorded`, and checks only that the model reads
+every program and runs it without getting stuck; recording removes the flag.
+
+Rejected: comparing the compiler's diagnostics word for word. Their wording
+changes between releases and says nothing the class does not.

@@ -68,6 +68,8 @@ jobs:
       - if: ${{ !cancelled() }}
         run: uvx pre-commit@4.6.2 run run-unittests-test --all-files --verbose --show-diff-on-failure
       - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run conformance-test --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
         run: uvx pre-commit@4.6.2 run check-added-large-files --all-files --verbose --show-diff-on-failure
       - if: ${{ !cancelled() }}
         run: uvx pre-commit@4.6.2 run check-case-conflict --all-files --verbose --show-diff-on-failure
@@ -166,6 +168,8 @@ jobs:
           lookup-only: ${{ github.event_name != 'pull_request' }}
       - if: ${{ !cancelled() }}
         run: uvx pre-commit@4.6.2 run lean-build --all-files --verbose --show-diff-on-failure
+      - if: ${{ !cancelled() }}
+        run: uvx pre-commit@4.6.2 run conformance --all-files --verbose --show-diff-on-failure
       - if: ${{ !cancelled() }}
         run: uvx pre-commit@4.6.2 run spec --all-files --verbose --show-diff-on-failure
       # Saved once per key, by the first run that built Verso, when every
