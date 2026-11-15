@@ -3,3 +3,9 @@ import MojoGrimoire.Core.Types
 import MojoGrimoire.Core.Syntax
 import MojoGrimoire.Core.Equality
 import MojoGrimoire.Core.Program
+import MojoGrimoire.Check.Errors
+import MojoGrimoire.Check.Env
+import MojoGrimoire.Check.State
+import MojoGrimoire.Check.Expr
+import MojoGrimoire.Check.Stmt
+import MojoGrimoire.Check.Program

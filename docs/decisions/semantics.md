@@ -39,3 +39,28 @@ flow, integer and SIMD arithmetic, the static checker and the run-time
 semantics, and a soundness theorem: accepted programs never fail with an
 ownership or type error. Compile-time parameters and `comptime` evaluation,
 Python interop, async, GPU kernels and codegen correctness are out of v1.
+
+## The static checker
+
+The checker, `MojoGrimoire.Check`, accepts a program of the core calculus
+or rejects it with a class of error, `CheckError`. The conformance suite
+compares these classes with the compiler's diagnostics, not their wording.
+Each choice below was made from Mojo's manual at the pin. Each is to be
+confirmed against the compiler when the suite records results (step 5 of
+Phase 1), and any disagreement goes in the decision log.
+
+- Initialization is tracked per part of a variable: a field may be moved
+  out and initialized again. A variable may end with fields moved out, and
+  the rest is destroyed field by field. The exception is a part that has a
+  `__deinit__` of its own, which needs the whole value. Inside
+  `__deinit__`, `self`'s fields may be moved out.
+- `return x` moves a variable the function owns. Any other returned place
+  is copied implicitly, so it must be implicitly copyable.
+- Argument exclusivity rejects a `mut` argument that overlaps another
+  argument passed as a location. As the manual says, it does not apply to
+  `Int` and `Bool`.
+- After an `if`, a part counts as initialized only when both branches leave
+  it initialized. A loop body must leave initialized every part that was
+  initialized before the loop.
+- A block may not declare a name twice, but an inner block may hide an
+  outer name.
