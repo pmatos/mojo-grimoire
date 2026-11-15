@@ -29,6 +29,10 @@ built from the pinned commit.
 Rejected: printing the environment for callers to set. A caller that forgets
 one variable gets results from the wrong runtime.
 
+`scripts/build-mojo.sh` runs by hand. No hook or CI job runs it until the
+conformance suite needs the compiler in CI, by the human's ruling of
+2026-11-15. A full build takes about 25 minutes.
+
 ## The suite
 
 The conformance suite does not exist yet; Phase 1 starts it. It is written
