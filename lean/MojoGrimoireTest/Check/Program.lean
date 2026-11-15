@@ -161,13 +161,16 @@ private def verdict (p : Program) : Option CheckError :=
 #guard verdict (prog [.ifElse (.int 1) [] []]) == some (.typeMismatch .bool .int)
 #guard verdict (prog [newRes "a" 1, .print [use "a"]]) == some (.implicitCopy res)
 
--- Names: an unknown variable, a duplicate declaration in a block, and an inner
--- block that hides an outer name.
+-- Names: an unknown variable, a duplicate declaration, a declaration that would
+-- hide an outer variable, and a name reused by sibling blocks.
 #guard verdict (prog [.print [use "nope"]]) == some (.unknownVariable "nope")
 #guard verdict (prog [.decl "x" .int (some (.int 1)), .decl "x" .int (some (.int 2))]) ==
   some (.duplicate "x")
 #guard verdict (prog [.decl "x" .int (some (.int 1)),
-  .ifElse (.bool true) [.decl "x" .bool (some (.bool true))] [], .print [use "x"]]) == none
+  .ifElse (.bool true) [.decl "x" .bool (some (.bool true))] [], .print [use "x"]]) ==
+  some (.duplicate "x")
+#guard verdict (prog [.ifElse (.bool true) [.decl "x" .int (some (.int 1))]
+  [.decl "x" .bool (some (.bool true))]]) == none
 
 -- A struct that contains itself, and a program without `main`.
 #guard verdict (prog [] [] [⟨"Loop", [("next", .struct "Loop")], .none, true, none, none, []⟩]) ==

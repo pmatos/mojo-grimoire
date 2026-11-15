@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10109297477653993717")
+:::moduleDocs (fingerprint := "594572333912498623")
 :::
 
 :::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.checkEnd (fingerprint := "1166979457985264311")
@@ -58,12 +58,12 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "8948463312303352769")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "1662019130430316959")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
-  of type $`t`, and declares $`x`, initialized when $`e` is given; a
-  block may not declare a name twice, but an inner block may hide a name;
+  of type $`t`, and declares $`x`, initialized when $`e` is given; $`x`
+  may not be the name of a variable in scope, so no variable hides another;
 * $`p = e` checks $`e` first, then needs $`p` of $`e`'s type and a
   place the function may change; the old value of $`p` ends, and $`p`
   is initialized;

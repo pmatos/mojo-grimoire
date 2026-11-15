@@ -62,5 +62,7 @@ Phase 1), and any disagreement goes in the decision log.
 - After an `if`, a part counts as initialized only when both branches leave
   it initialized. A loop body must leave initialized every part that was
   initialized before the loop.
-- A block may not declare a name twice, but an inner block may hide an
-  outer name.
+- A declaration may not reuse the name of a variable in scope, a
+  parameter included, so no variable hides another. Sibling blocks may
+  reuse a name. ASAP elaboration relies on this, since it tracks
+  variables by name.

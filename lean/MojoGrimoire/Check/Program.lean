@@ -42,7 +42,7 @@ def checkBody (prog : Program) (fn : Name) (params : List Param) (result : Ty)
   unless result == .noneType || validTy prog result do throw (.invalidType result)
   let start : State := ⟨params.reverse.map paramState, true⟩
   let ((), _) ← (do
-      checkBlock prog fn result [] body
+      checkBlock prog fn result body
       if (← get).live then
         unless result == Ty.noneType do throw (CheckError.missingReturn fn)
         checkExit prog).run start

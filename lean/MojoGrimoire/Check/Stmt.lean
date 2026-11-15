@@ -3,9 +3,9 @@ import MojoGrimoire.Check.Expr
 /-!
 The checking of statements and blocks.
 
-A block is a scope: the variables it declares end with it, and a name is
-declared at most once in a block, though an inner block may declare a name
-of an outer one, which it hides. After an `if`, a part of a variable is
+A block is a scope: the variables it declares end with it. A declaration
+may not reuse the name of a variable in scope, so no variable hides
+another, though sibling blocks may reuse a name. After an `if`, a part of a variable is
 initialized only when both branches leave it initialized, and a branch that
 returns does not count. A loop body must leave initialized every part that
 was initialized before the loop, or its next iteration would use a moved
@@ -104,6 +104,7 @@ mutual
 def checkStmt (prog : Program) (fn : Name) (result : Ty) : Stmt → CheckM Unit
   | .pass => pure ()
   | .decl x t init => do
+    if (← get).vars.any (·.name == x) then throw (CheckError.duplicate x)
     unless validTy prog t do throw (CheckError.invalidType t)
     let us ← match init with
       | some e => do expect t (← checkExpr prog e); pure []
@@ -150,22 +151,15 @@ def checkStmt (prog : Program) (fn : Name) (result : Ty) : Stmt → CheckM Unit
 def checkScope (prog : Program) (fn : Name) (result : Ty) (b : List Stmt) :
     CheckM Unit := do
   let n := (← get).vars.length
-  checkBlock prog fn result [] b
+  checkBlock prog fn result b
   endScope prog n
 
-/-- Checks the statements of a block in order. `declared` holds the names
-the block has declared so far, which it may not declare again. -/
-def checkBlock (prog : Program) (fn : Name) (result : Ty) (declared : List Name) :
-    List Stmt → CheckM Unit
+/-- Checks the statements of a block in order. -/
+def checkBlock (prog : Program) (fn : Name) (result : Ty) : List Stmt → CheckM Unit
   | [] => pure ()
   | s :: rest => do
-    let declared ← match s with
-      | .decl x _ _ => do
-        if declared.contains x then throw (CheckError.duplicate x)
-        pure (x :: declared)
-      | _ => pure declared
     checkStmt prog fn result s
-    checkBlock prog fn result declared rest
+    checkBlock prog fn result rest
 end
 
 end MojoGrimoire.Check
