@@ -32,6 +32,42 @@ with gates G0 to G5. v1 is gate G5. Changing the roadmap is a direction call
 for the human. Phase 0 drops the roadmap's step of contacting the Isabelle
 model's author, by the human's ruling of 2026-11-15.
 
+Phase 0 is done: gate G0 holds at the pin, as
+[phase0-baseline.md](../conformance/phase0-baseline.md) records.
+
+### Phase 1: the core calculus in Lean
+
+The roadmap's Phase 1 ported the Isabelle model, retargeted its translator
+and compared against its suite. That conflicts with the project's
+independence (ADR-2026-11-15-1908), so the human approved this re-scoped
+Phase 1 on 2026-11-15. In order:
+
+1. The spec site, ported from funk (ADR-2026-11-15-2030), so that every module
+   below lands with its readable section.
+2. Abstract syntax, the static checker (accept, or reject with an error
+   class) and ASAP elaboration in `MojoGrimoire.Core`, designed in our own
+   terms, for the Micro-Mojo subset: structs, methods, the argument
+   conventions, moves and copies, control flow and `Int`. Elaboration
+   destroys each field of `self` inside `__deinit__` at its last use, as the
+   compiler does: the human ruled on 2026-11-15 that the model gets the
+   Isabelle model's two divergences (`d05`, `d13`) right from the start.
+3. An executable big-step interpreter with fuel and explicit run-time
+   errors.
+4. A parser written in Lean from `.mojo` source to the abstract syntax, so
+   that the model runs on a `.mojo` file directly, as the compiler does. The
+   human chose a Lean parser over a separate tool on 2026-11-15.
+5. Our own conformance suite in `tests/conformance/` and its runner. Expected
+   results are recorded from the pinned compiler through the wrapper; CI
+   compares the model with them.
+
+Gate G1: the model agrees with the recorded compiler results on our suite.
+As an optional cross-check run outside this repository, it also agrees with
+the compiler on the Isabelle formalisation's 65 programs. The human agreed
+this wording on 2026-11-15.
+
+Rejected: retargeting the Isabelle translator and passing its suite, which
+would make the model depend on code and tests we may not reuse.
+
 ## How a change reaches main
 
 Every change reaches `main` as a squash-merged pull request
