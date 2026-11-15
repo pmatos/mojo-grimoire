@@ -9,6 +9,9 @@ import MojoSpec.Check.State
 import MojoSpec.Check.Expr
 import MojoSpec.Check.Stmt
 import MojoSpec.Check.Program
+import MojoSpec.Elab.Live
+import MojoSpec.Elab.Elaborate
+import MojoSpec.Elab.Strip
 
 /-!
 The readable documents that `MojoSpec.lean` renders with `{includeReadable}`,
