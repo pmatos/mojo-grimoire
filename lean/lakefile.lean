@@ -4,10 +4,17 @@ open Lake DSL
 /-
 The Lean model of Mojo: the semantics, its tests, and the check that every
 declaration is trusted. It has no dependencies (ADR-2026-11-15-1905). Build it
-with `scripts/build-lean.sh`, which applies the build's guards.
+with `scripts/build-lean.sh`, which applies the build's guards. Module and
+declaration docs are written in Verso markup, so that the spec document in
+`docs/spec/` renders them (ADR-2026-11-15-2030). TOML cannot set both doc
+options below, because one name extends the other.
 -/
 package «mojo-grimoire» where
-  leanOptions := #[⟨`autoImplicit, false⟩]
+  leanOptions := #[
+    ⟨`autoImplicit, false⟩,
+    ⟨`doc.verso, true⟩,
+    ⟨`doc.verso.suggestions, false⟩
+  ]
 
 /-- The model of Mojo. -/
 @[default_target]

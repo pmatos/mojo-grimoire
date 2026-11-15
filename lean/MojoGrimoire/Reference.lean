@@ -1,6 +1,4 @@
 /-!
-# The reference compiler
-
 Mojo has no written specification, so the open-source Mojo compiler at a
 pinned release is the reference that the model is tested against
 (ADR-2026-11-15-1907). This module records which release that is, so that the

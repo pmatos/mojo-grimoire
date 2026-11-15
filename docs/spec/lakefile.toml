@@ -1,0 +1,43 @@
+name = "mojospec"
+defaultTargets = ["mojospec", "MojoSpecSite"]
+
+[[require]]
+name = "mojo-grimoire"
+path = "../../lean"
+
+[[require]]
+name = "verso"
+git = "https://github.com/leanprover/verso"
+rev = "v4.35.0"
+
+# MojoSpec renders the sources of the model with includeLiterate, so it is
+# rebuilt whenever one of them changes, not only when their compiled form does.
+[[input_dir]]
+name = "modelSources"
+path = "../../lean/MojoGrimoire"
+text = true
+
+[[lean_lib]]
+name = "MojoSpec"
+needs = ["modelSources"]
+
+# The cases of ADR citations, which MojoSpecSite's tests read with include_str
+# and the adr-citations hook's tests also read (ADR-2026-11-15-1902).
+[[input_file]]
+name = "citationCases"
+path = "../../scripts/adr-citation-cases.json"
+text = true
+
+# The appendix of ADRs and the links of ADR citations, which mojospec adds to
+# the document when it renders it
+# (docs/decisions/spec.md#the-adr-appendix-and-its-citations). Its tests run
+# when it builds.
+[[lean_lib]]
+name = "MojoSpecSite"
+globs = ["MojoSpecSite.*"]
+needs = ["citationCases"]
+
+[[lean_exe]]
+name = "mojospec"
+root = "MojoSpecMain"
+supportInterpreter = true

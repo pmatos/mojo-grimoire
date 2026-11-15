@@ -24,7 +24,8 @@ from pathlib import Path
 from check_adr_ids import RemovedError, adr_id, removed_adrs
 
 FIXTURES = {
-    "scripts/adr-citation-cases.json": "the grammar's cases, which the tests read",
+    "docs/spec/MojoSpecSite/Tests.lean": "the spec checker's tests of linking and rendering",
+    "scripts/adr-citation-cases.json": "the grammar's cases, which both checkers read",
     "scripts/test_adr_index.py": "the adr-index tests, which invent ADRs",
     "scripts/test_check_adr_ids.py": "the adr-ids tests, which name clashing ids",
     "scripts/test_check_adr_citations.py": "this check's tests",
