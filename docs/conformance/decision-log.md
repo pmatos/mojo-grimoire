@@ -15,10 +15,10 @@ Each entry is classified as one of:
 
 ## Pinned reference
 
-| Component | Version | Where it is pinned |
-| --------- | ------- | ------------------ |
-| Lean      | 4.35.0  | `lean/lean-toolchain` |
-| Mojo      | 1.2.x   | `MojoGrimoire.referenceMojo`; the exact commit is chosen in Phase 0 |
+| Component | Version | Commit | Where it is pinned |
+| --------- | ------- | ------ | ------------------ |
+| Lean      | 4.35.0  | n/a    | `lean/lean-toolchain` |
+| Mojo      | 1.2.0, tag `mojo/v1.2.0` of `modular/modular` | `527d069ee11a41ac5320af1f9402db0a66b2b868` | the release line in `MojoGrimoire.referenceMojo`; the commit in `scripts/build-mojo.sh` |
 
 Each move of the Mojo pin gets an entry below.
 
@@ -38,4 +38,16 @@ Each move of the Mojo pin gets an entry below.
 
 ## Entries
 
-None yet.
+### D-0001: pin Mojo 1.2.0 as the reference
+
+- Date: 2026-11-15
+- Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868)
+- Program: n/a
+- Compiler: n/a
+- Model: n/a
+- Classification: n/a, a pin is not a disagreement
+- Decision and rationale: the reference is the commit of the tag
+  `mojo/v1.2.0`, the newest tag of the 1.2 release line on 2026-11-15.
+  `scripts/build-mojo.sh` builds the compiler from a checkout at that commit
+  and refuses any other. The Phase 0 baseline at this pin is
+  [phase0-baseline.md](phase0-baseline.md).
