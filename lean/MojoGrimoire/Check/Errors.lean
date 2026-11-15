@@ -38,7 +38,6 @@ inductive CheckError where
   | immutablePlace (p : Place)
   | notAPlace (callee : Name)
   | argumentExclusivity (p : Place)
-  | movedInLoop (name : Name)
   | uninitializedAtExit (name : Name)
   | partiallyDestroyed (name : Name)
   | missingReturn (name : Name)

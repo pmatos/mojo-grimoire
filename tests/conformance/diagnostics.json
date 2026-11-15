@@ -46,10 +46,6 @@
       "class": "notCopyable"
     },
     {
-      "pattern": "moved .*loop|loop",
-      "class": "movedInLoop"
-    },
-    {
       "pattern": "reference.*(outlive|escape|local)|lifetime|origin",
       "class": "escapingReference"
     }

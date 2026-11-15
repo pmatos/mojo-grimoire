@@ -53,7 +53,6 @@ def CheckError.className : CheckError → String
   | .immutablePlace .. => "immutablePlace"
   | .notAPlace .. => "notAPlace"
   | .argumentExclusivity .. => "argumentExclusivity"
-  | .movedInLoop .. => "movedInLoop"
   | .uninitializedAtExit .. => "uninitializedAtExit"
   | .partiallyDestroyed .. => "partiallyDestroyed"
   | .missingReturn .. => "missingReturn"

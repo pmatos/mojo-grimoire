@@ -104,10 +104,11 @@ private def verdict (p : Program) : Option CheckError :=
 #guard verdict (prog [newRes "a" 1, .expr (.call "bump" [.call "Res" [.int 1], use "a"])]) ==
   some (.notAPlace "bump")
 
--- `while c: consume(a^)`: a move in a loop of a value from before it.
+-- `while c: consume(a^)`: a move in a loop of a value from before it, which
+-- the next iteration would use uninitialized.
 #guard verdict (prog [newRes "a" 1, .decl "c" .bool (some (.bool false)),
   .whileLoop (use "c") [.expr (.call "consume" [.transfer (v "a")])]]) ==
-  some (.movedInLoop "a")
+  some (.uninitializedUse (v "a"))
 
 -- The same loop is accepted when the body initializes `a` again.
 #guard verdict (prog [newRes "a" 1, .decl "c" .bool (some (.bool false)),
