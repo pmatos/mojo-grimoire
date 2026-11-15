@@ -26,8 +26,10 @@ funk, agents did so while the human was away.
 
 ## Direction: the roadmap
 
-The roadmap is the human's document "Mojo Formal Semantics in Lean — Roadmap".
-Its phases run from Phase 0, groundwork, to Phase 6, compile-time semantics,
+The roadmap is the human's document "Mojo Formal Semantics in Lean — Roadmap",
+kept as written in [`docs/roadmap.md`](../roadmap.md); the human asked for the
+copy on 2026-11-15. This page records where the project departs from it. Its
+phases run from Phase 0, groundwork, to Phase 6, compile-time semantics,
 with gates G0 to G5. v1 is gate G5. Changing the roadmap is a direction call
 for the human. Phase 0 drops the roadmap's step of contacting the Isabelle
 model's author, by the human's ruling of 2026-11-15.
