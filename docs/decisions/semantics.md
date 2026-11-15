@@ -66,3 +66,26 @@ Phase 1), and any disagreement goes in the decision log.
   parameter included, so no variable hides another. Sibling blocks may
   reuse a name. ASAP elaboration relies on this, since it tracks
   variables by name.
+
+## ASAP elaboration
+
+Elaboration, `MojoGrimoire.Elab`, makes Mojo's destruction points explicit:
+it inserts a `drop` wherever the compiler destroys a value, and is proved
+to insert nothing else (`stripProgram_elabProgram`). The interpreter
+destroys what a `drop` names, and what is still alive when a function
+returns. As with the checker, each choice below is to be confirmed against
+the compiler when the suite records results.
+
+- A value dies right after the statement that last uses it, or right after
+  its definition when nothing uses it. A value moved away with `^` is not
+  destroyed there.
+- A branch of an `if` that does not use a value the other branch uses
+  destroys it first. A value a loop uses dies after the loop.
+- A `var` parameter that the body never uses dies before the body runs.
+- Inside `__deinit__`, each field of `self` dies on its own, after its own
+  last use, and a field never used dies before the body runs. The human
+  ruled on 2026-11-15 that the model gets this right from the start.
+- Only values of struct type are dropped. Values destroyed at the same
+  point die in the order of declaration, parameters first.
+- A `return` gets no drops: the interpreter destroys what remains after
+  evaluating the returned value.

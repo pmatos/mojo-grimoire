@@ -82,6 +82,19 @@ compared with the compiler's diagnostics.
 
 {includeReadable "." MojoGrimoire.Check.Program "Programs" MojoSpec.Check.Program (level := 2)}
 
+# ASAP elaboration
+
+Mojo destroys each value as soon as possible, right after its last use.
+Elaboration makes those points explicit: it inserts a `drop` wherever the
+compiler destroys a value, so that the interpreter destroys only what a
+`drop` names and what remains when a function returns.
+
+{includeReadable "." MojoGrimoire.Elab.Live "Uses, moves and liveness" MojoSpec.Elab.Live (level := 2)}
+
+{includeReadable "." MojoGrimoire.Elab.Elaborate "Inserting drops" MojoSpec.Elab.Elaborate (level := 2)}
+
+{includeReadable "." MojoGrimoire.Elab.Strip "Elaboration only inserts drops" MojoSpec.Elab.Strip (level := 2)}
+
 # Architecture decision records
 %%%
 tag := "adrs"
