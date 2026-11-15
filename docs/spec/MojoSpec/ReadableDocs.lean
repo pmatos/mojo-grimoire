@@ -1,4 +1,8 @@
 import MojoSpec.Reference
+import MojoSpec.Core.Types
+import MojoSpec.Core.Syntax
+import MojoSpec.Core.Equality
+import MojoSpec.Core.Program
 
 /-!
 The readable documents that `MojoSpec.lean` renders with `{includeReadable}`,

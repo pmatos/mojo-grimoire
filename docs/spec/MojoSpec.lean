@@ -48,6 +48,21 @@ model, the conformance suite and the decision log name the same one.
 
 {includeReadable "." MojoGrimoire.Reference "The reference release" MojoSpec.Reference (level := 2)}
 
+# The core calculus
+
+The core calculus is the subset of Mojo that Phase 1 models: structs and
+their methods, the argument conventions, moves and copies, control flow and
+`Int`. Its abstract syntax is designed in this project's own terms
+(ADR-2026-11-15-1908).
+
+{includeReadable "." MojoGrimoire.Core.Types "Names, types, conventions and operators" MojoSpec.Core.Types (level := 2)}
+
+{includeReadable "." MojoGrimoire.Core.Syntax "Places, expressions and statements" MojoSpec.Core.Syntax (level := 2)}
+
+{includeReadable "." MojoGrimoire.Core.Equality "Equality of terms" MojoSpec.Core.Equality (level := 2)}
+
+{includeReadable "." MojoGrimoire.Core.Program "Functions, structs and programs" MojoSpec.Core.Program (level := 2)}
+
 # Architecture decision records
 %%%
 tag := "adrs"
