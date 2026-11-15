@@ -22,9 +22,12 @@ stale with no change on our side.
 ## Independence
 
 The model is independent of the Isabelle formalisation `utting/mojo-semantics`
-(ADR-2026-11-15-1908). It is a reference point while bootstrapping: nothing
-here imports, vendors or generates code from it, and its test suite is not
-copied. The human ruled this on 2026-11-15.
+(ADR-2026-11-15-1908). It guides the Lean model: its definitions and the
+statements of its theorems, such as its soundness theorem, may be used as
+targets, which we state in our own terms and prove in Lean. Nothing here
+calls, imports, vendors or mechanically translates it, and its test suite is
+not copied. The compiler, not the Isabelle model, is the oracle. The human
+ruled this on 2026-11-15.
 
 Rejected: porting the Isabelle model and its suite, which would tie the
 project to another codebase and to a suite with no licence.
