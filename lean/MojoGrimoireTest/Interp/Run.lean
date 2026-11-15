@@ -47,7 +47,12 @@ private def lib : List FunDecl :=
    ⟨"make", [⟨.read, "n", .int⟩], res, [newRes "r" 0,
      .assign (fld "r" "id") (use "n"), .ret (some (use "r"))], none⟩,
    ⟨"pick", [⟨.ref, "a", res⟩, ⟨.ref, "b", res⟩, ⟨.read, "first", .bool⟩], res,
-     [.ifElse (use "first") [.ret (some (use "a"))] [.ret (some (use "b"))]], some ["a", "b"]⟩]
+     [.ifElse (use "first") [.ret (some (use "a"))] [.ret (some (use "b"))]], some ["a", "b"]⟩,
+   ⟨"bumpGet", [⟨.mutable, "r", res⟩], .int,
+     [.assign (fld "r" "id") (.binary .add (.place (fld "r" "id")) (.int 10)),
+      .ret (some (.int 0))], none⟩,
+   ⟨"two", [⟨.read, "x", .int⟩, ⟨.read, "y", .int⟩], .noneType,
+     [.print [use "x", use "y"]], none⟩]
 
 /-- Runs a program whose `main` has the body `body`, where `Pair` has the
 destructor body `pairDeinit`, if one is given. -/
@@ -133,6 +138,14 @@ private def go (body : List Stmt) (pairDeinit : Option (List Stmt) := none)
   .refDecl "r" (.call "pick" [use "a", use "b", .bool false]),
   call "bump" [use "r"], say "x", call "show" [use "r"]] ==
   .finished ["x", "12", "drop 1", "drop 12"]
+
+-- `two(a.id, bumpGet(a)); print(a.id + bumpGet(a), a.id)`: an operand that is
+-- a place is read once every operand has been evaluated, so it sees the
+-- change that a later operand makes.
+#guard go [newRes "a" 1,
+  call "two" [.place (fld "a" "id"), .call "bumpGet" [use "a"]],
+  .print [.binary .add (.place (fld "a" "id")) (.call "bumpGet" [use "a"]),
+    .place (fld "a" "id")]] == .finished ["11 0", "21 21", "drop 21"]
 
 -- `print(9223372036854775807 + 1)`: `Int` wraps around.
 #guard go [.print [.binary .add (.int 9223372036854775807) (.int 1)]] ==

@@ -44,7 +44,11 @@ private def bump : FunDecl := ⟨"bump", [⟨.mutable, "r", res⟩, ⟨.read, "o
 private def addInts : FunDecl := ⟨"addInts", [⟨.mutable, "a", .int⟩, ⟨.read, "b", .int⟩], .noneType,
   [.assign (v "a") (.binary .add (use "a") (use "b"))], none⟩
 
-private def lib : List FunDecl := [consume, showRes, bump, addInts]
+/-- `def incBoth(mut a: Int, mut b: Int): a = a + 1` -/
+private def incBoth : FunDecl := ⟨"incBoth", [⟨.mutable, "a", .int⟩, ⟨.mutable, "b", .int⟩],
+  .noneType, [.assign (v "a") (.binary .add (use "a") (.int 1))], none⟩
+
+private def lib : List FunDecl := [consume, showRes, bump, addInts, incBoth]
 
 /-- A program with the shared declarations, extra functions `funs`, and a
 `main` whose body is `body`. -/
@@ -96,7 +100,11 @@ private def verdict (p : Program) : Option CheckError :=
 #guard verdict (prog [newRes "a" 1, .expr (.call "bump" [use "a", use "a"])]) ==
   some (.argumentExclusivity (v "a"))
 
--- `addInts(n, n)` is allowed: an `Int` is passed by copy.
+-- `incBoth(n, n)`: two `mut` arguments alias, even of type `Int`.
+#guard verdict (prog [.decl "n" .int (some (.int 1)),
+  .expr (.call "incBoth" [use "n", use "n"])]) == some (.argumentExclusivity (v "n"))
+
+-- `addInts(n, n)` is allowed: an `Int` passed `read` is copied.
 #guard verdict (prog [.decl "n" .int (some (.int 1)),
   .expr (.call "addInts" [use "n", use "n"])]) == none
 

@@ -57,8 +57,10 @@ Phase 1), and any disagreement goes in the decision log.
 - `return x` moves a variable the function owns. Any other returned place
   is copied implicitly, so it must be implicitly copyable.
 - Argument exclusivity rejects a `mut` argument that overlaps another
-  argument passed as a location. As the manual says, it does not apply to
-  `Int` and `Bool`.
+  argument passed as a location. The manual exempts `Int` and `Bool`, but
+  the compiler rejects two aliasing `mut` arguments of any type. An `Int`
+  or a `Bool` passed to a `read` parameter is copied, so it is not a
+  location and never clashes.
 - After an `if`, a part counts as initialized only when both branches leave
   it initialized. A loop body must leave initialized every part that was
   initialized before the loop; as the compiler does, the checker reports
@@ -143,6 +145,11 @@ against the compiler when the suite records results:
   a zero divisor, as Mojo's standard library defines them.
 - An index out of bounds stops the run with an error. A negative index
   is out of bounds: Mojo's `List` does not count from the end.
+- An operand that is a place passed by value, an argument, an operator's
+  operand, a list element or a printed value, is located in order but read
+  only once every operand of its operation has been evaluated, as the
+  compiler does: `f(a.id, g(a))` sees what `g` did to `a`. An `Int` or a
+  `Bool` passed to a `read` parameter is passed by value.
 - A struct without a `__deinit__` has its fields destroyed in declaration
   order, and a list its elements in index order.
 - A temporary passed to a borrowing parameter is destroyed right after the

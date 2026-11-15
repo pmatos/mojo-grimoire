@@ -4,7 +4,13 @@ import MojoGrimoire.Check.Env
 /-!
 The big-step evaluation of elaborated programs.
 
-Evaluation goes left to right, as in Mojo. Every function of the evaluator
+Evaluation goes left to right, as in Mojo. The operands of an operation, the
+arguments of a call, the elements of a list literal or the values printed,
+are evaluated in order, but an operand that is a place passed by value is
+only located then: as in Mojo, it is read once every operand has been
+evaluated, so a call among the later operands may change it first. An `Int`
+or a `Bool` passed to a `read` parameter is passed by value: Mojo copies
+it. Every function of the evaluator
 takes fuel, which each step spends; a run that spends it all stops with
 `outOfFuel`, so every run ends, even of a program that loops forever.
 
@@ -27,6 +33,34 @@ inductive Arg where
   | place (r : Ref)
   | value (v : Value)
   | temp (v : Value)
+
+/-- An operand as evaluation first finds it: a place passed by value,
+located but not yet read, or the value of any other expression. -/
+inductive Operand where
+  | loc (r : Ref)
+  | val (v : Value)
+
+/-- The value of an operand, once every operand has been evaluated. -/
+def Operand.load : Operand → EvalM Value
+  | .loc r => readRef r
+  | .val v => pure v
+
+/-- An argument before the operands passed by value are read: `load o` is
+read into a value when the call is made. -/
+inductive Pending where
+  | arg (a : Arg)
+  | load (o : Operand)
+
+/-- The arguments of a call, once every argument has been evaluated: each
+pending operand is read. -/
+def Pending.loadAll (ps : List Pending) : EvalM (List Arg) :=
+  ps.mapM fun
+    | .arg a => pure a
+    | .load o => do pure (.value (← o.load))
+
+/-- Whether a value of type `t` is passed to a `read` parameter by value:
+Mojo copies an `Int` or a `Bool`. -/
+def byValue (t : Ty) : Bool := t == .int || t == .bool
 
 /-- The variables a function starts with: its parameters bound to the
 arguments, each owned when it is passed `var`. The temporaries are given
@@ -135,27 +169,43 @@ def evalExpr (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Value 
     | .binary .or a b => do
       if ← asBool (← evalExpr prog n env a) then pure (.bool true) else evalExpr prog n env b
     | .binary op a b => do
-      let x ← evalExpr prog n env a
-      binary op x (← evalExpr prog n env b)
-    | .list _ es => do pure (.list (← es.mapM (evalExpr prog n env)))
+      let x ← evalOperand prog n env a
+      let y ← evalOperand prog n env b
+      binary op (← x.load) (← y.load)
+    | .list _ es => do
+      let os ← es.mapM (evalOperand prog n env)
+      pure (.list (← os.mapM Operand.load))
     | e => do
       match ← evalCall prog n env e with
       | .value v => pure v
       | .ref r => readRef r
 
-/-- The arguments `args` passed to the parameters `params`: a place passed
-to a `read`, `mut` or `ref` parameter is passed by reference, and anything
-else by value. -/
+/-- The operand `e`: a place is located, and any other expression
+evaluated. -/
+def evalOperand (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Operand :=
+  match fuel with
+  | 0 => fail .outOfFuel
+  | n + 1 => match e with
+    | .place p => do pure (.loc (← placeRef prog n env p))
+    | e => do pure (.val (← evalExpr prog n env e))
+
+/-- The arguments `args` passed to the parameters `params`, before the
+places passed by value are read. A place passed to a `read`, `mut` or `ref`
+parameter is passed by reference, except an `Int` or a `Bool` passed
+`read`; anything else is passed by value. -/
 def evalArgs (prog : Program) (fuel : Nat) (env : Env) :
-    List Param → List Expr → EvalM (List Arg)
+    List Param → List Expr → EvalM (List Pending)
   | prms, args => match fuel with
     | 0 => fail .outOfFuel
     | n + 1 => match prms, args with
       | prm :: prms, a :: args => do
         let x ← match prm.conv, a with
-          | .owned, a => do pure (.value (← evalExpr prog n env a))
-          | _, .place p => do pure (.place (← placeRef prog n env p))
-          | _, a => do pure (.temp (← evalExpr prog n env a))
+          | .owned, a => do pure (.load (← evalOperand prog n env a))
+          | .read, .place p =>
+            if byValue prm.ty then do pure (.load (← evalOperand prog n env (.place p)))
+            else do pure (.arg (.place (← placeRef prog n env p)))
+          | _, .place p => do pure (.arg (.place (← placeRef prog n env p)))
+          | _, a => do pure (.arg (.temp (← evalExpr prog n env a)))
         pure (x :: (← evalArgs prog n env prms args))
       | _, _ => pure []
 
@@ -182,13 +232,15 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Result
         match sd.init with
         | some fd => do
           let self ← alloc (emptyStruct sd)
-          let rest ← evalArgs prog n env fd.params.tail args
+          let rest ← Pending.loadAll (← evalArgs prog n env fd.params.tail args)
           let _ ← callFun prog n fd (.place self :: rest)
           pure (.value (← readRef self))
         | none => do
-          let vs ← args.mapM (evalExpr prog n env)
+          let os ← args.mapM (evalOperand prog n env)
+          let vs ← os.mapM Operand.load
           pure (.value (.struct sd.name (sd.fields.zip vs |>.map fun ((x, _), v) => (x, v))))
-      | none, some fd, _, _ => do callFun prog n fd (← evalArgs prog n env fd.params args)
+      | none, some fd, _, _ => do
+        callFun prog n fd (← Pending.loadAll (← evalArgs prog n env fd.params args))
       | none, none, "len", [a] => do
         let .list es ← evalListArg prog n env a | stuck "len of a value that is not a list"
         pure (.value (.int es.length))
@@ -206,9 +258,10 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Result
       | .struct s _ => do
         let some fd := (findStruct prog s).bind (findMethod · m) | stuck s!"unknown method {m}"
         let some self := fd.params.head? | stuck "a method with no self"
+        let rest ← evalArgs prog n env fd.params.tail args
         let recv ← if self.conv == .owned then do pure (Arg.value (← readRef r))
           else pure (Arg.place r)
-        callFun prog n fd (recv :: (← evalArgs prog n env fd.params.tail args))
+        callFun prog n fd (recv :: (← Pending.loadAll rest))
       | _ => stuck "a method call on a value that is not a struct"
     | _ => stuck "not a call"
 
@@ -260,9 +313,12 @@ def execStmt (prog : Program) (fuel : Nat) (refs : Bool) (env : Env) (s : Stmt) 
       destroy prog n (← evalExpr prog n env e)
       pure env
     | .print args => do
-      let parts ← args.mapM fun
-        | .str t => pure t
-        | a => do pure (← evalExpr prog n env a).show
+      let os ← args.mapM fun
+        | .str t => pure (Sum.inl t)
+        | a => do pure (Sum.inr (← evalOperand prog n env a))
+      let parts ← os.mapM fun
+        | .inl t => pure t
+        | .inr o => do pure (← o.load).show
       emit (" ".intercalate parts)
       pure env
     | .ifElse c a b => do

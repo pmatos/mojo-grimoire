@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6816877235410116858")
+:::moduleDocs (fingerprint := "6437984508709766308")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "35485823105497894")
@@ -25,13 +25,22 @@ the call. The callee's parameters are bound to them, each value at a new
 location.
 :::
 
+:::readable MojoGrimoire.Interp.Operand MojoGrimoire.Interp.Operand.load MojoGrimoire.Interp.Pending MojoGrimoire.Interp.Pending.loadAll MojoGrimoire.Interp.byValue (fingerprint := "9279331057875394553")
+*Definition: operands read late.* An operand that is a place passed by
+value is first only located; it is read once every operand of its
+operation has been evaluated, as Mojo does. A call's arguments wait in
+the same way: those passed by value are read when the call is made. An
+$`\mathsf{Int}` or a $`\mathsf{Bool}` passed to a `read` parameter is
+passed by value.
+:::
+
 :::readable MojoGrimoire.Interp.asInt MojoGrimoire.Interp.asBool MojoGrimoire.Interp.lookupVar (fingerprint := "14008624707944704668")
 *Definition: helpers.* An index is an $`\mathsf{Int}`, a condition a
 $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "5898987111092227884")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "15327768282521385164")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -48,11 +57,14 @@ unit at each step; with none left, the run stops with `outOfFuel`.
 - *Expressions.* Literals are values; a place is read, a transfer reads it
   and leaves $`\bot` behind, and `.copy()` reads it. `and` and `or`
   evaluate their right operand only when the left does not decide.
-  Operands and arguments are evaluated left to right.
+  The operands of an operator, the elements of a list literal and the
+  values printed are evaluated left to right, and those that are places
+  are read after the last one is evaluated.
 - *Calls.* A struct with `__init__` is built in a location holding the
   empty struct, passed as `out self`; a `@fieldwise_init` struct from its
-  arguments. A function's arguments are evaluated by their parameters'
-  conventions; temporaries are destroyed after the call. `append` adds a
+  arguments. A function's arguments are evaluated left to right by their
+  parameters' conventions, and those passed by value are read when the
+  call is made; temporaries are destroyed after the call. `append` adds a
   value at the end of a list, and `len` gives its length. A method gets its
   receiver by reference, or a copy for a `var self`.
 - *References.* A `ref` binding, and the `return` of a function with an

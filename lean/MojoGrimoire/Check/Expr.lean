@@ -11,8 +11,9 @@ it. A place passed as an argument is passed by its parameter's convention:
 is copied implicitly unless the argument transfers it.
 
 A `mut` argument may not alias another argument that is passed as a location,
-Mojo's argument exclusivity. As in Mojo, the rule does not apply to `Int`
-and `Bool`, which are always passed by copy.
+Mojo's argument exclusivity. An `Int` or a `Bool` passed to a `read`
+parameter is not passed as a location: Mojo copies it. A `mut` argument of
+any type is.
 -/
 
 namespace MojoGrimoire.Check
@@ -105,18 +106,18 @@ def overlaps (p q : Place) : Bool :=
 
 /-- The places among `args` that are passed as locations, with their
 conventions: every place argument whose parameter is `read`, `mut` or
-`ref`. -/
+`ref`, except an `Int` or a `Bool` passed `read`, which is copied. -/
 def locationArgs : List Param → List Expr → List (Conv × Place)
   | prm :: prms, .place p :: args =>
-    if prm.conv == .owned then locationArgs prms args
+    if prm.conv == .owned || (prm.conv == .read && (prm.ty == .int || prm.ty == .bool)) then
+      locationArgs prms args
     else (prm.conv, p) :: locationArgs prms args
   | _ :: prms, _ :: args => locationArgs prms args
   | _, _ => []
 
-/-- Rejects a `mut` location among `locs` that overlaps another one, unless
-it is an `Int` or a `Bool`. A reference counts as every place it may point
-into. -/
-def checkExclusive (prog : Program) (locs : List (Conv × Place)) : CheckM Unit := do
+/-- Rejects a `mut` location among `locs` that overlaps another one. A
+reference counts as every place it may point into. -/
+def checkExclusive (locs : List (Conv × Place)) : CheckM Unit := do
   go (← get).vars locs []
 where
   /-- Checks each location against those before and after it. -/
@@ -127,8 +128,7 @@ where
       let clash (q : Place) :=
         (resolvePlace vars p).any fun a => (resolvePlace vars q).any (overlaps a)
       if c == .mutable && others.any (clash ·.2) then
-        let t ← placeTy prog p
-        unless t == .int || t == .bool do throw (CheckError.argumentExclusivity p)
+        throw (CheckError.argumentExclusivity p)
       go vars rest ((c, p) :: seen)
 
 /-- Passes the place `p` to a parameter of convention `c` and type `t`. -/
@@ -173,11 +173,11 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         | none =>
           if sd.fieldwiseInit then pure (sd.fields.map fun (x, t) => ⟨.owned, x, t⟩)
           else throw (CheckError.noInitializer f)
-      checkExclusive prog (locationArgs params args)
+      checkExclusive (locationArgs params args)
       checkArgs prog f params args params.length args.length
       pure (.struct f)
     | none, some fd => do
-      checkExclusive prog (locationArgs fd.params args)
+      checkExclusive (locationArgs fd.params args)
       checkArgs prog f fd.params args fd.params.length args.length
       refResult prog asRef fd
     | none, none =>
@@ -206,7 +206,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     let some sd := findStruct prog s | throw (CheckError.unknownStruct s)
     let some fd := findMethod sd m | throw (CheckError.unknownMethod s m)
     let some self := fd.params.head? | throw (CheckError.invalidSelf m)
-    checkExclusive prog ((if self.conv == .owned then [] else [(self.conv, p)]) ++
+    checkExclusive ((if self.conv == .owned then [] else [(self.conv, p)]) ++
       locationArgs fd.params.tail args)
     passPlace prog m self.conv t p
     let params := fd.params.tail

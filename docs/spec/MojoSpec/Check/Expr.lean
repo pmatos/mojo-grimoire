@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16874973772176836938")
+:::moduleDocs (fingerprint := "4961755239572378153")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -52,14 +52,14 @@ negation, $`+`, $`-` and $`\times` has a value that Mojo computes when it
 compiles the program.
 :::
 
-:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "15076359769503551250")
+:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "17226001677944748869")
 *Rule: argument exclusivity.* Two places overlap when they have the same
 variable and one path is a prefix of the other. The arguments of a call
 that are passed as locations are the places whose parameters are `read`,
 `mut` or `ref`, and the receiver of a method unless its `self` is
-`var`. A call is rejected when a location passed `mut` overlaps another
-location of the same call, unless it is an $`\mathsf{Int}` or a
-$`\mathsf{Bool}`, which Mojo passes by copy. A reference overlaps what its
+`var`; an $`\mathsf{Int}` or a $`\mathsf{Bool}` passed `read` is copied
+instead. A call is rejected when a location passed `mut`, of any type,
+overlaps another location of the same call. A reference overlaps what its
 origins overlap.
 :::
 
