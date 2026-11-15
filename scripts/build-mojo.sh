@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Build the reference Mojo compiler from a checkout of modular/modular at the
-# pinned commit (ADR-2026-11-15-1907), and print the path of the `mojo`
-# binary on stdout. Everything else goes to stderr.
+# pinned commit (ADR-2026-11-15-1907). Print on stdout the path of a `mojo`
+# wrapper that runs it isolated from any installed Mojo; everything else goes
+# to stderr. Run the reference compiler only through that wrapper.
 # Usage: scripts/build-mojo.sh <modular-checkout>
 # The checkout lives outside this repository. The pin is recorded in
 # docs/conformance/decision-log.md; a move of the pin edits both.
@@ -68,11 +69,12 @@ fi
 binary="$checkout/${outputs[0]}"
 
 # Outside `bazelw run`, the binary finds the standard library only through
-# MODULAR_MOJO_MAX_IMPORT_PATH. It also reads any modular.cfg it finds, such
-# as one left by an installed Mojo in ~/.config/modular, and `mojo build`
-# then sets the program's rpath to that install's runtime. An empty
-# MODULAR_HOME hides such a file, and MODULAR_MOJO_MAX_SHARED_LIBS points the
-# rpath at the runtime built here.
+# MODULAR_MOJO_MAX_IMPORT_PATH. It also reads the first modular.cfg it finds,
+# such as one left by an installed Mojo in ~/.config/modular, and any
+# MODULAR_* variable, and `mojo build` then links programs against that
+# install's runtime. The wrapper below removes every inherited MODULAR_*
+# variable and sets its own home, package root, import path and rpath, so
+# the compiler and the programs it builds use only what was built here.
 runfiles="$binary.runfiles/_main"
 stdlib="$runfiles/Mojo/stdlib/std"
 for file in "$stdlib/std.mojoc" "$runfiles/Mojo/libKGENCompilerRTShared.so"; do
@@ -82,11 +84,60 @@ for file in "$stdlib/std.mojoc" "$runfiles/Mojo/libKGENCompilerRTShared.so"; do
     fi
 done
 runtime=$(readlink -f "$runfiles/Mojo")
-cat >&2 <<EOF
-Run the compiler with this environment, where <empty-dir> is an empty directory:
-  MODULAR_HOME=<empty-dir>
-  MODULAR_MOJO_MAX_IMPORT_PATH=$stdlib
-  MODULAR_MOJO_MAX_SHARED_LIBS=-Xlinker,-rpath,-Xlinker,$runtime
-EOF
+output_root=${runtime%%/bazel-out/*}
 
-echo "$binary"
+isolated="$checkout/build/mojo-grimoire"
+wrapper="$isolated/mojo"
+mkdir -p "$isolated/home"
+# The driver falls back to /etc/modular/modular.cfg when MODULAR_HOME has
+# none; this file stops that search here.
+echo "# Written by mojo-grimoire's scripts/build-mojo.sh; intentionally empty." \
+    >"$isolated/home/modular.cfg"
+{
+    echo '#!/usr/bin/env bash'
+    echo "# Written by mojo-grimoire's scripts/build-mojo.sh for $pinned_tag ($pinned_sha)."
+    echo 'set -euo pipefail'
+    # shellcheck disable=SC2016 # the wrapper expands it, not this script
+    echo 'for var in $(compgen -e); do [[ $var != MODULAR_* ]] || unset "$var"; done'
+    printf 'export MODULAR_HOME=%q\n' "$isolated/home"
+    printf 'export MODULAR_MOJO_MAX_PACKAGE_ROOT=%q\n' "$isolated"
+    printf 'export MODULAR_MOJO_MAX_IMPORT_PATH=%q\n' "$stdlib"
+    printf 'export MODULAR_MOJO_MAX_SHARED_LIBS=%q\n' "-Xlinker,-rpath,-Xlinker,$runtime"
+    printf 'exec %q "$@"\n' "$binary"
+} >"$wrapper"
+chmod +x "$wrapper"
+
+# Check the isolation against a hostile environment: a home whose modular.cfg
+# names another install, and inherited MODULAR_* variables that point
+# elsewhere. The test program must build, run, and load every non-system
+# library from this build's output tree.
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+mkdir -p "$scratch/home/.config/modular" "$scratch/elsewhere/lib"
+printf '[mojo-max]\npackage_root = %s\nimport_path = %s\n' \
+    "$scratch/elsewhere" "$scratch/elsewhere/lib/mojo" \
+    >"$scratch/home/.config/modular/modular.cfg"
+printf 'def main():\n    var xs = [1, 2, 3]\n    print("isolated", len(xs))\n' >"$scratch/check.mojo"
+(
+    cd "$scratch"
+    env HOME="$scratch/home" \
+        MODULAR_MOJO_MAX_IMPORT_PATH="$scratch/elsewhere/lib/mojo" \
+        MODULAR_MOJO_MAX_SHARED_LIBS="-Xlinker,-rpath,-Xlinker,$scratch/elsewhere/lib" \
+        "$wrapper" build check.mojo -o check >&2
+)
+if [[ "$("$scratch/check")" != "isolated 3" ]]; then
+    echo "The test program built by $wrapper printed the wrong output." >&2
+    exit 1
+fi
+while read -r lib _ path _; do
+    case "$path" in
+        "$output_root"/* | /usr/lib/* | /usr/lib64/* | /lib/* | /lib64/*) ;;
+        *)
+            echo "The test program loads $lib from $path, outside this build." >&2
+            exit 1
+            ;;
+    esac
+done < <(ldd "$scratch/check" | grep '=>')
+
+echo "Run the reference compiler only through $wrapper" >&2
+echo "$wrapper"

@@ -84,18 +84,19 @@ output differs.
 
 ### How the compiler was run
 
-`scripts/build-mojo.sh` prints the path of the built binary and the
-environment it needs outside `bazelw run`. Two details matter for anyone who
-repeats this run:
+`scripts/build-mojo.sh` prints the path of a wrapper, and the compiler is run
+only through it. Two details matter for anyone who repeats this run:
 
 - The binary reads any `modular.cfg` it finds, including one left in
-  `~/.config/modular` by an installed Mojo. `mojo build` then gives each
-  program an rpath into that install, so the program runs against the
-  installed runtime, not the one built from the pinned commit. Our first run
-  did exactly that. The script's printed environment avoids it with an empty
-  `MODULAR_HOME` and an explicit rpath. In the run recorded here, every
-  compiled program loaded only runtime libraries built from the pinned
-  commit.
+  `~/.config/modular` by an installed Mojo, and any `MODULAR_*` variable.
+  `mojo build` then gives each program an rpath into that install, so the
+  program runs against the installed runtime, not the one built from the
+  pinned commit. Our first run did exactly that, with no error. The wrapper
+  removes inherited `MODULAR_*` variables and sets its own home, package
+  root, import path and rpath. The script fails unless a test program, built
+  through the wrapper under a hostile config, loads every non-system library
+  from the build's output. In the run recorded here, every compiled program
+  loaded only runtime libraries built from the pinned commit.
 - `bazelw` caches the host's GPU resources in the checkout's
   `build/local-resources.bazelrc`. On a host with `rocm-smi` but not
   `amd-smi`, its detection writes an error into that file, and every Bazel

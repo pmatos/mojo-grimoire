@@ -17,6 +17,18 @@ compiler built from the pinned commit by `scripts/build-mojo.sh`, and the
 Isabelle formalisation, both reproduce that formalisation's recorded results.
 Only our counts and summaries are kept here.
 
+## Running the reference compiler
+
+The reference compiler runs only through the wrapper that
+`scripts/build-mojo.sh` prints. A source-built `mojo` otherwise reads an
+installed Mojo's `modular.cfg` and `MODULAR_*` variables, and links the
+programs it builds against that install's runtime, with no error. The script
+fails unless a test program built through the wrapper loads only libraries
+built from the pinned commit.
+
+Rejected: printing the environment for callers to set. A caller that forgets
+one variable gets results from the wrong runtime.
+
 ## The suite
 
 The conformance suite does not exist yet; Phase 1 starts it. It is written
