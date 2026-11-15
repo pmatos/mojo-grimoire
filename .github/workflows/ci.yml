@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leanprover/lean-action@v1
+        with:
+          auto-config: false
+          build: true
+          # Warnings (including "declaration uses 'sorry'") fail the build.
+          build-args: "--wfail"
+          use-mathlib-cache: false
+      - name: Axiom audit
+        run: lake exe axiom-audit
