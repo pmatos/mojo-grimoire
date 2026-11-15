@@ -45,7 +45,7 @@ Each move of the Mojo pin gets an entry below.
 - Program: n/a
 - Compiler: n/a
 - Model: n/a
-- Classification: spec decision
+- Classification: n/a, a pin is not a disagreement
 - Decision and rationale: the reference is the commit of the tag
   `mojo/v1.2.0`, the newest tag of the 1.2 release line on 2026-11-15.
   `scripts/build-mojo.sh` builds the compiler from a checkout at that commit

@@ -15,9 +15,10 @@ structure MojoVersion where
   minor : Nat
   deriving DecidableEq, Repr
 
-/-- The Mojo release line that the model is tested against. A move to a newer
-release edits this definition, the conformance suite's recorded results and
-`docs/decisions/semantics.md` in one PR (ADR-2026-11-15-1907). -/
+/-- The Mojo release line that the model is tested against. The exact commit
+is pinned in `scripts/build-mojo.sh`. A move to a newer release edits this
+definition, the script, the conformance suite's recorded results, the decision
+log and `docs/decisions/semantics.md` in one PR (ADR-2026-11-15-1907). -/
 def referenceMojo : MojoVersion := ⟨1, 2⟩
 
 end MojoGrimoire

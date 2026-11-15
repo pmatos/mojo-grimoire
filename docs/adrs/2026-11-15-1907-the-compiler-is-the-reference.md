@@ -10,8 +10,9 @@ Tier: direction; area: semantics
   The pin starts on the 1.2 release line and moves forward with new
   releases as needed.
 - `MojoGrimoire.referenceMojo` in `lean/MojoGrimoire/Reference.lean` names
-  the release line. A move to a newer release edits it, the conformance
-  suite's recorded results and `docs/decisions/semantics.md` in one PR.
+  the release line, and `scripts/build-mojo.sh` names the exact commit. A
+  move to a newer release edits both, the conformance suite's recorded
+  results, the decision log and `docs/decisions/semantics.md` in one PR.
 - Every test program runs through both the model and the compiler. Every
   disagreement is recorded in `docs/conformance/decision-log.md` and
   classified as a model bug, a compiler bug or a spec decision. A spec
