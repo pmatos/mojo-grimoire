@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2868174857376798766")
+:::moduleDocs (fingerprint := "1588124030301744694")
 :::
 
 :::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "12927198337935588870")
@@ -25,10 +25,12 @@ or when the struct is unknown or has no field $`f`. `fieldNames` gives
 the names of the fields of a struct type, and none for any other type.
 :::
 
-:::readable MojoGrimoire.Check.copyingOf (fingerprint := "11280189753430556999")
+:::readable MojoGrimoire.Check.copyingOf (fingerprint := "4318683737232947193")
 *Definition: how a type is copied.* $`\mathsf{Int}` and
 $`\mathsf{Bool}` are implicitly copyable, as in Mojo; a struct is copied as
-it declares; string literals and $`\mathsf{None}` are never copied.
+it declares; a list is copied only explicitly, with `.copy()`, and only
+when its elements can be copied; string literals and $`\mathsf{None}` are
+never copied.
 :::
 
 :::readable MojoGrimoire.Check.hasDeinit (fingerprint := "18219250075115973939")
@@ -36,10 +38,10 @@ it declares; string literals and $`\mathsf{None}` are never copied.
 when it is a struct that declares `__deinit__`.
 :::
 
-:::readable MojoGrimoire.Check.validTy (fingerprint := "13108216207009917757")
+:::readable MojoGrimoire.Check.validTy (fingerprint := "2209953286527928859")
 *Definition: declarable types.* A variable, parameter or field may have the
-type $`\mathsf{Int}`, $`\mathsf{Bool}` or a struct of the program, and
-no other.
+type $`\mathsf{Int}`, $`\mathsf{Bool}`, a struct of the program, or a
+list of values of such a type, and no other.
 :::
 
 :::readable MojoGrimoire.Check.contains (fingerprint := "16104821665075561169")

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18412038547163670720")
+:::moduleDocs (fingerprint := "5399371917858782510")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -27,12 +27,12 @@ assigning to it or passing it `mut`, unless its variable is a `read` or
 `ref` parameter.
 :::
 
-:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.transferPlace (fingerprint := "12997164720872610445")
+:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.transferPlace (fingerprint := "16790588590062624610")
 *Rule: reading and moving a place.* Using a place $`p` as a value copies it
 implicitly: $`p` must be initialized, and its type implicitly copyable.
 Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable
 that the function may change, owned or held `mut`; afterwards $`p` is
-uninitialized.
+uninitialized. An element of a list cannot be transferred out.
 :::
 
 :::readable MojoGrimoire.Check.binaryTy MojoGrimoire.Check.unaryTy (fingerprint := "1780888884152816192")
@@ -62,7 +62,7 @@ also be a place the function may change; one passed `var` is copied
 implicitly. No argument may be passed `out` or `deinit`.
 :::
 
-:::readable MojoGrimoire.Check.checkExpr MojoGrimoire.Check.checkArgs (fingerprint := "1930052323461991855")
+:::readable MojoGrimoire.Check.checkExpr MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices (fingerprint := "15783014465473280222")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -76,7 +76,13 @@ type:
   calls the function $`f`;
 * $`p.m(e^*)` passes $`p` by the convention of the method's `self`,
   then the other arguments;
-* operators have the types above.
+* operators have the types above;
+* $`[e^*]_t` passes each element as to a `var` parameter of type $`t`;
+* on a list, the only method is `append`, which needs a list the function
+  may change and takes its argument as `var`; `len(e)`, when the program
+  declares no function `len`, takes a list and gives an $`\mathsf{Int}`.
+
+Every index in a place is checked first, and must be an $`\mathsf{Int}`.
 
 The arguments of a call are checked in order against the parameters, after
 the exclusivity rule: a place by `passPlace`, and any other expression by

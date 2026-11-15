@@ -22,6 +22,7 @@ inductive CheckError where
   | invalidType (ty : Ty)
   | recursiveStruct (name : Name)
   | typeMismatch (expected actual : Ty)
+  | notAList (ty : Ty)
   | notPrintable (ty : Ty)
   | stringOutsidePrint
   | arityMismatch (callee : Name) (expected actual : Nat)
@@ -32,6 +33,7 @@ inductive CheckError where
   | implicitCopy (ty : Ty)
   | notCopyable (ty : Ty)
   | transferFromBorrowed (p : Place)
+  | transferFromElement (p : Place)
   | immutablePlace (p : Place)
   | notAPlace (callee : Name)
   | argumentExclusivity (p : Place)
@@ -41,7 +43,7 @@ inductive CheckError where
   | missingReturn (name : Name)
   | invalidReturn (name : Name)
   | noMain
-  deriving DecidableEq, Repr
+  deriving BEq
 
 /-- A rejection: the error, and the declaration it was found in, a function,
 a method written `S.m`, or `S` for a struct's own declaration; empty for an
@@ -49,6 +51,6 @@ error about the whole program. -/
 structure Rejection where
   decl : Name
   error : CheckError
-  deriving DecidableEq, Repr
+  deriving BEq
 
 end MojoGrimoire.Check

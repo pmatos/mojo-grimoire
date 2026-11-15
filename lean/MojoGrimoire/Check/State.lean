@@ -11,7 +11,8 @@ variable is the list of its uninitialized parts. An initialized variable has
 none, and one that is declared without a value, or whose value was
 transferred, has the whole variable, the empty path. Moving a field out adds
 that field's path. A part is initialized when no uninitialized part is
-above or below it.
+above or below it. The elements of a list are not parts: they are
+initialized whenever the list is.
 -/
 
 namespace MojoGrimoire.Check
@@ -54,10 +55,19 @@ structure State where
 the program. -/
 abbrev CheckM := StateT State (Except CheckError)
 
-/-- The variable a place starts from, and the path from it to the place. -/
+/-- The variable a place starts from, and the path from it to the place.
+The elements of a list are not parts that the checker follows: the path to
+a place inside an element stops at the list. -/
 def splitPlace : Place → Name × Path
   | .var x => (x, [])
-  | .field p f => let (x, path) := splitPlace p; (x, path ++ [f])
+  | .field p f => let (x, path) := splitPlace p; if indexed p then (x, path) else (x, path ++ [f])
+  | .index p _ => splitPlace p
+where
+  /-- Whether the place goes through an element of a list. -/
+  indexed : Place → Bool
+    | .var _ => false
+    | .field p _ => indexed p
+    | .index _ _ => true
 
 /-- Whether the part `q` of a variable whose uninitialized parts are `us` is
 initialized: no uninitialized part is above or below it. -/
@@ -114,11 +124,16 @@ where
     | [] => []
     | v :: vs => if v.name == x then { v with uninit := us } :: vs else v :: go vs
 
+/-- The type of the elements of a list of type `t`. -/
+def elemOf : Ty → Except CheckError Ty
+  | .list t => pure t
+  | t => throw (.notAList t)
+
 /-- The type of a place, given the variables in scope. -/
-def placeTy (prog : Program) (p : Place) : CheckM Ty := do
-  let (x, path) := splitPlace p
-  let v ← lookup x
-  path.foldlM (fun t f => liftM (fieldOf prog t f)) v.ty
+def placeTy (prog : Program) : Place → CheckM Ty
+  | .var x => do pure (← lookup x).ty
+  | .field p f => do liftM (fieldOf prog (← placeTy prog p) f)
+  | .index p _ => do liftM (elemOf (← placeTy prog p))
 where
   /-- Lifts a result of the program's tables into the checker. -/
   liftM {α : Type} (r : Except CheckError α) : CheckM α := StateT.lift r

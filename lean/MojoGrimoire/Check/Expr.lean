@@ -46,9 +46,11 @@ def copyPlace (prog : Program) (p : Place) : CheckM Ty := do
 
 /-- Transfers the value out of the place `p`, Mojo's `p^`, which leaves `p`
 uninitialized. The function must own the value, or hold it `mut`: a `read`
-or `ref` parameter cannot give its value away. -/
+or `ref` parameter cannot give its value away. An element of a list cannot
+be transferred out, since the list would be left with a hole. -/
 def transferPlace (prog : Program) (p : Place) : CheckM Ty := do
   let t ← readPlace prog p
+  if splitPlace.indexed p then throw (CheckError.transferFromElement p)
   let (x, path) := splitPlace p
   let v ← lookup x
   unless v.access.canChange do throw (CheckError.transferFromBorrowed p)
@@ -132,9 +134,10 @@ def checkExpr (prog : Program) : Expr → CheckM Ty
   | .int _ => pure .int
   | .bool _ => pure .bool
   | .str _ => throw CheckError.stringOutsidePrint
-  | .place p => copyPlace prog p
-  | .transfer p => transferPlace prog p
+  | .place p => do checkIndices prog p; copyPlace prog p
+  | .transfer p => do checkIndices prog p; transferPlace prog p
   | .copy p => do
+    checkIndices prog p
     let t ← readPlace prog p
     if copyingOf prog t == .none then throw (CheckError.notCopyable t)
     pure t
@@ -153,9 +156,28 @@ def checkExpr (prog : Program) : Expr → CheckM Ty
       checkExclusive prog (locationArgs fd.params args)
       checkArgs prog f fd.params args fd.params.length args.length
       pure fd.result
-    | none, none => throw (CheckError.unknownFunction f)
+    | none, none =>
+      match f, args with
+      | "len", [.place p] => do
+        checkIndices prog p
+        let t ← readPlace prog p
+        let _ ← lift (elemOf t)
+        pure .int
+      | "len", [e] => do
+        let t ← checkExpr prog e
+        let _ ← lift (elemOf t)
+        pure .int
+      | "len", _ => throw (CheckError.arityMismatch f 1 args.length)
+      | _, _ => throw (CheckError.unknownFunction f)
   | .method p m args => do
+    checkIndices prog p
     let t ← placeTy prog p
+    if let .list et := t then
+      unless m == "append" do throw (CheckError.unknownMethod "List" m)
+      let _ ← readPlace prog p
+      requireMutable p
+      checkArgs prog m [⟨.owned, "value", et⟩] args 1 args.length
+      return .noneType
     let .struct s := t | throw (CheckError.typeMismatch (.struct "") t)
     let some sd := findStruct prog s | throw (CheckError.unknownStruct s)
     let some fd := findMethod sd m | throw (CheckError.unknownMethod s m)
@@ -171,6 +193,18 @@ def checkExpr (prog : Program) : Expr → CheckM Ty
     let ta ← checkExpr prog a
     let tb ← checkExpr prog b
     lift (binaryTy op ta tb)
+  | .list t es => do
+    unless validTy prog t do throw (CheckError.invalidType t)
+    checkArgs prog "List" (es.map fun _ => ⟨.owned, "value", t⟩) es es.length es.length
+    pure (.list t)
+
+/-- Checks the index expressions of the place `p`: each is an `Int`. -/
+def checkIndices (prog : Program) : Place → CheckM Unit
+  | .var _ => pure ()
+  | .field p _ => checkIndices prog p
+  | .index p i => do
+    checkIndices prog p
+    expect .int (← checkExpr prog i)
 
 /-- Checks the arguments `args` of a call of `callee` against its parameters
 `params`, in order. `n` and `m` are the numbers of parameters and arguments,
@@ -179,6 +213,7 @@ def checkArgs (prog : Program) (callee : Name) :
     List Param → List Expr → Nat → Nat → CheckM Unit
   | [], [], _, _ => pure ()
   | prm :: prms, .place p :: args, n, m => do
+    checkIndices prog p
     passPlace prog callee prm.conv prm.ty p
     checkArgs prog callee prms args n m
   | prm :: prms, e :: args, n, m => do

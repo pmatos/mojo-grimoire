@@ -72,7 +72,11 @@ private def program : Program := ⟨[counter], [mainFun]⟩
 #guard Expr.transfer (.var "c") != Expr.copy (.var "c")
 #guard Stmt.ifElse (.bool true) [] [] != Stmt.whileLoop (.bool true) []
 
-/-- Two places are equal only when they are the same path of fields. -/
-example : Place.field (.var "a") "f" ≠ Place.field (.var "b") "f" := by decide
+/-- Two places are equal only when they are the same tree. -/
+example : (Place.field (.var "a") "f" == Place.field (.var "b") "f") = false := by decide
+
+#guard Place.index (.var "xs") (.int 0) == Place.index (.var "xs") (.int 0)
+#guard Place.index (.var "xs") (.int 0) != Place.index (.var "xs") (.int 1)
+#guard Expr.list .int [.int 1] != Expr.list .bool [.int 1]
 
 end MojoGrimoireTest.Core

@@ -13,25 +13,27 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11614065151354432943")
+:::moduleDocs (fingerprint := "9585335225477747060")
 :::
 
-:::readable MojoGrimoire.Elab.needsDrop (fingerprint := "15115138920881222977")
-*Definition: values that are dropped.* Only values of struct type. Values
+:::readable MojoGrimoire.Elab.needsDrop (fingerprint := "12326641341485961637")
+*Definition: values that are dropped.* Only values of struct type, and
+lists of them. Values
 of $`\mathsf{Int}`, $`\mathsf{Bool}` and string type have no destruction a
 program can observe.
 :::
 
-:::readable MojoGrimoire.Elab.drops (fingerprint := "15437604090103189340")
+:::readable MojoGrimoire.Elab.drops (fingerprint := "5696115969548938391")
 *Definition: drops.* The `drop` statements for a set of slots, in the
 order of the slots the function owns: its `var` parameters, then its local
 variables in order of declaration. A slot the function does not own, such
 as a borrowed parameter, is never dropped.
 :::
 
-:::readable MojoGrimoire.Elab.defs MojoGrimoire.Elab.usesStmt MojoGrimoire.Elab.movesStmt MojoGrimoire.Elab.dying (fingerprint := "5419894816775520890")
+:::readable MojoGrimoire.Elab.defs MojoGrimoire.Elab.usesStmt MojoGrimoire.Elab.movesStmt MojoGrimoire.Elab.dying (fingerprint := "18101635392119367358")
 *Definition: what dies at a simple statement.* A declaration, assignment,
-expression or `print` uses, moves and defines slots as its parts do. The
+expression or `print` uses, moves and defines slots as its parts do; an
+assignment to an element or a field uses the slot that holds it. The
 slots that die right after it are those it uses but does not move away,
 and those it defines, unless they are live after it. A value defined and
 never used dies right after its definition.

@@ -1,7 +1,7 @@
 /-!
 The names, types, argument conventions and operators of the core calculus,
 the subset of Mojo that Phase 1 models: structs and their methods, the
-argument conventions, moves and copies, control flow and `Int`
+argument conventions, moves and copies, control flow, `Int` and lists
 (`docs/decisions/process.md`). They are the leaves of the abstract syntax,
 which the next sections build from them.
 
@@ -17,13 +17,14 @@ abbrev Name := String
 
 /-- The types of the core calculus. `str` is the type of string literals,
 which may only be printed, and `noneType` the type of a call that returns
-nothing, Mojo's `None`. -/
+nothing, Mojo's `None`. `list t` is Mojo's `List[t]`. -/
 inductive Ty where
   | int
   | bool
   | str
   | noneType
   | struct (name : Name)
+  | list (elem : Ty)
   deriving DecidableEq, Repr
 
 /-- The argument conventions. `read` is the default, which Mojo writes with no

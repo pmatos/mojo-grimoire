@@ -1,7 +1,7 @@
 import MojoGrimoire.Core.Syntax
 
 /-!
-Equality of expressions and statements, as a test that two terms are the
+Equality of places, expressions and statements, as a test that two terms are the
 same tree. Lean's derived equality would be partial on these types, because
 they nest lists of themselves, and the build accepts no partial code
 (ADR-2026-11-15-1906), so it is written here by structural recursion.
@@ -10,18 +10,26 @@ they nest lists of themselves, and the build accepts no partial code
 namespace MojoGrimoire.Core
 
 mutual
+/-- Whether two places are the same tree. -/
+def Place.beq : Place → Place → Bool
+  | .var x, .var y => x == y
+  | .field p f, .field q g => Place.beq p q && f == g
+  | .index p i, .index q j => Place.beq p q && Expr.beq i j
+  | _, _ => false
+
 /-- Whether two expressions are the same tree. -/
 def Expr.beq : Expr → Expr → Bool
   | .int a, .int b => a == b
   | .bool a, .bool b => a == b
   | .str a, .str b => a == b
-  | .place p, .place q => p == q
-  | .transfer p, .transfer q => p == q
-  | .copy p, .copy q => p == q
+  | .place p, .place q => Place.beq p q
+  | .transfer p, .transfer q => Place.beq p q
+  | .copy p, .copy q => Place.beq p q
   | .call f as, .call g bs => f == g && Expr.beqList as bs
-  | .method p m as, .method q n bs => p == q && m == n && Expr.beqList as bs
+  | .method p m as, .method q n bs => Place.beq p q && m == n && Expr.beqList as bs
   | .unary o a, .unary p b => o == p && Expr.beq a b
   | .binary o a b, .binary p c d => o == p && Expr.beq a c && Expr.beq b d
+  | .list t as, .list u bs => t == u && Expr.beqList as bs
   | _, _ => false
 
 /-- Whether two lists of expressions are the same, element by element. -/
@@ -36,6 +44,8 @@ def Expr.beqOption : Option Expr → Option Expr → Bool
   | none, none => true
   | some a, some b => Expr.beq a b
   | _, _ => false
+
+instance instBEqPlace : BEq Place := ⟨Place.beq⟩
 
 instance instBEqExpr : BEq Expr := ⟨Expr.beq⟩
 

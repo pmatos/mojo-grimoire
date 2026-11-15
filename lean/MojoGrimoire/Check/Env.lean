@@ -27,11 +27,13 @@ def findMethod (sd : StructDecl) (m : Name) : Option FunDecl :=
   sd.methods.find? (·.name == m)
 
 /-- How the values of the type `t` can be copied. `Int` and `Bool` are
-implicitly copyable, as in Mojo; string literals and `None` are never
-copied. -/
+implicitly copyable, as in Mojo; a list only explicitly, with `.copy()`,
+and only when its elements can be copied; string literals and `None` are
+never copied. -/
 def copyingOf (prog : Program) : Ty → Copying
   | .int | .bool => .implicit
   | .struct s => (findStruct prog s).elim .none (·.copying)
+  | .list t => if copyingOf prog t == .none then .none else .explicit
   | .str | .noneType => .none
 
 /-- Whether the type `t` is a struct with a `__deinit__` of its own. -/
@@ -55,14 +57,16 @@ def fieldNames (prog : Program) : Ty → List Name
   | _ => []
 
 /-- Whether a variable or parameter may be declared with the type `t`:
-`Int`, `Bool`, or a struct of the program. -/
+`Int`, `Bool`, a struct of the program, or a list of such values. -/
 def validTy (prog : Program) : Ty → Bool
   | .int | .bool => true
   | .struct s => (findStruct prog s).isSome
+  | .list t => validTy prog t
   | .str | .noneType => false
 
 /-- Whether the type `t` contains, through the fields of its structs, the
-struct `s`. `fuel` bounds the depth of the search; the number of structs of
+struct `s`. A list holds its elements apart from the value that holds the
+list, so a list of `s` does not count. `fuel` bounds the depth of the search; the number of structs of
 the program is enough, since a deeper chain repeats a struct. -/
 def contains (prog : Program) (s : Name) : Nat → Ty → Bool
   | 0, _ => false
