@@ -11,6 +11,11 @@ included, passed to the parameters that the callee's origin names. A
 reference may be changed only when every origin may be, and a use of it
 needs every origin initialized, so a value cannot be moved away and then
 used through a reference to it.
+
+A function returns a reference within its own origin: each origin of the
+returned reference starts at a parameter the origin names, and goes through
+no element of a list and no field of an element, since the compiler gives
+those an origin of their own. An element of an array may be returned.
 -/
 
 namespace MojoGrimoire.Check
@@ -63,6 +68,15 @@ def refTarget (prog : Program) (e : Expr) : CheckM (Ty × List Place × Bool) :=
     let (origins, mut_) ← callOrigins m os sig.allParams (.place p :: args)
     pure (t, origins, mut_)
   | _ => throw CheckError.notAReference
+
+/-- Whether a returned reference to the place `o` stays within the origin
+`os`: `o` starts at a parameter that `os` names, and goes through no element
+of a list and no field of an element. The compiler gives each of those an
+origin of its own, while an element of an array stays within the array's. -/
+def withinOrigin (prog : Program) (os : List Name) (o : Place) : CheckM Bool := do
+  let (x, steps) ← shapeOf prog o
+  pure (os.contains x && !steps.contains .listElem &&
+    !(steps.dropWhile (· != .arrayElem)).any (· matches .field _))
 
 /-- Rejects a function whose origin is not made of its parameters passed as
 locations, `read`, `mut` or `ref`, or that returns a reference to nothing. -/
