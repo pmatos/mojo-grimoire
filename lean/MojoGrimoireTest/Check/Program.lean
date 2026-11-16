@@ -181,11 +181,12 @@ private def verdict (p : Program) : Option CheckError :=
 #guard verdict (prog [] [⟨"same", [⟨.read, "r", res⟩], res, [.ret (some (use "r"))], none⟩]) ==
   some (.implicitCopy res)
 
--- Types: `1 + True`, `if 1:`, and `print(a)` of a struct.
+-- Types: `1 + True`, `if 1:`, and `print(a)` of a struct, which `print` reads
+-- by reference and cannot write.
 #guard verdict (prog [.expr (.binary .add (.int 1) (.bool true))]) ==
   some (.typeMismatch .int .bool)
 #guard verdict (prog [.ifElse (.int 1) [] []]) == some (.typeMismatch .bool .int)
-#guard verdict (prog [newRes "a" 1, .print [use "a"]]) == some (.implicitCopy res)
+#guard verdict (prog [newRes "a" 1, .print [use "a"]]) == some (.notPrintable res)
 
 -- Names: an unknown variable, a duplicate declaration, a declaration that would
 -- hide an outer variable, and a name reused by sibling blocks.

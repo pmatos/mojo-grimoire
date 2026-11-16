@@ -75,8 +75,35 @@ where
 #guard go ["def main():", "    var x: Int", "    var y = x^"] ==
   some (.rejected ⟨"main", .uninitializedUse (.var "x")⟩)
 
--- An element of a list stays a transfer, which the checker rejects (#43).
-#guard go ["def main():", "    var xs: List[Int] = [1, 2]", "    var y = xs[0]^"] ==
-  some (.rejected ⟨"main", .transferFromElement (.index (.var "xs") (.int 0))⟩)
+-- An `Int` element of a list is the place `xs[0]`, which keeps its value
+-- (#43).
+#guard go ["def main():", "    var xs: List[Int] = [1, 2]", "    var y = xs[0]^",
+  "    print(y, xs[0])"] == some (.finished ["1 1"])
+
+-- So is a `Bool` element.
+#guard go ["def main():", "    var bs: List[Bool] = [True, False]", "    var c = bs[1]^",
+  "    print(c, bs[1])"] == some (.finished ["False False"])
+
+-- So is an element of an array.
+#guard go ["def main():", "    var a = [5, 6]", "    var c = a[1]^", "    print(c, a[1])"] ==
+  some (.finished ["6 6"])
+
+-- `xs[0].id^`: an `Int` field of an element leaves the element whole, and the
+-- array is destroyed after its last use.
+#guard go ["def main():", "    var xs = [Res(1), Res(2)]", "    var n = xs[0].id^",
+  "    print(n)"] == some (.finished ["drop 1", "drop 2", "1"])
+
+-- An element of a `read` parameter, and of a list through a reference.
+#guard go ["def first(xs: List[Int]) -> Int:", "    return xs[0]^", "def main():",
+  "    var xs: List[Int] = [4, 5]", "    ref r = xs", "    var k = r[1]^",
+  "    print(first(xs), k, xs[1])"] == some (.finished ["4 5 5"])
+
+-- `bump(xs[0]^)`: the element is passed to the `mut` parameter.
+#guard go ["def main():", "    var xs: List[Int] = [1, 2]", "    var y = bump(xs[0]^)",
+  "    print(y, xs[0])"] == some (.finished ["11 11"])
+
+-- An element of struct type stays a transfer, which the checker rejects.
+#guard go ["def main():", "    var rs: List[Res] = [Res(1)]", "    var r = rs[0]^"] ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "rs") (.int 0))⟩)
 
 end MojoGrimoireTest.Parse.TrivialTransfer

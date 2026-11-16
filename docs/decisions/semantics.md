@@ -69,18 +69,24 @@ where the compiler and the manual disagree, the model follows the compiler.
   through a reference.
 - `p^` of type `Int` or `Bool` is the place `p`: the compiler warns that
   the transfer has no effect, and uses `p` as if `^` were not there. So `p`
-  keeps its value, may be a `read` parameter, a field of one or a
-  reference, is read when other places are, and may be passed to a `mut`
-  parameter. Inference rewrites `p^` to `p`, so the core calculus's
-  transfer always moves (#50). An element of a list or an array, or a
-  field of one, stays a transfer and is rejected as `transferFromElement`
-  (#43).
+  keeps its value, may be a `read` parameter, a field of one, a
+  reference, an element of a list or an array, or a field of an element,
+  is read when other places are, and may be passed to a `mut` parameter.
+  Inference rewrites `p^` to `p`, so the core calculus's transfer always
+  moves (#50, #43). Any other element, or a field of one, is rejected as
+  `transferFromElement`, as the compiler does.
 - A field moved out of a struct that was built field by field, and never
   initialized whole, is rejected like any other. The compiler accepts that
   program when the struct's other fields stay uninitialized (#51).
 - A place operand, of a call, an operator, a list literal or `print`, must
   still be initialized once every operand is evaluated, since the
   compiler reads it then: `f(a.id, g(a^))` uses `a.id` after its move.
+- `print` takes string literals and values it can write: `Int`, `Bool`,
+  and lists and arrays of them, nested ones included (#41). It reads a
+  place by reference, so it copies nothing: a list may be printed from a
+  `read` parameter or a `ref` binding. A struct, or a list or an array of
+  structs, is rejected as `notPrintable`, as the compiler rejects a value
+  that does not conform to `Writable`.
 - `return x` moves a variable the function owns. Any other returned place
   is copied implicitly, so it must be implicitly copyable.
 - At every return, explicit or implicit, a `mut` parameter and the `self`
@@ -173,7 +179,12 @@ choices (#18):
   parameter does, a `ref` parameter as its argument does, a `read`
   parameter does not.
 - An origin names only `read`, `mut` or `ref` parameters, and a returned
-  reference must stay within the function's origin.
+  reference must stay within the function's origin (`escapingReference`).
+  A place through a list element, or through a field of an element of a
+  list or an array, has an origin of its own and may not be returned, as
+  the compiler does (#56): `return xs[0]` for a list `xs`. An element of an
+  array may be returned. A field of the parameter itself is still accepted,
+  though the compiler rejects it too (#67).
 - A reference overlaps what its origins overlap, for argument
   exclusivity. A reference through another reference points into the same
   place of each of the other's origins.
@@ -259,6 +270,9 @@ corrected against the compiler's recorded results (#25):
   only once every operand of its operation has been evaluated, as the
   compiler does: `f(a.id, g(a))` sees what `g` did to `a`. An `Int` or a
   `Bool` passed to a `read` parameter is passed by value.
+- `print` writes its values separated by spaces: an `Int` in decimal, a
+  `Bool` as `True` or `False`, and a list or an array as `[1, 2]`, its
+  elements written so and separated by `, `, `[]` when it is empty (#41).
 - A struct without a `__deinit__` has its fields destroyed in declaration
   order, and a list its elements in index order.
 - A temporary passed to a borrowing parameter is destroyed right after the
@@ -282,6 +296,22 @@ else. These choices hold:
   convention is `read`; `self` may omit its type.
 - `p += e`, `-=` and `*=` are `p = p op e`; `print(...)` on a line of its
   own is the print statement; docstrings are skipped.
+- `^` after a term is binary XOR, as in the compiler's postfix loop
+  (`ParserExprs.cpp`), when the next token can start an expression
+  (`isPrimaryExprStart`), is not `.`, and lies in the same statement. XOR is
+  outside the subset, so `x^ + 1`, `x^ (1)`, `x^ * 2` and `x^ == 3` are
+  syntax errors. Otherwise `^` is a transfer: `f(x^)`, `(x^)`, `x^` at the
+  end of a line, and `x^` before `<`, `and` or `or` (#54); before `if`, `in`
+  or `is` it is not XOR either, but the model reads none of those forms.
+  The compiler continues a statement onto a deeper-indented line, and,
+  inside call arguments and subscripts, onto any line, so there `x^` with
+  `+ 1` on the next line is XOR. Inside a parenthesized expression or a
+  list literal it does not, and `(x^` with `+ 1)` at the statement's column
+  fails to parse. The model's lexer ignores line breaks inside brackets, so
+  it reads XOR in all of these, and ends the logical line outside them,
+  where the indented line is a syntax error: each is a syntax error in the
+  model as in the compiler. The model does not read a field of a transfer,
+  so `s^.f`, which the compiler accepts, stays a syntax error (#66).
 - The parser writes the type `None` where the program leaves a type
   implicit, since no variable of the subset has that type. Inference then
   gives `var x = e` the type of `e`, and a literal `[e1, …, en]` the type

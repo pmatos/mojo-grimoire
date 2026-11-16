@@ -14,5 +14,8 @@ import MojoGrimoireTest.Parse.TrivialTransfer
 import MojoGrimoireTest.Parse.ListPop
 import MojoGrimoireTest.Parse.ListPopIndex
 import MojoGrimoireTest.Parse.StaleRefs
+import MojoGrimoireTest.Parse.ReturnedElements
 import MojoGrimoireTest.Parse.CallSignatures
+import MojoGrimoireTest.Parse.PrintLists
+import MojoGrimoireTest.Parse.XorCaret
 import MojoGrimoireCli

@@ -1,0 +1,12 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "read [7]",
+    "mut [7]",
+    "ref [7, 9] 2",
+    "field [4, 5]",
+    "picked [3]"
+  ],
+  "class": null,
+  "diagnostic": null
+}
