@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "escapingReference",
+  "diagnostic": "cannot return reference with incompatible origin: 'origin_of(h.xs[\"element\"])' vs 'origin_of(h)'"
+}
