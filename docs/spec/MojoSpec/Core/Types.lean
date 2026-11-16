@@ -63,7 +63,7 @@ out      \mathsf{out}
 deinit   \mathsf{deinit}
 ```
 
-* $`\mathsf{read}`, the default, which Mojo writes with no keyword: the
+* $`\mathsf{read}`, the default, which Mojo writes `imm` or no keyword: the
   parameter is an immutable reference to the caller's value.
 * $`\mathsf{mut}`: a mutable reference to the caller's value.
 * $`\mathsf{var}`: the parameter owns its value, which the caller transfers
