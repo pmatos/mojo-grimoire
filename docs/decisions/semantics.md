@@ -187,10 +187,13 @@ choices (#18):
   operation, as the compiler does: `print(xs[0], xs.pop())`.
 - An assignment through a reference into a list element is rejected
   (`invalidatedReference`) when its own value invalidates the reference:
-  `ref e = xs[0]; e = grow(xs)`. The compiler accepts that and appears to
-  store into the list's old buffer. The model rejects it until the human
-  rules on #57, since running it could leave the interpreter stuck when the
-  call shrinks the list.
+  `ref e = xs[0]; e = grow(xs)`. The compiler accepts that and stores into
+  a stale element, as it does for `xs[0] = grow(xs)`; the human ruled on
+  2026-11-16 that this is a compiler bug (#57,
+  [D-0002](../conformance/decision-log.md)). The model evaluates the value
+  of `xs[0] = grow(xs)` first, then stores into the grown list. It keeps
+  rejecting the `ref` form, since running it could leave the interpreter
+  stuck when the call shrinks the list.
 - An assignment into a list element is rejected (`argumentExclusivity`)
   when the value is a call that builds its result in place and is passed
   `mut` the list, or a place that holds it: `xs[0] = xs.pop()`. A call
