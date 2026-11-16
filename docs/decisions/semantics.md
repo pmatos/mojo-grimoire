@@ -180,11 +180,9 @@ choices (#18):
   parameter does not.
 - An origin names only `read`, `mut` or `ref` parameters, and a returned
   reference must stay within the function's origin (`escapingReference`).
-  A place through a list element, or through a field of an element of a
-  list or an array, has an origin of its own and may not be returned, as
-  the compiler does (#56): `return xs[0]` for a list `xs`. An element of an
-  array may be returned. A field of the parameter itself is still accepted,
-  though the compiler rejects it too (#67).
+  A field or a list element has an origin of its own and may not be
+  returned, as the compiler does (#56, #67): `return p.a`, or `return
+  xs[0]` for a list `xs`. An element of an array may be returned.
 - A reference overlaps what its origins overlap, for argument
   exclusivity. A reference through another reference points into the same
   place of each of the other's origins.

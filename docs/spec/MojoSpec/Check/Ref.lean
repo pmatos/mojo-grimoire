@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "References: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13646646254060195491")
+:::moduleDocs (fingerprint := "6982109247482644144")
 :::
 
 :::readable MojoGrimoire.Check.placeMutable MojoGrimoire.Check.callOrigins (fingerprint := "15604810996950739958")
@@ -36,13 +36,13 @@ above. Any other expression, a struct's construction included, is
 rejected.
 :::
 
-:::readable MojoGrimoire.Check.withinOrigin (fingerprint := "8190634664285092528")
+:::readable MojoGrimoire.Check.withinOrigin (fingerprint := "1783623240663657123")
 *Rule: a returned reference.* A function that returns a reference returns
-one within its origin: each origin of the returned location starts at a
-parameter the origin names, and goes through no element of a list and no
-field of an element of a list or an array. The compiler gives each of those
-an origin of its own, so returning one is $`\mathsf{escapingReference}`;
-an element of an array, at any depth, stays within the array's origin.
+one within its origin: each origin of the returned location, with its
+indices into arrays left out, is a parameter the origin names. The compiler
+gives a field and an element of a list an origin of their own, so returning
+one, or anything under one, is $`\mathsf{escapingReference}`; an element
+of an array, at any depth, stays within the array's origin.
 :::
 
 :::readable MojoGrimoire.Check.checkOrigin (fingerprint := "6038988164765218057")

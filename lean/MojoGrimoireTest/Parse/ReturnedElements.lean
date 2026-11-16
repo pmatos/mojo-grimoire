@@ -4,8 +4,8 @@ import MojoGrimoire.Interp.Run
 /-!
 Tests of returning a reference into an element under the origin of the
 parameter that holds it. The pinned compiler rejects a returned place that
-goes through a list element, or through a field of any element, as
-`escapingReference`; an element of an array alone may be returned. Each
+goes through a list element or a field as `escapingReference`; an element
+of an array alone may be returned. Each
 verdict and output is the pinned compiler's for the program.
 -/
 
