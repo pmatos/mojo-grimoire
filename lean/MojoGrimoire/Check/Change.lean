@@ -5,7 +5,8 @@ The changes that the checker records, and the operands it checks again
 once every operand of an operation is evaluated.
 
 A call records as changed each place it is passed `mut`, or `ref` when the
-place may be changed, once its operands are checked; a call that returns a
+place may be changed and is not reached through `q^`, once its operands are
+checked; a call that returns a
 reference passed so changes its origins. That invalidates the references
 into the elements of a list that the place holds: the `ref` bindings, and
 the operands of an enclosing operation that were located before the call.
@@ -40,15 +41,14 @@ def changePlace (prog : Program) (p : Place) : CheckM Unit := do
     modify fun s => { s with stale := union s.stale stale, changes := s.changes ++ [m] }
 
 /-- The places among the arguments `args` that a call changes: those passed
-`mut`, and those passed `ref` that may be changed. A call that returns a
+`mut`, and those passed `ref` that pass on a mutable reference. A call that returns a
 reference changes its origins. -/
 def changedArgs (prog : Program) : List Param → List Expr → CheckM (List Place)
   | prm :: prms, a :: args => do
     let rest ← changedArgs prog prms args
     match prm.conv, a with
     | .mutable, .place q => pure (q :: rest)
-    | .ref, .place q =>
-      if (← lookup (splitPlace q).1).access.canChange then pure (q :: rest) else pure rest
+    | .ref, .place q => if ← passedMutable q then pure (q :: rest) else pure rest
     | .mutable, a | .ref, a =>
       match ← locOf prog a with
       | some (os, m) => pure (if prm.conv == .mutable || m then os ++ rest else rest)

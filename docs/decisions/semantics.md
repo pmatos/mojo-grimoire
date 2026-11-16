@@ -94,7 +94,10 @@ where the compiler and the manual disagree, the model follows the compiler.
   `mut` for argument exclusivity; on `p^.f` it copies the field, which
   must be implicitly copyable. `p^.f^` moves the field `p.f`. The
   compiler lets `ref r = p^.f` change `p.f` through `r`, and so does the
-  model.
+  model. `p^.f` passed to a `ref` parameter, and `p^` as the receiver
+  of a `ref self` method, pass on an immutable reference, and the call
+  changes nothing
+  (#91, [semantics-references.md](semantics-references.md#references)).
 - A field moved out of a struct that was built field by field, and never
   initialized whole, is rejected like any other. The compiler accepts that
   program when the struct's other fields stay uninitialized (#51).

@@ -19,7 +19,12 @@ choices (#18):
   transferred out through a reference.
 - A reference may be changed when every origin allows it: a `mut`
   parameter does, a `ref` parameter as its argument does, a `read`
-  parameter does not.
+  parameter does not. A place reached through `p^` passed to a `ref`
+  parameter or a `ref self` receiver does not, as the compiler does (#91):
+  it borrows such a place as a value that cannot be changed, so after
+  `ref r = a^.me()` or `ref r = pick(a^.k)` a change through `r` is
+  rejected (`immutablePlace`), and the call changes nothing. A `ref`
+  binding to the place itself, `ref r = a^.k`, may still change it.
 - An origin names only `read`, `mut` or `ref` parameters, and a returned
   reference must stay within the function's origin (`escapingReference`).
   A field or a list element has an origin of its own and may not be
@@ -30,8 +35,8 @@ choices (#18):
   place of each of the other's origins.
 - A reference into an element of a list is invalidated when the list, or a
   place that holds it, changes as a whole. That means it is assigned,
-  passed `mut`, or passed `ref` from a place that may be changed, which
-  includes `append` and `pop`. Using the reference afterwards, on any path
+  passed `mut`, or passed `ref` from a place that may be changed and is
+  not reached through `p^`, which includes `append` and `pop`. Using the reference afterwards, on any path
   or on a later iteration of a loop, is rejected (`invalidatedReference`),
   as the compiler does (#55). Changing one element, reading the list,
   or assigning a whole array does not invalidate it, since an array holds

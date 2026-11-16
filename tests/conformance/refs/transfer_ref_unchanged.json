@@ -1,0 +1,10 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "touch 2",
+    "3",
+    "1"
+  ],
+  "class": null,
+  "diagnostic": null
+}
