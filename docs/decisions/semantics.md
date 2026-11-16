@@ -85,9 +85,10 @@ Lists, `List[T]`, follow the same rules, with these choices (#17):
   elements can be copied.
 - The only methods modelled are `append` and the built-in `len`, which a
   function named `len` hides. An index must be an `Int`. An index made
-  only of integer literals, negation, `+`, `-` and `*` is computed when
-  the program is compiled, and is rejected when it is negative
-  (`negativeIndex`).
+  only of integer literals, negation, `+`, `-`, `*`, `//` and `%` is
+  computed when the program is compiled, and is rejected when it is
+  negative (`negativeIndex`). `//` and `%` round toward negative infinity
+  and give 0 for a zero divisor, as the compiler does.
 
 ### Arrays
 

@@ -88,14 +88,24 @@ def unaryTy (op : UnOp) (a : Ty) : Except CheckError Ty :=
   | .neg => if a == .int then pure .int else throw (.typeMismatch .int a)
   | .not => if a == .bool then pure .bool else throw (.typeMismatch .bool a)
 
-/-- The value of an index made only of integer literals, negation, `+`, `-`
-and `*`: Mojo computes it when it compiles the program. -/
+/-- The value of an index made only of integer literals, negation, `+`, `-`,
+`*`, `//` and `%`: Mojo computes it when it compiles the program. `//` and
+`%` round toward negative infinity, and give `0` for a zero divisor, as
+they do at run time. -/
 def constInt : Expr → Option Int
   | .int k => some k
   | .unary .neg a => (constInt a).map (- ·)
   | .binary .add a b => do pure ((← constInt a) + (← constInt b))
   | .binary .sub a b => do pure ((← constInt a) - (← constInt b))
   | .binary .mul a b => do pure ((← constInt a) * (← constInt b))
+  | .binary .floorDiv a b => do
+    let x ← constInt a
+    let y ← constInt b
+    pure (if y == 0 then 0 else x.fdiv y)
+  | .binary .mod a b => do
+    let x ← constInt a
+    let y ← constInt b
+    pure (if y == 0 then 0 else x.fmod y)
   | _ => none
 
 /-- Whether two places may be the same location or overlap: one is the other
@@ -233,13 +243,13 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     unless op == .and || op == .or do recheckPlaces prog [a, b]
     lift (binaryTy op ta tb)
   | .list t es => do
-    unless validTy prog t do throw (CheckError.invalidType t)
     let u ← match t with
       | .list u => pure u
       | .array u n =>
         if n == es.length then pure u
         else throw (CheckError.typeMismatch t (.array u es.length))
       | _ => throw (CheckError.invalidType t)
+    unless validTy prog u do throw (CheckError.invalidType t)
     checkArgs prog "List" (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length
     recheckPlaces prog es
     pure t
@@ -255,8 +265,9 @@ def checkIndices (prog : Program) : Place → CheckM Unit
     checkIndices prog p
     expect .int (← checkExprAs prog false i)
     if (constInt i).any (· < 0) then throw (CheckError.negativeIndex (.index p i))
-    if let (.array _ n, some k) := (← placeTy prog p, constInt i) then
-      if n ≤ k then throw (CheckError.constantIndexOutOfBounds (.index p i))
+    if let some k := constInt i then
+      if let .array _ n := (← placeTy prog p) then
+        if n ≤ k then throw (CheckError.constantIndexOutOfBounds (.index p i))
 
 /-- Checks the arguments `args` of a call of `callee` against its parameters
 `params`, in order. `n` and `m` are the numbers of parameters and arguments,

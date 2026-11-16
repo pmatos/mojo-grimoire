@@ -58,9 +58,10 @@ Here $`n` is an integer, $`b` a boolean and $`s` a string literal.
   names a struct, as Mojo's `S(args)` does.
 * $`p.m(e^*)` calls the method $`m` on the value in $`p`.
 * $`[e^*]_t` builds a value of the type $`t`, a list or an array, with the
-  elements $`e^*`: Mojo's literal `[e1, e2]`, or `List[u](e1, e2)`. Mojo
-  gives `[e1, e2]` the type `Array[u, 2]` unless a list is expected where
-  it stands.
+  elements $`e^*`: Mojo's literal `[e1, e2]`, or `List[u]()` when it is
+  empty. Mojo gives `[e1, e2]` the type `Array[u, 2]` unless a list is
+  expected where it stands. The parser also reads `List[u](e1, e2)`, which
+  Mojo 1.2.0 rejects (#46).
 * $`\mathsf{drops}(e; p^*; q^*)` performs the operation $`e`, destroying
   the values in the places $`p^*` once its operands are read and those in
   $`q^*` once it is done. No program contains it: elaboration inserts it

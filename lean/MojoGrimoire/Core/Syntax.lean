@@ -33,8 +33,9 @@ moves the value out of `p`, and `copy p` is Mojo's explicit `p.copy()`.
 constructs it, as Mojo's `S(args)` does. `method p m args` calls the method
 `m` on the place `p`, Mojo's `p.m(args)`. `list t es` is a literal of the
 type `t`, a list or an array, with the elements `es`: Mojo's
-`[e₁, …, eₙ]`, or `List[u](e₁, …, eₙ)`. Mojo gives `[e₁, …, eₙ]` the type
-`Array[u, n]` unless a list is expected where it stands.
+`[e₁, …, eₙ]`, or `List[u]()` when it is empty. Mojo gives `[e₁, …, eₙ]`
+the type `Array[u, n]` unless a list is expected where it stands. The
+parser also reads `List[u](e₁, …, eₙ)`, which Mojo 1.2.0 rejects (#46).
 `withDrops e pre post` performs the operation `e` and destroys the values
 in the places `pre` once its operands are read, before it is performed,
 and those in `post` once it is done; only elaboration inserts it. -/

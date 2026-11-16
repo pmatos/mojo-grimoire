@@ -96,7 +96,15 @@ private def xs : Place := .var "xs"
   (.constantIndexOutOfBounds (.index xs (.int 3)))
 #guard rejects (inMain ["var xs = [1, 2, 3]", "xs[1 + 2] = 0"])
   (.constantIndexOutOfBounds (.index xs (.binary .add (.int 1) (.int 2))))
+#guard rejects (inMain ["var xs = [1, 2, 3]", "print(xs[7 // 2])"])
+  (.constantIndexOutOfBounds (.index xs (.binary .floorDiv (.int 7) (.int 2))))
+#guard rejects (inMain ["var xs = [1, 2, 3]", "print(xs[7 % 4])"])
+  (.constantIndexOutOfBounds (.index xs (.binary .mod (.int 7) (.int 4))))
+#guard runLines (inMain ["var xs = [1, 2, 3]", "print(xs[-7 % 3], xs[7 // 4], xs[1 // 0])"]) ==
+  some (.finished ["3 2 1"])
 #guard rejects (inMain ["var xs = [1, 2, 3]", "print(xs[-1])"]) (.negativeIndex (.index xs (.int (-1))))
+#guard rejects (inMain ["var xs: List[Int] = [1, 2, 3]", "print(xs[-7 // 2])"])
+  (.negativeIndex (.index xs (.binary .floorDiv (.int (-7)) (.int 2))))
 #guard runLines (inMain ["var xs = [1, 2, 3]", "var i = 3", "print(xs[i])"]) ==
   some (.failed .indexOutOfBounds [])
 #guard runLines (inMain ["var xs: List[Int] = [1, 2, 3]", "print(xs[3])"]) ==

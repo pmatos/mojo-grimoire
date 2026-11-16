@@ -41,9 +41,7 @@ def openLiteralTy (t : Ty) (n : Nat) : Ty :=
 
 /-- The type that the elements of a literal of type `t` are expected to
 have. -/
-def elemExpected : Ty → Ty
-  | .list u | .array u _ => u
-  | _ => .noneType
+def elemExpected (t : Ty) : Ty := (elemOf t).toOption.getD .noneType
 
 /-- The types of the parameters of a call of `f`: of its initializer when
 `f` names a struct, or of the function. -/

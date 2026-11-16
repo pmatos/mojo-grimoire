@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13602286491077825976")
+:::moduleDocs (fingerprint := "4901654192864183592")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "17188177613617268651")
@@ -40,7 +40,7 @@ in the literals inside an expression as it goes; where it finds no type,
 it gives none.
 :::
 
-:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.callParamTys MojoGrimoire.Parse.methodParamTys (fingerprint := "13954077656995033071")
+:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.callParamTys MojoGrimoire.Parse.methodParamTys (fingerprint := "5802502470161267199")
 *Definition: expected types.* A literal of $`n` elements expected to have
 the type $`\mathsf{List}[t]` has that type, and one expected to have the
 type $`\mathsf{Array}[t, m]` has the type $`\mathsf{Array}[t, n]`;
