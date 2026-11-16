@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.Loc
+import MojoGrimoire.Check.Fit
 
 /-!
 The checking of expressions and of the arguments of calls.
@@ -30,6 +30,16 @@ reference passed so changes its origins. That invalidates the
 references into the elements of a list that the place holds: the `ref`
 bindings, and the place operands of an enclosing operation that were
 located before the call.
+
+An initialization whose arguments fit no initializer is `noMatchingInit`,
+however they misfit (`MojoGrimoire.Check.Fit`, #46): a construction
+`S(…)`, a literal that initializes the list or array expected where it
+stands, and `List[u](e₁, …, eₙ)`, which no initializer of `List` takes,
+but for one iterable argument, which is outside the subset. A literal
+passed to a function or a method is converted, and one that does not fit,
+also inside it, is a type mismatch. A literal with no expected type takes
+the type of its elements, and an element that differs from the first is a
+type mismatch too.
 -/
 
 namespace MojoGrimoire.Check
@@ -43,10 +53,12 @@ def lift {α : Type} (r : Except CheckError α) : CheckM α := StateT.lift r
 def expect (expected actual : Ty) : CheckM Unit :=
   unless expected == actual do throw (CheckError.typeMismatch expected actual)
 
-/-- Rejects unless the place `p` may be changed: not through `q^`. -/
-def requireMutable (p : Place) : CheckM Unit := do
+/-- Rejects unless the place `p` may be changed: not through `q^`. It
+reports the error that `fit` gives when `p` is an argument. -/
+def requireMutable (p : Place) (fit : Fit := .call) : CheckM Unit := do
   let v ← lookup (splitPlace p).1
-  unless v.access.canChange && !throughTransfer p do throw (CheckError.immutablePlace p)
+  unless v.access.canChange && !throughTransfer p do
+    throw (fit.misfit (CheckError.immutablePlace p))
 
 /-- Reads the place `p` as a value, which copies it implicitly: only an
 implicitly copyable value may be. -/
@@ -163,15 +175,16 @@ where
         throw (CheckError.argumentExclusivity l.place)
       go rest (l :: seen)
 
-/-- Passes the place `p` to a parameter of convention `c` and type `t`. -/
-def passPlace (prog : Program) (callee : Name) (c : Conv) (t : Ty) (p : Place) :
+/-- Passes the place `p` to a parameter of convention `c` and type `t`, of
+a call of fit `fit`. -/
+def passPlace (prog : Program) (fit : Fit) (callee : Name) (c : Conv) (t : Ty) (p : Place) :
     CheckM Unit := do
   match c with
-  | .read | .ref => expect t (← readPlace prog p)
+  | .read | .ref => expectArg fit t (← readPlace prog p)
   | .mutable => do
-    expect t (← readPlace prog p)
-    requireMutable p
-  | .owned => expect t (← copyPlace prog p)
+    expectArg fit t (← readPlace prog p)
+    requireMutable p fit
+  | .owned => expectArg fit t (← copyPlace prog p)
   | .out | .deinit => throw (CheckError.invalidConvention callee)
 
 /-- How many changes the state records so far: where an operand checked
@@ -263,8 +276,9 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     match callSig prog f with
     | .ok sig =>
       let params := sig.params
+      let fit := if (findStruct prog f).isSome then Fit.init (.struct f) else .call
       checkExclusive (← locationArgs prog params args)
-      recheckLocs prog (← checkArgs prog f params args params.length args.length)
+      recheckLocs prog (← checkArgs prog fit f params args params.length args.length)
       for q in ← changedArgs prog params args do changePlace prog q
       refResult prog asRef sig
     | .error err =>
@@ -291,9 +305,9 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       | some q => do pure [← passedPlace .mutable q]
       | none => if self.conv == .owned then pure [] else do pure [← passedPlace self.conv p]
     checkExclusive (recv ++ (← locationArgs prog params args))
-    if consumed.isNone then passPlace prog m self.conv t p
+    if consumed.isNone then passPlace prog .call m self.conv t p
     let k ← mark
-    let ks ← checkArgs prog m params args params.length args.length
+    let ks ← checkArgs prog .call m params args params.length args.length
     recheckLocs prog (([p], k) :: ks)
     if let some q := consumed then let _ ← transferPlace prog q
     for q in ← changedArgs prog sig.allParams (.place p :: args) do changePlace prog q
@@ -306,15 +320,45 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     let kb ← mark
     unless op == .and || op == .or do recheckPlaces prog [a, b] [ka, kb]
     lift (binaryTy op ta tb)
-  | .list t es => do
-    let .ok u := elemOf t | throw (CheckError.invalidType t)
+  | .list .noneType [] => throw (CheckError.invalidType .noneType)
+  | .list .noneType (.place p :: es) => do
+    checkIndices prog p
+    let u ← copyPlace prog p
+    let k ← mark
+    recheckLocs prog (([p], k) ::
+      (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
+        es.length es.length))
+    pure (.array u (es.length + 1))
+  | .list .noneType (e :: es) => do
+    let u ← checkExprAs prog false e
+    let t := Ty.array u (es.length + 1)
     unless validTy prog u do throw (CheckError.invalidType t)
-    if let .array _ n := t then
-      unless n == es.length do throw (CheckError.typeMismatch t (.array u es.length))
-    recheckLocs prog
-      (← checkArgs prog (typeName t) (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length)
+    let k ← mark
+    recheckLocs prog (([], k) ::
+      (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
+        es.length es.length))
     pure t
+  | .list t es => do
+    let u ← literalElem prog (.init t) t es.length
+    recheckLocs prog (← checkArgs prog (.init t) (typeName t)
+      (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length)
+    pure t
+  | .listInit u args => do
+    checkOperands prog args
+    throw (CheckError.noMatchingInit (.list u))
   | .withDrops e _ _ => checkExprAs prog asRef e
+
+/-- Checks each of the arguments `args` of `List[u](…)` on its own: a place
+is located, and any other expression checked, before the call is rejected. -/
+def checkOperands (prog : Program) : List Expr → CheckM Unit
+  | [] => pure ()
+  | .place p :: args => do
+    checkIndices prog p
+    let _ ← placeTy prog p
+    checkOperands prog args
+  | e :: args => do
+    let _ ← checkExprAs prog false e
+    checkOperands prog args
 
 /-- Checks the index expressions of the place `p`: each is an `Int`, and
 one that Mojo computes when it compiles the program may not be negative,
@@ -344,31 +388,44 @@ was checked. A call that returns a reference, passed by reference, is
 passed as a location, uncopied, when it is a located operand, and for
 `mut` it must be mutable; the origin it is reported by is its first. One
 with a temporary origin argument is checked as a value. `n` and `m` are
-the numbers of parameters and arguments, for the error when they differ. -/
-def checkArgs (prog : Program) (callee : Name) :
+the numbers of parameters and arguments, for the error when they differ.
+The call's fit `fit` says how a misfit is reported; a literal passed to a
+function or a method is converted to its parameter's type. -/
+def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
     List Param → List Expr → Nat → Nat → CheckM (List (List Place × Nat))
   | [], [], _, _ => pure []
   | prm :: prms, .place p :: args, n, m => do
     checkIndices prog p
-    passPlace prog callee prm.conv prm.ty p
+    passPlace prog fit callee prm.conv prm.ty p
     let k ← mark
-    pure (([p], k) :: (← checkArgs prog callee prms args n m))
+    pure (([p], k) :: (← checkArgs prog fit callee prms args n m))
+  | prm :: prms, (e@(.list t es)) :: args, n, m => do
+    passValue fit callee prm.conv
+    let t' ← if t == .noneType || fit matches .init _ then checkExprAs prog false e
+      else do
+        let u ← literalElem prog .call t es.length
+        recheckLocs prog (← checkArgs prog .call (typeName t)
+          (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length)
+        pure t
+    expectArg fit prm.ty t'
+    let k ← mark
+    pure (([], k) :: (← checkArgs prog fit callee prms args n m))
   | prm :: prms, e :: args, n, m => do
     if prm.conv == .out || prm.conv == .deinit then
       throw (CheckError.invalidConvention callee)
     match ← if passedByValue prm then pure none else locOf prog e with
     | some (os, mq) =>
-      expect prm.ty (← checkExprAs prog true e)
+      expectArg fit prm.ty (← checkExprAs prog true e)
       if prm.conv == .mutable && !mq then
-        throw (CheckError.immutablePlace (os.headD (.var callee)))
+        throw (fit.misfit (CheckError.immutablePlace (os.headD (.var callee))))
       let k ← mark
-      pure ((os, k) :: (← checkArgs prog callee prms args n m))
+      pure ((os, k) :: (← checkArgs prog fit callee prms args n m))
     | none =>
-      if prm.conv == .mutable then throw (CheckError.notAPlace callee)
-      expect prm.ty (← checkExprAs prog false e)
+      if prm.conv == .mutable then throw (fit.misfit (CheckError.notAPlace callee))
+      expectArg fit prm.ty (← checkExprAs prog false e)
       let k ← mark
-      pure (([], k) :: (← checkArgs prog callee prms args n m))
-  | _, _, n, m => throw (CheckError.arityMismatch callee n m)
+      pure (([], k) :: (← checkArgs prog fit callee prms args n m))
+  | _, _, n, m => throw (fit.misfit (CheckError.arityMismatch callee n m))
 end
 
 /-- The type of the expression `e`, used as a value. -/

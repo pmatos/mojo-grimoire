@@ -21,5 +21,6 @@ import MojoGrimoireTest.Parse.PrintLists
 import MojoGrimoireTest.Parse.XorCaret
 import MojoGrimoireTest.Parse.Conventions
 import MojoGrimoireTest.Parse.TransferField
+import MojoGrimoireTest.Parse.Initializers
 import MojoGrimoireTest.Parse.ReturnedRefArgs
 import MojoGrimoireCli

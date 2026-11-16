@@ -39,10 +39,11 @@ private def bare : List String := ["struct Bare:", "    var xs: List[Int]", ""]
 #guard rejects (bare ++ ["def main():", "    var b = Bare([1, 2])"]) (.noInitializer "Bare")
 
 -- With no initializer, the construction has no parameters, so a literal
--- among its arguments is expected to fit nothing and is an array.
+-- among its arguments is expected to fit nothing: its type stays `None`,
+-- and the checker gives it the type of its elements.
 #guard mainBody (bare ++ ["def main():", "    var b = Bare([1, 2])"]) ==
   some [.decl "b" (.struct "Bare")
-    (some (.call "Bare" [.list (.array .int 2) [.int 1, .int 2]]))]
+    (some (.call "Bare" [.list .noneType [.int 1, .int 2]]))]
 
 -- A method that a list or an array does not have is reported before the
 -- receiver is read: here it is not yet initialized.

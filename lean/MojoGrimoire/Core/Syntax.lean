@@ -40,8 +40,13 @@ constructs it, as Mojo's `S(args)` does. `method p m args` calls the method
 `m` on the place `p`, Mojo's `p.m(args)`. `list t es` is a literal of the
 type `t`, a list or an array, with the elements `es`: Mojo's
 `[e₁, …, eₙ]`, or `List[u]()` when it is empty. Mojo gives `[e₁, …, eₙ]`
-the type `Array[u, n]` unless a list is expected where it stands. The
-parser also reads `List[u](e₁, …, eₙ)`, which Mojo 1.2.0 rejects (#46).
+the type `Array[u, n]` unless a list is expected where it stands; the
+parser gives it the type `None`, which inference replaces only when a list
+or an array is expected. `listInit u es` is Mojo's `List[u](e₁, …, eₙ)`
+with at least one argument, which Mojo 1.2.0 rejects (#46): no initializer
+of `List` takes its elements as arguments. It accepts one argument that is
+a list or an array, as an iterable, but that is outside the subset, and
+the model rejects it too.
 `withDrops e pre post` performs the operation `e` and destroys the values
 in the places `pre` once its operands are read, before it is performed,
 and those in `post` once it is done; only elaboration inserts it. -/
@@ -57,6 +62,7 @@ inductive Expr where
   | unary (op : UnOp) (arg : Expr)
   | binary (op : BinOp) (lhs rhs : Expr)
   | list (ty : Ty) (elems : List Expr)
+  | listInit (elem : Ty) (args : List Expr)
   | withDrops (e : Expr) (pre post : List Place)
 end
 

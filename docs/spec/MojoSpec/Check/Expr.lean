@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15820503148038872064")
+:::moduleDocs (fingerprint := "664151028166794542")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -21,11 +21,12 @@ pins their fingerprint; the build fails when the Lean changes under it.
 the checker, and `expect` rejects a type other than the one expected.
 :::
 
-:::readable MojoGrimoire.Check.requireMutable (fingerprint := "10042303404005118453")
+:::readable MojoGrimoire.Check.requireMutable (fingerprint := "3665794792439843375")
 *Definition: requiring a place that may change.* A place that is assigned
 to or passed `mut` must be one the function may change, and not reached
 through $`q\,\hat{}`: the compiler borrows $`q` there as a value that
-cannot be changed.
+cannot be changed. Passed `mut` to an initializer, such a place is
+reported as the initializer's misfit.
 :::
 
 :::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "6464575898280999177")
@@ -49,14 +50,14 @@ and give $`\mathsf{Bool}`. Negation takes an $`\mathsf{Int}`, and
 $`\mathsf{not}` a $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Check.constInt (fingerprint := "5106496572261359333")
+:::readable MojoGrimoire.Check.constInt (fingerprint := "18142347407676829893")
 *Definition: constant indices.* An index made only of integer literals,
 negation, $`+`, $`-`, $`\times`, `//` and `%` has a value that Mojo
 computes when it compiles the program, with the same integer arithmetic
 as a run.
 :::
 
-:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.PassedLoc MojoGrimoire.Check.passedPlace MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "18358550950413267817")
+:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.PassedLoc MojoGrimoire.Check.passedPlace MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "8186378624982211006")
 *Rule: argument exclusivity.* Two places overlap when they have the same
 variable and one path is a prefix of the other. The arguments of a call
 that are passed as locations are the located operands whose parameters
@@ -70,14 +71,15 @@ xs)` is rejected when `n` takes its second argument `mut`. The error names
 the place passed, or a call's first origin.
 :::
 
-:::readable MojoGrimoire.Check.passPlace (fingerprint := "13823600396880481453")
+:::readable MojoGrimoire.Check.passPlace (fingerprint := "2500036056060291548")
 *Rule: passing a place.* A place passed to a `read` or `ref` parameter
 must be initialized and of the parameter's type; one passed `mut` must
 also be a place the function may change; one passed `var` is copied
-implicitly. No argument may be passed `out` or `deinit`.
+implicitly. No argument may be passed `out` or `deinit`. A misfit is
+reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "14499198542451593185")
+:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "7115847317380969779")
 *Rule: changes.* A call changes as a whole each place it is passed `mut`,
 and each place it is passed `ref` that the function may change; for a
 call that returns a reference passed so, its origins; `append` and `pop`
@@ -87,7 +89,7 @@ bound with `ref` whose origin the change invalidates. The mark of an
 operand is the number of changes recorded once it is checked.
 :::
 
-:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.recheckPlaces (fingerprint := "11575655574242839336")
+:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.recheckPlaces (fingerprint := "1246902372397728290")
 *Rule: places read late.* Mojo reads a place operand only once every
 operand of its operation is evaluated, and a place passed by reference is
 used during the call. So once the operands are checked, every operand that
@@ -100,7 +102,7 @@ $`k` changes were recorded is invalidated when a change recorded since
 then invalidates it.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "10706425353403453414")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "1662121642251475496")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -110,13 +112,22 @@ type:
   $`p.\mathsf{copy}()` needs an initialized place of a copyable type;
 * $`f(e^*)` and $`p.m(e^*)` pass their arguments to the parameters of
   their signature, $`p` first, by the convention of the method's `self`,
-  and have its result type; a receiver $`q\,\hat{}` of a method whose
+  and have its result type; when $`f` names a struct, the call is an
+  initializer, whose misfits are `noMatchingInit`; a receiver
+  $`q\,\hat{}` of a method whose
   `self` is `var` is not copied: once the arguments are checked and read
   again, $`q` is transferred;
 * operators have the types above;
 * $`[e^*]_t`, with $`t` a list or an array of $`u` and $`u` a type a
-  variable may have, passes each element as to a `var` parameter of type
-  $`u`; an array must have as many elements as its type says;
+  variable may have, initializes $`t`: it passes each element as to a `var`
+  parameter of type $`u`, and an array must have as many elements as its
+  type says, or the literal is `noMatchingInit` $`t`; with $`t` the type
+  `None`, no type is expected, and the literal is an array of the type of
+  its first element, whose other elements must have that type;
+* $`\mathsf{List}[u](e^+)` checks each argument on its own, locating a
+  place without reading it, and is then rejected as `noMatchingInit`
+  $`\mathsf{List}[u]`: no initializer of `List` takes its elements, and
+  the one that takes an iterable is outside the subset;
 * the methods of a list take it `mut`, so they need a list the function
   may change; `len(e)`, when the program declares no function or struct
   `len`, takes one list or array and gives an $`\mathsf{Int}`: a place
@@ -146,6 +157,9 @@ parameter, as a location, which must be mutable for `mut`, or the call is
 $`\mathsf{immutablePlace}`, named by its first origin; and any other
 expression by its type, which must be the parameter's. A `mut` parameter
 needs a place or such a call.
-The numbers of arguments and parameters must be equal. Checking the
-arguments gives the mark of each.
+The numbers of arguments and parameters must be equal. A literal of an
+expected type passed to a function or a method is converted to the
+parameter's type, and one that does not fit, or holds such a literal, is a
+type mismatch, as the compiler reports it. Checking the arguments gives the
+mark of each.
 :::

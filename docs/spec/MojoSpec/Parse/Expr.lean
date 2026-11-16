@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7839550434069944255")
+:::moduleDocs (fingerprint := "10174287965529684323")
 :::
 
 :::readable MojoGrimoire.Parse.Term MojoGrimoire.Parse.Term.toExpr (fingerprint := "13183905014692490612")
@@ -43,7 +43,7 @@ lexer reads. The end of a logical line and a change of indentation start
 no expression.
 :::
 
-:::readable MojoGrimoire.Parse.expr MojoGrimoire.Parse.orRest MojoGrimoire.Parse.andExpr MojoGrimoire.Parse.andRest MojoGrimoire.Parse.notExpr MojoGrimoire.Parse.sum MojoGrimoire.Parse.sumRest MojoGrimoire.Parse.product MojoGrimoire.Parse.productRest MojoGrimoire.Parse.unaryExpr MojoGrimoire.Parse.chain MojoGrimoire.Parse.trailers MojoGrimoire.Parse.primary MojoGrimoire.Parse.exprList (fingerprint := "11805275093957676914")
+:::readable MojoGrimoire.Parse.expr MojoGrimoire.Parse.orRest MojoGrimoire.Parse.andExpr MojoGrimoire.Parse.andRest MojoGrimoire.Parse.notExpr MojoGrimoire.Parse.sum MojoGrimoire.Parse.sumRest MojoGrimoire.Parse.product MojoGrimoire.Parse.productRest MojoGrimoire.Parse.unaryExpr MojoGrimoire.Parse.chain MojoGrimoire.Parse.trailers MojoGrimoire.Parse.primary MojoGrimoire.Parse.exprList (fingerprint := "7573940696555006066")
 *Definition: expressions.*
 
 $$`\begin{array}{lcl}
@@ -69,7 +69,8 @@ ends a chain, what follows it being an operator or the end of the
 expression, unless `.` follows it: then it is the place $`p\,\hat{}`,
 whose fields and methods the chain goes on to read, as the compiler does
 for `p^.f` and `p^.m(…)` (#66).
-A literal $`[e^*]` is left for inference to type, and $`\mathsf{List}[\mathit{type}](e^*)` is a list literal; Mojo
-1.2.0 accepts it only with no elements (#46). Each function takes fuel and spends it on
+A literal $`[e^*]` is left for inference to type, and $`\mathsf{List}[\mathit{type}]()` is an empty list literal.
+With arguments, $`\mathsf{List}[\mathit{type}](e^+)` is its own expression, which the checker rejects, since Mojo
+1.2.0 accepts it only with no elements or with one iterable argument, a form outside the subset (#46). Each function takes fuel and spends it on
 each call, so parsing ends.
 :::
