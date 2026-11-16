@@ -197,6 +197,10 @@ private def verdict (p : Program) : Option CheckError :=
 -- A struct that contains itself, and a program without `main`.
 #guard verdict (prog [] [] [⟨"Loop", [("next", .struct "Loop")], .none, true, none, none, []⟩]) ==
   some (.recursiveStruct "Loop")
+#guard verdict (prog [] [] [⟨"Loop", [("next", .list (.struct "Loop"))], .none, true, none, none, []⟩]) ==
+  some (.recursiveStruct "Loop")
+#guard verdict (prog [] [] [⟨"Loop", [("next", .array (.struct "Loop") 2)], .none, true, none, none, []⟩]) ==
+  some (.recursiveStruct "Loop")
 #guard verdict ⟨[], []⟩ == some .noMain
 
 end MojoGrimoireTest.Check

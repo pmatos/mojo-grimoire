@@ -1,5 +1,5 @@
 {
-  "note": "Patterns that map the compiler's first error to a class of the model's CheckError, tried in order. A failed instantiation's first error carries the note of the constraint that failed. 'has no attribute 'copy'' comes before unknownField: the compiler reports .copy() of a value that is not Copyable as a missing attribute, the model as notCopyable.",
+  "note": "Patterns that map the compiler's first error to a class of the model's CheckError, tried in order. A failed instantiation's first error carries the note of the constraint that failed. 'has no attribute 'copy'' comes before unknownField: the compiler reports .copy() of a value that is not Copyable as a missing attribute, the model as notCopyable. 'does not designate a value with an origin', the compiler's error for moving an element out of a list or an array, comes before escapingReference, whose pattern also matches 'origin'. In the subset, only a struct that holds a list or an array of itself has a field of a non-'Deinitable' type.",
   "patterns": [
     {
       "pattern": "cannot be implicitly copied|does not conform to 'ImplicitlyCopyable'|implicitly copy",
@@ -42,6 +42,10 @@
       "class": "typeMismatch"
     },
     {
+      "pattern": "is not compatible with value of type",
+      "class": "typeMismatch"
+    },
+    {
       "pattern": "expected \\d+ positional arguments?|invalid call to '[^']*': (unexpected argument|missing \\d+ required)",
       "class": "arityMismatch"
     },
@@ -54,12 +58,24 @@
       "class": "notCopyable"
     },
     {
+      "pattern": "does not designate a value with an origin",
+      "class": "transferFromElement"
+    },
+    {
       "pattern": "reference.*(outlive|escape|local)|lifetime|origin",
       "class": "escapingReference"
     },
     {
       "pattern": "negative indexing is not supported",
       "class": "negativeIndex"
+    },
+    {
+      "pattern": "constraint failed: index is out of bounds",
+      "class": "constantIndexOutOfBounds"
+    },
+    {
+      "pattern": "has non-'Deinitable' type",
+      "class": "recursiveStruct"
     }
   ]
 }

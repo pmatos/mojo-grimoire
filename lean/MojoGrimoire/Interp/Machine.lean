@@ -99,21 +99,17 @@ def wrap (n : Int) : Int := (n + 2 ^ 63) % 2 ^ 64 - 2 ^ 63
 of `==` and `!=` on `Bool`s. `and` and `or` are evaluated elsewhere, since
 they short-circuit. -/
 def binary (op : BinOp) (a b : Value) : EvalM Value :=
-  match op, a, b with
-  | .add, .int x, .int y => pure (.int (wrap (x + y)))
-  | .sub, .int x, .int y => pure (.int (wrap (x - y)))
-  | .mul, .int x, .int y => pure (.int (wrap (x * y)))
-  | .floorDiv, .int x, .int y => pure (.int (if y == 0 then 0 else wrap (x.fdiv y)))
-  | .mod, .int x, .int y => pure (.int (if y == 0 then 0 else wrap (x.fmod y)))
-  | .lt, .int x, .int y => pure (.bool (decide (x < y)))
-  | .le, .int x, .int y => pure (.bool (decide (x ≤ y)))
-  | .gt, .int x, .int y => pure (.bool (decide (x > y)))
-  | .ge, .int x, .int y => pure (.bool (decide (x ≥ y)))
-  | .eq, .int x, .int y => pure (.bool (x == y))
-  | .ne, .int x, .int y => pure (.bool (x != y))
-  | .eq, .bool x, .bool y => pure (.bool (x == y))
-  | .ne, .bool x, .bool y => pure (.bool (x != y))
-  | _, _, _ => stuck "operands of the wrong type"
+  match op.arith, op, a, b with
+  | some f, _, .int x, .int y => pure (.int (wrap (f x y)))
+  | _, .lt, .int x, .int y => pure (.bool (decide (x < y)))
+  | _, .le, .int x, .int y => pure (.bool (decide (x ≤ y)))
+  | _, .gt, .int x, .int y => pure (.bool (decide (x > y)))
+  | _, .ge, .int x, .int y => pure (.bool (decide (x ≥ y)))
+  | _, .eq, .int x, .int y => pure (.bool (x == y))
+  | _, .ne, .int x, .int y => pure (.bool (x != y))
+  | _, .eq, .bool x, .bool y => pure (.bool (x == y))
+  | _, .ne, .bool x, .bool y => pure (.bool (x != y))
+  | _, _, _, _ => stuck "operands of the wrong type"
 
 /-- The result of the unary operator `op`. -/
 def unary (op : UnOp) (a : Value) : EvalM Value :=

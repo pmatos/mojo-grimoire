@@ -24,6 +24,7 @@ inductive CheckError where
   | typeMismatch (expected actual : Ty)
   | notAList (ty : Ty)
   | negativeIndex (p : Place)
+  | constantIndexOutOfBounds (p : Place)
   | notPrintable (ty : Ty)
   | stringOutsidePrint
   | arityMismatch (callee : Name) (expected actual : Nat)

@@ -4,7 +4,7 @@ import MojoGrimoire.Core.Types
 The places, expressions and statements of the core calculus.
 
 A place names a location that holds a value: a variable, a field of a
-place, or an element of a list, whose index is an expression. Places are their own syntactic category because Mojo's argument
+place, or an element of a list or an array, whose index is an expression. Places are their own syntactic category because Mojo's argument
 conventions pass some arguments as locations and others as values: a place
 used as an argument is passed as a reference when the parameter's convention
 is `read`, `mut` or `ref`, and read as a value otherwise.
@@ -20,7 +20,7 @@ namespace MojoGrimoire.Core
 
 mutual
 /-- A place: a variable `x`, a field `p.f` of a place `p`, or the element
-`p[i]` of a list. -/
+`p[i]` of a list or an array. -/
 inductive Place where
   | var (name : Name)
   | field (base : Place) (field : Name)
@@ -31,8 +31,11 @@ implicitly, or as a reference argument. `transfer p` is Mojo's `p^`, which
 moves the value out of `p`, and `copy p` is Mojo's explicit `p.copy()`.
 `call f args` calls the function `f` or, when `f` names a struct,
 constructs it, as Mojo's `S(args)` does. `method p m args` calls the method
-`m` on the place `p`, Mojo's `p.m(args)`. `list t es` is a list of elements
-of type `t`: Mojo's literal `[e₁, …, eₙ]`, or `List[t]()` when it is empty.
+`m` on the place `p`, Mojo's `p.m(args)`. `list t es` is a literal of the
+type `t`, a list or an array, with the elements `es`: Mojo's
+`[e₁, …, eₙ]`, or `List[u]()` when it is empty. Mojo gives `[e₁, …, eₙ]`
+the type `Array[u, n]` unless a list is expected where it stands. The
+parser also reads `List[u](e₁, …, eₙ)`, which Mojo 1.2.0 rejects (#46).
 `withDrops e pre post` performs the operation `e` and destroys the values
 in the places `pre` once its operands are read, before it is performed,
 and those in `post` once it is done; only elaboration inserts it. -/
@@ -47,7 +50,7 @@ inductive Expr where
   | method (receiver : Place) (name : Name) (args : List Expr)
   | unary (op : UnOp) (arg : Expr)
   | binary (op : BinOp) (lhs rhs : Expr)
-  | list (elemTy : Ty) (elems : List Expr)
+  | list (ty : Ty) (elems : List Expr)
   | withDrops (e : Expr) (pre post : List Place)
 end
 

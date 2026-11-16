@@ -1,8 +1,8 @@
 /-!
 The names, types, argument conventions and operators of the core calculus,
 the subset of Mojo that Phase 1 models: structs and their methods, the
-argument conventions, moves and copies, control flow, `Int` and lists
-(`docs/decisions/process.md`). They are the leaves of the abstract syntax,
+argument conventions, moves and copies, control flow, `Int`, lists and
+arrays (`docs/decisions/process.md`). They are the leaves of the abstract syntax,
 which the next sections build from them.
 
 The core calculus is designed in this project's own terms
@@ -17,7 +17,9 @@ abbrev Name := String
 
 /-- The types of the core calculus. `str` is the type of string literals,
 which may only be printed, and `noneType` the type of a call that returns
-nothing, Mojo's `None`. `list t` is Mojo's `List[t]`. -/
+nothing, Mojo's `None`. `list t` is Mojo's `List[t]`, whose length may
+change, and `array t n` is Mojo's `Array[t, n]`, which holds exactly `n`
+elements. -/
 inductive Ty where
   | int
   | bool
@@ -25,6 +27,7 @@ inductive Ty where
   | noneType
   | struct (name : Name)
   | list (elem : Ty)
+  | array (elem : Ty) (size : Nat)
   deriving DecidableEq, Repr
 
 /-- The argument conventions. `read` is the default, which Mojo writes with no
@@ -64,5 +67,18 @@ inductive BinOp where
   | and
   | or
   deriving DecidableEq, Repr
+
+/-- The integer function of an arithmetic operator, before any wrapping to
+a machine width; `none` for the others. `//` and `%` round toward negative
+infinity and give `0` for a zero divisor, as Mojo defines them. The
+checker folds constant indices with it and the interpreter computes with
+it, so the two agree. -/
+def BinOp.arith : BinOp → Option (Int → Int → Int)
+  | .add => some (· + ·)
+  | .sub => some (· - ·)
+  | .mul => some (· * ·)
+  | .floorDiv => some fun x y => if y == 0 then 0 else x.fdiv y
+  | .mod => some fun x y => if y == 0 then 0 else x.fmod y
+  | _ => none
 
 end MojoGrimoire.Core

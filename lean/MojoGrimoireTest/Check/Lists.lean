@@ -36,8 +36,8 @@ private def verdict (p : Program) : Option CheckError :=
   | .ok () => none
   | .error r => some r.error
 
-private def ints : Stmt := .decl "xs" (.list .int) (some (.list .int [.int 1, .int 2]))
-private def ress : Stmt := .decl "rs" (.list res) (some (.list res [newRes 1, newRes 2]))
+private def ints : Stmt := .decl "xs" (.list .int) (some (.list (.list .int) [.int 1, .int 2]))
+private def ress : Stmt := .decl "rs" (.list res) (some (.list (.list res) [newRes 1, newRes 2]))
 
 -- `var xs = [1, 2]; xs.append(3); xs[0] = xs[1] + len(xs); print(xs[0])`
 #guard verdict (prog [ints, .expr (.method (v "xs") "append" [.int 3]),

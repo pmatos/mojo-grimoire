@@ -27,13 +27,13 @@ def findMethod (sd : StructDecl) (m : Name) : Option FunDecl :=
   sd.methods.find? (·.name == m)
 
 /-- How the values of the type `t` can be copied. `Int` and `Bool` are
-implicitly copyable, as in Mojo; a list only explicitly, with `.copy()`,
-and only when its elements can be copied; string literals and `None` are
-never copied. -/
+implicitly copyable, as in Mojo; a list or an array only explicitly, with
+`.copy()`, and only when its elements can be copied; string literals and
+`None` are never copied. -/
 def copyingOf (prog : Program) : Ty → Copying
   | .int | .bool => .implicit
   | .struct s => (findStruct prog s).elim .none (·.copying)
-  | .list t => if copyingOf prog t == .none then .none else .explicit
+  | .list t | .array t _ => if copyingOf prog t == .none then .none else .explicit
   | .str | .noneType => .none
 
 /-- Whether the type `t` is a struct with a `__deinit__` of its own. -/
@@ -57,22 +57,31 @@ def fieldNames (prog : Program) : Ty → List Name
   | _ => []
 
 /-- Whether a variable or parameter may be declared with the type `t`:
-`Int`, `Bool`, a struct of the program, or a list of such values. -/
+`Int`, `Bool`, a struct of the program, or a list or an array of such
+values. -/
 def validTy (prog : Program) : Ty → Bool
   | .int | .bool => true
   | .struct s => (findStruct prog s).isSome
-  | .list t => validTy prog t
+  | .list t | .array t _ => validTy prog t
   | .str | .noneType => false
 
-/-- Whether the type `t` contains, through the fields of its structs, the
-struct `s`. A list holds its elements apart from the value that holds the
-list, so a list of `s` does not count. `fuel` bounds the depth of the search; the number of structs of
-the program is enough, since a deeper chain repeats a struct. -/
+/-- The type of what a value of type `t` holds through its lists and arrays:
+the element type, through any number of them, or `t` itself. -/
+def elemBase : Ty → Ty
+  | .list t | .array t _ => elemBase t
+  | t => t
+
+/-- Whether the type `t` contains, through the fields of its structs and
+the elements of its lists and arrays, the struct `s`: the compiler rejects
+a struct with a field that holds the struct itself, or a list or an array
+of it. `fuel` bounds the depth of the search; the number of structs of the
+program is enough, since a deeper chain repeats a struct. -/
 def contains (prog : Program) (s : Name) : Nat → Ty → Bool
   | 0, _ => false
-  | fuel + 1, .struct t =>
-    t == s || (findStruct prog t).any fun sd =>
-      sd.fields.any fun (_, ft) => contains prog s fuel ft
-  | _, _ => false
+  | fuel + 1, t => match elemBase t with
+    | .struct u =>
+      u == s || (findStruct prog u).any fun sd =>
+        sd.fields.any fun (_, ft) => contains prog s fuel ft
+    | _ => false
 
 end MojoGrimoire.Check

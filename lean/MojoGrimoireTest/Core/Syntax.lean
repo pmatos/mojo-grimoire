@@ -77,6 +77,6 @@ example : (Place.field (.var "a") "f" == Place.field (.var "b") "f") = false := 
 
 #guard Place.index (.var "xs") (.int 0) == Place.index (.var "xs") (.int 0)
 #guard Place.index (.var "xs") (.int 0) != Place.index (.var "xs") (.int 1)
-#guard Expr.list .int [.int 1] != Expr.list .bool [.int 1]
+#guard Expr.list (.list .int) [.int 1] != Expr.list (.array .int 1) [.int 1]
 
 end MojoGrimoireTest.Core

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1588124030301744694")
+:::moduleDocs (fingerprint := "9492104776862680402")
 :::
 
 :::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "12927198337935588870")
@@ -28,8 +28,8 @@ the names of the fields of a struct type, and none for any other type.
 :::readable MojoGrimoire.Check.copyingOf (fingerprint := "4318683737232947193")
 *Definition: how a type is copied.* $`\mathsf{Int}` and
 $`\mathsf{Bool}` are implicitly copyable, as in Mojo; a struct is copied as
-it declares; a list is copied only explicitly, with `.copy()`, and only
-when its elements can be copied; string literals and $`\mathsf{None}` are
+it declares; a list or an array is copied only explicitly, with
+`.copy()`, and only when its elements can be copied; string literals and $`\mathsf{None}` are
 never copied.
 :::
 
@@ -41,13 +41,16 @@ when it is a struct that declares `__deinit__`.
 :::readable MojoGrimoire.Check.validTy (fingerprint := "2209953286527928859")
 *Definition: declarable types.* A variable, parameter or field may have the
 type $`\mathsf{Int}`, $`\mathsf{Bool}`, a struct of the program, or a
-list of values of such a type, and no other.
+list or an array of values of such a type, and no other.
 :::
 
-:::readable MojoGrimoire.Check.contains (fingerprint := "16104821665075561169")
+:::readable MojoGrimoire.Check.elemBase MojoGrimoire.Check.contains (fingerprint := "14586368853234422197")
 *Definition: containment.* A type $`t` contains the struct $`S` when it is
-$`S`, or is a struct with a field whose type contains $`S`. The search is
-bounded by the number of structs of the program, since a longer chain of
-fields repeats a struct. A struct whose field contains the struct itself
-would be infinite, and is rejected.
+$`S`, a struct with a field whose type contains $`S`, or a list or an
+array of a type that contains $`S`. The search looks through lists and
+arrays to the type of their elements, and is bounded by the number of
+structs of the program, since a longer chain of fields repeats a struct.
+A struct whose field contains the struct itself is rejected: held
+directly it would be infinite, and held in a list or an array the
+compiler rejects it too.
 :::

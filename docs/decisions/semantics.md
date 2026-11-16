@@ -86,9 +86,36 @@ Lists, `List[T]`, follow the same rules, with these choices (#17):
   elements can be copied.
 - The only methods modelled are `append` and the built-in `len`, which a
   function named `len` hides. An index must be an `Int`. An index made
-  only of integer literals, negation, `+`, `-` and `*` is computed when
-  the program is compiled, and is rejected when it is negative
-  (`negativeIndex`).
+  only of integer literals, negation, `+`, `-`, `*`, `//` and `%` is
+  computed when the program is compiled, and is rejected when it is
+  negative (`negativeIndex`). `//` and `%` round toward negative infinity
+  and give 0 for a zero divisor, as the compiler does.
+
+### Arrays
+
+Arrays, `Array[T, N]`, hold exactly `N` elements inline. They follow the
+rules of lists, with these differences, which the compiler at the pin
+shows. The human ruled on 2026-11-16 that the model follows the compiler
+here (#27).
+
+- A literal `[e1, …, en]` is an `Array[T, n]`, with `T` the type of `e1`,
+  unless a list is expected where it stands. A list is expected by the
+  declared type of a variable, the type of a place assigned to, a
+  function's result, a parameter, and the element type of an enclosing
+  literal or of the list that `append` adds to. A literal with no type
+  expected and no elements, `var xs = []`, is rejected.
+- An array has no methods. `len` and indexing work as on a list. At run
+  time an array is a list value whose length is its size `N`.
+- An array's size is part of its type, so `[1, 2, 3]` is not an
+  `Array[Int, 2]`. The size in a type is an integer literal.
+- A constant index into an array of `N` elements is rejected when it is `N`
+  or more (`constantIndexOutOfBounds`); one known only at run time fails
+  then, as on a list. A constant index into a list fails only at run time.
+- A struct may not hold an array, or a list, of itself: the compiler
+  rejects both, and so does the model (`recursiveStruct`).
+
+Rejected: keeping every literal a `List`, which would accept programs that
+the compiler rejects, such as `append` to an unannotated literal.
 
 ### References
 
@@ -189,8 +216,8 @@ else. These choices hold:
   own is the print statement; docstrings are skipped.
 - The parser writes the type `None` where the program leaves a type
   implicit, since no variable of the subset has that type. Inference then
-  gives `var x = e` the type of `e`, and a list literal the type of its
-  first element, or, when empty, the element type it is expected to have.
+  gives `var x = e` the type of `e`, and a literal `[e1, …, en]` the type
+  expected where it stands, or else `Array[T, n]` (see Arrays).
   What it cannot find stays `None`, and the checker rejects it.
 - The exit code says how a run ended: 0 finished, 1 rejected
   (`rejected: CLASS in DECL` on standard error), 2 a run-time error

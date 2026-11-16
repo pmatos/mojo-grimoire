@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "value of type 'Array[Int, Int(1)]' is not compatible with value of type 'Array[Int, Int(2)]'"
+}

@@ -44,7 +44,7 @@ conformance suite needs the compiler in CI, by the human's ruling of
 
 The conformance suite is `tests/conformance/` (#25): Mojo programs of the
 Phase 1 subset, one per file, by area (basics, structs, ownership, lists,
-references, and programs the compiler rejects). They are written in this
+arrays, references, and programs the compiler rejects). They are written in this
 project's own terms, independently of the Isabelle formalisation's suite
 ([semantics.md](semantics.md#independence)). Its
 [README](../../tests/conformance/README.md) says how to add a program.

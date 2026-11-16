@@ -40,11 +40,12 @@ operators and literals, the argument conventions and `raises`.
 
 $$`\begin{array}{lcl}
 \mathit{type} & ::= & \mathsf{Int} \mid \mathsf{Bool} \mid \mathsf{None} \\
- & \mid & \mathsf{List}[\mathit{type}] \\
+ & \mid & \mathsf{List}[\mathit{type}] \mid \mathsf{Array}[\mathit{type}, n] \\
  & \mid & \mathit{name}
 \end{array}`
 
-Any other name is the name of a struct, which the checker looks up. In the
+The size $`n` of an array is an integer literal. Any other name is the
+name of a struct, which the checker looks up. In the
 parser's output, $`\mathsf{None}` also stands for a type that the program
 leaves to inference.
 :::

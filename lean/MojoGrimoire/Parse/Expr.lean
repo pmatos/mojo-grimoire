@@ -177,7 +177,7 @@ def primary (fuel : Nat) : P Term :=
       let t ← ty n
       expectSym "]"
       expectSym "("
-      pure (.expr (.list t (← exprList n ")")))
+      pure (.expr (.list (.list t) (← exprList n ")")))
     | some (.sym "(") =>
       let _ ← next
       let e ← expr n

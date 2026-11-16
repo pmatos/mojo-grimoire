@@ -49,8 +49,8 @@ def copyPlace (prog : Program) (p : Place) : CheckM Ty := do
 
 /-- Transfers the value out of the place `p`, Mojo's `p^`, which leaves `p`
 uninitialized. The function must own the value, or hold it `mut`: a `read`
-or `ref` parameter cannot give its value away. An element of a list cannot
-be transferred out, since the list would be left with a hole. -/
+or `ref` parameter cannot give its value away. An element of a list or an
+array cannot be transferred out, since it would be left with a hole. -/
 def transferPlace (prog : Program) (p : Place) : CheckM Ty := do
   let t ← readPlace prog p
   if splitPlace.indexed p then throw (CheckError.transferFromElement p)
@@ -88,14 +88,15 @@ def unaryTy (op : UnOp) (a : Ty) : Except CheckError Ty :=
   | .neg => if a == .int then pure .int else throw (.typeMismatch .int a)
   | .not => if a == .bool then pure .bool else throw (.typeMismatch .bool a)
 
-/-- The value of an index made only of integer literals, negation, `+`, `-`
-and `*`: Mojo computes it when it compiles the program. -/
+/-- The value of an index made only of integer literals, negation, `+`, `-`,
+`*`, `//` and `%`: Mojo computes it when it compiles the program, with
+`BinOp.arith`, as the interpreter does at run time. -/
 def constInt : Expr → Option Int
   | .int k => some k
   | .unary .neg a => (constInt a).map (- ·)
-  | .binary .add a b => do pure ((← constInt a) + (← constInt b))
-  | .binary .sub a b => do pure ((← constInt a) - (← constInt b))
-  | .binary .mul a b => do pure ((← constInt a) * (← constInt b))
+  | .binary op a b => do
+    let f ← op.arith
+    pure (f (← constInt a) (← constInt b))
   | _ => none
 
 /-- Whether two places may be the same location or overlap: one is the other
@@ -207,6 +208,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .method p m args => do
     checkIndices prog p
     let t ← placeTy prog p
+    if let .array .. := t then throw (CheckError.unknownMethod "Array" m)
     if let .list et := t then
       unless m == "append" do throw (CheckError.unknownMethod "List" m)
       let _ ← readPlace prog p
@@ -232,21 +234,28 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     unless op == .and || op == .or do recheckPlaces prog [a, b]
     lift (binaryTy op ta tb)
   | .list t es => do
-    unless validTy prog t do throw (CheckError.invalidType t)
-    checkArgs prog "List" (es.map fun _ => ⟨.owned, "value", t⟩) es es.length es.length
+    let .ok u := elemOf t | throw (CheckError.invalidType t)
+    unless validTy prog u do throw (CheckError.invalidType t)
+    if let .array _ n := t then
+      unless n == es.length do throw (CheckError.typeMismatch t (.array u es.length))
+    checkArgs prog "List" (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length
     recheckPlaces prog es
-    pure (.list t)
+    pure t
   | .withDrops e _ _ => checkExprAs prog asRef e
 
 /-- Checks the index expressions of the place `p`: each is an `Int`, and
-one that Mojo computes when it compiles the program may not be negative. -/
+one that Mojo computes when it compiles the program may not be negative,
+nor, into an array, beyond its last element. -/
 def checkIndices (prog : Program) : Place → CheckM Unit
   | .var _ => pure ()
   | .field p _ => checkIndices prog p
   | .index p i => do
     checkIndices prog p
     expect .int (← checkExprAs prog false i)
-    if (constInt i).any (· < 0) then throw (CheckError.negativeIndex (.index p i))
+    if let some k := constInt i then
+      if k < 0 then throw (CheckError.negativeIndex (.index p i))
+      if let .array _ n := (← placeTy prog p) then
+        if n ≤ k then throw (CheckError.constantIndexOutOfBounds (.index p i))
 
 /-- Checks the arguments `args` of a call of `callee` against its parameters
 `params`, in order. `n` and `m` are the numbers of parameters and arguments,

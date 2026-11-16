@@ -87,7 +87,7 @@ private def res : List String := [
 -- Lists: literals, `List[T]()`, `append`, `len` and indexing.
 #guard runLines [
   "def main():",
-  "    var xs = [1, 2]",
+  "    var xs: List[Int] = [1, 2]",
   "    var ys = List[Int]()",
   "    var zs: List[Int] = []",
   "    xs.append(3)",

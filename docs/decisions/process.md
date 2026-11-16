@@ -59,7 +59,9 @@ Phase 1 on 2026-11-15. In order:
    Then lists and references: `List[T]` and indexing, `ref` bindings, and
    references returned with an origin (`-> ref[a, b] T`), with the lifetime
    extension that such a reference implies. The human added them to Phase 1
-   on 2026-11-15 (#12).
+   on 2026-11-15 (#12). Arrays, `Array[T, N]`, came with the compiler's
+   results: Mojo types an unannotated literal as an array, and the human
+   ruled on 2026-11-16 that the model follows it (#27).
 3. An executable big-step interpreter with fuel and explicit run-time
    errors.
 4. A parser written in Lean from `.mojo` source to the abstract syntax, so

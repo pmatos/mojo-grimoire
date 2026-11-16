@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The machine: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15202786099656399958")
+:::moduleDocs (fingerprint := "10749511144083168012")
 :::
 
 :::readable MojoGrimoire.Interp.Ref MojoGrimoire.Interp.Binding MojoGrimoire.Interp.Env (fingerprint := "5146776138028628767")
@@ -45,11 +45,10 @@ part of its location's value that its path names. `emit` adds a printed
 line.
 :::
 
-:::readable MojoGrimoire.Interp.wrap MojoGrimoire.Interp.binary MojoGrimoire.Interp.unary (fingerprint := "110111832484710264")
-*Definition: arithmetic.* $`\mathsf{Int}` is 64-bit: every result is wrapped
-into $`[-2^{63}, 2^{63})`. `//` rounds toward negative infinity and `%`
-takes the sign of the divisor, and both give 0 for a zero divisor, as
-Mojo's standard library defines them.
+:::readable MojoGrimoire.Interp.wrap MojoGrimoire.Interp.binary MojoGrimoire.Interp.unary (fingerprint := "386164582684795410")
+*Definition: arithmetic.* $`\mathsf{Int}` is 64-bit: an arithmetic operator
+computes its integer function, and the result is wrapped into
+$`[-2^{63}, 2^{63})`.
 Comparisons give a $`\mathsf{Bool}`, and `==` and `!=` also compare two
 $`\mathsf{Bool}`s.
 :::

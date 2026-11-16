@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Errors: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16029818118207469757")
+:::moduleDocs (fingerprint := "14076808025331945643")
 :::
 
-:::readable MojoGrimoire.Check.CheckError (fingerprint := "13237670193164661329")
+:::readable MojoGrimoire.Check.CheckError (fingerprint := "16379167617937173479")
 *Definition: the classes of error.* The checker rejects a program with one
 of these classes, each with the names or types it concerns:
 
@@ -25,8 +25,10 @@ of these classes, each with the names or types it concerns:
 * types: a type that may not be declared, such as that of string literals
   (`invalidType`), a struct that contains itself (`recursiveStruct`), a
   type other than the one expected (`typeMismatch`), an index into a
-  value that is not a list (`notAList`), a negative index that Mojo
-  computes when it compiles the program (`negativeIndex`), a value that
+  value that is neither a list nor an array (`notAList`), an index that
+  Mojo computes when it compiles the program and that is negative
+  (`negativeIndex`) or, into an array, past its last element
+  (`constantIndexOutOfBounds`), a value that
   `print` cannot print (`notPrintable`), a string literal outside
   `print` (`stringOutsidePrint`), and a call with the wrong number of
   arguments (`arityMismatch`);
@@ -42,7 +44,7 @@ of these classes, each with the names or types it concerns:
   body that moves a value from before the loop (`uninitializedUse`), an implicit copy of a value that is not implicitly
   copyable (`implicitCopy`), `.copy()` of a value that is not copyable
   (`notCopyable`), a transfer out of a value the function does not own
-  (`transferFromBorrowed`) or out of an element of a list
+  (`transferFromBorrowed`) or out of an element of a list or an array
   (`transferFromElement`), a change to a place the function may not
   change (`immutablePlace`), a `mut` argument that is not a place
   (`notAPlace`) or that aliases another argument
