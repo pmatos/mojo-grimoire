@@ -19,8 +19,7 @@ been given again. The compiler cannot destroy a struct with such a field
 missing, nor overwrite it, so the variable may not end, and no part above
 such a field may be assigned, until that same field is assigned again.
 Assigning its sub-fields one by one does not count: until then, the field
-and the parts above it may not be read whole. A value of type `Int` or
-`Bool` is never moved: `^` copies it, as the compiler does.
+and the parts above it may not be read whole.
 -/
 
 namespace MojoGrimoire.Check

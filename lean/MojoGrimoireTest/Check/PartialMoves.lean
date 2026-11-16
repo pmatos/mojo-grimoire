@@ -5,8 +5,8 @@ import MojoGrimoire.Elab.Elaborate
 Tests of the checker on fields moved out of a struct with `^`. Each program
 is written in Mojo in its comment. The compiler accepts such a move only when
 the program assigns that same field again before the struct ends or is
-overwritten. A field of type `Int` or `Bool` is the exception: `^` copies
-it, as `Interp/TrivialTransfer.lean` tests.
+overwritten. In Mojo, `p^` of type `Int` or `Bool` is the place `p`, which
+inference rewrites it to, as `Parse/TrivialTransfer.lean` tests.
 
 The shared declarations are a resource `Res`, whose destructor prints, a
 `Pair` of two of them, a `Box` that holds a `Pair` and an `Int`, a copyable
@@ -161,10 +161,6 @@ private def moveOut (p : Place) : Stmt := .expr (.call "consume" [.transfer p])
   some [moveOut (fld "self" "r")], []⟩]) == none
 #guard verdict (prog [] [] [⟨"Holder", [("p", pair), ("r", res)], .none, true, none,
   some [moveOut (fld2 "self" "p" "a")], []⟩]) == some (.partiallyDestroyed "self")
-
--- `var n = p.x^` of an `Int` field copies it, and `p` may end.
-#guard verdict (prog [.decl "p" (.struct "Pt") (some (.call "Pt" [.int 1, .int 2])),
-  .decl "n" .int (some (.transfer (fld "p" "x")))]) == none
 
 -- Elaboration's drops do not count as fields moved out: it drops whole
 -- variables, and the fields of `self` in `__deinit__` one by one.

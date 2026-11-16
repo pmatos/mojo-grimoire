@@ -5,7 +5,7 @@ The checking of expressions and of the arguments of calls.
 
 An expression is checked from left to right, as Mojo evaluates it, and the
 state follows: a transfer `p^` leaves `p` uninitialized for what comes after
-it, unless `p` is an `Int` or a `Bool`, which Mojo copies. Mojo reads a place operand only once every operand of its operation is
+it. Mojo reads a place operand only once every operand of its operation is
 evaluated, so each place operand must still be initialized then. A place passed as an argument is passed by its parameter's convention:
 `read`, `mut` and `ref` pass the location, which must be initialized, and
 `mut` also needs a place the function may change; `var` passes a value, which
@@ -51,13 +51,11 @@ def copyPlace (prog : Program) (p : Place) : CheckM Ty := do
 uninitialized. The function must own the value, or hold it `mut`: a `read`
 or `ref` parameter cannot give its value away. An element of a list or an
 array cannot be transferred out, since it would be left with a hole. A field
-moved out is recorded as moved. An `Int` or a `Bool` is not moved: Mojo
-copies it, so `p^` reads `p` and leaves it as it was, wherever `p` may be
-read. -/
+moved out is recorded as moved. In Mojo, `p^` of an `Int` or a `Bool` is
+the place `p`, which inference puts in its stead. -/
 def transferPlace (prog : Program) (p : Place) : CheckM Ty := do
   let t ← readPlace prog p
   if splitPlace.indexed p then throw (CheckError.transferFromElement p)
-  if t == .int || t == .bool then return t
   let (x, path) := splitPlace p
   let v ← lookup x
   unless v.access.canChange do throw (CheckError.transferFromBorrowed p)

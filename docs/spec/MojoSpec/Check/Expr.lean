@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2872681888624220466")
+:::moduleDocs (fingerprint := "9923768676773926016")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -27,12 +27,10 @@ assigning to it or passing it `mut`, unless its variable is a `read` or
 `ref` parameter, or a reference that may not be changed.
 :::
 
-:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.transferPlace (fingerprint := "6725781520843768010")
+:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.transferPlace (fingerprint := "6514386312051347088")
 *Rule: reading and moving a place.* Using a place $`p` as a value copies it
 implicitly: $`p` must be initialized, and its type implicitly copyable.
-Transferring it, $`p\,\hat{}`, needs $`p` initialized. When $`p` is
-an $`\mathsf{Int}` or a $`\mathsf{Bool}`, the transfer is a copy, as in
-the compiler, and leaves $`p` as it was. Otherwise it needs a variable
+Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable
 that the function may change, owned or held `mut`; afterwards $`p` is
 uninitialized, and a field $`p` is added to $`M`. An element of a list or an array cannot be transferred out, nor can a
 value through a reference.

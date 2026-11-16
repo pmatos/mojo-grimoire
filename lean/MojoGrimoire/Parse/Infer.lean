@@ -15,6 +15,12 @@ is passed to, or the element type of the literal or list that holds it.
 Where none is expected, it is an `Array[t, n]` of its `n` elements, with
 the type `t` of the first, as in Mojo. What inference cannot find stays
 `None`, which the checker rejects as a type that may not be declared.
+
+Inference also gives `p^` its meaning when `p` is an `Int` or a `Bool`.
+Mojo does not move such a value: it warns that the transfer has no effect,
+and uses the place `p`, which is what inference puts in its stead. An
+element of a list or an array stays a transfer, which the checker rejects
+(#43).
 -/
 
 namespace MojoGrimoire.Parse
@@ -78,7 +84,10 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
   | .bool b => (.bool b, some .bool)
   | .str s => (.str s, some .str)
   | .place p => let (p', t) := inferPlace prog env p; (.place p', t)
-  | .transfer p => let (p', t) := inferPlace prog env p; (.transfer p', t)
+  | .transfer p =>
+    let (p', t) := inferPlace prog env p
+    if (t == some .int || t == some .bool) && !splitPlace.indexed p' then (.place p', t)
+    else (.transfer p', t)
   | .copy p => let (p', t) := inferPlace prog env p; (.copy p', t)
   | .call f args =>
     let args' := (inferList prog env (callParamTys prog f) args).map (·.1)

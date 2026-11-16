@@ -37,7 +37,9 @@ element type, and the arguments of a call the types of its parameters; the
 argument of `append` is expected to be an element of the list. The drops
 that elaboration inserts have the type of their operation. Inference fills
 in the literals inside an expression as it goes; where it finds no type,
-it gives none.
+it gives none. A transfer $`p\,\hat{}` of an $`\mathsf{Int}` or a
+$`\mathsf{Bool}` becomes the place $`p`, since Mojo does not move such a
+value; one through an element of a list or an array stays a transfer.
 :::
 
 :::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.callParamTys MojoGrimoire.Parse.methodParamTys (fingerprint := "4029517101416492324")
