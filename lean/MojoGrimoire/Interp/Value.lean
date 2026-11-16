@@ -64,11 +64,13 @@ def Value.set (v : Value) (path : List Step) (w : Value) : Option Value :=
     | _ => none
 
 /-- How `print` writes a value: an `Int` in decimal, a `Bool` as `True` or
-`False`. -/
+`False`, and a list or an array as its elements between brackets,
+separated by `, `. -/
 def Value.show : Value → String
   | .int n => toString n
   | .bool true => "True"
   | .bool false => "False"
+  | .list es => "[" ++ ", ".intercalate (es.map Value.show) ++ "]"
   | _ => "<value>"
 
 end MojoGrimoire.Interp

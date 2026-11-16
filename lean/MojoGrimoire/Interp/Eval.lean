@@ -21,7 +21,8 @@ used, when `len` has read the length of a list that is not a place, and
 when a function returns, for every value it still owns. Destroying a
 struct runs its `__deinit__`, whose elaborated body destroys its fields; a
 struct without one has its fields destroyed in order, and a list its
-elements.
+elements. A value that `print` writes is not destroyed after it: it holds
+only `Int`s and `Bool`s, so destroying it would do nothing.
 -/
 
 namespace MojoGrimoire.Interp

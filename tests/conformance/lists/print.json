@@ -1,0 +1,12 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "[1, 2]",
+    "[True, False]",
+    "[[1, 2], [3]] [3]",
+    "[]",
+    "[[]] and [1, 2] 2"
+  ],
+  "class": null,
+  "diagnostic": null
+}

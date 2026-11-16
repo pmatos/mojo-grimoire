@@ -81,6 +81,12 @@ where the compiler and the manual disagree, the model follows the compiler.
 - A place operand, of a call, an operator, a list literal or `print`, must
   still be initialized once every operand is evaluated, since the
   compiler reads it then: `f(a.id, g(a^))` uses `a.id` after its move.
+- `print` takes string literals and values it can write: `Int`, `Bool`,
+  and lists and arrays of them, nested ones included (#41). It reads a
+  place by reference, so it copies nothing: a list may be printed from a
+  `read` parameter or a `ref` binding. A struct, or a list or an array of
+  structs, is rejected as `notPrintable`, as the compiler rejects a value
+  that does not conform to `Writable`.
 - `return x` moves a variable the function owns. Any other returned place
   is copied implicitly, so it must be implicitly copyable.
 - At every return, explicit or implicit, a `mut` parameter and the `self`
@@ -259,6 +265,9 @@ corrected against the compiler's recorded results (#25):
   only once every operand of its operation has been evaluated, as the
   compiler does: `f(a.id, g(a))` sees what `g` did to `a`. An `Int` or a
   `Bool` passed to a `read` parameter is passed by value.
+- `print` writes its values separated by spaces: an `Int` in decimal, a
+  `Bool` as `True` or `False`, and a list or an array as `[1, 2]`, its
+  elements written so and separated by `, `, `[]` when it is empty (#41).
 - A struct without a `__deinit__` has its fields destroyed in declaration
   order, and a list its elements in index order.
 - A temporary passed to a borrowing parameter is destroyed right after the
