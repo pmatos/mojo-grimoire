@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15547176547083958796")
+:::moduleDocs (fingerprint := "16908524155139981408")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
@@ -63,7 +63,7 @@ to a `var self`; the receiver's type, from the variables declared so far,
 gives the method.
 :::
 
-:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "4773250427150824992")
+:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "15334562521233864914")
 *Definition: what an operation destroys.* Inside a function, elaboration
 knows the program, the slots, the slots the function owns in the order they
 die, and the types of the variables declared so far. An operation uses
@@ -79,7 +79,14 @@ evaluated with those slots, and the ones it reads, live after them. An
 operation that destroys nothing is left unwrapped.
 :::
 
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "4768639336824511778")
+:::readable MojoGrimoire.Elab.consumedSlot MojoGrimoire.Elab.consumedIn MojoGrimoire.Elab.consumedList (fingerprint := "11391358353719964809")
+*Definition: consumed receivers.* A method call on $`q\,\hat{}`, where
+$`q` is a whole slot and the method takes `var self`, consumes $`q`: it
+moves the value away, and the method destroys it. An expression consumes
+the slots that the method calls in it consume, at any depth.
+:::
+
+:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "11189916522384604254")
 *Definition: elaborating expressions.* Each call, method call, operator,
 list literal and `.copy()` is wrapped with what it destroys, and its
 operands are elaborated in turn, each with the slots that the later
@@ -87,28 +94,29 @@ operands use live after it. A place is left as it is. The operation at the
 top of a statement leaves what dies once it is done to the statement, as
 the compiler destroys a discarded result before those values. The right
 operand of `and` and `or` may not run, so it is not elaborated, and the
-operation destroys what it uses.
+operation destroys what it uses. A method call never destroys the slot it
+consumes, though it uses it.
 :::
 
-:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.envAfter (fingerprint := "16635577383834577912")
+:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.envAfter (fingerprint := "14321159511264539484")
 *Definition: helpers.* The slots that an elaborated expression destroys;
 the slots that a list of operands read by reference uses directly; and the types of
 the variables after a statement, which a declaration or a `ref` binding
 extends.
 :::
 
-:::readable MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "16865114137647792364")
+:::readable MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "18429392250706560484")
 *Definition: elaboration.* Given the slots live after a statement:
 
 - a simple statement's expressions are elaborated, and the statement is
   followed by the drops of the slots that die at it and that its
-  expressions do not destroy;
+  expressions neither destroy nor consume;
 - the test of an `if` is elaborated with the slots live at the start of
   either branch live after it, and each branch starts with the drops of
-  the slots live before the `if` that the test neither moves nor destroys
-  and that are not live at the start of the branch;
+  the slots live before the `if` that the test neither moves, destroys nor
+  consumes and that are not live at the start of the branch;
 - a `while` loop is followed by the drops of the slots live at its head
-  that are dead after it, and its body is elaborated with the slots live at
+  that are dead after it and that its test does not consume, and its body is elaborated with the slots live at
   its head live at its end, since the next iteration may use them; its test
   is left as it is, since every slot it uses is live at the head;
 - a `return` gets no drops of its own: its value is elaborated with nothing

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16360169998965602203")
+:::moduleDocs (fingerprint := "11337040878954841405")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "14136961392570647166")
@@ -41,7 +41,7 @@ $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "106173774938825190")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "13563751793496952716")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -54,7 +54,7 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   of declaration, after the returned value is computed.
 - *Places.* A place names a reference: a variable's, then a field or an
   element on the way, whose index is evaluated and checked against the
-  list's length.
+  list's length; $`p\,\hat{}` names the reference of $`p`.
 - *Expressions.* Literals are values; a place is read, a transfer reads it
   and leaves $`\bot` behind, and `.copy()` reads it. `and` and `or`
   evaluate their right operand only when the left does not decide.
@@ -79,8 +79,10 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   names and gives it back, failing with $`\mathsf{indexOutOfBounds}` when
   $`i` is negative or past the last element, and
   `len` gives the length of a list or an array, and destroys its argument
-  when that is neither a place nor a reference that a call returns. A method gets its
-  receiver by reference, or a copy for a `var self`.
+  when that is neither a place nor a reference that a call returns. A
+  method gets its receiver by reference, or a copy for a `var self`; a
+  `var self` on $`q\,\hat{}` takes the value of $`q`, leaving $`\bot`
+  behind once the arguments are read.
 - *References.* A `ref` binding, and the `return` of a function with an
   origin, give a reference: to a place, or the one a call returns. Used as
   a value, such a call's result is read. A call gives what it returns, a

@@ -1,0 +1,23 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "drop res 1",
+    "drop holder 7",
+    "after 7",
+    "8 2",
+    "drop res 2",
+    "drop holder 8",
+    "taking 9",
+    "drop res 3",
+    "drop holder 9",
+    "9",
+    "taking 11",
+    "drop res 5",
+    "drop holder 11",
+    "drop res 4",
+    "drop holder 10",
+    "21 end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

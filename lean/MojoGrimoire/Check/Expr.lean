@@ -5,15 +5,19 @@ The checking of expressions and of the arguments of calls.
 
 An expression is checked from left to right, as Mojo evaluates it, and the
 state follows: a transfer `p^` leaves `p` uninitialized for what comes after
-it. Mojo reads a place operand only once every operand of its operation is
-evaluated, so each place operand must still be initialized then. A place passed as an argument is passed by its parameter's convention:
-`read`, `mut` and `ref` pass the location, which must be initialized, and
-`mut` also needs a place the function may change; `var` passes a value, which
-is copied implicitly unless the argument transfers it. A call that returns
-a reference and is a located operand (`MojoGrimoire.Check.locOf`), passed
-to a `read`, `mut` or `ref` parameter or to `len`, is passed the same way:
-it is not copied, it stands for its origins, and for `mut` it must be
-mutable.
+it. Before a field or a method, `p^` borrows `p`, which must be whole and
+could be transferred, and cannot be changed through it; a method whose
+`self` is `var` takes it, once the arguments are read. Mojo reads a place
+operand only once every operand of its operation is evaluated, so each place
+operand must still be initialized then. A place passed as an argument is
+passed by its parameter's convention: `read`, `mut` and `ref` pass the
+location, which must be initialized, and `mut` also needs a place the
+function may change; `var` passes a value, which is copied implicitly unless
+the argument transfers it.
+A call that returns a reference and is a located operand
+(`MojoGrimoire.Check.locOf`), passed to a `read`, `mut` or `ref` parameter
+or to `len`, is passed the same way: it is not copied, it stands for its
+origins, and for `mut` it must be mutable.
 
 A `mut` argument may not alias another argument that is passed as a location,
 Mojo's argument exclusivity. An `Int` or a `Bool` passed to a `read`
@@ -39,10 +43,10 @@ def lift {α : Type} (r : Except CheckError α) : CheckM α := StateT.lift r
 def expect (expected actual : Ty) : CheckM Unit :=
   unless expected == actual do throw (CheckError.typeMismatch expected actual)
 
-/-- Rejects unless the place `p` may be changed. -/
+/-- Rejects unless the place `p` may be changed: not through `q^`. -/
 def requireMutable (p : Place) : CheckM Unit := do
   let v ← lookup (splitPlace p).1
-  unless v.access.canChange do throw (CheckError.immutablePlace p)
+  unless v.access.canChange && !throughTransfer p do throw (CheckError.immutablePlace p)
 
 /-- Reads the place `p` as a value, which copies it implicitly: only an
 implicitly copyable value may be. -/
@@ -51,19 +55,26 @@ def copyPlace (prog : Program) (p : Place) : CheckM Ty := do
   unless copyingOf prog t == .implicit do throw (CheckError.implicitCopy t)
   pure t
 
-/-- Transfers the value out of the place `p`, Mojo's `p^`, which leaves `p`
-uninitialized. The function must own the value, or hold it `mut`: a `read`
-or `ref` parameter cannot give its value away. An element of a list or an
-array cannot be transferred out, since it would be left with a hole. A field
-moved out is recorded as moved. In Mojo, `p^` of an `Int` or a `Bool` is
-the place `p`, which inference puts in its stead. -/
-def transferPlace (prog : Program) (p : Place) : CheckM Ty := do
+/-- Rejects unless the value in the place `p` may be transferred out, and
+gives its type. It must be initialized, and the function must own it, or
+hold it `mut`: a `read` or `ref` parameter cannot give its value away. An
+element of a list or an array cannot be transferred out, since it would be
+left with a hole. -/
+def requireTransferable (prog : Program) (p : Place) : CheckM Ty := do
   let t ← readPlace prog p
   if splitPlace.indexed p then throw (CheckError.transferFromElement p)
-  let (x, path) := splitPlace p
-  let v ← lookup x
+  let v ← lookup (splitPlace p).1
   unless v.access.canChange do throw (CheckError.transferFromBorrowed p)
   if let .alias _ _ := v.access then throw (CheckError.transferFromBorrowed p)
+  pure t
+
+/-- Transfers the value out of the place `p`, Mojo's `p^`, which leaves `p`
+uninitialized. A field moved out is recorded as moved. In Mojo, `p^` of an
+`Int` or a `Bool` is the place `p`, which inference puts in its stead. -/
+def transferPlace (prog : Program) (p : Place) : CheckM Ty := do
+  let t ← requireTransferable prog p
+  let (x, path) := splitPlace p
+  let v ← lookup x
   setVar { v with uninit := uninitialize v.uninit path,
                   moved := if path.isEmpty then v.moved else path :: v.moved }
   pure t
@@ -275,12 +286,16 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     let sig ← lift (methodSig prog t m args.length)
     let some self := sig.self | throw (CheckError.invalidSelf m)
     let params := sig.params
-    let recv ← if self.conv == .owned then pure [] else do pure [← passedPlace self.conv p]
+    let consumed := consumedReceiver self.conv p
+    let recv ← match consumed with
+      | some q => do pure [← passedPlace .mutable q]
+      | none => if self.conv == .owned then pure [] else do pure [← passedPlace self.conv p]
     checkExclusive (recv ++ (← locationArgs prog params args))
-    passPlace prog m self.conv t p
+    if consumed.isNone then passPlace prog m self.conv t p
     let k ← mark
     let ks ← checkArgs prog m params args params.length args.length
     recheckLocs prog (([p], k) :: ks)
+    if let some q := consumed then let _ ← transferPlace prog q
     for q in ← changedArgs prog sig.allParams (.place p :: args) do changePlace prog q
     refResult prog asRef sig
   | .unary op a => do lift (unaryTy op (← checkExprAs prog false a))
@@ -304,7 +319,8 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
 /-- Checks the index expressions of the place `p`: each is an `Int`, and
 one that Mojo computes when it compiles the program may not be negative,
 nor, into an array, beyond its last element. Mojo locates `q` in `q[i]`
-before it evaluates `i`, so `i` may not invalidate `q`. -/
+before it evaluates `i`, so `i` may not invalidate `q`. Each `q^` in `p`
+needs `q` whole, and a value that `q^` could transfer. -/
 def checkIndices (prog : Program) : Place → CheckM Unit
   | .var _ => pure ()
   | .field p _ => checkIndices prog p
@@ -317,6 +333,9 @@ def checkIndices (prog : Program) : Place → CheckM Unit
       if k < 0 then throw (CheckError.negativeIndex (.index p i))
       if let .array _ n := (← placeTy prog p) then
         if n ≤ k then throw (CheckError.constantIndexOutOfBounds (.index p i))
+  | .transferred p => do
+    checkIndices prog p
+    let _ ← requireTransferable prog p
 
 /-- Checks the arguments `args` of a call of `callee` against its parameters
 `params`, in order, and gives, for each, the places it is read from once
@@ -324,8 +343,8 @@ every argument is evaluated, with how many changes were recorded once it
 was checked. A call that returns a reference, passed by reference, is
 passed as a location, uncopied, when it is a located operand, and for
 `mut` it must be mutable; the origin it is reported by is its first. One
-with a temporary origin argument is checked as a value. `n` and `m` are the numbers of
-parameters and arguments, for the error when they differ. -/
+with a temporary origin argument is checked as a value. `n` and `m` are
+the numbers of parameters and arguments, for the error when they differ. -/
 def checkArgs (prog : Program) (callee : Name) :
     List Param → List Expr → Nat → Nat → CheckM (List (List Place × Nat))
   | [], [], _, _ => pure []

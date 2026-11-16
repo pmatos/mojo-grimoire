@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1226207757148050276")
+:::moduleDocs (fingerprint := "7839550434069944255")
 :::
 
 :::readable MojoGrimoire.Parse.Term MojoGrimoire.Parse.Term.toExpr (fingerprint := "13183905014692490612")
@@ -43,7 +43,7 @@ lexer reads. The end of a logical line and a change of indentation start
 no expression.
 :::
 
-:::readable MojoGrimoire.Parse.expr MojoGrimoire.Parse.orRest MojoGrimoire.Parse.andExpr MojoGrimoire.Parse.andRest MojoGrimoire.Parse.notExpr MojoGrimoire.Parse.sum MojoGrimoire.Parse.sumRest MojoGrimoire.Parse.product MojoGrimoire.Parse.productRest MojoGrimoire.Parse.unaryExpr MojoGrimoire.Parse.chain MojoGrimoire.Parse.trailers MojoGrimoire.Parse.primary MojoGrimoire.Parse.exprList (fingerprint := "17058412695410960813")
+:::readable MojoGrimoire.Parse.expr MojoGrimoire.Parse.orRest MojoGrimoire.Parse.andExpr MojoGrimoire.Parse.andRest MojoGrimoire.Parse.notExpr MojoGrimoire.Parse.sum MojoGrimoire.Parse.sumRest MojoGrimoire.Parse.product MojoGrimoire.Parse.productRest MojoGrimoire.Parse.unaryExpr MojoGrimoire.Parse.chain MojoGrimoire.Parse.trailers MojoGrimoire.Parse.primary MojoGrimoire.Parse.exprList (fingerprint := "11805275093957676914")
 *Definition: expressions.*
 
 $$`\begin{array}{lcl}
@@ -53,7 +53,7 @@ e & ::= & e~\mathsf{or}~e \mid e~\mathsf{and}~e \mid \mathsf{not}~e \\
  & \mid & p \mid p\,\hat{} \mid p.\mathsf{copy}() \mid p.m(e^*) \mid f(e^*) \\
  & \mid & n \mid \mathit{string} \mid \mathsf{True} \mid \mathsf{False} \mid (e) \\
  & \mid & [e^*] \mid \mathsf{List}[\mathit{type}](e^*) \\
-p & ::= & x \mid p.f \mid p[e]
+p & ::= & x \mid p.f \mid p[e] \mid p\,\hat{}.f
 \end{array}`
 
 The rows run from the loosest operators to the tightest. `or`, `and`, the
@@ -65,7 +65,10 @@ and `^`, `.copy()`, a method call or a call make an expression. A call
 names a function or a struct. `^` is a transfer only when the token after
 it does not start an operand; otherwise the compiler reads binary XOR,
 which is outside the subset, and the parser fails (#54). So $`p\,\hat{}`
-ends a chain: what follows it is an operator or the end of the expression.
+ends a chain, what follows it being an operator or the end of the
+expression, unless `.` follows it: then it is the place $`p\,\hat{}`,
+whose fields and methods the chain goes on to read, as the compiler does
+for `p^.f` and `p^.m(…)` (#66).
 A literal $`[e^*]` is left for inference to type, and $`\mathsf{List}[\mathit{type}](e^*)` is a list literal; Mojo
 1.2.0 accepts it only with no elements (#46). Each function takes fuel and spends it on
 each call, so parsing ends.

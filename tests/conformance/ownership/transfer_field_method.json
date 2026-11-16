@@ -1,0 +1,17 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "8",
+    "7",
+    "drop 1",
+    "5 5",
+    "taking 3",
+    "drop 2",
+    "3",
+    "drop 4",
+    "20",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

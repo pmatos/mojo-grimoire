@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Places, expressions and statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2611362272338251280")
+:::moduleDocs (fingerprint := "14154441587506395592")
 :::
 
-:::readable MojoGrimoire.Core.Place MojoGrimoire.Core.Expr (fingerprint := "1440102586692574884")
+:::readable MojoGrimoire.Core.Place MojoGrimoire.Core.Expr (fingerprint := "3018596764382334364")
 *Definition: places and expressions.* A place $`p` names a location that holds a value:
 
 ```grammar MojoGrimoire.Core.Place
@@ -24,11 +24,17 @@ p
 var    x
 field  p.f
 index  p[e]
+transferred  p\,\hat{}
 ```
 
 $`x` is a variable, $`p.f` the field $`f` of the value in $`p`, and
-$`p[e]` the element at index $`e` of the list or array in $`p`. Places and
-expressions are defined together, since an index is an expression.
+$`p[e]` the element at index $`e` of the list or array in $`p`. The place
+$`p\,\hat{}`, which the Lean calls `transferred`, is Mojo's `p^` followed
+by a field or a method, as in `p^.f` or `p^.m()`: the compiler borrows
+$`p` instead of moving it, so it is the place $`p`, through which nothing
+may be changed, except that a method whose `self` is `var` consumes it.
+Places and expressions are defined together, since an index is an
+expression.
 An expression $`e` is one of:
 
 ```grammar MojoGrimoire.Core.Expr

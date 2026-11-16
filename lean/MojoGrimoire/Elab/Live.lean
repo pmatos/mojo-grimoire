@@ -61,6 +61,7 @@ def indexUses (sl : Slots) : Place → List Place
   | .var _ => []
   | .field p _ => indexUses sl p
   | .index p i => union (indexUses sl p) (uses sl i)
+  | .transferred p => indexUses sl p
 
 /-- The slots that the expression `e` uses. A place uses its own slot and
 those its index expressions use. -/
@@ -86,6 +87,7 @@ def indexMoves (sl : Slots) : Place → List Place
   | .var _ => []
   | .field p _ => indexMoves sl p
   | .index p i => union (indexMoves sl p) (moves sl i)
+  | .transferred p => indexMoves sl p
 
 /-- The slots that the expression `e` moves away whole, with `p^` of a
 whole slot. -/
