@@ -274,8 +274,8 @@ def envAfter (prog : Program) (sl : Slots) (env : TyEnv) (s : Stmt) : TyEnv :=
   | _ => env
 
 mutual
-/-- Elaborates the statement `s`, given the slots live after it. What its
-expressions do not destroy, and is dead after it, dies right after it. -/
+/-- Elaborates the statement `s`, given the slots live after it. What dies at
+it, given what its expressions destroy or consume, dies right after it. -/
 def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
   let sl := ctx.sl
   let rest (s' : Stmt) (inner : List Place) : List Stmt :=
