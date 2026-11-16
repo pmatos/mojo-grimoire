@@ -13,6 +13,13 @@ transferred, has the whole variable, the empty path. Moving a field out adds
 that field's path. A part is initialized when no uninitialized part is
 above or below it. The elements of a list or an array are not parts: they
 are initialized whenever the list or array is.
+
+A variable also records the fields moved out of it with `^` that it has not
+been given again. The compiler cannot destroy a struct with such a field
+missing, nor overwrite it, so the variable may not end, and no part above
+such a field may be assigned, until that same field is assigned again. A
+field of type `Int` or `Bool` is not recorded: the compiler does not move it
+(#50).
 -/
 
 namespace MojoGrimoire.Check
@@ -38,13 +45,15 @@ inductive Access where
 /-- A path of field names, from a variable to one of its parts. -/
 abbrev Path := List Name
 
-/-- A variable in scope: its name, type, how it is held, and its
-uninitialized parts. -/
+/-- A variable in scope: its name, type, how it is held, its
+uninitialized parts, and the fields moved out of it that it has not been
+given again. -/
 structure VarState where
   name : Name
   ty : Ty
   access : Access
   uninit : List Path
+  moved : List Path
   deriving BEq
 
 /-- The checker's state: the variables in scope, innermost first, and
@@ -118,14 +127,15 @@ def lookup (x : Name) : CheckM VarState := do
   let some v := (← get).vars.find? (·.name == x) | throw (CheckError.unknownVariable x)
   pure v
 
-/-- Replaces the state of the innermost variable named `x`. -/
-def setUninit (x : Name) (us : List Path) : CheckM Unit :=
+/-- Replaces the uninitialized parts and the moved fields of the innermost
+variable named `x`. -/
+def setParts (x : Name) (us ms : List Path) : CheckM Unit :=
   modify fun s => { s with vars := go s.vars }
 where
   /-- Updates the first variable named `x`. -/
   go : List VarState → List VarState
     | [] => []
-    | v :: vs => if v.name == x then { v with uninit := us } :: vs else v :: go vs
+    | v :: vs => if v.name == x then { v with uninit := us, moved := ms } :: vs else v :: go vs
 
 /-- The type of the elements of a list or an array of type `t`. -/
 def elemOf : Ty → Except CheckError Ty
@@ -145,7 +155,7 @@ where
 origins of a reference, or `p` itself. -/
 def resolvePlace (vars : List VarState) (p : Place) : List Place :=
   match vars.find? (·.name == (splitPlace p).1) with
-  | some ⟨_, _, .alias os _, _⟩ => os
+  | some ⟨_, _, .alias os _, _, _⟩ => os
   | _ => [p]
 
 /-- Rejects unless the place `p`, of a variable whose uninitialized parts are

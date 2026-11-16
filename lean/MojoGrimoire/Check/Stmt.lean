@@ -13,13 +13,14 @@ value: like Mojo, the checker reports that as a use of an uninitialized
 value.
 
 Where a variable ends, at the end of its block or when the function
-returns, the parts it still holds are destroyed. A variable may end with
-parts moved out, and the rest is destroyed field by field, unless a part
-with fields moved out has a `__deinit__` of its own, which needs the whole
-value. The `self` of `__deinit__` is the exception: its fields may be moved
-out, since it is being destroyed. When a function returns, its `mut`
-parameters and the `self` of `__init__` must be wholly initialized, since
-the caller holds them.
+returns, the parts it still holds are destroyed. The compiler destroys a
+struct whole, so a variable may not end with a field moved out and not
+assigned again, nor with a part uninitialized below a struct that has a
+`__deinit__` of its own. Assigning to a part destroys its old value, so
+the same holds for the part. The `self` of `__deinit__` is the exception:
+its own fields may stay moved out, since it is being destroyed field by
+field. When a function returns, its `mut` parameters and the `self` of
+`__init__` must be wholly initialized, since the caller holds them.
 
 Returning a variable that the function owns moves it out, as Mojo does; any
 other place is copied, implicitly.
@@ -37,11 +38,13 @@ def partlyMovedDeinit (prog : Program) (t : Ty) (us : List Path) (start : Nat) :
   us.any fun u => ((List.range u.length).filter (start ≤ ·)).any fun k =>
     hasDeinit prog (partTy prog t (u.take k))
 
-/-- Rejects the variable `v` if it may not end as it is: with a part
-moved out that a destructor of its own needs whole. -/
+/-- Rejects the variable `v` if it may not end as it is: with a field
+moved out and not assigned again, or with a part moved out that a
+destructor of its own needs whole. For the `self` of `__deinit__`, only
+fields of its fields count. -/
 def checkEnd (prog : Program) (v : VarState) : CheckM Unit := do
   let start := if v.access == .dying then 1 else 0
-  if partlyMovedDeinit prog v.ty v.uninit start then
+  if v.moved.any (start < ·.length) || partlyMovedDeinit prog v.ty v.uninit start then
     throw (CheckError.partiallyDestroyed v.name)
 
 /-- Rejects the state at a return: every `mut` parameter and the `self` of
@@ -66,12 +69,17 @@ def endScope (prog : Program) (n : Nat) : CheckM Unit := do
 def joinUninit (a b : List Path) : List Path :=
   b.foldl uninitialize a
 
+/-- The moved fields after two branches: those of either. -/
+def joinMoved (a b : List Path) : List Path :=
+  a ++ b.filter (!a.contains ·)
+
 /-- The state after two branches that started from the same state. A branch
 that cannot reach its end does not count. -/
 def joinStates (a b : State) : State :=
   if !a.live then b
   else if !b.live then a
-  else { vars := List.zipWith (fun v w => { v with uninit := joinUninit v.uninit w.uninit })
+  else { vars := List.zipWith (fun v w =>
+             { v with uninit := joinUninit v.uninit w.uninit, moved := joinMoved v.moved w.moved })
            a.vars b.vars,
          live := true }
 
@@ -111,11 +119,11 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let us ← match init with
       | some e => do expect t (← checkExpr prog e); pure []
       | none => pure [[]]
-    modify fun s => { s with vars := ⟨x, t, .owned, us⟩ :: s.vars }
+    modify fun s => { s with vars := ⟨x, t, .owned, us, []⟩ :: s.vars }
   | .refDecl x e => do
     if (← get).vars.any (·.name == x) then throw (CheckError.duplicate x)
     let (t, origins, m) ← refTarget prog e
-    modify fun s => { s with vars := ⟨x, t, .alias origins m, []⟩ :: s.vars }
+    modify fun s => { s with vars := ⟨x, t, .alias origins m, [], []⟩ :: s.vars }
   | .assign p e => do
     let t ← checkExpr prog e
     checkIndices prog p
@@ -127,9 +135,10 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let (x, path) := splitPlace p
     let v ← lookup x
     let below := (v.uninit.filter fun u => path.isPrefixOf u && u != path).map (·.drop path.length)
-    if partlyMovedDeinit prog (partTy prog v.ty path) below 0 then
+    if partlyMovedDeinit prog (partTy prog v.ty path) below 0 ||
+        v.moved.any (fun u => path.isPrefixOf u && u != path) then
       throw (CheckError.partiallyDestroyed x)
-    setUninit x (initPart prog v.uninit v.ty path)
+    setParts x (initPart prog v.uninit v.ty path) (v.moved.erase path)
   | .expr e => do let _ ← checkExpr prog e
   | .print args => do
     args.attach.forM fun ⟨e, _⟩ => checkPrintArg (checkExpr prog) e

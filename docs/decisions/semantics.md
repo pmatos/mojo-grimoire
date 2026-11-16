@@ -51,10 +51,23 @@ corrected against the compiler when the suite recorded its results (#25):
 where the compiler and the manual disagree, the model follows the compiler.
 
 - Initialization is tracked per part of a variable: a field may be moved
-  out and initialized again. A variable may end with fields moved out, and
-  the rest is destroyed field by field. The exception is a part that has a
-  `__deinit__` of its own, which needs the whole value. Inside
-  `__deinit__`, `self`'s fields may be moved out.
+  out and initialized again. The compiler destroys a struct whole, so a
+  field moved out with `^` must be assigned again, at exactly its path,
+  before the struct ends or a part above the field is assigned. Using the
+  struct's other fields in between is allowed. Otherwise the program is
+  rejected as `partiallyDestroyed`, which covers both of the compiler's
+  messages: "destroyed out of the middle of a value" and "cannot be
+  consumed, because ... is used later". The checker cannot tell which one
+  the compiler gives, since that depends on what follows (#39). A part
+  below a struct with a `__deinit__` of its own may not be uninitialized
+  when the struct ends either. Inside `__deinit__`, `self`'s own fields may
+  stay moved out, but not fields of its fields.
+- A field of type `Int` or `Bool` does not count as moved out when a struct
+  ends, since the compiler's `^` does not move it. The checker still treats
+  the field as uninitialized after `^`, unlike the compiler (#50).
+- A field moved out of a struct that was built field by field, and never
+  initialized whole, is rejected like any other. The compiler accepts that
+  program when the struct's other fields stay uninitialized (#51).
 - A place operand, of a call, an operator, a list literal or `print`, must
   still be initialized once every operand is evaluated, since the
   compiler reads it then: `f(a.id, g(a^))` uses `a.id` after its move.

@@ -13,14 +13,14 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13749254774008970487")
+:::moduleDocs (fingerprint := "7438323241235232047")
 :::
 
-:::readable MojoGrimoire.Check.paramState (fingerprint := "2476441051695739929")
+:::readable MojoGrimoire.Check.paramState (fingerprint := "17241143638515682401")
 *Definition: parameters on entry.* A `read` or `ref` parameter is
 read-only, a `mut` parameter mutable, a `var` parameter owned, the
 `self` of `__init__` constructing and wholly uninitialized, and the
-`self` of `__deinit__` dying.
+`self` of `__deinit__` dying. No parameter starts with a field moved out.
 :::
 
 :::readable MojoGrimoire.Check.checkDistinct MojoGrimoire.Check.checkConventions (fingerprint := "16872799893102637145")

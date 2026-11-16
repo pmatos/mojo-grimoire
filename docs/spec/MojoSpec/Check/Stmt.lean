@@ -13,15 +13,17 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1983159356606462047")
+:::moduleDocs (fingerprint := "4802219020432241139")
 :::
 
-:::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.checkEnd (fingerprint := "257519033953795896")
-*Rule: the end of a variable.* A variable may end with parts moved out, and
-the rest is destroyed field by field. It is rejected when a part with a
-field moved out has a destructor of its own, which needs the whole value.
-For the `self` of `__deinit__`, its own type does not count, since its
-destructor is the one running.
+:::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.checkEnd (fingerprint := "17538961837886157612")
+*Rule: the end of a variable.* The compiler destroys a struct whole, so a
+variable may not end with a field in $`M`, moved out and not assigned
+again. Nor may it end with an uninitialized part below a struct that has a
+destructor of its own, which needs the whole value. The `self` of
+`__deinit__` is destroyed field by field: its own fields may stay moved
+out, and its own type does not count, since its destructor is the one
+running. Both errors are $`\mathsf{partiallyDestroyed}`.
 :::
 
 :::readable MojoGrimoire.Check.checkExit (fingerprint := "10417562916258413233")
@@ -35,9 +37,10 @@ them, and every variable must be allowed to end.
 each checked as above if the end of the block is reached.
 :::
 
-:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinStates (fingerprint := "1984114305602601151")
+:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMoved MojoGrimoire.Check.joinStates (fingerprint := "8423190426617035971")
 *Rule: joining branches.* After an `if`, a part is uninitialized when
-either branch leaves it so. A branch that cannot reach its end, because it
+either branch leaves it so, and a field is moved out when either branch
+leaves it so. A branch that cannot reach its end, because it
 returned, does not count.
 :::
 
@@ -69,7 +72,10 @@ an expression, so a place is copied implicitly.
   says; $`x` may not hide a variable in scope either;
 * $`p = e` checks $`e` first, then needs $`p` of $`e`'s type and a
   place the function may change; the old value of $`p` ends, and $`p`
-  is initialized;
+  is initialized. The old value may not end with a field in $`M` below
+  $`p`, nor with a part moved out below a struct with a destructor of its
+  own, as at the end of a variable. Assigning exactly a field in $`M`
+  removes it from $`M`; assigning a part below that field does not;
 * an expression statement checks its expression;
 * `print` checks its arguments as above, then that its place arguments are
   still initialized;

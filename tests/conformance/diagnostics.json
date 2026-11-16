@@ -10,6 +10,10 @@
       "class": "uninitializedUse"
     },
     {
+      "pattern": "destroyed out of the middle of a value|cannot be consumed, because .* is used later",
+      "class": "partiallyDestroyed"
+    },
+    {
       "pattern": "cannot be transferred|transfer.*(borrow|immutable|read)",
       "class": "transferFromBorrowed"
     },

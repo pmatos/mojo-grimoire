@@ -6,6 +6,7 @@ import MojoGrimoireTest.Check.Program
 import MojoGrimoireTest.Elab.Elaborate
 import MojoGrimoireTest.Check.Lists
 import MojoGrimoireTest.Check.Refs
+import MojoGrimoireTest.Check.PartialMoves
 import MojoGrimoireTest.Interp.Run
 import MojoGrimoireTest.Parse.Programs
 import MojoGrimoireTest.Parse.Arrays
