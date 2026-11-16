@@ -12,6 +12,9 @@ each origin of the reference it starts from, or the origins of the arguments
 that a call passes to the parameters its origin names, the receiver of a
 method among them. It may be changed through when its place may be, or,
 for a call, when each origin argument passes on a mutable reference.
+A reference that a call returns and that is read late is re-checked
+through the origins of those of its origin arguments that are located
+operands, a temporary among them left out.
 -/
 
 namespace MojoGrimoire.Check
@@ -43,40 +46,47 @@ def passOn (c : Conv) (m : Bool) : Bool :=
 mutual
 /-- The origins of the located operand `e`, and whether it may be changed
 through; `none` when `e` is not one, or is a call with an origin argument
-that is not one. -/
-def locOf (prog : Program) : Expr → CheckM (Option (List Place × Bool))
+that is not one. Unless `strict` holds, such an argument, a temporary, is
+skipped instead: the call then gives the origins of its other origin
+arguments, and may not be changed through. -/
+def locOfAs (prog : Program) (strict : Bool) : Expr → CheckM (Option (List Place × Bool))
   | .place p => do pure (some (resolvePlace (← get).vars p, ← placeMutable p))
   | .call f args =>
     match callSig prog f with
-    | .ok ⟨_, params, _, some os, _⟩ => originsOf prog os params args
+    | .ok ⟨_, params, _, some os, _⟩ => originsOf prog strict os params args
     | _ => pure none
   | .method p m args => do
     let sig ← tryCatch (do pure (methodSig prog (← placeTy prog p) m args.length).toOption)
       fun _ => pure none
     let some ⟨self, params, _, some os, _⟩ := sig | pure none
-    let some (rest, mr) ← originsOf prog os params args | pure none
+    let some (rest, mr) ← originsOf prog strict os params args | pure none
     match self with
     | some s =>
       if os.contains s.name then
         pure (some (resolvePlace (← get).vars p ++ rest, passOn s.conv (← placeMutable p) && mr))
       else pure (some (rest, mr))
     | none => pure (some (rest, mr))
-  | .withDrops e _ _ => locOf prog e
+  | .withDrops e _ _ => locOfAs prog strict e
   | _ => pure none
 
 /-- The origins of the arguments `args` passed to the parameters among
 `params` that the names `os` of a callee's origin name, and whether the
 reference the callee returns may be changed through. -/
-def originsOf (prog : Program) (os : List Name) :
+def originsOf (prog : Program) (strict : Bool) (os : List Name) :
     List Param → List Expr → CheckM (Option (List Place × Bool))
   | prm :: prms, a :: args => do
-    let some (rest, m) ← originsOf prog os prms args | pure none
+    let some (rest, m) ← originsOf prog strict os prms args | pure none
     if os.contains prm.name then
-      let some (qs, mq) ← locOf prog a | pure none
+      let some (qs, mq) ← locOfAs prog strict a
+        | pure (if strict then none else some (rest, false))
       pure (some (qs ++ rest, m && passOn prm.conv mq))
     else pure (some (rest, m))
   | _, _ => pure (some ([], true))
 end
+
+/-- The origins of the located operand `e`, and whether it may be changed
+through, with `locOfAs` strict. -/
+def locOf (prog : Program) : Expr → CheckM (Option (List Place × Bool)) := locOfAs prog true
 
 /-- The name of the function or method that `e` calls; empty for an
 expression that is no call. -/

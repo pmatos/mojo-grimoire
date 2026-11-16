@@ -245,8 +245,6 @@ corrected against the compiler's recorded results (#25):
   True), bump(a))` sees what `bump` did to `a`. The operand of a unary
   operator, of `and` and of `or` is read at once, as the compiler does. An
   `Int` or a `Bool` passed to a `read` parameter is passed by value.
-- A function that returns destroys the values it still owns the last
-  declared first, as the compiler does for values that die together.
 - `print` writes its values separated by spaces: an `Int` in decimal, a
   `Bool` as `True` or `False`, and a list or an array as `[1, 2]`, its
   elements written so and separated by `, `, `[]` when it is empty (#41).

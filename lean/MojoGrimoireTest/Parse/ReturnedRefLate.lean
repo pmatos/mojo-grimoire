@@ -131,7 +131,8 @@ private def elem : Place := .index (.var "xs") (.int 0)
   ["drop 3", "drop 2", "drop 11", "3 11 0", "drop 11", "drop 3", "0"]
 
 -- A copy is made before its origins are destroyed (#94), and a `return`
--- reads it before the function destroys them, the last declared first.
+-- reads it before they are destroyed: the parameters first, then the
+-- locals, each the last declared first.
 #guard prints [] ["var p = P(7)", "print(takep(same(p)) + 1)"] ["drop 7", "drop 7", "8"]
 #guard prints [] ["var p = P(7)", "print(takep(same(p)))"] ["drop 7", "drop 7", "7"]
 #guard prints [] ["var p = P(7)", "var ps: List[P] = [same(p)]", "print(len(ps))"]
@@ -139,6 +140,10 @@ private def elem : Place := .index (.var "xs") (.int 0)
 #guard prints ["def get() -> P:", "    var a = P(1)", "    var b = P(2)",
     "    return pickp(a, b, True)"] ["var p = get()", "print(p.v)"]
   ["drop 2", "drop 1", "1", "drop 1"]
+#guard prints ["def get(var a: P, var b: P) -> P:", "    return pickp(a, b, True)"]
+  ["var p = get(P(1), P(2))", "print(p.v)"] ["drop 2", "drop 1", "1", "drop 1"]
+#guard prints ["def get(var a: P) -> P:", "    var b = P(2)", "    return pickp(a, b, True)"]
+  ["var p = get(P(1))", "print(p.v)"] ["drop 1", "drop 2", "1", "drop 1"]
 -- An element of an array.
 #guard prints ["def at(ref a: Array[Int, 2]) -> ref [a] Int:", "    return a[0]",
     "def setf(mut b: Array[Int, 2]) -> Int:", "    b[0] = 100", "    return 0",
@@ -160,6 +165,10 @@ private def elem : Place := .index (.var "xs") (.int 0)
     "def shrink(mut ys: List[List[Int]]) -> Int:", "    var t = ys.pop()", "    return 0"]
   ["var ls: List[List[Int]] = [[1, 2]]", "print(first(ls[0]), shrink(ls))"]
   (.invalidatedReference (.index (.var "ls") (.int 0)))
+-- An origin argument that is a temporary leaves the others to check.
+#guard rejects ["def eat(var r: List[Int]) -> Int:", "    return len(r)"]
+  ["var b: List[Int] = [3]", "print(pickl([1], b, False), eat(b^))"]
+  (.uninitializedUse (.var "b"))
 -- Reading the list does not invalidate it.
 #guard prints [] (xs ++ ["print(pick(xs[0], b, True) + len(xs))"]) ["3"]
 -- Nor may it move its origin away.

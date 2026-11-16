@@ -21,8 +21,8 @@ it is replaced by an assignment, when a temporary passed to a borrowing
 parameter is no longer needed after its call, when a call's result is not
 used, when `len` has read the length of a list that is neither a place
 nor a reference that a call returns, and when a function returns, for
-every value it still owns, the last declared first. A method whose
-`self` is `var`, called on `p^`, takes the value out of `p`. Destroying a
+every value it still owns. A method whose `self` is `var`, called on
+`p^`, takes the value out of `p`. Destroying a
 struct runs its `__deinit__`, whose elaborated body destroys its fields; a
 struct without one has its fields destroyed in order, and a list its
 elements. A value that `print` writes is not destroyed after it: it holds
@@ -124,12 +124,12 @@ def runBody (prog : Program) (fuel : Nat) (refs : Bool) (env : Env) (body : List
       | .returned r => pure r
       | e => throw e
 
-/-- Destroys what is left of each owned variable of `env`, the last
-declared first, as Mojo destroys values that die together. -/
+/-- Destroys what is left of each owned variable of `env`, in the order of
+their declaration. -/
 def destroyOwned (prog : Program) (fuel : Nat) (env : Env) : EvalM Unit :=
   match fuel with
   | 0 => fail .outOfFuel
-  | n + 1 => env.forM fun (_, b) => do
+  | n + 1 => env.reverse.forM fun (_, b) => do
     if b.owned then
       let v ← readRef b.ref
       writeRef b.ref .uninit
@@ -233,10 +233,10 @@ def evalOperand (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Ope
       | .value v => pure (.val v)
 
 /-- The arguments `args` passed to the parameters `params`, before the
-places and returned references passed by value are read. A place passed to a `read`, `mut` or `ref`
-parameter is passed by reference, except an `Int` or a `Bool` passed
-`read`, and so is the reference that a call returns; anything else is
-passed by value. -/
+places and returned references passed by value are read. A place passed
+to a `read`, `mut` or `ref` parameter is passed by reference, except an
+`Int` or a `Bool` passed `read`, and so is the reference that a call
+returns; anything else is passed by value. -/
 def evalArgs (prog : Program) (fuel : Nat) (env : Env) :
     List Param → List Expr → EvalM (List Pending)
   | prms, args => match fuel with

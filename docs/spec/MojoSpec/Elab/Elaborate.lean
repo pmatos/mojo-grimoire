@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15639394698345286966")
+:::moduleDocs (fingerprint := "5330665967420505688")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
@@ -108,7 +108,7 @@ the variables after a statement, which a declaration or a `ref` binding
 extends.
 :::
 
-:::readable MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "15549682606444552412")
+:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "5361233079168546282")
 *Definition: elaboration.* Given the slots live after a statement:
 
 - a simple statement's expressions are elaborated, and the statement is
@@ -123,9 +123,10 @@ extends.
   its head live at its end, since the next iteration may use them; its test
   is left as it is, since every slot it uses is live at the head;
 - a `return` gets no drops of its own: its value is elaborated with
-  nothing live after it but the slots that a call it reads by value as a
-  returned reference points into, and returning destroys whatever is
-  still alive, after reading the value.
+  nothing live after it, and returning destroys whatever is still alive.
+  When the value is a call that returns a reference, the owned slots it
+  points into live until it is read, and die then, in the order of the
+  owned slots.
 
 A block elaborates each statement with the slots live after it, and the
 types of the variables declared before it.

@@ -232,11 +232,11 @@ def recheckLocs (prog : Program) (ls : List (List Place × Nat)) : CheckM Unit :
 
 /-- The places that the operand `e` is read from once every operand of its
 operation is evaluated: a place itself, or the origins of a call that
-returns a reference and is a located operand. Mojo reads such a call's
-reference only then. -/
+returns a reference, those of its origin arguments that are temporaries
+left out. Mojo reads such a call's reference only then. -/
 def lateLocs (prog : Program) : Expr → CheckM (List Place)
   | .place p => pure [p]
-  | e => do pure (((← locOf prog e).map (·.1)).getD [])
+  | e => do pure (((← locOfAs prog false e).map (·.1)).getD [])
 
 /-- Rechecks the operands among `es`, read from their `lateLocs`, with
 `recheckLocs`. `ks` holds, for each operand, how many changes were recorded

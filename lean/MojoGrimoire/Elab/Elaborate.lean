@@ -28,8 +28,7 @@ reference, passed by reference to an operation, uses the values it points
 into the same way, so they live until that operation is done; read by
 value, it uses them until the operation's operands are read, since Mojo
 reads the reference only then, and those that die then are destroyed the
-last declared first. The value of a `return` uses them until the function
-returns.
+last declared first. The value of a `return` uses them until it is read.
 Inside `__deinit__(deinit self)`, each field of `self` is destroyed on its own,
 at the same points, so a field the body never uses is destroyed before the
 body runs.
@@ -268,6 +267,18 @@ def placeUses (ctx : Ctx) : List Expr → List Place
   | [] => []
   | e :: es => union (directOf ctx e false).1 (placeUses ctx es)
 
+/-- Elaborates the value `e` of a `return`. A call that returns a reference
+is read once it is done, so the values it points into that the function
+owns live until then, and die then in the order of `owned`. The inner
+`withDrops` makes the call one operand, so that they die after it is read,
+not before it is made. -/
+def elabReturn (ctx : Ctx) (e : Expr) : Expr :=
+  match e, directOf ctx e true with
+  | .place _, _ => e
+  | e, (keep, _) =>
+    let e' := elabExpr ctx false e keep
+    if keep.isEmpty then e' else .withDrops (.withDrops e' [] []) keep []
+
 /-- The variable types after the statement `s`, from those before it. -/
 def envAfter (prog : Program) (sl : Slots) (env : TyEnv) (s : Stmt) : TyEnv :=
   match s with
@@ -277,9 +288,7 @@ def envAfter (prog : Program) (sl : Slots) (env : TyEnv) (s : Stmt) : TyEnv :=
 
 mutual
 /-- Elaborates the statement `s`, given the slots live after it. What its
-expressions do not destroy, and is dead after it, dies right after it. The
-values that the value of a `return` reads through a returned reference
-live until the function returns, which destroys them after reading it. -/
+expressions do not destroy, and is dead after it, dies right after it. -/
 def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
   let sl := ctx.sl
   let rest (s' : Stmt) (inner : List Place) : List Stmt :=
@@ -298,7 +307,7 @@ def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
     let head := liveStmt sl (.whileLoop c body) after
     .whileLoop c (elabBlock ctx body head) ::
       drops ctx.owned (diff head (after ++ consumedIn ctx c))
-  | .ret value => [.ret (value.map fun e => elabExpr ctx false e (directOf ctx e true).1)]
+  | .ret value => [.ret (value.map (elabReturn ctx))]
   | .pass => [.pass]
   | .drop p => [.drop p]
   | .decl x t init =>
