@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17399876368173659085")
+:::moduleDocs (fingerprint := "14010994217253651371")
 :::
 
-:::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "12927198337935588870")
+:::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "17441515373986636163")
 *Definition: lookups.* The checker finds a struct or a function of the
 program by its name, the first one declared with that name, and a field or
 method of a struct by its name. `fieldOf` gives the type of the field
@@ -25,14 +25,41 @@ or when the struct is unknown or has no field $`f`. `fieldNames` gives
 the names of the fields of a struct type, and none for any other type.
 :::
 
-:::readable MojoGrimoire.Check.listMethod (fingerprint := "733980435644582305")
+:::readable MojoGrimoire.Check.Signature MojoGrimoire.Check.Signature.allParams MojoGrimoire.Check.funSig (fingerprint := "16001441666545275462")
+*Definition: signatures.* What a call needs to know of what it calls is
+its signature: the parameter that takes a method's receiver, absent for a
+function or a construction; its other parameters; its result; for a result
+that is a reference, the parameters it points into; and whether the result
+has a generic type, which Mojo builds in place whatever type it stands
+for. A function's signature takes its parameters as they are declared; a
+method's takes the first, `self`, as its receiver.
+:::
+
+:::readable MojoGrimoire.Check.listMethod (fingerprint := "5898892595285092841")
 *Definition: the methods of a list.* A list of $`t` has two methods, which
 take their list `mut` and depend on the number $`n` of arguments of the
 call: `append` takes one `var` argument of type $`t` and gives
-$`\mathsf{None}`, and `pop` gives a $`t`. With $`n = 0`, `pop` takes no
-argument; with any other $`n`, it takes one `read` argument `i` of type
-$`\mathsf{Int}`, so that a call with two arguments is an arity mismatch.
-Inference, the checker and elaboration all read them here.
+$`\mathsf{None}`, and `pop` gives a $`t`, a generic result. With
+$`n = 0`, `pop` takes no argument; with any other $`n`, it takes one
+`read` argument `i` of type $`\mathsf{Int}`, so that a call with two
+arguments is an arity mismatch.
+:::
+
+:::readable MojoGrimoire.Check.typeName (fingerprint := "5915273905220259329")
+*Definition: type names.* The name of a type, as Mojo writes it without
+its parameters, names the type in an error about its methods.
+:::
+
+:::readable MojoGrimoire.Check.callSig MojoGrimoire.Check.methodSig (fingerprint := "7317073360924282579")
+*Definition: the signature of a call.* $`f(e^*)` constructs the struct
+$`f`, when the program declares one, with the parameters of its `__init__`
+after `self`, or with one `var` parameter per field if it is
+`@fieldwise_init`, and is rejected if it has neither; otherwise it calls
+the function $`f`. `len` has no signature, since it takes a list or an
+array of any type. $`p.m(e^*)` calls a method of the type of $`p`: one of
+a list's methods, or a method of a struct, whose `self` takes $`p`. An
+array has no methods, nor does any other type. Inference, the checker and
+elaboration all read the signatures of calls here.
 :::
 
 :::readable MojoGrimoire.Check.copyingOf (fingerprint := "4318683737232947193")

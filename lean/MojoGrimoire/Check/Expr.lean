@@ -204,12 +204,13 @@ def recheckPlaces (prog : Program) (es : List Expr) (ks : List Nat) : CheckM Uni
       requireUnchanged prog p k
     | _ => pure ()
 
-/-- The type of a call of `fd`. A call that returns a reference, used as a
-value, copies the value it points to implicitly, unless `asRef` holds. -/
-def refResult (prog : Program) (asRef : Bool) (fd : FunDecl) : CheckM Ty := do
-  if fd.origin.isSome && !asRef && copyingOf prog fd.result != .implicit then
-    throw (CheckError.implicitCopy fd.result)
-  pure fd.result
+/-- The type of a call of signature `sig`. A call that returns a reference,
+used as a value, copies the value it points to implicitly, unless `asRef`
+holds. -/
+def refResult (prog : Program) (asRef : Bool) (sig : Signature) : CheckM Ty := do
+  if sig.origin.isSome && !asRef && copyingOf prog sig.result != .implicit then
+    throw (CheckError.implicitCopy sig.result)
+  pure sig.result
 
 mutual
 /-- The type of the expression `e`. A string literal has no type here: it may
@@ -228,64 +229,41 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     if copyingOf prog t == .none then throw (CheckError.notCopyable t)
     pure t
   | .call f args => do
-    match findStruct prog f, findFun prog f with
-    | some sd, _ =>
-      let params ← match sd.init with
-        | some fd => pure fd.params.tail
-        | none =>
-          if sd.fieldwiseInit then pure (sd.fields.map fun (x, t) => ⟨.owned, x, t⟩)
-          else throw (CheckError.noInitializer f)
+    match callSig prog f with
+    | .ok sig =>
+      let params := sig.params
       checkExclusive (locationArgs params args)
       let ks ← checkArgs prog f params args params.length args.length
       recheckPlaces prog args ks
       for q in ← changedArgs params args do changePlace prog q
-      pure (.struct f)
-    | none, some fd => do
-      checkExclusive (locationArgs fd.params args)
-      let ks ← checkArgs prog f fd.params args fd.params.length args.length
-      recheckPlaces prog args ks
-      for q in ← changedArgs fd.params args do changePlace prog q
-      refResult prog asRef fd
-    | none, none =>
-      match f, args with
-      | "len", [.place p] => do
+      refResult prog asRef sig
+    | .error err =>
+      match f, args, err with
+      | "len", [.place p], .unknownFunction _ => do
         checkIndices prog p
         let t ← readPlace prog p
         let _ ← lift (elemOf t)
         pure .int
-      | "len", [e] => do
+      | "len", [e], .unknownFunction _ => do
         let t ← checkExprAs prog false e
         let _ ← lift (elemOf t)
         pure .int
-      | "len", _ => throw (CheckError.arityMismatch f 1 args.length)
-      | _, _ => throw (CheckError.unknownFunction f)
+      | "len", _, .unknownFunction _ => throw (CheckError.arityMismatch f 1 args.length)
+      | _, _, _ => throw err
   | .method p m args => do
     checkIndices prog p
     let t ← placeTy prog p
-    if let .array .. := t then throw (CheckError.unknownMethod "Array" m)
-    if let .list et := t then
-      let some (params, result) := listMethod et m args.length
-        | throw (CheckError.unknownMethod "List" m)
-      let _ ← readPlace prog p
-      requireMutable p
-      let k ← mark
-      let ks ← checkArgs prog m params args params.length args.length
-      recheckPlaces prog (.place p :: args) (k :: ks)
-      changePlace prog p
-      return result
-    let .struct s := t | throw (CheckError.typeMismatch (.struct "") t)
-    let some sd := findStruct prog s | throw (CheckError.unknownStruct s)
-    let some fd := findMethod sd m | throw (CheckError.unknownMethod s m)
-    let some self := fd.params.head? | throw (CheckError.invalidSelf m)
+    let sig ← lift (methodSig prog t m args.length)
+    let some self := sig.self | throw (CheckError.invalidSelf m)
+    let params := sig.params
     checkExclusive ((if self.conv == .owned then [] else [(self.conv, p)]) ++
-      locationArgs fd.params.tail args)
+      locationArgs params args)
     passPlace prog m self.conv t p
     let k ← mark
-    let params := fd.params.tail
     let ks ← checkArgs prog m params args params.length args.length
     recheckPlaces prog (.place p :: args) (k :: ks)
-    for q in ← changedArgs fd.params (.place p :: args) do changePlace prog q
-    refResult prog asRef fd
+    for q in ← changedArgs sig.allParams (.place p :: args) do changePlace prog q
+    refResult prog asRef sig
   | .unary op a => do lift (unaryTy op (← checkExprAs prog false a))
   | .binary op a b => do
     let ta ← checkExprAs prog false a
@@ -299,7 +277,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     unless validTy prog u do throw (CheckError.invalidType t)
     if let .array _ n := t then
       unless n == es.length do throw (CheckError.typeMismatch t (.array u es.length))
-    let ks ← checkArgs prog "List" (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length
+    let ks ← checkArgs prog (typeName t) (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length
     recheckPlaces prog es ks
     pure t
   | .withDrops e _ _ => checkExprAs prog asRef e

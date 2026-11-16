@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2001545934654995553")
+:::moduleDocs (fingerprint := "5873353377660658795")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -92,7 +92,7 @@ $`k` changes were recorded is invalidated when a change recorded since
 then invalidates it.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "8985691703414243278")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "3953677322053795348")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -100,23 +100,16 @@ type:
   `print`;
 * $`p` is copied implicitly, $`p\,\hat{}` transferred, and
   $`p.\mathsf{copy}()` needs an initialized place of a copyable type;
-* $`f(e^*)` constructs the struct $`f` with the parameters of its
-  `__init__` after `self`, or with one `var` parameter per field if it
-  is `@fieldwise_init`, and is rejected if it has neither; otherwise it
-  calls the function $`f`;
-* $`p.m(e^*)` passes $`p` by the convention of the method's `self`,
-  then the other arguments;
+* $`f(e^*)` and $`p.m(e^*)` pass their arguments to the parameters of
+  their signature, $`p` first, by the convention of the method's `self`,
+  and have its result type;
 * operators have the types above;
 * $`[e^*]_t`, with $`t` a list or an array of $`u`, passes each element as
   to a `var` parameter of type $`u`; an array must have as many elements
   as its type says;
-* an array has no methods, and on a list the only methods are `append`
-  and `pop`, which need a list the function may change: `append` takes its
-  argument as `var` and has the type $`\mathsf{None}`, and `pop` takes
-  no argument or an $`\mathsf{Int}` index and has the list's element
-  type; `len(e)`, when the program
-  declares no function `len`, takes a list or an array and gives an
-  $`\mathsf{Int}`;
+* the methods of a list take it `mut`, so they need a list the function
+  may change; `len(e)`, when the program declares no function or struct
+  `len`, takes a list or an array and gives an $`\mathsf{Int}`;
 * $`\mathsf{drops}(e; p^*; q^*)`, which only elaboration inserts, after
   checking, has the type of $`e`.
 

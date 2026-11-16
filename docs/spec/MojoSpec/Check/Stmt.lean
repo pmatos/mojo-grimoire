@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8398054670898977691")
+:::moduleDocs (fingerprint := "3365059875252488528")
 :::
 
 :::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9586730624127733473")
@@ -57,15 +57,16 @@ a part as a use of an uninitialized value.
 $`\mathsf{Int}` or $`\mathsf{Bool}`, which it reads as values.
 :::
 
-:::readable MojoGrimoire.Check.checkConstructed (fingerprint := "10061241376561098368")
+:::readable MojoGrimoire.Check.checkConstructed (fingerprint := "14579695824840431255")
 *Rule: building into an element.* $`p = e` is rejected as
 $`\mathsf{argumentExclusivity}` when $`p` is inside an element of a list,
 and $`e` is a call that builds its result in place and is passed `mut`, or
 `ref` when it may change it, the list or a place that holds it: the change
 would invalidate $`p`. A call of a function or a method builds its result
 in place unless it returns an $`\mathsf{Int}`, a $`\mathsf{Bool}` or a
-reference, and so does a struct's `__init__`; a list method that gives an
-element always does, since its result has a generic type in Mojo.
+reference, and so does a struct's `__init__`; a call whose signature has
+a generic result, such as a list method that gives an element, always
+does.
 :::
 
 :::readable MojoGrimoire.Check.checkReturnValue (fingerprint := "8211605308112301922")

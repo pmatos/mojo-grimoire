@@ -11,8 +11,8 @@ every use of `r` as a use of those slots, so that the values a reference
 may point into live as long as it is used: Mojo extends their lifetimes to
 the reference's last use.
 
-To find the function a method call names, elaboration needs the type of the
-receiver. It follows the types of the variables declared so far, which a
+To find the signature of the method a call names, elaboration needs the
+type of the receiver. It follows the types of the variables declared so far, which a
 body that the checker accepts gives.
 -/
 
@@ -29,16 +29,13 @@ def placeTyOf (prog : Program) (env : TyEnv) : Place → Option Ty
   | .field p f => (placeTyOf prog env p).bind fun t => (fieldOf prog t f).toOption
   | .index p _ => (placeTyOf prog env p).bind fun t => (elemOf t).toOption
 
-/-- The function or method that the expression `e` calls, with its arguments,
-the receiver of a method first. A struct's constructor returns no reference,
-so a call of a struct's name calls nothing here. -/
-def refCallee (prog : Program) (env : TyEnv) : Expr → Option (FunDecl × List Expr)
-  | .call f args =>
-    if (findStruct prog f).isSome then none else (findFun prog f).map (·, args)
+/-- The signature of what the expression `e` calls, with its arguments, the
+receiver of a method first. -/
+def refCallee (prog : Program) (env : TyEnv) : Expr → Option (Signature × List Expr)
+  | .call f args => (callSig prog f).toOption.map (·, args)
   | .method p m args =>
-    match placeTyOf prog env p with
-    | some (.struct s) => ((findStruct prog s).bind (findMethod · m)).map (·, .place p :: args)
-    | _ => none
+    ((placeTyOf prog env p).bind fun t => (methodSig prog t m args.length).toOption).map
+      (·, .place p :: args)
   | _ => none
 
 /-- The slots of the arguments `args` passed to the parameters named `os`
@@ -57,7 +54,7 @@ def refSlots (prog : Program) (sl : Slots) (env : TyEnv) (e : Expr) :
   match e with
   | .place p => (sl.of p, placeTyOf prog env p)
   | e => match refCallee prog env e with
-    | some (fd, args) => (originArgs sl (fd.origin.getD []) fd.params args, some fd.result)
+    | some (sig, args) => (originArgs sl (sig.origin.getD []) sig.allParams args, some sig.result)
     | none => ([], none)
 
 /-- Adds the reference `x`, which may point into the slots `os`. Two
