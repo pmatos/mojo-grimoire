@@ -50,6 +50,13 @@ private def body (b : List Stmt) (params : List Param := []) : List Stmt :=
 #guard body [newRes "a" 1, .assign (v "a") (.call "f" [.transfer (v "a")])] ==
   [newRes "a" 1, .assign (v "a") (.call "f" [.transfer (v "a")]), .drop (v "a")]
 
+-- `a = f(g(a))`, then nothing: `g` destroys the old value once it is done,
+-- and the new value still dies at once (#92).
+#guard body [newRes "a" 1, .assign (v "a") (.call "f" [.call "g" [.place (v "a")]])] ==
+  [newRes "a" 1,
+    .assign (v "a") (.call "f" [.withDrops (.call "g" [.place (v "a")]) [] [v "a"]]),
+    .drop (v "a")]
+
 -- `if c: consume(a^) else: print("no")`: the branch that does not use `a`
 -- destroys it first.
 #guard body [newRes "a" 1, .ifElse (.bool true) [consumeS "a"] [say "no"]] ==

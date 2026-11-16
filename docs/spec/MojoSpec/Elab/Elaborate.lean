@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16908524155139981408")
+:::moduleDocs (fingerprint := "16245214700384798436")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
@@ -32,15 +32,19 @@ of `self` in their order. A slot the function does not own, such as a
 borrowed parameter, is never dropped.
 :::
 
-:::readable MojoGrimoire.Elab.defs MojoGrimoire.Elab.usesStmt MojoGrimoire.Elab.movesStmt MojoGrimoire.Elab.dying (fingerprint := "14793584096165623495")
+:::readable MojoGrimoire.Elab.defs MojoGrimoire.Elab.usesStmt MojoGrimoire.Elab.movesStmt MojoGrimoire.Elab.dying (fingerprint := "1628413221074025610")
 *Definition: what dies at a simple statement.* A declaration, `ref`
 binding, assignment, expression or `print` uses, moves and defines slots as its parts do; an
 assignment to a part of a slot, such as an element or a field, uses the
 slot that holds it, and one through a reference the slots it may point
 into. The
-slots that die right after it are those it uses but does not move away,
-and those it defines, unless they are live after it. A value defined and
-never used dies right after its definition.
+slots that die right after it are those it uses but neither moves away nor
+destroys or consumes in its expressions, and those it defines, unless they
+are live after it. A value defined and never used dies right after its
+definition, even when the expression that gives it destroys or consumes
+the old value of the same slot, as `s = s^.consume()` does: what the
+expression destroys or consumes dies before the statement defines
+anything.
 :::
 
 :::readable MojoGrimoire.Elab.declared MojoGrimoire.Elab.declaredBlock (fingerprint := "17446437079533637378")
@@ -105,12 +109,12 @@ the variables after a statement, which a declaration or a `ref` binding
 extends.
 :::
 
-:::readable MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "18429392250706560484")
+:::readable MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "18418802121798095625")
 *Definition: elaboration.* Given the slots live after a statement:
 
 - a simple statement's expressions are elaborated, and the statement is
-  followed by the drops of the slots that die at it and that its
-  expressions neither destroy nor consume;
+  followed by the drops of the slots that die at it, given what its
+  expressions destroy or consume;
 - the test of an `if` is elaborated with the slots live at the start of
   either branch live after it, and each branch starts with the drops of
   the slots live before the `if` that the test neither moves, destroys nor
