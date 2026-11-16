@@ -6,6 +6,7 @@ import MojoSpec.Core.Program
 import MojoSpec.Check.Errors
 import MojoSpec.Check.Env
 import MojoSpec.Check.State
+import MojoSpec.Check.Loc
 import MojoSpec.Check.Expr
 import MojoSpec.Check.Ref
 import MojoSpec.Check.Stmt

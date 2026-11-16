@@ -17,7 +17,8 @@ program that loops forever.
 A value is destroyed where elaboration put a `drop` or a `withDrops`, when
 it is replaced by an assignment, when a temporary passed to a borrowing
 parameter is no longer needed after its call, when a call's result is not
-used, when `len` has read the length of a list that is not a place, and
+used, when `len` has read the length of a list that is neither a place
+nor a reference that a call returns, and
 when a function returns, for every value it still owns. Destroying a
 struct runs its `__deinit__`, whose elaborated body destroys its fields; a
 struct without one has its fields destroyed in order, and a list its
@@ -174,22 +175,29 @@ def evalExpr (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Value 
     | .list _ es => do
       let os ← es.mapM (evalOperand prog n env)
       pure (.list (← os.mapM Operand.load))
+    | e => do
+      match ← evalResult prog n env e with
+      | .value v => pure v
+      | .ref r => readRef r
+
+/-- What the expression `e` gives: for a call, what it returns, which is a
+reference for a call that returns one; for any other expression, its
+value. -/
+def evalResult (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Result :=
+  match fuel with
+  | 0 => fail .outOfFuel
+  | n + 1 => match e with
+    | .call .. | .method .. => evalCall prog n env e []
     | .withDrops e pre post => do
-      let v ← match e with
-        | .call .. | .method .. => do
-          match ← evalCall prog n env e pre with
-          | .value v => pure v
-          | .ref r => readRef r
+      let r ← match e with
+        | .call .. | .method .. => evalCall prog n env e pre
         | e => do
           let v ← evalExpr prog n env e
           dropAll prog n env pre
-          pure v
+          pure (.value v)
       dropAll prog n env post
-      pure v
-    | e => do
-      match ← evalCall prog n env e [] with
-      | .value v => pure v
-      | .ref r => readRef r
+      pure r
+    | e => do pure (.value (← evalExpr prog n env e))
 
 /-- Takes the value out of the place `p` and destroys it. -/
 def dropPlace (prog : Program) (fuel : Nat) (env : Env) (p : Place) : EvalM Unit :=
@@ -219,7 +227,8 @@ def evalOperand (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Ope
 /-- The arguments `args` passed to the parameters `params`, before the
 places passed by value are read. A place passed to a `read`, `mut` or `ref`
 parameter is passed by reference, except an `Int` or a `Bool` passed
-`read`; anything else is passed by value. -/
+`read`, and so is the reference that a call returns; anything else is
+passed by value. -/
 def evalArgs (prog : Program) (fuel : Nat) (env : Env) :
     List Param → List Expr → EvalM (List Pending)
   | prms, args => match fuel with
@@ -232,7 +241,12 @@ def evalArgs (prog : Program) (fuel : Nat) (env : Env) :
             if prm.ty.byValue then do pure (.load (← evalOperand prog n env (.place p)))
             else do pure (.arg (.place (← placeRef prog n env p)))
           | _, .place p => do pure (.arg (.place (← placeRef prog n env p)))
-          | _, a => do pure (.arg (.temp (← evalExpr prog n env a)))
+          | _, a => do
+            match ← evalResult prog n env a with
+            | .ref r =>
+              if passedByValue prm then do pure (.arg (.temp (← readRef r)))
+              else pure (.arg (.place r))
+            | .value v => pure (.arg (.temp v))
         pure (x :: (← evalArgs prog n env prms args))
       | _, _ => pure []
 
@@ -317,17 +331,20 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
       | _ => stuck "a method call on a value that is not a struct"
     | _ => stuck "not a call"
 
-/-- The list that `len` reads: a place, read where it is, or any other
-expression, whose value is then destroyed. -/
+/-- The list that `len` reads: a place, or the reference that a call
+returns, read where it is, or any other expression, whose value is then
+destroyed. -/
 def evalListArg (prog : Program) (fuel : Nat) (env : Env) (a : Expr) : EvalM Value :=
   match fuel with
   | 0 => fail .outOfFuel
   | n + 1 => match a with
     | .place p => do readRef (← placeRef prog n env p)
     | a => do
-      let v ← evalExpr prog n env a
-      destroy prog n v
-      pure v
+      match ← evalResult prog n env a with
+      | .ref r => readRef r
+      | .value v => do
+        destroy prog n v
+        pure v
 
 /-- The reference that `e` names, for a `ref` binding or the `return` of a
 function with an origin: a place, or a call that returns a reference. -/
@@ -336,12 +353,8 @@ def evalRef (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Ref :=
   | 0 => fail .outOfFuel
   | n + 1 => match e with
     | .place p => placeRef prog n env p
-    | .withDrops e pre post => do
-      let .ref r ← evalCall prog n env e pre | stuck "a call that returns no reference"
-      dropAll prog n env post
-      pure r
     | e => do
-      let .ref r ← evalCall prog n env e [] | stuck "a call that returns no reference"
+      let .ref r ← evalResult prog n env e | stuck "a call that returns no reference"
       pure r
 
 /-- Runs the statement `s` of a function that returns a reference when

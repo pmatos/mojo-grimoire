@@ -6,6 +6,7 @@ import MojoGrimoire.Core.Program
 import MojoGrimoire.Check.Errors
 import MojoGrimoire.Check.Env
 import MojoGrimoire.Check.State
+import MojoGrimoire.Check.Loc
 import MojoGrimoire.Check.Expr
 import MojoGrimoire.Check.Ref
 import MojoGrimoire.Check.Stmt

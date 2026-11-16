@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The origins of references: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17765821851420592100")
+:::moduleDocs (fingerprint := "7527248920040558897")
 :::
 
 :::readable MojoGrimoire.Elab.TyEnv MojoGrimoire.Elab.placeTyOf MojoGrimoire.Elab.refCallee (fingerprint := "2511568776226270142")
@@ -24,11 +24,12 @@ struct's construction or of a method, comes with its arguments, the
 receiver of a method first.
 :::
 
-:::readable MojoGrimoire.Elab.originArgs MojoGrimoire.Elab.refSlots (fingerprint := "12455551791382063524")
+:::readable MojoGrimoire.Elab.locSlots MojoGrimoire.Elab.originArgs MojoGrimoire.Elab.refSlots (fingerprint := "3094119397675098097")
 *Definition: what a reference points into.* A reference to a place points
 into the slots that the place touches; one returned by a call, into the
-slots that the arguments passed to the parameters its origin names touch,
-when they are places, the receiver of a method first. A signature with no
+slots that the arguments passed to the parameters its origin names point
+into, the receiver of a method first: a place's, or, for a call that
+returns a reference in turn, its own. A signature with no
 origin, such as a struct's construction, points into nothing. The
 reference has the type of the place, or the result type of the call.
 :::

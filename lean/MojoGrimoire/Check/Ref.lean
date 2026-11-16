@@ -4,9 +4,10 @@ import MojoGrimoire.Check.Expr
 The checking of references: what a `ref` binding or a returned reference may
 point into, and whether it may be changed.
 
-A reference is bound with `ref x = e`, where `e` is a place or a call of a
-function or method that returns a reference. Its origins are the places it
-may point into: the place itself, or the arguments, a method's receiver
+A reference is bound with `ref x = e`, where `e` is a located operand
+(`MojoGrimoire.Check.locOf`): a place, or a call of a function or method
+that returns a reference. Its origins are the places it may point into: the
+place itself, or the origins of the arguments, a method's receiver
 included, passed to the parameters that the callee's origin names. A
 reference may be changed only when every origin may be, and a use of it
 needs every origin initialized, so a value cannot be moved away and then
@@ -22,51 +23,25 @@ namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
 
-/-- Whether the place `p` may be changed through. -/
-def placeMutable (p : Place) : CheckM Bool := do
-  pure (← lookup (splitPlace p).1).access.canChange
-
-/-- The origins of a reference returned by a call, and whether it may be
-changed, given the parameters `params`, the arguments `args`, and the names
-`os` of the function's origin. An argument passed to an origin parameter must
-be a place: a temporary would not outlive the call. A `mut` parameter gives a
-mutable reference, a `ref` parameter one as mutable as its argument, and a
-`read` parameter an immutable one. -/
-def callOrigins (callee : Name) (os : List Name) :
-    List Param → List Expr → CheckM (List Place × Bool)
-  | prm :: prms, a :: args => do
-    let (rest, m) ← callOrigins callee os prms args
-    if os.contains prm.name then
-      let .place q := a | throw (CheckError.notAPlace callee)
-      let mq ← match prm.conv with
-        | .mutable => pure true
-        | .ref => placeMutable q
-        | _ => pure false
-      pure (resolvePlace (← get).vars q ++ rest, m && mq)
-    else pure (rest, m)
-  | _, _ => pure ([], true)
-
 /-- The type, origins and mutability of the reference that `e` names: a
 place, or a call of a function or method that returns a reference. -/
 def refTarget (prog : Program) (e : Expr) : CheckM (Ty × List Place × Bool) := do
+  let located : CheckM (Ty × List Place × Bool) := do
+    let t ← checkExprAs prog true e
+    let (origins, m) ← locatedOrigins prog e
+    pure (t, origins, m)
   match e with
   | .place p =>
     checkIndices prog p
     let t ← readPlace prog p
     pure (t, resolvePlace (← get).vars p, ← placeMutable p)
-  | .call f args =>
-    let .ok sig := callSig prog f | throw CheckError.notAReference
-    let some os := sig.origin | throw CheckError.notAReference
-    let t ← checkExprAs prog true e
-    let (origins, m) ← callOrigins f os sig.params args
-    pure (t, origins, m)
+  | .call f _ =>
+    let .ok ⟨_, _, _, some _, _⟩ := callSig prog f | throw CheckError.notAReference
+    located
   | .method p m args =>
-    let .ok sig := methodSig prog (← placeTy prog p) m args.length
+    let .ok ⟨_, _, _, some _, _⟩ := methodSig prog (← placeTy prog p) m args.length
       | throw CheckError.notAReference
-    let some os := sig.origin | throw CheckError.notAReference
-    let t ← checkExprAs prog true e
-    let (origins, mut_) ← callOrigins m os sig.allParams (.place p :: args)
-    pure (t, origins, mut_)
+    located
   | _ => throw CheckError.notAReference
 
 /-- Whether a returned reference to the place `o` stays within the origin

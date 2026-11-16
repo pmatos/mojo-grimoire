@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.State
+import MojoGrimoire.Check.Loc
 
 /-!
 The checking of expressions and of the arguments of calls.
@@ -9,7 +9,10 @@ it. Mojo reads a place operand only once every operand of its operation is
 evaluated, so each place operand must still be initialized then. A place passed as an argument is passed by its parameter's convention:
 `read`, `mut` and `ref` pass the location, which must be initialized, and
 `mut` also needs a place the function may change; `var` passes a value, which
-is copied implicitly unless the argument transfers it.
+is copied implicitly unless the argument transfers it. A call that returns
+a reference, passed to a `read`, `mut` or `ref` parameter or to `len`, is a
+located operand (`MojoGrimoire.Check.locOf`) and is passed the same way: it
+is not copied, it stands for its origins, and for `mut` it must be mutable.
 
 A `mut` argument may not alias another argument that is passed as a location,
 Mojo's argument exclusivity. An `Int` or a `Bool` passed to a `read`
@@ -17,7 +20,8 @@ parameter is not passed as a location: Mojo copies it. A `mut` argument of
 any type is.
 
 A call records as changed each place it is passed `mut`, or `ref` when the
-place may be changed, once its operands are checked. That invalidates the
+place may be changed, once its operands are checked; a call that returns a
+reference passed so changes its origins. That invalidates the
 references into the elements of a list that the place holds: the `ref`
 bindings, and the place operands of an enclosing operation that were
 located before the call.
@@ -33,13 +37,6 @@ def lift {α : Type} (r : Except CheckError α) : CheckM α := StateT.lift r
 /-- Rejects unless the type `actual` is the type `expected`. -/
 def expect (expected actual : Ty) : CheckM Unit :=
   unless expected == actual do throw (CheckError.typeMismatch expected actual)
-
-/-- Whether a variable held this way may be changed: assigned to, or passed
-`mut`. -/
-def Access.canChange : Access → Bool
-  | .readOnly => false
-  | .alias _ m => m
-  | _ => true
 
 /-- Rejects unless the place `p` may be changed. -/
 def requireMutable (p : Place) : CheckM Unit := do
@@ -115,32 +112,44 @@ def overlaps (p q : Place) : Bool :=
   let (y, b) := splitPlace q
   x == y && (a.isPrefixOf b || b.isPrefixOf a)
 
-/-- The places among `args` that are passed as locations, with their
-conventions: every place argument whose parameter is `read`, `mut` or
-`ref`, except an `Int` or a `Bool` passed `read`, which is copied. -/
-def locationArgs : List Param → List Expr → List (Conv × Place)
-  | prm :: prms, .place p :: args =>
-    if passedByValue prm then
-      locationArgs prms args
-    else (prm.conv, p) :: locationArgs prms args
-  | _ :: prms, _ :: args => locationArgs prms args
-  | _, _ => []
+/-- A location passed to a call: the convention it is passed by, the place
+reported when it is aliased, and the places it may be. -/
+structure PassedLoc where
+  conv : Conv
+  place : Place
+  places : List Place
 
-/-- Rejects a `mut` location among `locs` that overlaps another one. A
-reference counts as every place it may point into. -/
-def checkExclusive (locs : List (Conv × Place)) : CheckM Unit := do
-  go (← get).vars locs []
+/-- The place `p` passed by the convention `c`. A reference counts as every
+place it may point into. -/
+def passedPlace (c : Conv) (p : Place) : CheckM PassedLoc := do
+  pure ⟨c, p, resolvePlace (← get).vars p⟩
+
+/-- The arguments among `args` that are passed as locations: every located
+operand whose parameter is `read`, `mut` or `ref`, except an `Int` or a
+`Bool` passed `read`, which is copied. A call that returns a reference is
+reported by its first origin. -/
+def locationArgs (prog : Program) : List Param → List Expr → CheckM (List PassedLoc)
+  | prm :: prms, a :: args => do
+    let rest ← locationArgs prog prms args
+    if passedByValue prm then return rest
+    match a, ← locOf prog a with
+    | .place p, some _ => pure ((← passedPlace prm.conv p) :: rest)
+    | _, some (o :: os, _) => pure (⟨prm.conv, o, o :: os⟩ :: rest)
+    | _, _ => pure rest
+  | _, _ => pure []
+
+/-- Rejects a `mut` location among `locs` that overlaps another one. -/
+def checkExclusive (locs : List PassedLoc) : CheckM Unit :=
+  go locs []
 where
   /-- Checks each location against those before and after it. -/
-  go (vars : List VarState) : List (Conv × Place) → List (Conv × Place) → CheckM Unit
+  go : List PassedLoc → List PassedLoc → CheckM Unit
     | [], _ => pure ()
-    | (c, p) :: rest, seen => do
-      let others := seen ++ rest
-      let clash (q : Place) :=
-        (resolvePlace vars p).any fun a => (resolvePlace vars q).any (overlaps a)
-      if c == .mutable && others.any (clash ·.2) then
-        throw (CheckError.argumentExclusivity p)
-      go vars rest ((c, p) :: seen)
+    | l :: rest, seen => do
+      let clash (o : PassedLoc) := l.places.any fun a => o.places.any (overlaps a)
+      if l.conv == .mutable && (seen ++ rest).any clash then
+        throw (CheckError.argumentExclusivity l.place)
+      go rest (l :: seen)
 
 /-- Passes the place `p` to a parameter of convention `c` and type `t`. -/
 def passPlace (prog : Program) (callee : Name) (c : Conv) (t : Ty) (p : Place) :
@@ -171,14 +180,19 @@ def changePlace (prog : Program) (p : Place) : CheckM Unit := do
     modify fun s => { s with stale := union s.stale stale, changes := s.changes ++ [m] }
 
 /-- The places among the arguments `args` that a call changes: those passed
-`mut`, and those passed `ref` that may be changed. -/
-def changedArgs : List Param → List Expr → CheckM (List Place)
+`mut`, and those passed `ref` that may be changed. A call that returns a
+reference changes its origins. -/
+def changedArgs (prog : Program) : List Param → List Expr → CheckM (List Place)
   | prm :: prms, a :: args => do
-    let rest ← changedArgs prms args
+    let rest ← changedArgs prog prms args
     match prm.conv, a with
     | .mutable, .place q => pure (q :: rest)
     | .ref, .place q =>
       if (← lookup (splitPlace q).1).access.canChange then pure (q :: rest) else pure rest
+    | .mutable, a | .ref, a =>
+      match ← locOf prog a with
+      | some (os, m) => pure (if prm.conv == .mutable || m then os ++ rest else rest)
+      | none => pure rest
     | _, _ => pure rest
   | _, _ => pure []
 
@@ -192,17 +206,22 @@ def requireUnchanged (prog : Program) (p : Place) (k : Nat) : CheckM Unit := do
       let o ← shapeOf prog q
       if later.any (invalidates · o) then throw (CheckError.invalidatedReference p)
 
-/-- Rejects a place among the operands `es` that a later operand left
-uninitialized or invalidated: Mojo reads a place operand only once every
-operand of its operation is evaluated, and a reference argument is used
-during the call. `ks` holds, for each operand, how many changes were
-recorded once it was checked. -/
+/-- Rejects a place among the operands' locations `ls` that a later operand
+left uninitialized or invalidated: Mojo reads a place operand only once
+every operand of its operation is evaluated, and a reference argument is
+used during the call. Each operand gives the places it is read from, with
+how many changes were recorded once it was checked. -/
+def recheckLocs (prog : Program) (ls : List (List Place × Nat)) : CheckM Unit :=
+  ls.forM fun (ps, k) => ps.forM fun p => do
+    let _ ← readPlace prog p
+    requireUnchanged prog p k
+
+/-- Rechecks the place operands among `es`, with `recheckLocs`. `ks` holds,
+for each operand, how many changes were recorded once it was checked. -/
 def recheckPlaces (prog : Program) (es : List Expr) (ks : List Nat) : CheckM Unit :=
-  (es.zip ks).forM fun
-    | (.place p, k) => do
-      let _ ← readPlace prog p
-      requireUnchanged prog p k
-    | _ => pure ()
+  recheckLocs prog ((es.zip ks).map fun
+    | (.place p, k) => ([p], k)
+    | (_, k) => ([], k))
 
 /-- The type of a call of signature `sig`. A call that returns a reference,
 used as a value, copies the value it points to implicitly, unless `asRef`
@@ -232,10 +251,9 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     match callSig prog f with
     | .ok sig =>
       let params := sig.params
-      checkExclusive (locationArgs params args)
-      let ks ← checkArgs prog f params args params.length args.length
-      recheckPlaces prog args ks
-      for q in ← changedArgs params args do changePlace prog q
+      checkExclusive (← locationArgs prog params args)
+      recheckLocs prog (← checkArgs prog f params args params.length args.length)
+      for q in ← changedArgs prog params args do changePlace prog q
       refResult prog asRef sig
     | .error err =>
       match f, args, err with
@@ -245,7 +263,11 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         let _ ← lift (elemOf t)
         pure .int
       | "len", [e], .unknownFunction _ => do
-        let t ← checkExprAs prog false e
+        let t ← if ← refCall prog e then do
+            let t ← checkExprAs prog true e
+            let _ ← locatedOrigins prog e
+            pure t
+          else checkExprAs prog false e
         let _ ← lift (elemOf t)
         pure .int
       | "len", _, .unknownFunction _ => throw (CheckError.arityMismatch f 1 args.length)
@@ -256,13 +278,13 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     let sig ← lift (methodSig prog t m args.length)
     let some self := sig.self | throw (CheckError.invalidSelf m)
     let params := sig.params
-    checkExclusive ((if self.conv == .owned then [] else [(self.conv, p)]) ++
-      locationArgs params args)
+    let recv ← if self.conv == .owned then pure [] else do pure [← passedPlace self.conv p]
+    checkExclusive (recv ++ (← locationArgs prog params args))
     passPlace prog m self.conv t p
     let k ← mark
     let ks ← checkArgs prog m params args params.length args.length
-    recheckPlaces prog (.place p :: args) (k :: ks)
-    for q in ← changedArgs sig.allParams (.place p :: args) do changePlace prog q
+    recheckLocs prog (([p], k) :: ks)
+    for q in ← changedArgs prog sig.allParams (.place p :: args) do changePlace prog q
     refResult prog asRef sig
   | .unary op a => do lift (unaryTy op (← checkExprAs prog false a))
   | .binary op a b => do
@@ -277,8 +299,8 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     unless validTy prog u do throw (CheckError.invalidType t)
     if let .array _ n := t then
       unless n == es.length do throw (CheckError.typeMismatch t (.array u es.length))
-    let ks ← checkArgs prog (typeName t) (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length
-    recheckPlaces prog es ks
+    recheckLocs prog
+      (← checkArgs prog (typeName t) (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length)
     pure t
   | .withDrops e _ _ => checkExprAs prog asRef e
 
@@ -300,24 +322,35 @@ def checkIndices (prog : Program) : Place → CheckM Unit
         if n ≤ k then throw (CheckError.constantIndexOutOfBounds (.index p i))
 
 /-- Checks the arguments `args` of a call of `callee` against its parameters
-`params`, in order, and gives how many changes were recorded once each was
-checked. `n` and `m` are the numbers of parameters and arguments, for the
-error when they differ. -/
+`params`, in order, and gives, for each, the places it is read from once
+every argument is evaluated, with how many changes were recorded once it
+was checked. A call that returns a reference, passed by reference, is
+passed as a location, uncopied, and for `mut` it must be mutable; the
+origin it is reported by is its first. `n` and `m` are the numbers of
+parameters and arguments, for the error when they differ. -/
 def checkArgs (prog : Program) (callee : Name) :
-    List Param → List Expr → Nat → Nat → CheckM (List Nat)
+    List Param → List Expr → Nat → Nat → CheckM (List (List Place × Nat))
   | [], [], _, _ => pure []
   | prm :: prms, .place p :: args, n, m => do
     checkIndices prog p
     passPlace prog callee prm.conv prm.ty p
     let k ← mark
-    pure (k :: (← checkArgs prog callee prms args n m))
+    pure (([p], k) :: (← checkArgs prog callee prms args n m))
   | prm :: prms, e :: args, n, m => do
-    if prm.conv == .mutable then throw (CheckError.notAPlace callee)
     if prm.conv == .out || prm.conv == .deinit then
       throw (CheckError.invalidConvention callee)
-    expect prm.ty (← checkExprAs prog false e)
-    let k ← mark
-    pure (k :: (← checkArgs prog callee prms args n m))
+    if !passedByValue prm && (← refCall prog e) then
+      expect prm.ty (← checkExprAs prog true e)
+      let (os, mq) ← locatedOrigins prog e
+      if prm.conv == .mutable && !mq then
+        throw (CheckError.immutablePlace (os.headD (.var callee)))
+      let k ← mark
+      pure ((os, k) :: (← checkArgs prog callee prms args n m))
+    else
+      if prm.conv == .mutable then throw (CheckError.notAPlace callee)
+      expect prm.ty (← checkExprAs prog false e)
+      let k ← mark
+      pure (([], k) :: (← checkArgs prog callee prms args n m))
   | _, _, n, m => throw (CheckError.arityMismatch callee n m)
 end
 

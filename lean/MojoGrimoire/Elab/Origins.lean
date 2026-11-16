@@ -7,7 +7,8 @@ The slots that each reference of a function body may point into.
 A reference bound with `ref r = e` points into the slots of the place `e`,
 or, when `e` calls a function or a method that returns a reference, into
 the slots of the arguments passed to the parameters its origin names, the
-receiver of a method among them. Elaboration counts
+receiver of a method among them; an argument that is such a call points
+into the slots of its own origin arguments. Elaboration counts
 every use of `r` as a use of those slots, so that the values a reference
 may point into live as long as it is used: Mojo extends their lifetimes to
 the reference's last use.
@@ -39,24 +40,42 @@ def refCallee (prog : Program) (env : TyEnv) : Expr → Option (Signature × Lis
       (·, .place p :: args)
   | _ => none
 
+mutual
+/-- The slots that the located operand `e` may point into: those of a place,
+or those of the origin arguments of a call that returns a reference, the
+receiver of a method among them, which may be such a call in turn. -/
+def locSlots (prog : Program) (sl : Slots) (env : TyEnv) : Expr → List Place
+  | .place p => sl.of p
+  | .call f args =>
+    match callSig prog f with
+    | .ok sig => originArgs prog sl env (sig.origin.getD []) sig.params args
+    | .error _ => []
+  | .method p m args =>
+    match (placeTyOf prog env p).bind fun t => (methodSig prog t m args.length).toOption with
+    | some sig =>
+      let os := sig.origin.getD []
+      union (if sig.self.any (os.contains ·.name) then sl.of p else [])
+        (originArgs prog sl env os sig.params args)
+    | none => []
+  | .withDrops e _ _ => locSlots prog sl env e
+  | _ => []
+
 /-- The slots of the arguments `args` passed to the parameters named `os`
 among `params`. -/
-def originArgs (sl : Slots) (os : List Name) : List Param → List Expr → List Place
+def originArgs (prog : Program) (sl : Slots) (env : TyEnv) (os : List Name) :
+    List Param → List Expr → List Place
   | prm :: prms, a :: args =>
-    let rest := originArgs sl os prms args
-    match a with
-    | .place q => if os.contains prm.name then union (sl.of q) rest else rest
-    | _ => rest
+    let rest := originArgs prog sl env os prms args
+    if os.contains prm.name then union (locSlots prog sl env a) rest else rest
   | _, _ => []
+end
 
 /-- The slots that the reference `e` names may point into, and its type. -/
 def refSlots (prog : Program) (sl : Slots) (env : TyEnv) (e : Expr) :
     List Place × Option Ty :=
   match e with
   | .place p => (sl.of p, placeTyOf prog env p)
-  | e => match refCallee prog env e with
-    | some (sig, args) => (originArgs sl (sig.origin.getD []) sig.allParams args, some sig.result)
-    | none => ([], none)
+  | e => (locSlots prog sl env e, (refCallee prog env e).map (·.1.result))
 
 /-- Adds the reference `x`, which may point into the slots `os`. Two
 references of the same name, in sibling blocks, share one entry. -/

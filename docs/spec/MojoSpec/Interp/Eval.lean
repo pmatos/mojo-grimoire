@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4011080102971351850")
+:::moduleDocs (fingerprint := "16360169998965602203")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "14136961392570647166")
@@ -41,7 +41,7 @@ $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "3503047420727152711")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "106173774938825190")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -69,18 +69,22 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   empty struct, passed as `out self`; a `@fieldwise_init` struct from its
   arguments. A function's arguments are evaluated left to right by their
   parameters' conventions, and those passed by value are read when the
-  call is made; temporaries are destroyed after the call. `append` adds a
+  call is made; the reference that a call returns is passed by reference
+  to a `read`, `mut` or `ref` parameter, except an $`\mathsf{Int}` or a
+  $`\mathsf{Bool}` passed `read`, which is read; temporaries are
+  destroyed after the call. `append` adds a
   value at the end of a list, `pop()` removes the last element and gives
   it back, failing with $`\mathsf{indexOutOfBounds}` on an empty list,
   `pop(i)` evaluates $`i`, then removes the element at the position $`i`
   names and gives it back, failing with $`\mathsf{indexOutOfBounds}` when
   $`i` is negative or past the last element, and
   `len` gives the length of a list or an array, and destroys its argument
-  when that is not a place. A method gets its
+  when that is neither a place nor a reference that a call returns. A method gets its
   receiver by reference, or a copy for a `var self`.
 - *References.* A `ref` binding, and the `return` of a function with an
   origin, give a reference: to a place, or the one a call returns. Used as
-  a value, such a call's result is read.
+  a value, such a call's result is read. A call gives what it returns, a
+  reference or a value, and any other expression its value.
 - *Statements.* A declaration puts its value at a new location the
   function owns. An assignment evaluates its value, then its place, writes
   it, and destroys the old value. An expression statement destroys its

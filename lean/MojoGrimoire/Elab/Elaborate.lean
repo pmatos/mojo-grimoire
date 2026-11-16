@@ -22,7 +22,9 @@ destroyed:
 
 A value moved away with `^` is not destroyed: its new owner destroys it. A
 use of a reference bound with `ref` is a use of every value it may point
-into, so those values live until its last use.
+into, so those values live until its last use. A call that returns a
+reference, passed by reference to an operation, uses the values it points
+into the same way, so they live until that operation is done.
 Inside `__deinit__(deinit self)`, each field of `self` is destroyed on its own,
 at the same points, so a field the body never uses is destroyed before the
 body runs.
@@ -128,16 +130,18 @@ structure Ctx where
 
 /-- The slots that the operand `e` uses directly, with whether it is passed
 by value `m`: a place uses its slots and those of its indices; any other
-operand is an operation of its own, which destroys what it last uses. -/
-def directOf (sl : Slots) (e : Expr) (m : Bool) : List Place × Bool :=
+operand is an operation of its own, which destroys what it last uses. A
+call that returns a reference, passed by reference, also uses the slots it
+points into, which live until the operation is done. -/
+def directOf (ctx : Ctx) (e : Expr) (m : Bool) : List Place × Bool :=
   match e with
-  | .place p => (union (sl.of p) (indexUses sl p), m)
-  | _ => ([], m)
+  | .place p => (union (ctx.sl.of p) (indexUses ctx.sl p), m)
+  | e => (if m then [] else locSlots ctx.prog ctx.sl ctx.env e, m)
 
 /-- The direct uses of the operands `es`, passed by value as `ms` says. -/
-def directArgs (sl : Slots) : List Expr → List Bool → List (List Place × Bool)
+def directArgs (ctx : Ctx) : List Expr → List Bool → List (List Place × Bool)
   | [], _ => []
-  | e :: es, ms => directOf sl e (ms.headD false) :: directArgs sl es ms.tail
+  | e :: es, ms => directOf ctx e (ms.headD false) :: directArgs ctx es ms.tail
 
 /-- The values that an operation destroys, given the direct uses of its
 operands, `direct`, and the slots live once it is done, `after`: those read
@@ -169,29 +173,29 @@ so the operation destroys what it uses. -/
 def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Expr :=
   match e with
   | .call f args =>
-    let d := opDrops ctx.owned (directArgs ctx.sl args (callModes ctx.prog f)) after
+    let d := opDrops ctx.owned (directArgs ctx args (callModes ctx.prog f)) after
     withDropsOf (.call f (elabOps ctx args d.2.2)) d.1 (if top then [] else d.2.1)
   | .method p m args =>
     let ms := methodModes ctx.prog ctx.env p m args.length
-    let d := opDrops ctx.owned (directOf ctx.sl (.place p) ms.1 :: directArgs ctx.sl args ms.2)
+    let d := opDrops ctx.owned (directOf ctx (.place p) ms.1 :: directArgs ctx args ms.2)
       after
     withDropsOf (.method p m (elabOps ctx args d.2.2)) d.1 (if top then [] else d.2.1)
   | .binary op a b =>
     if op == .and || op == .or then
-      let d := opDrops ctx.owned [directOf ctx.sl a true, (uses ctx.sl b, false)] after
+      let d := opDrops ctx.owned [directOf ctx a true, (uses ctx.sl b, false)] after
       withDropsOf (.binary op (elabExpr ctx false a d.2.2) b) d.1 (if top then [] else d.2.1)
     else
-      let d := opDrops ctx.owned (directArgs ctx.sl [a, b] [true, true]) after
+      let d := opDrops ctx.owned (directArgs ctx [a, b] [true, true]) after
       withDropsOf (.binary op (elabExpr ctx false a (union d.2.2 (uses ctx.sl b)))
         (elabExpr ctx false b d.2.2)) d.1 (if top then [] else d.2.1)
   | .unary op a =>
-    let d := opDrops ctx.owned [directOf ctx.sl a true] after
+    let d := opDrops ctx.owned [directOf ctx a true] after
     withDropsOf (.unary op (elabExpr ctx false a d.2.2)) d.1 (if top then [] else d.2.1)
   | .list t es =>
-    let d := opDrops ctx.owned (directArgs ctx.sl es (es.map fun _ => true)) after
+    let d := opDrops ctx.owned (directArgs ctx es (es.map fun _ => true)) after
     withDropsOf (.list t (elabOps ctx es d.2.2)) d.1 (if top then [] else d.2.1)
   | .copy p =>
-    let d := opDrops ctx.owned [directOf ctx.sl (.place p) false] after
+    let d := opDrops ctx.owned [directOf ctx (.place p) false] after
     withDropsOf (.copy p) d.1 (if top then [] else d.2.1)
   | e => e
 
@@ -223,10 +227,10 @@ def droppedOpt : Option Expr → List Place
   | some e => droppedIn e
   | none => []
 
-/-- The slots that the places among `es` use directly. -/
-def placeUses (sl : Slots) : List Expr → List Place
+/-- The slots that the operands `es`, read by reference, use directly. -/
+def placeUses (ctx : Ctx) : List Expr → List Place
   | [] => []
-  | e :: es => union (directOf sl e false).1 (placeUses sl es)
+  | e :: es => union (directOf ctx e false).1 (placeUses ctx es)
 
 /-- The variable types after the statement `s`, from those before it. -/
 def envAfter (prog : Program) (sl : Slots) (env : TyEnv) (s : Stmt) : TyEnv :=
@@ -267,7 +271,7 @@ def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
     rest (.assign p e') (droppedIn e')
   | .expr e => let e' := elabExpr ctx true e after; rest (.expr e') (droppedIn e')
   | .print args =>
-    let args' := elabOps ctx args (union after (placeUses sl args))
+    let args' := elabOps ctx args (union after (placeUses ctx args))
     rest (.print args') (droppedList args')
 
 /-- Elaborates the block `b`, given the slots live after it. -/
