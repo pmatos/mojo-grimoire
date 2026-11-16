@@ -1,4 +1,5 @@
 import MojoGrimoire.Check.Program
+import MojoGrimoire.Elab.Elaborate
 
 /-!
 Tests of the checker on fields moved out of a struct with `^`. Each program
@@ -14,7 +15,7 @@ The shared declarations are a resource `Res`, whose destructor prints, a
 
 namespace MojoGrimoireTest.Check.PartialMoves
 
-open MojoGrimoire.Core MojoGrimoire.Check
+open MojoGrimoire.Core MojoGrimoire.Check MojoGrimoire.Elab
 
 private def v (x : Name) : Place := .var x
 private def fld (x f : Name) : Place := .field (.var x) f
@@ -144,5 +145,12 @@ private def moveOut (p : Place) : Stmt := .expr (.call "consume" [.transfer p])
 -- may end.
 #guard verdict (prog [.decl "p" (.struct "Pt") (some (.call "Pt" [.int 1, .int 2])),
   .decl "n" .int (some (.transfer (fld "p" "x")))]) == none
+
+-- Elaboration's drops do not count as fields moved out: it drops whole
+-- variables, and the fields of `self` in `__deinit__` one by one.
+#guard verdict (elabProgram (prog [declPair "p", moveOut (fld "p" "a"),
+  .expr (.call "show" [.place (fld "p" "b")]), .assign (fld "p" "a") (newRes 3)])) == none
+#guard verdict (elabProgram (prog [] [] [⟨"Holder", [("p", pair), ("r", res)], .none, true, none,
+  some [moveOut (fld "self" "r")], []⟩])) == none
 
 end MojoGrimoireTest.Check.PartialMoves
