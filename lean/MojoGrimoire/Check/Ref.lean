@@ -13,9 +13,9 @@ needs every origin initialized, so a value cannot be moved away and then
 used through a reference to it.
 
 A function returns a reference within its own origin: each origin of the
-returned reference starts at a parameter the origin names, and goes through
-no element of a list and no field of an element, since the compiler gives
-those an origin of their own. An element of an array may be returned.
+returned reference is a parameter the origin names, or an element of an
+array, at any depth, of one. The compiler gives a field and an element of a
+list an origin of their own.
 -/
 
 namespace MojoGrimoire.Check
@@ -70,13 +70,12 @@ def refTarget (prog : Program) (e : Expr) : CheckM (Ty × List Place × Bool) :=
   | _ => throw CheckError.notAReference
 
 /-- Whether a returned reference to the place `o` stays within the origin
-`os`: `o` starts at a parameter that `os` names, and goes through no element
-of a list and no field of an element. The compiler gives each of those an
-origin of its own, while an element of an array stays within the array's. -/
+`os`: with its indices into arrays left out, `o` is a parameter that `os`
+names. The compiler gives a field and an element of a list an origin of
+their own, while an element of an array stays within the array's. -/
 def withinOrigin (prog : Program) (os : List Name) (o : Place) : CheckM Bool := do
   let (x, steps) ← shapeOf prog o
-  pure (os.contains x && !steps.contains .listElem &&
-    !(steps.dropWhile (· != .arrayElem)).any (· matches .field _))
+  pure (os.contains x && steps.all (· == .arrayElem))
 
 /-- Rejects a function whose origin is not made of its parameters passed as
 locations, `read`, `mut` or `ref`, or that returns a reference to nothing. -/

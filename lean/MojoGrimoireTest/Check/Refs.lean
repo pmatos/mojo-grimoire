@@ -23,11 +23,15 @@ private def resDecl : StructDecl :=
   ⟨"Res", [("id", .int)], .none, true, none,
     some [.print [.place (.field (v "self") "id")]], []⟩
 
-/-- `@fieldwise_init struct Box: var r: Res; def get(ref self) -> ref [self] Res: return self.r` -/
+/-- `@fieldwise_init struct Box: var r: Res; def get(ref self) -> ref [self] Box: return self` -/
 private def boxDecl : StructDecl :=
   ⟨"Box", [("r", res)], .none, true, none, none,
-    [⟨"get", [⟨.ref, "self", .struct "Box"⟩], res,
-      [.ret (some (.place (.field (v "self") "r")))], some ["self"]⟩]⟩
+    [⟨"get", [⟨.ref, "self", .struct "Box"⟩], .struct "Box",
+      [.ret (some (use "self"))], some ["self"]⟩]⟩
+
+/-- `@fieldwise_init struct Pair: var items: Array[Int, 2]` -/
+private def pairDecl : StructDecl :=
+  ⟨"Pair", [("items", .array .int 2)], .none, true, none, none, []⟩
 
 /-- `def pick(ref a: Res, ref b: Res, first: Bool) -> ref [a, b] Res:
 if first: return a else: return b` -/
@@ -59,7 +63,7 @@ private def lib : List FunDecl :=
 /-- The program with the extra functions `funs` and a `main` whose body is
 `body`. -/
 private def prog (body : List Stmt) (funs : List FunDecl := []) : Program :=
-  ⟨[resDecl, boxDecl], lib ++ funs ++ [⟨"main", [], .noneType, body, none⟩]⟩
+  ⟨[resDecl, boxDecl, pairDecl], lib ++ funs ++ [⟨"main", [], .noneType, body, none⟩]⟩
 
 private def verdict (p : Program) : Option CheckError :=
   match checkProgram p with
@@ -113,6 +117,40 @@ private def pickAB : Expr := .call "pick" [use "a", use "b", .bool true]
 #guard verdict (prog [] [⟨"wrong", [⟨.ref, "a", res⟩, ⟨.ref, "b", res⟩], res,
   [.ret (some (use "b"))], some ["a"]⟩]) == some (.escapingReference "wrong")
 
+/-- A function `name(ref b: Box) -> ref [b] Res` whose body is `body`. -/
+private def fromBox (name : Name) (body : List Stmt) : FunDecl :=
+  ⟨name, [⟨.ref, "b", .struct "Box"⟩], res, body, some ["b"]⟩
+
+private def br : Place := .field (v "b") "r"
+
+-- `return b.r`: a field of the parameter has an origin of its own.
+#guard verdict (prog [] [fromBox "getR" [.ret (some (.place br))]]) ==
+  some (.escapingReference "getR")
+
+-- `ref r = b.r; return r`, and `return look(b.r)`: the same field, reached
+-- through a reference or a call.
+#guard verdict (prog [] [fromBox "viaRef" [.refDecl "r" (.place br), .ret (some (use "r"))]]) ==
+  some (.escapingReference "viaRef")
+#guard verdict (prog [] [fromBox "viaCall" [.ret (some (.call "look" [.place br]))]]) ==
+  some (.escapingReference "viaCall")
+
+-- `def first(ref p: Pair) -> ref [p] Int: return p.items[0]`: an element of
+-- an array held in a field is still under the field.
+#guard verdict (prog [] [⟨"first", [⟨.ref, "p", .struct "Pair"⟩], .int,
+  [.ret (some (.place (.index (.field (v "p") "items") (.int 0))))], some ["p"]⟩]) ==
+  some (.escapingReference "first")
+
+-- `def corner(ref g: Array[Array[Int, 2], 2]) -> ref [g] Int: return g[1][0]`
+#guard verdict (prog [] [⟨"corner", [⟨.ref, "g", .array (.array .int 2) 2⟩], .int,
+  [.ret (some (.place (.index (.index (v "g") (.int 1)) (.int 0))))], some ["g"]⟩]) == none
+
+-- `struct Box: def get(ref self) -> ref [self] Res: return self.r`
+#guard
+  let get : FunDecl := ⟨"get", [⟨.ref, "self", .struct "Box"⟩], res,
+    [.ret (some (.place (.field (v "self") "r")))], some ["self"]⟩
+  verdict ⟨[resDecl, { boxDecl with methods := [get] }], [⟨"main", [], .noneType, [], none⟩]⟩ ==
+    some (.escapingReference "get")
+
 -- `def owned(var a: Res) -> ref [a] Res`: a `var` parameter dies with the call.
 #guard verdict (prog [] [⟨"owned", [⟨.owned, "a", res⟩], res,
   [.ret (some (use "a"))], some ["a"]⟩]) == some (.invalidOrigin "owned")
@@ -132,12 +170,12 @@ private def elabMain (body : List Stmt) : List Stmt :=
   elabMain (ab ++ [.refDecl "r" lr, say "x", call "show" [use "r"]]) ==
     ab ++ [.refDecl "r" lr, .drop (v "b"), say "x", call "show" [use "r"], .drop (v "a")]
 
--- `var bx = Box(Res(1)); ref r = bx.get(); print("x"); show(r)`: the box
+-- `var bx = Box(Res(1)); ref r = bx.get(); print("x"); show(r.r)`: the box
 -- lives as long as the reference into it.
 #guard
   let bx := Stmt.decl "bx" (.struct "Box") (some (.call "Box" [.call "Res" [.int 1]]))
   let get := Stmt.refDecl "r" (.method (v "bx") "get" [])
-  elabMain [bx, get, say "x", call "show" [use "r"]] ==
-    [bx, get, say "x", call "show" [use "r"], .drop (v "bx")]
+  let showR := call "show" [.place (.field (v "r") "r")]
+  elabMain [bx, get, say "x", showR] == [bx, get, say "x", showR, .drop (v "bx")]
 
 end MojoGrimoireTest.Check.Refs
