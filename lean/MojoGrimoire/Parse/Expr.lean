@@ -5,10 +5,10 @@ The parsing of expressions, with Mojo's precedence, loosest first: `or`,
 `and`, `not`, comparisons, `+` and `-`, `*`, `//` and `%`, unary `-`, and
 then the postfix forms of a primary expression.
 
-A postfix chain starts from a name and keeps it a place while it reads
-fields and indices; `x^`, `x.copy()`, a method call `x.m(…)` and a call
-`f(…)` make it an expression. A list literal's element type is left for
-inference.
+A postfix chain starts from a primary expression. From a name, it stays a
+place while it reads fields and indices; `x^`, `x.copy()`, a method call
+`x.m(…)` and a call `f(…)` make it an expression. The type of a literal
+`[…]` is left for inference, and `List[T](…)` is a list of `T`.
 -/
 
 namespace MojoGrimoire.Parse
@@ -29,7 +29,7 @@ def Term.toExpr : Term → Expr
 def compOps : List (String × BinOp) :=
   [("<", .lt), ("<=", .le), (">", .gt), (">=", .ge), ("==", .eq), ("!=", .ne)]
 
-/-- The additive and multiplicative operators. -/
+/-- The additive operators. -/
 def addOps : List (String × BinOp) := [("+", .add), ("-", .sub)]
 
 /-- The multiplicative operators. -/

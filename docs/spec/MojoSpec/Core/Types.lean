@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Names, types, conventions and operators: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1908269469288049923")
+:::moduleDocs (fingerprint := "5000350897246289862")
 :::
 
 :::readable MojoGrimoire.Core.Name (fingerprint := "17987575212195285839")
@@ -42,7 +42,7 @@ literals, which a program may only print, and $`\mathsf{None}` the type of a
 call to a function that returns nothing.
 :::
 
-:::readable MojoGrimoire.Core.Ty.byValue (fingerprint := "13418444462996705911")
+:::readable MojoGrimoire.Core.Ty.byValue (fingerprint := "7689001293932829925")
 *Definition: values used by value.* Mojo copies an $`\mathsf{Int}` or a
 $`\mathsf{Bool}` where it would otherwise use its location: when it is
 passed to a `read` parameter, and when it is transferred with `^`, which
@@ -104,7 +104,7 @@ short-circuit, as in Mojo: the right operand is evaluated only when the left
 one does not decide the result.
 :::
 
-:::readable MojoGrimoire.Core.BinOp.arith (fingerprint := "7794664695434502313")
+:::readable MojoGrimoire.Core.BinOp.arith (fingerprint := "5793001935166250634")
 *Definition: integer arithmetic.* Each operator of the first row is a
 function on the integers, before any wrapping to 64 bits: $`/\!/` rounds
 toward negative infinity and $`\%` takes the sign of the divisor, and both

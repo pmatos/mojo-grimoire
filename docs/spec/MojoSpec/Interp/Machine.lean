@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The machine: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10749511144083168012")
+:::moduleDocs (fingerprint := "13008170621965223899")
 :::
 
 :::readable MojoGrimoire.Interp.Ref MojoGrimoire.Interp.Binding MojoGrimoire.Interp.Env (fingerprint := "5146776138028628767")
@@ -38,22 +38,23 @@ and may stop with a signal; the machine is kept when it does, so a failed
 run still shows what it printed.
 :::
 
-:::readable MojoGrimoire.Interp.alloc MojoGrimoire.Interp.readRef MojoGrimoire.Interp.writeRef MojoGrimoire.Interp.emit (fingerprint := "6640064524702378650")
+:::readable MojoGrimoire.Interp.alloc MojoGrimoire.Interp.readRef MojoGrimoire.Interp.writeRef MojoGrimoire.Interp.emit (fingerprint := "3528105872701788051")
 *Definition: the store.* A new location is added at the end of the store
 and never reused. Reading and writing a reference reads and replaces the
 part of its location's value that its path names. `emit` adds a printed
 line.
 :::
 
-:::readable MojoGrimoire.Interp.wrap MojoGrimoire.Interp.binary MojoGrimoire.Interp.unary (fingerprint := "386164582684795410")
+:::readable MojoGrimoire.Interp.wrap MojoGrimoire.Interp.binary MojoGrimoire.Interp.unary (fingerprint := "12579659857558170853")
 *Definition: arithmetic.* $`\mathsf{Int}` is 64-bit: an arithmetic operator
 computes its integer function, and the result is wrapped into
 $`[-2^{63}, 2^{63})`.
 Comparisons give a $`\mathsf{Bool}`, and `==` and `!=` also compare two
-$`\mathsf{Bool}`s.
+$`\mathsf{Bool}`s. Negation wraps too, and `not` negates a
+$`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Interp.position MojoGrimoire.Interp.emptyStruct (fingerprint := "5654665444625016957")
+:::readable MojoGrimoire.Interp.position MojoGrimoire.Interp.emptyStruct (fingerprint := "2926155158370350068")
 *Definition: indices and empty structs.* An index into a list of length
 $`l` names position $`i` when $`0 \le i < l`; any other index, a negative
 one included, stops the run, since Mojo's `List` does not count from the

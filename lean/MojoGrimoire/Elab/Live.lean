@@ -8,7 +8,8 @@ Elaboration finds those points with a liveness analysis that runs backwards
 through each block. The unit it tracks is a slot: a variable, except in a
 `__deinit__`, where each field of `self` is a slot of its own, since Mojo
 destroys the fields of a value being destroyed one by one, each after its
-own last use.
+own last use. A reference bound with `ref` is no slot: a use of it is a use
+of every slot it may point into.
 
 The checker forbids a declaration that hides a variable in scope, so a name
 names one variable wherever it is used, and the analysis can track slots by

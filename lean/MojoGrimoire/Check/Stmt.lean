@@ -7,10 +7,10 @@ A block is a scope: the variables it declares end with it. A declaration
 may not reuse the name of a variable in scope, so no variable hides
 another, though sibling blocks may reuse a name. After an `if`, a part of a variable is
 initialized only when both branches leave it initialized, and a branch that
-returns does not count. A loop body must leave initialized every part that
-was initialized before the loop, or its next iteration would use a moved
-value: like Mojo, the checker reports that as a use of an uninitialized
-value.
+returns does not count. A loop body that can reach its end must leave
+initialized every part that was initialized before the loop, or its next
+iteration would use a moved value: like Mojo, the checker reports that as
+a use of an uninitialized value.
 
 Where a variable ends, at the end of its block or when the function
 returns, the parts it still holds are destroyed. The compiler destroys a

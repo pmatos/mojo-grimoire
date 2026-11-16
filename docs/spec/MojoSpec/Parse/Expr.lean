@@ -13,23 +13,23 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6006235769338392839")
+:::moduleDocs (fingerprint := "14970591485620210808")
 :::
 
-:::readable MojoGrimoire.Parse.Term MojoGrimoire.Parse.Term.toExpr (fingerprint := "3543454702979298905")
+:::readable MojoGrimoire.Parse.Term MojoGrimoire.Parse.Term.toExpr (fingerprint := "13183905014692490612")
 *Definition: terms.* A postfix chain is a place while it reads only fields
 and indices of a name, and an expression once it reads anything else. A
 place used where an expression is expected is read as a value.
 :::
 
-:::readable MojoGrimoire.Parse.compOps MojoGrimoire.Parse.addOps MojoGrimoire.Parse.mulOps MojoGrimoire.Parse.acceptOp (fingerprint := "16474491144530930041")
+:::readable MojoGrimoire.Parse.compOps MojoGrimoire.Parse.addOps MojoGrimoire.Parse.mulOps MojoGrimoire.Parse.acceptOp (fingerprint := "6467674933063426272")
 *Definition: operators.* The binary operators fall in three levels:
 comparisons `<`, `<=`, `>`, `>=`, `==`, `!=`; additive `+`, `-`; and
 multiplicative `*`, `//`, `%`. The parser reads an operator of a level
 when it is next.
 :::
 
-:::readable MojoGrimoire.Parse.expr MojoGrimoire.Parse.orRest MojoGrimoire.Parse.andExpr MojoGrimoire.Parse.andRest MojoGrimoire.Parse.notExpr MojoGrimoire.Parse.sum MojoGrimoire.Parse.sumRest MojoGrimoire.Parse.product MojoGrimoire.Parse.productRest MojoGrimoire.Parse.unaryExpr MojoGrimoire.Parse.chain MojoGrimoire.Parse.trailers MojoGrimoire.Parse.primary MojoGrimoire.Parse.exprList (fingerprint := "4096159612645900783")
+:::readable MojoGrimoire.Parse.expr MojoGrimoire.Parse.orRest MojoGrimoire.Parse.andExpr MojoGrimoire.Parse.andRest MojoGrimoire.Parse.notExpr MojoGrimoire.Parse.sum MojoGrimoire.Parse.sumRest MojoGrimoire.Parse.product MojoGrimoire.Parse.productRest MojoGrimoire.Parse.unaryExpr MojoGrimoire.Parse.chain MojoGrimoire.Parse.trailers MojoGrimoire.Parse.primary MojoGrimoire.Parse.exprList (fingerprint := "6198610230411943232")
 *Definition: expressions.*
 
 $$`\begin{array}{lcl}

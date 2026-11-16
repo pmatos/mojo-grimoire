@@ -5,11 +5,12 @@ The checking of references: what a `ref` binding or a returned reference may
 point into, and whether it may be changed.
 
 A reference is bound with `ref x = e`, where `e` is a place or a call of a
-function that returns a reference. Its origins are the places it may point
-into: the place itself, or the arguments passed to the parameters that the
-function's origin names. A reference may be changed only when every origin
-may be, and a use of it needs every origin initialized, so a value cannot be
-moved away and then used through a reference to it.
+function or method that returns a reference. Its origins are the places it
+may point into: the place itself, or the arguments, a method's receiver
+included, passed to the parameters that the callee's origin names. A
+reference may be changed only when every origin may be, and a use of it
+needs every origin initialized, so a value cannot be moved away and then
+used through a reference to it.
 -/
 
 namespace MojoGrimoire.Check

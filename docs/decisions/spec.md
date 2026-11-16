@@ -51,6 +51,9 @@ elaborated:
 - The block pins a fingerprint of what they say: a theorem's statement, a
   definition's type and body, an inductive type's constructors, a
   structure's fields. It is a hash of Lean's terms, so a new proof keeps it.
+  A definition's body includes the helpers that Lean generates to hold part
+  of it: the body of a recursive definition (`f._f`, `f._unary`,
+  `f._mutual`), its case splits and its pattern matchers (#49).
 - A definition that the prose restates, from any module, is added with
   `(pin := P)`, and its body then counts too. Pins stay explicit.
 - A `grammar T` box shows every constructor of `T` exactly once.

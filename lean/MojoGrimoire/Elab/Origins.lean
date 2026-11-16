@@ -5,8 +5,9 @@ import MojoGrimoire.Check.Ref
 The slots that each reference of a function body may point into.
 
 A reference bound with `ref r = e` points into the slots of the place `e`,
-or, when `e` calls a function that returns a reference, into the slots of
-the arguments passed to the parameters its origin names. Elaboration counts
+or, when `e` calls a function or a method that returns a reference, into
+the slots of the arguments passed to the parameters its origin names, the
+receiver of a method among them. Elaboration counts
 every use of `r` as a use of those slots, so that the values a reference
 may point into live as long as it is used: Mojo extends their lifetimes to
 the reference's last use.

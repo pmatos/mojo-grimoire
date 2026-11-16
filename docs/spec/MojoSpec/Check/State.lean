@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13865791075497864755")
+:::moduleDocs (fingerprint := "17462688304784183921")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "4845031522016519524")
@@ -65,7 +65,7 @@ places changed as a whole so far in the current statement, in order. The checker
 that reads and updates this state and may reject the program.
 :::
 
-:::readable MojoGrimoire.Check.splitPlace MojoGrimoire.Check.splitPlace.indexed (fingerprint := "852606282079979968")
+:::readable MojoGrimoire.Check.splitPlace MojoGrimoire.Check.splitPlace.indexed (fingerprint := "14800216798997210122")
 *Definition: the parts of a place.* A place is a variable and a path:
 $`x` is $`x` with $`\epsilon`, and $`p.f` is the variable of $`p`
 with the path of $`p` followed by $`f`. The checker does not follow the
@@ -86,7 +86,7 @@ already uninitialized, and otherwise adds $`\rho` and removes the parts
 below it.
 :::
 
-:::readable MojoGrimoire.Check.partTy MojoGrimoire.Check.remainder MojoGrimoire.Check.initPart (fingerprint := "15999354443726677015")
+:::readable MojoGrimoire.Check.partTy MojoGrimoire.Check.remainder MojoGrimoire.Check.initPart (fingerprint := "2792872999317184741")
 *Definition: initializing a part.* Initializing $`\rho` removes from
 $`U` the parts below $`\rho`. If a part $`\pi` above $`\rho` is
 uninitialized, as when `__init__` sets the first field of `self`,
@@ -104,13 +104,13 @@ Sets are lists without repeats, kept in the order they are found:
 $`A \cup B` keeps $`A` and adds the elements of $`B` not in it.
 :::
 
-:::readable MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "16686687289166382362")
+:::readable MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "778544696017225873")
 *Definition: variables in scope.* A name refers to the innermost variable in
 scope with that name, and updating a variable replaces the innermost
 variable with its name. An unknown name is rejected.
 :::
 
-:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "11516630406105744235")
+:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "12412211197911174642")
 *Definition: reading a place.* The type of a place is the type of its
 variable, then of each field or element on the way; only a list or an
 array has elements. Reading a place's value needs the
@@ -124,7 +124,7 @@ its origins, the reference's variable replaced by the origin; any other
 place resolves to itself.
 :::
 
-:::readable MojoGrimoire.Check.shapeOf MojoGrimoire.Check.invalidates (fingerprint := "6282246121167910064")
+:::readable MojoGrimoire.Check.shapeOf MojoGrimoire.Check.invalidates (fingerprint := "16224895323870270460")
 *Definition: invalidation.* The shape of $`p[e]` ends in
 $`[\cdot]_{\mathsf{list}}` when $`p` is a list, and in
 $`[\cdot]_{\mathsf{array}}` when it is an array. Changing a place of

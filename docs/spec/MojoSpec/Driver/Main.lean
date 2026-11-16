@@ -13,16 +13,17 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The command-line driver: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15255162984756317449")
+:::moduleDocs (fingerprint := "12323303835054175085")
 :::
 
-:::readable MojoGrimoire.Driver.CheckError.className MojoGrimoire.Driver.RunError.name (fingerprint := "16553832726389606211")
+:::readable MojoGrimoire.Driver.CheckError.className MojoGrimoire.Driver.RunError.name (fingerprint := "193533567548404001")
 *Definition: names of errors.* The driver names a class of static error,
 and a run-time error, by its constructor, so that the conformance suite can
-compare it with the class of the compiler's diagnostic.
+compare it with the class of the compiler's diagnostic. The name of a
+stuck run also says what went wrong.
 :::
 
-:::readable MojoGrimoire.Driver.defaultFuel MojoGrimoire.Driver.parseArgs MojoGrimoire.Driver.main (fingerprint := "868820494520024601")
+:::readable MojoGrimoire.Driver.defaultFuel MojoGrimoire.Driver.parseArgs MojoGrimoire.Driver.main (fingerprint := "17813737716310917823")
 *Definition: the driver.* `mojo-grimoire FILE [--fuel N]` reads the file,
 parses it and runs it with $`N` units of fuel, $`10^8` by default. The
 printed lines go to standard output, and the exit code says how the run
