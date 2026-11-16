@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "uninitializedAtExit",
+  "diagnostic": "'line.start' is uninitialized at return from this function"
+}
