@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3829803913951452894")
+:::moduleDocs (fingerprint := "9450531479846780804")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "17188177613617268651")
@@ -35,8 +35,8 @@ array's size with the literal's length. With no list or array expected, it is
 an array of its elements, of the type of the first: Mojo's
 $`\mathsf{Array}[t, n]`. The elements of a literal are expected to have its
 element type, and the arguments of a call the types of its parameters; the
-argument of `append` is expected to be an element of the list, and
-`pop` takes none. The drops
+argument of `append` is expected to be an element of the list, and the
+index of `pop(i)` an $`\mathsf{Int}`. The drops
 that elaboration inserts have the type of their operation. Inference fills
 in the literals inside an expression as it goes; where it finds no type,
 it gives none. A transfer $`p\,\hat{}` of an $`\mathsf{Int}` or a
@@ -44,15 +44,16 @@ $`\mathsf{Bool}` becomes the place $`p`, since Mojo does not move such a
 value; one through an element of a list or an array stays a transfer.
 :::
 
-:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.callParamTys MojoGrimoire.Parse.methodParamTys (fingerprint := "4826250121605651425")
+:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.callParamTys MojoGrimoire.Parse.methodParamTys (fingerprint := "17102273561642688555")
 *Definition: expected types.* A literal expected to have a list type or an
 array type has that type, which the checker compares with its elements;
 otherwise its elements decide. Its elements are expected to have its
 element type. The arguments of a call are expected to have the types of
 the parameters of the function, of the struct's initializer, or of the
 struct's fields when it has none; those of a method, the types of its
-parameters after `self`. `append` takes an element of its list, and `pop`
-nothing.
+parameters after `self`, for the number of arguments of the call.
+`append` takes an element of its list, `pop()` nothing and `pop(i)` an
+$`\mathsf{Int}`.
 :::
 
 :::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "507949887862353920")

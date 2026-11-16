@@ -12,5 +12,6 @@ import MojoGrimoireTest.Parse.Programs
 import MojoGrimoireTest.Parse.Arrays
 import MojoGrimoireTest.Parse.TrivialTransfer
 import MojoGrimoireTest.Parse.ListPop
+import MojoGrimoireTest.Parse.ListPopIndex
 import MojoGrimoireTest.Parse.StaleRefs
 import MojoGrimoireCli

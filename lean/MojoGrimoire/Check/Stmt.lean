@@ -133,7 +133,7 @@ def checkConstructed (prog : Program) (p : Place) (e : Expr) : CheckM Unit := do
       | none, some fd => if builds fd then changedArgs fd.params args else pure []
       | none, none => pure []
     | .method q m args => match ← placeTy prog q with
-      | .list et => pure (if (listMethod et m).any (·.2 != .noneType) then [q] else [])
+      | .list et => pure (if (listMethod et m args.length).any (·.2 != .noneType) then [q] else [])
       | .struct s => match (findStruct prog s).bind (findMethod · m) with
         | some fd => if builds fd then changedArgs fd.params (.place q :: args) else pure []
         | none => pure []

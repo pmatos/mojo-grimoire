@@ -113,7 +113,8 @@ type:
 * an array has no methods, and on a list the only methods are `append`
   and `pop`, which need a list the function may change: `append` takes its
   argument as `var` and has the type $`\mathsf{None}`, and `pop` takes
-  none and has the list's element type; `len(e)`, when the program
+  no argument or an $`\mathsf{Int}` index and has the list's element
+  type; `len(e)`, when the program
   declares no function `len`, takes a list or an array and gives an
   $`\mathsf{Int}`;
 * $`\mathsf{drops}(e; p^*; q^*)`, which only elaboration inserts, after

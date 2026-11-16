@@ -27,12 +27,16 @@ def findMethod (sd : StructDecl) (m : Name) : Option FunDecl :=
   sd.methods.find? (·.name == m)
 
 /-- The parameters after `self`, and the result, of the method `m` of a list
-of elements of type `t`, which takes its `self` `mut`: `append` takes an
-element and gives nothing, and `pop` takes nothing and gives an element. -/
-def listMethod (t : Ty) : Name → Option (List Param × Ty)
-  | "append" => some ([⟨.owned, "value", t⟩], .noneType)
-  | "pop" => some ([], t)
-  | _ => none
+of elements of type `t` when it is called with `n` arguments. Each method
+takes its `self` `mut`. `append` takes an element and gives nothing. `pop`
+gives an element, and has two overloads: `pop()` takes nothing, and
+`pop(i)` takes an `Int`, which the overload for any number of arguments
+other than zero also takes. -/
+def listMethod (t : Ty) : Name → Nat → Option (List Param × Ty)
+  | "append", _ => some ([⟨.owned, "value", t⟩], .noneType)
+  | "pop", 0 => some ([], t)
+  | "pop", _ => some ([⟨.read, "i", .int⟩], t)
+  | _, _ => none
 
 /-- How the values of the type `t` can be copied. `Int` and `Bool` are
 implicitly copyable, as in Mojo; a list or an array only explicitly, with

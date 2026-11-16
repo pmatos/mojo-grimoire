@@ -111,12 +111,14 @@ def callModes (prog : Program) (f : Name) : List Bool :=
   | none, some fd => fd.params.map passedByValue
   | none, none => []
 
-/-- Whether the receiver `p` of a call of the method `m`, and each argument,
-is passed by value. `append` takes its list by reference and its argument
-by value, and `pop` takes its list by reference. -/
-def methodModes (prog : Program) (env : TyEnv) (p : Place) (m : Name) : Bool × List Bool :=
+/-- Whether the receiver `p` of a call of the method `m` with `n` arguments,
+and each argument, is passed by value. `append` takes its list by
+reference and its argument by value, and `pop` takes its list by reference
+and its index by value. -/
+def methodModes (prog : Program) (env : TyEnv) (p : Place) (m : Name) (n : Nat) :
+    Bool × List Bool :=
   match placeTyOf prog env p with
-  | some (.list u) => (false, ((listMethod u m).elim [] (·.1)).map passedByValue)
+  | some (.list u) => (false, ((listMethod u m n).elim [] (·.1)).map passedByValue)
   | some (.struct s) => match (findStruct prog s).bind (findMethod · m) with
     | some ⟨_, self :: params, _, _, _⟩ => (self.conv == .owned, params.map passedByValue)
     | _ => (false, [])
@@ -177,7 +179,7 @@ def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Expr :=
     let d := opDrops ctx.owned (directArgs ctx.sl args (callModes ctx.prog f)) after
     withDropsOf (.call f (elabOps ctx args d.2.2)) d.1 (if top then [] else d.2.1)
   | .method p m args =>
-    let ms := methodModes ctx.prog ctx.env p m
+    let ms := methodModes ctx.prog ctx.env p m args.length
     let d := opDrops ctx.owned (directOf ctx.sl (.place p) ms.1 :: directArgs ctx.sl args ms.2)
       after
     withDropsOf (.method p m (elabOps ctx args d.2.2)) d.1 (if top then [] else d.2.1)

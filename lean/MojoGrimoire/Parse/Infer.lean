@@ -57,10 +57,11 @@ def callParamTys (prog : Program) (f : Name) : List Ty :=
   | none, none => []
 
 /-- The types of the parameters of the method `m` on a value of type `t`,
-`self` aside. `append` takes an element of its list, and `pop` nothing. -/
-def methodParamTys (prog : Program) (t : Option Ty) (m : Name) : List Ty :=
+`self` aside, when it is called with `n` arguments. `append` takes an
+element of its list, `pop()` nothing and `pop(i)` an `Int`. -/
+def methodParamTys (prog : Program) (t : Option Ty) (m : Name) (n : Nat) : List Ty :=
   match t with
-  | some (.list u) => (listMethod u m).elim [] (·.1.map (·.ty))
+  | some (.list u) => (listMethod u m n).elim [] (·.1.map (·.ty))
   | some (.struct s) => match (findStruct prog s).bind (findMethod · m) with
     | some fd => fd.params.tail.map (·.ty)
     | none => []
@@ -98,9 +99,9 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
     (.call f args', t)
   | .method p m args =>
     let (p', pt) := inferPlace prog env p
-    let args' := (inferList prog env (methodParamTys prog pt m) args).map (·.1)
+    let args' := (inferList prog env (methodParamTys prog pt m args.length) args).map (·.1)
     let t := match pt with
-      | some (.list u) => some ((listMethod u m).elim .noneType (·.2))
+      | some (.list u) => some ((listMethod u m args.length).elim .noneType (·.2))
       | some (.struct s) => ((findStruct prog s).bind (findMethod · m)).map (·.result)
       | _ => none
     (.method p' m args', t)
