@@ -121,23 +121,16 @@ element of a list when `e` is a call that builds its result in `p` and is
 passed `mut` that list, or a place that holds it: Mojo reports the result
 as aliased with the argument. A call, an initializer included, builds its
 result in place unless the result is an `Int`, a `Bool` or a reference; a
-list method that gives an element always does, since its result has a
-generic type. -/
+generic result, such as the element that a list method gives, always is. -/
 def checkConstructed (prog : Program) (p : Place) (e : Expr) : CheckM Unit := do
-  let builds (fd : FunDecl) := fd.origin.isNone && !fd.result.byValue
+  let builds (sig : Signature) := sig.origin.isNone && (sig.generic || !sig.result.byValue)
   let changed ← match e with
-    | .call f args => match findStruct prog f, findFun prog f with
-      | some sd, _ => match sd.init with
-        | some fd => changedArgs fd.params.tail args
-        | none => pure []
-      | none, some fd => if builds fd then changedArgs fd.params args else pure []
-      | none, none => pure []
-    | .method q m args => match ← placeTy prog q with
-      | .list et => pure (if (listMethod et m args.length).any (·.2 != .noneType) then [q] else [])
-      | .struct s => match (findStruct prog s).bind (findMethod · m) with
-        | some fd => if builds fd then changedArgs fd.params (.place q :: args) else pure []
-        | none => pure []
-      | _ => pure []
+    | .call f args => match callSig prog f with
+      | .ok sig => if builds sig then changedArgs sig.params args else pure []
+      | .error _ => pure []
+    | .method q m args => match methodSig prog (← placeTy prog q) m args.length with
+      | .ok sig => if builds sig then changedArgs sig.allParams (.place q :: args) else pure []
+      | .error _ => pure []
     | _ => pure []
   let vars := (← get).vars
   for q in changed do

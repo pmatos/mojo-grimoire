@@ -13,20 +13,21 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The origins of references: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15017224128749900813")
+:::moduleDocs (fingerprint := "7667708469332525899")
 :::
 
-:::readable MojoGrimoire.Elab.TyEnv MojoGrimoire.Elab.placeTyOf MojoGrimoire.Elab.refCallee (fingerprint := "15930353832573391946")
+:::readable MojoGrimoire.Elab.TyEnv MojoGrimoire.Elab.placeTyOf MojoGrimoire.Elab.refCallee (fingerprint := "6911629136506755872")
 *Definition: callees.* Elaboration follows the types of the variables
-declared so far, to find the type of a place and so the method a call
-names. A struct's construction calls no function that could return a
-reference.
+declared so far, to find the type of a place and so the signature of the
+method a call names.
 :::
 
-:::readable MojoGrimoire.Elab.originArgs MojoGrimoire.Elab.refSlots (fingerprint := "5461991224431785393")
+:::readable MojoGrimoire.Elab.originArgs MojoGrimoire.Elab.refSlots (fingerprint := "15620349403481297493")
 *Definition: what a reference points into.* A reference to a place points
 into the slots that the place touches; one returned by a call, into the
-slots of the arguments passed to the parameters its origin names.
+slots of the arguments passed to the parameters its origin names, the
+receiver of a method first. A signature with no origin, such as a struct's
+construction, points into nothing.
 :::
 
 :::readable MojoGrimoire.Elab.addAlias MojoGrimoire.Elab.aliasStmt MojoGrimoire.Elab.aliasBlock MojoGrimoire.Elab.slotsOf (fingerprint := "7734006516643555398")

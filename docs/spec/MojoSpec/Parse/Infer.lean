@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9450531479846780804")
+:::moduleDocs (fingerprint := "11207519296145628600")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "17188177613617268651")
@@ -25,11 +25,10 @@ $`\mathsf{Int}`, and every other binary operator a $`\mathsf{Bool}`.
 :::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "4134415264142089499")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element its
-list's element type. A literal has its own type. A call of a struct has
-the struct's type, a call of a function its result, and `len` gives an
-$`\mathsf{Int}`. The method `pop` of a list gives the list's element
-type, any other method of a list $`\mathsf{None}`, and a method of a
-struct its result. A literal left open takes the type expected where
+list's element type. A literal has its own type. A call or a method call
+has the result of its signature. A call of a struct that cannot be built
+still has the struct's type, so that the checker reports why, and `len`
+gives an $`\mathsf{Int}`. Any other call with no signature has no type. A literal left open takes the type expected where
 it stands, a list type or an array type, and the checker compares an
 array's size with the literal's length. With no list or array expected, it is
 an array of its elements, of the type of the first: Mojo's
@@ -44,16 +43,17 @@ $`\mathsf{Bool}` becomes the place $`p`, since Mojo does not move such a
 value; one through an element of a list or an array stays a transfer.
 :::
 
-:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.callParamTys MojoGrimoire.Parse.methodParamTys (fingerprint := "17102273561642688555")
+:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.paramTys MojoGrimoire.Parse.unsignedResult (fingerprint := "10243996572664085767")
 *Definition: expected types.* A literal expected to have a list type or an
 array type has that type, which the checker compares with its elements;
 otherwise its elements decide. Its elements are expected to have its
-element type. The arguments of a call are expected to have the types of
-the parameters of the function, of the struct's initializer, or of the
-struct's fields when it has none; those of a method, the types of its
-parameters after `self`, for the number of arguments of the call.
+element type. The arguments of a call or a method call are expected to
+have the types of the parameters of its signature, for the number of
+arguments of the call, and those of a call with no signature nothing. So
 `append` takes an element of its list, `pop()` nothing and `pop(i)` an
-$`\mathsf{Int}`.
+$`\mathsf{Int}`, and a struct that cannot be built takes nothing. A call
+with no signature has the type of a struct the program declares, `len`'s
+$`\mathsf{Int}`, or none.
 :::
 
 :::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "507949887862353920")

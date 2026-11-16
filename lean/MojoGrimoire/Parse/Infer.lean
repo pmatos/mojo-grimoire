@@ -7,7 +7,7 @@ declared as `var x = e`, and the type of a literal `[e₁, …, eₙ]`.
 
 Inference follows the program's declarations: the types of the
 parameters, of the variables declared so far, of the fields of each
-struct, and the result of each function and method. A variable takes the
+struct, and the signature of each call and method call. A variable takes the
 type of its initial value. A literal takes the type expected where it
 stands: the declared type of its variable, the type of the place it is
 assigned to, the function's result when it is returned, the parameter it
@@ -46,26 +46,18 @@ def openLiteralTy : Ty → Ty
 have. -/
 def elemExpected (t : Ty) : Ty := (elemOf t).toOption.getD .noneType
 
-/-- The types of the parameters of a call of `f`: of its initializer when
-`f` names a struct, or of the function. -/
-def callParamTys (prog : Program) (f : Name) : List Ty :=
-  match findStruct prog f, findFun prog f with
-  | some sd, _ => match sd.init with
-    | some fd => fd.params.tail.map (·.ty)
-    | none => sd.fields.map (·.2)
-  | none, some fd => fd.params.map (·.ty)
-  | none, none => []
+/-- The types of the parameters of the signature `sig`, when there is one,
+which the arguments of a call are expected to have. -/
+def paramTys (sig : Option Signature) : List Ty :=
+  sig.elim [] (·.params.map (·.ty))
 
-/-- The types of the parameters of the method `m` on a value of type `t`,
-`self` aside, when it is called with `n` arguments. `append` takes an
-element of its list, `pop()` nothing and `pop(i)` an `Int`. -/
-def methodParamTys (prog : Program) (t : Option Ty) (m : Name) (n : Nat) : List Ty :=
-  match t with
-  | some (.list u) => (listMethod u m n).elim [] (·.1.map (·.ty))
-  | some (.struct s) => match (findStruct prog s).bind (findMethod · m) with
-    | some fd => fd.params.tail.map (·.ty)
-    | none => []
-  | _ => []
+/-- The type of a call of `f` with no signature: a struct's, even when it
+cannot be built, so that the checker reports why; `len`'s `Int`; and
+otherwise none. -/
+def unsignedResult (prog : Program) (f : Name) : Option Ty :=
+  if (findStruct prog f).isSome then some (.struct f)
+  else if f == "len" then some .int
+  else none
 
 mutual
 /-- Infers inside the place `p`, and gives its type, if it has one. -/
@@ -91,20 +83,14 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
     else (.transfer p', t)
   | .copy p => let (p', t) := inferPlace prog env p; (.copy p', t)
   | .call f args =>
-    let args' := (inferList prog env (callParamTys prog f) args).map (·.1)
-    let t := match findStruct prog f, findFun prog f with
-      | some _, _ => some (.struct f)
-      | none, some fd => some fd.result
-      | none, none => if f == "len" then some .int else none
-    (.call f args', t)
+    let sig := (callSig prog f).toOption
+    let args' := (inferList prog env (paramTys sig) args).map (·.1)
+    (.call f args', sig.elim (unsignedResult prog f) (some ·.result))
   | .method p m args =>
     let (p', pt) := inferPlace prog env p
-    let args' := (inferList prog env (methodParamTys prog pt m args.length) args).map (·.1)
-    let t := match pt with
-      | some (.list u) => some ((listMethod u m args.length).elim .noneType (·.2))
-      | some (.struct s) => ((findStruct prog s).bind (findMethod · m)).map (·.result)
-      | _ => none
-    (.method p' m args', t)
+    let sig := pt.bind fun t => (methodSig prog t m args.length).toOption
+    let args' := (inferList prog env (paramTys sig) args).map (·.1)
+    (.method p' m args', sig.map (·.result))
   | .unary op a =>
     (.unary op (inferExpr prog env .noneType a).1, some (if op == .neg then .int else .bool))
   | .binary op a b =>

@@ -2,8 +2,9 @@ import MojoGrimoire.Check.Errors
 
 /-!
 What the checker looks up in a program: its structs and functions, the
-fields and methods of a struct, and how the values of a type are copied and
-destroyed.
+fields and methods of a struct, the signature of each call and method call,
+and how the values of a type are copied and destroyed. Inference, the
+checker and elaboration all read the signatures of calls here.
 -/
 
 namespace MojoGrimoire.Check
@@ -26,17 +27,85 @@ def fieldTy (sd : StructDecl) (f : Name) : Option Ty :=
 def findMethod (sd : StructDecl) (m : Name) : Option FunDecl :=
   sd.methods.find? (·.name == m)
 
-/-- The parameters after `self`, and the result, of the method `m` of a list
-of elements of type `t` when it is called with `n` arguments. Each method
-takes its `self` `mut`. `append` takes an element and gives nothing. `pop`
-gives an element, and has two overloads: `pop()` takes nothing, and
-`pop(i)` takes an `Int`, which the overload for any number of arguments
-other than zero also takes. -/
-def listMethod (t : Ty) : Name → Nat → Option (List Param × Ty)
-  | "append", _ => some ([⟨.owned, "value", t⟩], .noneType)
-  | "pop", 0 => some ([], t)
-  | "pop", _ => some ([⟨.read, "i", .int⟩], t)
+/-- What a call needs to know of what it calls, Mojo's signature: the
+parameter that takes the receiver of a method, `none` for a function or a
+construction; the other parameters; the result; and, for a result that is a
+reference, the parameters it points into, Mojo's `ref [a, b]`. `generic`
+holds when the result has a generic type, an element of a list: Mojo builds
+it in place whatever type it stands for. -/
+structure Signature where
+  self : Option Param
+  params : List Param
+  result : Ty
+  origin : Option (List Name)
+  generic : Bool
+
+/-- The parameters of a signature, its receiver's first. -/
+def Signature.allParams (sig : Signature) : List Param :=
+  sig.self.toList ++ sig.params
+
+/-- The signature of the function `fd`, or of the method `fd` with its
+first parameter as the receiver. -/
+def funSig (fd : FunDecl) (method : Bool) : Signature :=
+  if method then ⟨fd.params.head?, fd.params.tail, fd.result, fd.origin, false⟩
+  else ⟨none, fd.params, fd.result, fd.origin, false⟩
+
+/-- The signature of the method `m` of a list of elements of type `t` when
+it is called with `n` arguments. Each method takes its `self` `mut`.
+`append` takes an element and gives nothing. `pop` gives an element, and
+has two overloads: `pop()` takes nothing, and `pop(i)` takes an `Int`,
+which the overload for any number of arguments other than zero also
+takes. -/
+def listMethod (t : Ty) (m : Name) (n : Nat) : Option Signature :=
+  let self : Param := ⟨.mutable, "self", .list t⟩
+  match m, n with
+  | "append", _ => some ⟨some self, [⟨.owned, "value", t⟩], .noneType, none, false⟩
+  | "pop", 0 => some ⟨some self, [], t, none, true⟩
+  | "pop", _ => some ⟨some self, [⟨.read, "i", .int⟩], t, none, true⟩
   | _, _ => none
+
+/-- The name of the type `t`, as Mojo writes it without its parameters. -/
+def typeName : Ty → Name
+  | .int => "Int"
+  | .bool => "Bool"
+  | .str => "StringLiteral"
+  | .noneType => "NoneType"
+  | .struct s => s
+  | .list _ => "List"
+  | .array .. => "Array"
+
+/-- The signature of a call of `f`: the construction of the struct `f`,
+which takes the parameters of its `__init__` after `self`, or each field
+`var` when it is `@fieldwise_init`; otherwise the function `f`. A struct
+wins over a function of the same name. `len` has none, since it takes a
+list or an array of any type. -/
+def callSig (prog : Program) (f : Name) : Except CheckError Signature :=
+  match findStruct prog f, findFun prog f with
+  | some sd, _ => match sd.init with
+    | some fd => pure ⟨none, fd.params.tail, .struct f, none, false⟩
+    | none =>
+      if sd.fieldwiseInit then
+        pure ⟨none, sd.fields.map fun (x, t) => ⟨.owned, x, t⟩, .struct f, none, false⟩
+      else throw (.noInitializer f)
+  | none, some fd => pure (funSig fd false)
+  | none, none => throw (.unknownFunction f)
+
+/-- The signature of the method `m` on a value of type `t`, called with `n`
+arguments: one of a list's methods, or a method of a struct, whose first
+parameter takes the receiver. An array has no methods, and the other types
+none either. -/
+def methodSig (prog : Program) (t : Ty) (m : Name) (n : Nat) : Except CheckError Signature :=
+  match t with
+  | .list u => match listMethod u m n with
+    | some sig => pure sig
+    | none => throw (.unknownMethod (typeName t) m)
+  | .struct s => do
+    let some sd := findStruct prog s | throw (.unknownStruct s)
+    let some fd := findMethod sd m | throw (.unknownMethod s m)
+    if fd.params.isEmpty then throw (.invalidSelf m)
+    pure (funSig fd true)
+  | .array .. => throw (.unknownMethod (typeName t) m)
+  | t => throw (.typeMismatch (.struct "") t)
 
 /-- How the values of the type `t` can be copied. `Int` and `Bool` are
 implicitly copyable, as in Mojo; a list or an array only explicitly, with

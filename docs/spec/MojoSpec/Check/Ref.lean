@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "References: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9621893305298742895")
+:::moduleDocs (fingerprint := "16558882463013679477")
 :::
 
 :::readable MojoGrimoire.Check.placeMutable MojoGrimoire.Check.callOrigins (fingerprint := "2885843637383139862")
@@ -25,10 +25,10 @@ parameter does, a `ref` parameter does when its argument may be changed,
 and a `read` parameter does not.
 :::
 
-:::readable MojoGrimoire.Check.refTarget (fingerprint := "10381929979995812181")
+:::readable MojoGrimoire.Check.refTarget (fingerprint := "5155544058376309071")
 *Rule: what a reference names.* $`\mathsf{ref}~x = e` needs $`e` to be a
-place, which must be initialized, or a call of a function or method that
-returns a reference. A place gives a reference to itself, or to the origins
+place, which must be initialized, or a call whose signature returns a
+reference. A place gives a reference to itself, or to the origins
 of the reference it goes through; a call gives the origins above. Any
 other expression, a struct's construction included, is rejected.
 :::

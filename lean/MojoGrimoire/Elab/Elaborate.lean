@@ -101,28 +101,20 @@ def declaredBlock : List Stmt → List Place
 end
 
 /-- Whether each argument of a call of `f` is passed by value, when it is a
-place. A struct's construction takes its arguments by its initializer's
-parameters after `self`, or by value; `len` takes its list by reference. -/
+place, as its signature says. `len`, which has none, takes its list by
+reference. -/
 def callModes (prog : Program) (f : Name) : List Bool :=
-  match findStruct prog f, findFun prog f with
-  | some sd, _ => match sd.init with
-    | some fd => fd.params.tail.map passedByValue
-    | none => sd.fields.map fun _ => true
-  | none, some fd => fd.params.map passedByValue
-  | none, none => []
+  match callSig prog f with
+  | .ok sig => sig.params.map passedByValue
+  | .error _ => []
 
 /-- Whether the receiver `p` of a call of the method `m` with `n` arguments,
-and each argument, is passed by value. `append` takes its list by
-reference and its argument by value, and `pop` takes its list by reference
-and its index by value. -/
+and each argument, is passed by value, as the method's signature says. -/
 def methodModes (prog : Program) (env : TyEnv) (p : Place) (m : Name) (n : Nat) :
     Bool × List Bool :=
-  match placeTyOf prog env p with
-  | some (.list u) => (false, ((listMethod u m n).elim [] (·.1)).map passedByValue)
-  | some (.struct s) => match (findStruct prog s).bind (findMethod · m) with
-    | some ⟨_, self :: params, _, _, _⟩ => (self.conv == .owned, params.map passedByValue)
-    | _ => (false, [])
-  | _ => (false, [])
+  match (placeTyOf prog env p).bind fun t => (methodSig prog t m n).toOption with
+  | some sig => (sig.self.any passedByValue, sig.params.map passedByValue)
+  | none => (false, [])
 
 /-- What elaboration knows inside a function: the program, its slots, the
 slots it owns in the order they die when several die at once, and the types

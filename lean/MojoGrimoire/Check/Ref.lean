@@ -49,18 +49,17 @@ def refTarget (prog : Program) (e : Expr) : CheckM (Ty × List Place × Bool) :=
     let t ← readPlace prog p
     pure (t, resolvePlace (← get).vars p, ← placeMutable p)
   | .call f args =>
-    let some fd := (findStruct prog f).elim (findFun prog f) (fun _ => none)
-      | throw CheckError.notAReference
-    let some os := fd.origin | throw CheckError.notAReference
+    let .ok sig := callSig prog f | throw CheckError.notAReference
+    let some os := sig.origin | throw CheckError.notAReference
     let t ← checkExprAs prog true e
-    let (origins, m) ← callOrigins f os fd.params args
+    let (origins, m) ← callOrigins f os sig.params args
     pure (t, origins, m)
   | .method p m args =>
-    let .struct s ← placeTy prog p | throw CheckError.notAReference
-    let some fd := (findStruct prog s).bind (findMethod · m) | throw CheckError.notAReference
-    let some os := fd.origin | throw CheckError.notAReference
+    let .ok sig := methodSig prog (← placeTy prog p) m args.length
+      | throw CheckError.notAReference
+    let some os := sig.origin | throw CheckError.notAReference
     let t ← checkExprAs prog true e
-    let (origins, mut_) ← callOrigins m os fd.params (.place p :: args)
+    let (origins, mut_) ← callOrigins m os sig.allParams (.place p :: args)
     pure (t, origins, mut_)
   | _ => throw CheckError.notAReference
 
