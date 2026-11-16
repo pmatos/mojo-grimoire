@@ -13,15 +13,17 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Errors: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7423015564557601318")
+:::moduleDocs (fingerprint := "120423205175763559")
 :::
 
-:::readable MojoGrimoire.Check.CheckError (fingerprint := "12285633989662432982")
+:::readable MojoGrimoire.Check.CheckError (fingerprint := "6360745393357381587")
 *Definition: the classes of error.* The checker rejects a program with one
 of these classes, each with the names or types it concerns:
 
-* names: an unknown variable, function, struct, field or method, and a name
-  declared twice where it must be unique (`duplicate`);
+* names: an unknown variable, function or struct, a field or a method that
+  a type does not have (`unknownAttribute`, one class, since the compiler
+  reports both alike), and a name declared twice where it must be unique
+  (`duplicate`);
 * types: a type that may not be declared, such as that of string literals
   (`invalidType`), a struct that contains itself (`recursiveStruct`), a
   type other than the one expected (`typeMismatch`), an index into a

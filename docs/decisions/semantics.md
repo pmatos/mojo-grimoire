@@ -92,6 +92,11 @@ where the compiler and the manual disagree, the model follows the compiler.
   it initialized. A loop body must leave initialized every part that was
   initialized before the loop; as the compiler does, the checker reports
   a body that does not as `uninitializedUse`.
+- Only a struct has fields, and only a struct or a list has methods. A
+  field or a method that the type of its receiver lacks, whatever that
+  type, is one class, `unknownAttribute`, named with the type's name: the
+  compiler reports both as "has no attribute" (#42,
+  [conformance.md](conformance.md#unknown-fields-and-methods)).
 - A declaration may not reuse the name of a variable in scope, a
   parameter included, so no variable hides another. Sibling blocks may
   reuse a name. ASAP elaboration relies on this, since it tracks

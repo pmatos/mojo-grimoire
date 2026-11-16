@@ -11,13 +11,14 @@ namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
 
-/-- The classes of error that the checker reports. -/
+/-- The classes of error that the checker reports. `unknownAttribute` is a
+field or a method that the type named `ty` does not have: the compiler
+reports both alike, so the model does not tell them apart. -/
 inductive CheckError where
   | unknownVariable (name : Name)
   | unknownFunction (name : Name)
   | unknownStruct (name : Name)
-  | unknownField (struct field : Name)
-  | unknownMethod (struct method : Name)
+  | unknownAttribute (ty attr : Name)
   | duplicate (name : Name)
   | invalidType (ty : Ty)
   | recursiveStruct (name : Name)

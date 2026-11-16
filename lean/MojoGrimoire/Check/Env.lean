@@ -93,19 +93,19 @@ def callSig (prog : Program) (f : Name) : Except CheckError Signature :=
 /-- The signature of the method `m` on a value of type `t`, called with `n`
 arguments: one of a list's methods, or a method of a struct, whose first
 parameter takes the receiver. An array has no methods, and the other types
-none either. -/
+none either: a method that the type lacks is an unknown attribute, named
+with the type's name. -/
 def methodSig (prog : Program) (t : Ty) (m : Name) (n : Nat) : Except CheckError Signature :=
   match t with
   | .list u => match listMethod u m n with
     | some sig => pure sig
-    | none => throw (.unknownMethod (typeName t) m)
+    | none => throw (.unknownAttribute (typeName t) m)
   | .struct s => do
     let some sd := findStruct prog s | throw (.unknownStruct s)
-    let some fd := findMethod sd m | throw (.unknownMethod s m)
+    let some fd := findMethod sd m | throw (.unknownAttribute s m)
     if fd.params.isEmpty then throw (.invalidSelf m)
     pure (funSig fd true)
-  | .array .. => throw (.unknownMethod (typeName t) m)
-  | t => throw (.typeMismatch (.struct "") t)
+  | t => throw (.unknownAttribute (typeName t) m)
 
 /-- How the values of the type `t` can be copied. `Int` and `Bool` are
 implicitly copyable, as in Mojo; a list or an array only explicitly, with
@@ -122,14 +122,16 @@ def hasDeinit (prog : Program) : Ty → Bool
   | .struct s => (findStruct prog s).any (·.deinit.isSome)
   | _ => false
 
-/-- The type of the field `f` of a value of type `t`. -/
+/-- The type of the field `f` of a value of type `t`. Only a struct has
+fields; on any other type the field is an unknown attribute, named with
+the type's name. -/
 def fieldOf (prog : Program) (t : Ty) (f : Name) : Except CheckError Ty :=
   match t with
   | .struct s => do
     let some sd := findStruct prog s | throw (.unknownStruct s)
-    let some ft := fieldTy sd f | throw (.unknownField s f)
+    let some ft := fieldTy sd f | throw (.unknownAttribute s f)
     pure ft
-  | t => throw (.typeMismatch (.struct "") t)
+  | t => throw (.unknownAttribute (typeName t) f)
 
 /-- The names of the fields of a value of type `t`: none unless `t` is a
 struct. -/

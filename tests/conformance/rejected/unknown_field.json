@@ -1,6 +1,6 @@
 {
   "outcome": "rejected",
   "stdout": [],
-  "class": "unknownField",
+  "class": "unknownAttribute",
   "diagnostic": "'Point' value has no attribute 'y'"
 }

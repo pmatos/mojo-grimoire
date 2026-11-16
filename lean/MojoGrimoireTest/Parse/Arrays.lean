@@ -87,7 +87,7 @@ private def xs : Place := .var "xs"
   some (.finished ["3 1 4 3 2"])
 
 -- An array has no `append`, and is copied only explicitly.
-#guard rejects (inMain ["var xs = [1, 2]", "xs.append(3)"]) (.unknownMethod "Array" "append")
+#guard rejects (inMain ["var xs = [1, 2]", "xs.append(3)"]) (.unknownAttribute "Array" "append")
 #guard rejects (inMain ["var xs = [1, 2]", "var ys = xs", "print(ys[0])"])
   (.implicitCopy (.array .int 2))
 
