@@ -19,7 +19,7 @@ checker tells a literal that initializes an expected type from one that
 takes the type of its elements (#46). What inference cannot find stays
 `None`, which the checker rejects as a type that may not be declared.
 `List[u](e₁, …, eₙ)` is a list of `u`; nothing is expected of its
-arguments, which no initializer takes.
+arguments, which the checker rejects.
 
 Inference also gives `p^` its meaning when `p` is an `Int` or a `Bool`.
 Mojo does not move such a value: it warns that the transfer has no effect,

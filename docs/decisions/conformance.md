@@ -107,9 +107,14 @@ Ordinary calls keep their classes, since the compiler names the misfit
 there: `typeMismatch` and `arityMismatch`. So does a literal passed to a
 function or a method, which the compiler converts and reports as "cannot
 be converted from list literal", and a literal with no expected type whose
-elements differ, which it reports as "not compatible". An argument's own
-error, and one the compiler finds only once an initializer fits, such as
-`implicitCopy` or `uninitializedUse`, keep their classes too.
+elements differ, which it reports as "not compatible". An error the
+compiler finds only once an initializer fits, such as `implicitCopy` or
+`uninitializedUse`, keeps its class, and so does an error inside an
+argument that the model checks before it finds the misfit. The compiler
+checks every argument before it looks for an initializer, so an error in a
+later argument, `P(True, nope)`, comes first there; the model checks
+arguments left to right and reports the misfit, as it does for an
+ordinary call (#89).
 
 Rejected: leaving the message unclassified, which the suite counts as a
 disagreement, so that these programs could never be compared; and letting

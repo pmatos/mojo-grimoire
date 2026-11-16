@@ -71,7 +71,9 @@ Here $`n` is an integer, $`b` a boolean and $`s` a string literal.
   which inference replaces only when a list or an array is expected.
 * $`\mathsf{List}[t](e^+)` is Mojo's `List[u](e1, e2)` with at least one
   argument, which Mojo 1.2.0 rejects (#46): no initializer of `List` takes
-  its elements as arguments. The Lean calls it `listInit`.
+  its elements as arguments. It accepts one argument that is a list or an
+  array, as an iterable, but that form is outside the subset, and the
+  model rejects it too. The Lean calls it `listInit`.
 * $`\mathsf{drops}(e; p^*; q^*)` performs the operation $`e`, destroying
   the values in the places $`p^*` once its operands are read and those in
   $`q^*` once it is done. No program contains it: elaboration inserts it

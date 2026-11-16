@@ -30,7 +30,8 @@ An initialization whose arguments fit no initializer is `noMatchingInit`,
 however they misfit, since the compiler tries every initializer and reports
 only that none fits (#46): a construction `S(…)`, a literal that
 initializes the list or array expected where it stands, and
-`List[u](e₁, …, eₙ)`, which no initializer of `List` takes. A literal
+`List[u](e₁, …, eₙ)`, which no initializer of `List` takes, but for one
+iterable argument, which is outside the subset. A literal
 passed to a function or a method is converted to its parameter's type, and
 the compiler reports a literal that does not fit, also inside it, as a
 type mismatch. A literal with no expected type takes the type of its

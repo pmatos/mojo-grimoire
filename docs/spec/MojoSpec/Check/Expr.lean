@@ -83,7 +83,7 @@ origins overlap.
 *Rule: passing a place or a value.* A place passed to a `read` or `ref`
 parameter must be initialized and of the parameter's type; one passed `mut`
 must also be a place the function may change; one passed `var` is copied
-implicitly. Any other value may be passed only `var` or `read`. No argument
+implicitly. Any other value may not be passed `mut`. No argument
 may be passed `out` or `deinit`. A misfit is reported as the call's fit
 says.
 
@@ -139,7 +139,8 @@ type:
   its first element, whose other elements must have that type;
 * $`\mathsf{List}[u](e^+)` checks each argument on its own, locating a
   place without reading it, and is then rejected as `noMatchingInit`
-  $`\mathsf{List}[u]`: no initializer of `List` takes its elements;
+  $`\mathsf{List}[u]`: no initializer of `List` takes its elements, and
+  the one that takes an iterable is outside the subset;
 * the methods of a list take it `mut`, so they need a list the function
   may change; `len(e)`, when the program declares no function or struct
   `len`, takes one list or array and gives an $`\mathsf{Int}`: a place

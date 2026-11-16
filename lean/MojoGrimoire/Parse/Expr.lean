@@ -14,7 +14,8 @@ borrows, and `x^.m(…)` as a call on `x` that takes it only for a method
 whose `self` is `var`. The type of a literal `[…]` is left for
 inference, and `List[T]()` is an empty list of `T`. `List[T](e₁, …, eₙ)`
 with arguments is read as a call of `List`'s initializer, which the checker
-rejects as the compiler does (#46).
+rejects (#46). The compiler rejects it too, but for one iterable argument,
+a form outside the subset.
 
 `^` is also binary XOR, which is outside the subset. As in the compiler,
 `^` after a term is XOR when the next token of the logical line can start

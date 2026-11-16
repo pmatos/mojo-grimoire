@@ -31,7 +31,8 @@ Lists, `List[T]`, follow the rules of
   and is rejected when it is negative (`negativeIndex`). `//` and `%` round toward negative infinity
   and give 0 for a zero divisor, as the compiler does.
 - `List[T]()` is an empty list. `List[T](e1, …, en)` with arguments is
-  rejected (`noMatchingInit`), as the compiler rejects it (#46). The only
+  rejected (`noMatchingInit`), as the compiler rejects it, but for one
+  iterable argument (see below) (#46). The only
   initializer of `List` at the pin that takes the elements as arguments
   (`std/collections/list.mojo:463`) also needs the keyword argument
   `__list_literal__`, which only a list literal passes: since Mojo 25.4, a
@@ -40,10 +41,11 @@ Lists, `List[T]`, follow the rules of
   (`docs/site/releases/v0.25.4.md:117`). The same call explains why a
   literal that does not fit the list or array it initializes is
   `noMatchingInit` too.
-- The compiler also accepts `List[T]([e1, …, en])`, through its
-  initializer from any iterable, and `List[T](capacity=n)`. Both are
-  outside the subset: the model rejects the first as `noMatchingInit`, and
-  the second is a syntax error.
+- The compiler also accepts `List[T](e)` with one iterable argument, a
+  literal `[e1, …, en]`, a list or an array, through its initializer from
+  any iterable, and `List[T](capacity=n)`. Both are outside the subset:
+  the model rejects the first as `noMatchingInit`, and the second is a
+  syntax error.
 
 ## Arrays
 
