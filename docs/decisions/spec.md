@@ -133,7 +133,11 @@ repository. The deploy tries up to three times, each only if the one before
 failed. It restores the caches that `ci.yml` saves and never saves one.
 
 Pages must be enabled with the source "GitHub Actions" in the repository's
-settings; the human does this once.
+settings; the human does this once. The repository's default branch is
+`main`, and the `github-pages` environment allows deployments from `main`
+only. Enabling Pages writes the default branch of that moment into the
+environment's branch rule. On 2026-11-16 that branch was not `main`, and
+every deploy from `main` was rejected until the rule was changed.
 
 Rejected: committing the HTML to a `gh-pages` branch, which puts build
 output in git and needs `contents: write` in the job that runs Lake.
