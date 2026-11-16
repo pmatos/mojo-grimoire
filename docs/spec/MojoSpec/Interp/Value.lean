@@ -36,7 +36,9 @@ assignment, or after its value was moved out.
 
 :::readable MojoGrimoire.Interp.Step MojoGrimoire.Interp.Value.get MojoGrimoire.Interp.Value.set (fingerprint := "4534024368049711911")
 *Definition: parts of a value.* A path of steps names a part of a value:
-each step is a field of a struct, or the element at a position of a list.
+each step is a field of a struct, or the element at a position of a list
+or an array. An array is a list value whose length is the size $`N` of
+its type $`\mathsf{Array}[t, N]`, which the checker ensures.
 Reading a part, or replacing it with another value, fails when the path
 does not lead to a part.
 :::

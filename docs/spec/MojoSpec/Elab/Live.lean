@@ -37,8 +37,8 @@ $`B` not in it; $`A \setminus B` keeps the slots of $`A` not in $`B`.
 :::readable MojoGrimoire.Elab.indexUses MojoGrimoire.Elab.uses MojoGrimoire.Elab.usesList (fingerprint := "15538863250245669106")
 *Definition: uses.* An expression uses the slots of every place it reads,
 copies, transfers or calls a method on, the slots its index expressions
-use, and those of its arguments. A use of an element of a list uses the
-slot of the list.
+use, and those of its arguments. A use of an element of a list or an
+array uses the slot of the list or array.
 :::
 
 :::readable MojoGrimoire.Elab.indexMoves MojoGrimoire.Elab.moves MojoGrimoire.Elab.movesList (fingerprint := "7077480849577509676")

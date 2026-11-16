@@ -102,14 +102,15 @@ here (#27).
   function's result, a parameter, and the element type of an enclosing
   literal or of the list that `append` adds to. A literal with no type
   expected and no elements, `var xs = []`, is rejected.
-- An array has no methods. `len` and indexing work as on a list.
+- An array has no methods. `len` and indexing work as on a list. At run
+  time an array is a list value whose length is its size `N`.
 - An array's size is part of its type, so `[1, 2, 3]` is not an
   `Array[Int, 2]`. The size in a type is an integer literal.
 - A constant index into an array of `N` elements is rejected when it is `N`
   or more (`constantIndexOutOfBounds`); one known only at run time fails
   then, as on a list. A constant index into a list fails only at run time.
-- An array of a struct contains it, so a struct may not hold an array of
-  itself.
+- A struct may not hold an array, or a list, of itself: the compiler
+  rejects both, and so does the model (`recursiveStruct`).
 
 Rejected: keeping every literal a `List`, which would accept programs that
 the compiler rejects, such as `append` to an unannotated literal.

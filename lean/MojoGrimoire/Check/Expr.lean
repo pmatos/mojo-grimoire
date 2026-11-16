@@ -49,8 +49,8 @@ def copyPlace (prog : Program) (p : Place) : CheckM Ty := do
 
 /-- Transfers the value out of the place `p`, Mojo's `p^`, which leaves `p`
 uninitialized. The function must own the value, or hold it `mut`: a `read`
-or `ref` parameter cannot give its value away. An element of a list cannot
-be transferred out, since the list would be left with a hole. -/
+or `ref` parameter cannot give its value away. An element of a list or an
+array cannot be transferred out, since it would be left with a hole. -/
 def transferPlace (prog : Program) (p : Place) : CheckM Ty := do
   let t ← readPlace prog p
   if splitPlace.indexed p then throw (CheckError.transferFromElement p)

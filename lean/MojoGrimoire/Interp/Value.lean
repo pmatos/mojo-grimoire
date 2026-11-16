@@ -5,9 +5,12 @@ The values of the interpreter, and how a part of a value is read and
 replaced.
 
 A value is an `Int`, a `Bool`, a struct with its fields, or a list with its
-elements. A field moved out of a struct leaves `uninit` in its place, and a
-variable whose value was transferred holds `uninit`. A part of a value is
-named by a path of steps: a field of a struct, or an element of a list.
+elements. An array is a list value too: its length is fixed by its type,
+`Array[T, N]` holding `N` elements, which the checker ensures, so the
+interpreter needs no value of its own for it. A field moved out of a
+struct leaves `uninit` in its place, and a variable whose value was
+transferred holds `uninit`. A part of a value is named by a path of steps:
+a field of a struct, or an element of a list or an array.
 -/
 
 namespace MojoGrimoire.Interp
@@ -26,7 +29,7 @@ inductive Value where
   | uninit
 
 /-- A step from a value to one of its parts: a field of a struct, or the
-element at an index of a list. -/
+element at an index of a list or an array. -/
 inductive Step where
   | field (name : Name)
   | elem (index : Nat)

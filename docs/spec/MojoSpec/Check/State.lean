@@ -52,8 +52,9 @@ monad that reads and updates this state and may reject the program.
 *Definition: the parts of a place.* A place is a variable and a path:
 $`x` is $`x` with $`\epsilon`, and $`p.f` is the variable of $`p`
 with the path of $`p` followed by $`f`. The checker does not follow the
-elements of a list: the path of a place that goes through $`p[e]` stops at
-$`p`, so an element counts as initialized when its list is.
+elements of a list or an array: the path of a place that goes through
+$`p[e]` stops at $`p`, so an element counts as initialized when its list
+or array is.
 :::
 
 :::readable MojoGrimoire.Check.initialized MojoGrimoire.Check.uninitialize (fingerprint := "11992667982633253845")

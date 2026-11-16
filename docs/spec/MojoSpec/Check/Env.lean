@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1588124030301744694")
+:::moduleDocs (fingerprint := "9492104776862680402")
 :::
 
 :::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "12927198337935588870")
@@ -44,12 +44,13 @@ type $`\mathsf{Int}`, $`\mathsf{Bool}`, a struct of the program, or a
 list or an array of values of such a type, and no other.
 :::
 
-:::readable MojoGrimoire.Check.contains (fingerprint := "16104821665075561169")
+:::readable MojoGrimoire.Check.elemBase MojoGrimoire.Check.contains (fingerprint := "14586368853234422197")
 *Definition: containment.* A type $`t` contains the struct $`S` when it is
-$`S`, a struct with a field whose type contains $`S`, or an array of a
-type that contains $`S`: an array holds its elements inline, while a list
-holds them apart, so a list of $`S` does not count. The search is
-bounded by the number of structs of the program, since a longer chain of
-fields repeats a struct. A struct whose field contains the struct itself
-would be infinite, and is rejected.
+$`S`, a struct with a field whose type contains $`S`, or a list or an
+array of a type that contains $`S`. The search looks through lists and
+arrays to the type of their elements, and is bounded by the number of
+structs of the program, since a longer chain of fields repeats a struct.
+A struct whose field contains the struct itself is rejected: held
+directly it would be infinite, and held in a list or an array the
+compiler rejects it too.
 :::

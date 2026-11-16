@@ -65,17 +65,23 @@ def validTy (prog : Program) : Ty → Bool
   | .list t | .array t _ => validTy prog t
   | .str | .noneType => false
 
-/-- Whether the type `t` contains, through the fields of its structs, the
-struct `s`. A list holds its elements apart from the value that holds the
-list, so a list of `s` does not count; an array holds them inline, so an
-array of `s` does. `fuel` bounds the depth of the search; the number of structs of
-the program is enough, since a deeper chain repeats a struct. -/
+/-- The type of what a value of type `t` holds through its lists and arrays:
+the element type, through any number of them, or `t` itself. -/
+def elemBase : Ty → Ty
+  | .list t | .array t _ => elemBase t
+  | t => t
+
+/-- Whether the type `t` contains, through the fields of its structs and
+the elements of its lists and arrays, the struct `s`: the compiler rejects
+a struct with a field that holds the struct itself, or a list or an array
+of it. `fuel` bounds the depth of the search; the number of structs of the
+program is enough, since a deeper chain repeats a struct. -/
 def contains (prog : Program) (s : Name) : Nat → Ty → Bool
   | 0, _ => false
-  | fuel + 1, .struct t =>
-    t == s || (findStruct prog t).any fun sd =>
-      sd.fields.any fun (_, ft) => contains prog s fuel ft
-  | fuel + 1, .array t _ => contains prog s fuel t
-  | _, _ => false
+  | fuel + 1, t => match elemBase t with
+    | .struct u =>
+      u == s || (findStruct prog u).any fun sd =>
+        sd.fields.any fun (_, ft) => contains prog s fuel ft
+    | _ => false
 
 end MojoGrimoire.Check

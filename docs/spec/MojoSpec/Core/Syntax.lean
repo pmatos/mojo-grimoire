@@ -27,7 +27,7 @@ index  p[e]
 ```
 
 $`x` is a variable, $`p.f` the field $`f` of the value in $`p`, and
-$`p[e]` the element at index $`e` of the list in $`p`. Places and
+$`p[e]` the element at index $`e` of the list or array in $`p`. Places and
 expressions are defined together, since an index is an expression.
 An expression $`e` is one of:
 

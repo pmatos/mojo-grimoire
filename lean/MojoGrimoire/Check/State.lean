@@ -11,8 +11,8 @@ variable is the list of its uninitialized parts. An initialized variable has
 none, and one that is declared without a value, or whose value was
 transferred, has the whole variable, the empty path. Moving a field out adds
 that field's path. A part is initialized when no uninitialized part is
-above or below it. The elements of a list are not parts: they are
-initialized whenever the list is.
+above or below it. The elements of a list or an array are not parts: they
+are initialized whenever the list or array is.
 -/
 
 namespace MojoGrimoire.Check
@@ -59,14 +59,14 @@ the program. -/
 abbrev CheckM := StateT State (Except CheckError)
 
 /-- The variable a place starts from, and the path from it to the place.
-The elements of a list are not parts that the checker follows: the path to
-a place inside an element stops at the list. -/
+The elements of a list or an array are not parts that the checker follows:
+the path to a place inside an element stops at the list or array. -/
 def splitPlace : Place → Name × Path
   | .var x => (x, [])
   | .field p f => let (x, path) := splitPlace p; if indexed p then (x, path) else (x, path ++ [f])
   | .index p _ => splitPlace p
 where
-  /-- Whether the place goes through an element of a list. -/
+  /-- Whether the place goes through an element of a list or an array. -/
   indexed : Place → Bool
     | .var _ => false
     | .field p _ => indexed p
