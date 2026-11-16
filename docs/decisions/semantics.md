@@ -282,6 +282,22 @@ else. These choices hold:
   convention is `read`; `self` may omit its type.
 - `p += e`, `-=` and `*=` are `p = p op e`; `print(...)` on a line of its
   own is the print statement; docstrings are skipped.
+- `^` after a term is binary XOR, as in the compiler's postfix loop
+  (`ParserExprs.cpp`), when the next token can start an expression
+  (`isPrimaryExprStart`), is not `.`, and lies in the same statement. XOR is
+  outside the subset, so `x^ + 1`, `x^ (1)`, `x^ * 2` and `x^ == 3` are
+  syntax errors. Otherwise `^` is a transfer: `f(x^)`, `(x^)`, `x^` at the
+  end of a line, and `x^` before `<`, `and` or `or` (#54); before `if`, `in`
+  or `is` it is not XOR either, but the model reads none of those forms.
+  The compiler continues a statement onto a deeper-indented line, and,
+  inside call arguments and subscripts, onto any line, so there `x^` with
+  `+ 1` on the next line is XOR. Inside a parenthesized expression or a
+  list literal it does not, and `(x^` with `+ 1)` at the statement's column
+  fails to parse. The model's lexer ignores line breaks inside brackets, so
+  it reads XOR in all of these, and ends the logical line outside them,
+  where the indented line is a syntax error: each is a syntax error in the
+  model as in the compiler. The model does not read a field of a transfer,
+  so `s^.f`, which the compiler accepts, stays a syntax error (#66).
 - The parser writes the type `None` where the program leaves a type
   implicit, since no variable of the subset has that type. Inference then
   gives `var x = e` the type of `e`, and a literal `[e1, …, en]` the type

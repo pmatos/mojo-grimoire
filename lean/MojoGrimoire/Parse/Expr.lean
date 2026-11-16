@@ -9,6 +9,10 @@ A postfix chain starts from a primary expression. From a name, it stays a
 place while it reads fields and indices; `x^`, `x.copy()`, a method call
 `x.m(…)` and a call `f(…)` make it an expression. The type of a literal
 `[…]` is left for inference, and `List[T](…)` is a list of `T`.
+
+`^` is also binary XOR, which is outside the subset. As in the compiler,
+`^` after a term is XOR when the next token of the logical line can start
+an expression and is not `.`, and a transfer otherwise.
 -/
 
 namespace MojoGrimoire.Parse
@@ -42,6 +46,23 @@ def acceptOp (ops : List (String × BinOp)) : P (Option BinOp) := do
     | some op => let _ ← next; pure (some op)
     | none => pure none
   | _ => pure none
+
+/-- The compiler's keywords that cannot start an expression: those of
+`TokenKinds.def` that `isPrimaryExprStart` (`ParserExprs.cpp`) leaves out.
+Every other name can. -/
+def nonOperandKeywords : List String :=
+  ["and", "as", "assert", "break", "case", "class", "continue", "del", "elif", "else",
+   "except", "finally", "for", "from", "global", "if", "import", "in", "is", "match",
+   "nonlocal", "or", "pass", "raise", "return", "struct", "trait", "try", "while", "with",
+   "yield", "__extension", "__mlir_region", "__match", "__enum"]
+
+/-- Whether the token `t` can start an expression, by the compiler's
+`isPrimaryExprStart`, less `.`. Of its symbols, the lexer reads only these. -/
+def startsOperand : Tok → Bool
+  | .int _ | .str _ => true
+  | .ident x => !nonOperandKeywords.contains x
+  | .sym s => ["+", "-", "*", "(", "[", "=="].contains s
+  | .newline | .indent | .dedent => false
 
 mutual
 /-- Reads an expression. -/
@@ -153,6 +174,7 @@ def trailers (fuel : Nat) (t : Term) : P Term :=
       expectSym "]"
       trailers n (.place (.index p i))
     else if ← acceptSym "^" then
+      if (← peek).any startsOperand then fail "a binary `^` (XOR), which is outside the subset"
       let .place p := t | fail "a transfer of a value that is not a place"
       pure (.expr (.transfer p))
     else if ← acceptSym "(" then
