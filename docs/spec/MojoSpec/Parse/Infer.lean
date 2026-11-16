@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15502130861766024983")
+:::moduleDocs (fingerprint := "14420157884473697847")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "7491183084080357663")
@@ -22,7 +22,7 @@ variables in scope, innermost first. An arithmetic operator gives an
 $`\mathsf{Int}`, and every other binary operator a $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "17916874179727791758")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "1276985125836610710")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array. A literal has its own type, and
@@ -43,7 +43,8 @@ that elaboration inserts have the type of their operation. Inference fills
 in the literals inside an expression as it goes; where it finds no type,
 it gives none. A transfer $`p\,\hat{}` of an $`\mathsf{Int}` or a
 $`\mathsf{Bool}` becomes the place $`p`, since Mojo does not move such a
-value; one through an element of a list or an array stays a transfer.
+value, wherever $`p` is: also an element of a list or an array, or a field
+of one.
 :::
 
 :::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.paramTys MojoGrimoire.Parse.unsignedResult (fingerprint := "18258247691432712068")
