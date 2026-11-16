@@ -12,8 +12,10 @@ destroyed:
 - inside an expression, when an operation nested in it last uses the value:
   right after the operation reads it, for an operand passed by value, or
   right after the operation is done, for one passed by reference;
-- right after the statement that last uses it otherwise, or right after its
-  declaration when nothing uses it;
+- right after the statement that last uses it otherwise, or right after the
+  declaration or assignment that gives it when nothing uses it, even when
+  that assignment destroys or consumes the old value, as in
+  `s = s^.consume()`;
 - at the start of a branch of an `if` that does not use it, when the test
   or the other branch does;
 - right after a loop that uses it, since the next iteration might use it;
@@ -85,11 +87,15 @@ def movesStmt (sl : Slots) : Stmt → List Place
   | .print args => movesList sl args
   | _ => []
 
-/-- The slots dead after the simple statement `s`, given the slots `after`
-live after it: those it uses but does not move away, and those it defines,
-unless they are live. -/
-def dying (sl : Slots) (s : Stmt) (after : List Place) : List Place :=
-  diff (union (diff (usesStmt sl s) (movesStmt sl s)) (defs sl s)) after
+/-- The slots that die right after the simple statement `s`, given the
+slots `gone` that its expressions destroy or consume, and the slots `after`
+live after it: those it uses but neither moves away nor leaves in `gone`,
+and those it defines, unless they are live. `gone` holds values that die
+before `s` defines anything, so it never holds the value that `s` defines,
+even when an assignment destroys or consumes the old value of the slot it
+assigns. -/
+def dying (sl : Slots) (s : Stmt) (gone after : List Place) : List Place :=
+  diff (union (diff (usesStmt sl s) (union (movesStmt sl s) gone)) (defs sl s)) after
 
 mutual
 /-- The local variables whose values are dropped that the statement `s`
@@ -287,12 +293,12 @@ def envAfter (prog : Program) (sl : Slots) (env : TyEnv) (s : Stmt) : TyEnv :=
   | _ => env
 
 mutual
-/-- Elaborates the statement `s`, given the slots live after it. What its
-expressions do not destroy, and is dead after it, dies right after it. -/
+/-- Elaborates the statement `s`, given the slots live after it. What dies at
+it, given what its expressions destroy or consume, dies right after it. -/
 def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
   let sl := ctx.sl
   let rest (s' : Stmt) (inner : List Place) : List Stmt :=
-    s' :: drops ctx.owned (diff (dying sl s after) inner)
+    s' :: drops ctx.owned (dying sl s inner after)
   match s with
   | .ifElse c a b =>
     let la := liveBlock sl a after
