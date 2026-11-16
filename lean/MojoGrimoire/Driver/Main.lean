@@ -62,6 +62,7 @@ def CheckError.className : CheckError → String
   | .notAReference => "notAReference"
   | .invalidOrigin .. => "invalidOrigin"
   | .escapingReference .. => "escapingReference"
+  | .invalidatedReference .. => "invalidatedReference"
 
 /-- The name of a run-time error, as the driver reports it. -/
 def RunError.name : RunError → String

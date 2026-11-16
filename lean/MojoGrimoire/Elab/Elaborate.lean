@@ -113,7 +113,7 @@ def callModes (prog : Program) (f : Name) : List Bool :=
 
 /-- Whether the receiver `p` of a call of the method `m`, and each argument,
 is passed by value. `append` takes its list by reference and its argument
-by value. -/
+by value, and `pop` takes its list by reference. -/
 def methodModes (prog : Program) (env : TyEnv) (p : Place) (m : Name) : Bool × List Bool :=
   match placeTyOf prog env p with
   | some (.list _) => (false, [true])

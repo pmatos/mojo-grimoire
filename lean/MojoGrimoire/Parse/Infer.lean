@@ -57,10 +57,10 @@ def callParamTys (prog : Program) (f : Name) : List Ty :=
   | none, none => []
 
 /-- The types of the parameters of the method `m` on a value of type `t`,
-`self` aside. `append` takes an element of its list. -/
+`self` aside. `append` takes an element of its list, and `pop` nothing. -/
 def methodParamTys (prog : Program) (t : Option Ty) (m : Name) : List Ty :=
   match t with
-  | some (.list u) => [u]
+  | some (.list u) => if m == "append" then [u] else []
   | some (.struct s) => match (findStruct prog s).bind (findMethod · m) with
     | some fd => fd.params.tail.map (·.ty)
     | none => []
@@ -100,7 +100,7 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
     let (p', pt) := inferPlace prog env p
     let args' := (inferList prog env (methodParamTys prog pt m) args).map (·.1)
     let t := match pt with
-      | some (.list _) => some .noneType
+      | some (.list u) => some (if m == "pop" then u else .noneType)
       | some (.struct s) => ((findStruct prog s).bind (findMethod · m)).map (·.result)
       | _ => none
     (.method p' m args', t)

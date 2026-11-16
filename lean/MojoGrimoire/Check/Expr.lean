@@ -15,6 +15,12 @@ A `mut` argument may not alias another argument that is passed as a location,
 Mojo's argument exclusivity. An `Int` or a `Bool` passed to a `read`
 parameter is not passed as a location: Mojo copies it. A `mut` argument of
 any type is.
+
+A call records as changed each place it is passed `mut`, or `ref` when the
+place may be changed, once its operands are checked. That invalidates the
+references into the elements of a list that the place holds: the `ref`
+bindings, and the place operands of an enclosing operation that were
+located before the call.
 -/
 
 namespace MojoGrimoire.Check
@@ -147,12 +153,48 @@ def passPlace (prog : Program) (callee : Name) (c : Conv) (t : Ty) (p : Place) :
   | .owned => expect t (← copyPlace prog p)
   | .out | .deinit => throw (CheckError.invalidConvention callee)
 
+/-- How many changes the state records so far: where an operand checked
+now stands among them. -/
+def mark : CheckM Nat := do pure (← get).changes.length
+
+/-- Records that the place `p` is changed as a whole, and invalidates every
+reference bound with `ref` into an element of a list that `p` holds. -/
+def changePlace (prog : Program) (p : Place) : CheckM Unit := do
+  for q in resolvePlace (← get).vars p do
+    let m ← shapeOf prog q
+    let mut stale := []
+    for v in (← get).vars do
+      if let .alias os _ := v.access then
+        for o in os do
+          if invalidates m (← shapeOf prog o) then stale := v.name :: stale
+    modify fun s => { s with stale := union s.stale stale, changes := s.changes ++ [m] }
+
+/-- The places among the arguments `args` that a call changes: those passed
+`mut`, and those passed `ref` that may be changed. -/
+def changedArgs : List Param → List Expr → CheckM (List Place)
+  | prm :: prms, a :: args => do
+    let rest ← changedArgs prms args
+    match prm.conv, a with
+    | .mutable, .place q => pure (q :: rest)
+    | .ref, .place q =>
+      if (← lookup (splitPlace q).1).access.canChange then pure (q :: rest) else pure rest
+    | _, _ => pure rest
+  | _, _ => pure []
+
 /-- Rejects a place among the operands `es` that a later operand left
-uninitialized: Mojo reads a place operand only once every operand of its
-operation is evaluated, and a reference argument is used during the call. -/
-def recheckPlaces (prog : Program) (es : List Expr) : CheckM Unit :=
-  es.forM fun
-    | .place p => do let _ ← readPlace prog p
+uninitialized or invalidated: Mojo reads a place operand only once every
+operand of its operation is evaluated, and a reference argument is used
+during the call. `ks` holds, for each operand, how many changes were
+recorded once it was checked. -/
+def recheckPlaces (prog : Program) (es : List Expr) (ks : List Nat) : CheckM Unit :=
+  (es.zip ks).forM fun
+    | (.place p, k) => do
+      let _ ← readPlace prog p
+      let s ← get
+      for q in resolvePlace s.vars p do
+        let o ← shapeOf prog q
+        if (s.changes.drop k).any (invalidates · o) then
+          throw (CheckError.invalidatedReference p)
     | _ => pure ()
 
 /-- The type of a call of `fd`. A call that returns a reference, used as a
@@ -187,13 +229,15 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
           if sd.fieldwiseInit then pure (sd.fields.map fun (x, t) => ⟨.owned, x, t⟩)
           else throw (CheckError.noInitializer f)
       checkExclusive (locationArgs params args)
-      checkArgs prog f params args params.length args.length
-      recheckPlaces prog args
+      let ks ← checkArgs prog f params args params.length args.length
+      recheckPlaces prog args ks
+      for q in ← changedArgs params args do changePlace prog q
       pure (.struct f)
     | none, some fd => do
       checkExclusive (locationArgs fd.params args)
-      checkArgs prog f fd.params args fd.params.length args.length
-      recheckPlaces prog args
+      let ks ← checkArgs prog f fd.params args fd.params.length args.length
+      recheckPlaces prog args ks
+      for q in ← changedArgs fd.params args do changePlace prog q
       refResult prog asRef fd
     | none, none =>
       match f, args with
@@ -213,12 +257,17 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     let t ← placeTy prog p
     if let .array .. := t then throw (CheckError.unknownMethod "Array" m)
     if let .list et := t then
-      unless m == "append" do throw (CheckError.unknownMethod "List" m)
+      let params : List Param ← match m with
+        | "append" => pure [⟨.owned, "value", et⟩]
+        | "pop" => pure []
+        | _ => throw (CheckError.unknownMethod "List" m)
       let _ ← readPlace prog p
       requireMutable p
-      checkArgs prog m [⟨.owned, "value", et⟩] args 1 args.length
-      recheckPlaces prog (.place p :: args)
-      return .noneType
+      let k ← mark
+      let ks ← checkArgs prog m params args params.length args.length
+      recheckPlaces prog (.place p :: args) (k :: ks)
+      changePlace prog p
+      return if m == "pop" then et else .noneType
     let .struct s := t | throw (CheckError.typeMismatch (.struct "") t)
     let some sd := findStruct prog s | throw (CheckError.unknownStruct s)
     let some fd := findMethod sd m | throw (CheckError.unknownMethod s m)
@@ -226,23 +275,27 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     checkExclusive ((if self.conv == .owned then [] else [(self.conv, p)]) ++
       locationArgs fd.params.tail args)
     passPlace prog m self.conv t p
+    let k ← mark
     let params := fd.params.tail
-    checkArgs prog m params args params.length args.length
-    recheckPlaces prog (.place p :: args)
+    let ks ← checkArgs prog m params args params.length args.length
+    recheckPlaces prog (.place p :: args) (k :: ks)
+    for q in ← changedArgs fd.params (.place p :: args) do changePlace prog q
     refResult prog asRef fd
   | .unary op a => do lift (unaryTy op (← checkExprAs prog false a))
   | .binary op a b => do
     let ta ← checkExprAs prog false a
+    let ka ← mark
     let tb ← checkExprAs prog false b
-    unless op == .and || op == .or do recheckPlaces prog [a, b]
+    let kb ← mark
+    unless op == .and || op == .or do recheckPlaces prog [a, b] [ka, kb]
     lift (binaryTy op ta tb)
   | .list t es => do
     let .ok u := elemOf t | throw (CheckError.invalidType t)
     unless validTy prog u do throw (CheckError.invalidType t)
     if let .array _ n := t then
       unless n == es.length do throw (CheckError.typeMismatch t (.array u es.length))
-    checkArgs prog "List" (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length
-    recheckPlaces prog es
+    let ks ← checkArgs prog "List" (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length
+    recheckPlaces prog es ks
     pure t
   | .withDrops e _ _ => checkExprAs prog asRef e
 
@@ -261,21 +314,24 @@ def checkIndices (prog : Program) : Place → CheckM Unit
         if n ≤ k then throw (CheckError.constantIndexOutOfBounds (.index p i))
 
 /-- Checks the arguments `args` of a call of `callee` against its parameters
-`params`, in order. `n` and `m` are the numbers of parameters and arguments,
-for the error when they differ. -/
+`params`, in order, and gives how many changes were recorded once each was
+checked. `n` and `m` are the numbers of parameters and arguments, for the
+error when they differ. -/
 def checkArgs (prog : Program) (callee : Name) :
-    List Param → List Expr → Nat → Nat → CheckM Unit
-  | [], [], _, _ => pure ()
+    List Param → List Expr → Nat → Nat → CheckM (List Nat)
+  | [], [], _, _ => pure []
   | prm :: prms, .place p :: args, n, m => do
     checkIndices prog p
     passPlace prog callee prm.conv prm.ty p
-    checkArgs prog callee prms args n m
+    let k ← mark
+    pure (k :: (← checkArgs prog callee prms args n m))
   | prm :: prms, e :: args, n, m => do
     if prm.conv == .mutable then throw (CheckError.notAPlace callee)
     if prm.conv == .out || prm.conv == .deinit then
       throw (CheckError.invalidConvention callee)
     expect prm.ty (← checkExprAs prog false e)
-    checkArgs prog callee prms args n m
+    let k ← mark
+    pure (k :: (← checkArgs prog callee prms args n m))
   | _, _, n, m => throw (CheckError.arityMismatch callee n m)
 end
 

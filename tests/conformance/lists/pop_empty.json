@@ -1,0 +1,9 @@
+{
+  "outcome": "failed",
+  "stdout": [
+    "8",
+    "emptied 0"
+  ],
+  "class": null,
+  "diagnostic": "index -1 is out of bounds, valid range is 0 to -1"
+}

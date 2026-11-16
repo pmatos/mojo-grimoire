@@ -53,8 +53,8 @@ parameter, or an $`\mathsf{Int}` or a $`\mathsf{Bool}` passed to a `read`
 one, is passed by value: the call reads it once its arguments are
 evaluated. Any other place is passed by reference, and used until the call
 returns. A struct without `__init__` takes its fields by value, `len` its
-list by reference, and `append` its list by reference and its element by
-value. A method's receiver is passed by value only to a `var self`; the
+list by reference, `append` its list by reference and its element by
+value, and `pop` its list by reference. A method's receiver is passed by value only to a `var self`; the
 receiver's type, from the variables declared so far, gives the method.
 :::
 

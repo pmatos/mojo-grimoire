@@ -280,14 +280,20 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
     | .method p m args => do
       let r ← placeRef prog n env p
       match ← readRef r with
-      | .list es => do
-        let [a] := args | stuck "append takes one argument"
-        let _ := es
-        let v ← evalExpr prog n env a
-        dropAll prog n env pre
-        let .list es' ← readRef r | stuck "append to a value that is not a list"
-        writeRef r (.list (es' ++ [v]))
-        pure (.value .none)
+      | .list _ => match m, args with
+        | "append", [a] => do
+          let v ← evalExpr prog n env a
+          dropAll prog n env pre
+          let .list es ← readRef r | stuck "append to a value that is not a list"
+          writeRef r (.list (es ++ [v]))
+          pure (.value .none)
+        | "pop", [] => do
+          dropAll prog n env pre
+          let .list es ← readRef r | stuck "pop from a value that is not a list"
+          let some v := es.getLast? | fail .indexOutOfBounds
+          writeRef r (.list es.dropLast)
+          pure (.value v)
+        | _, _ => stuck s!"unknown list method {m}"
       | .struct s _ => do
         let some fd := (findStruct prog s).bind (findMethod · m) | stuck s!"unknown method {m}"
         let some self := fd.params.head? | stuck "a method with no self"

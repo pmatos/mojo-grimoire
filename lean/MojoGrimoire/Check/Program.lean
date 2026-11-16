@@ -41,7 +41,7 @@ def checkBody (prog : Program) (fd : FunDecl) : Except CheckError Unit := do
     unless validTy prog prm.ty do throw (.invalidType prm.ty)
   unless fd.result == .noneType || validTy prog fd.result do throw (.invalidType fd.result)
   checkOrigin fd
-  let start : State := ⟨fd.params.reverse.map paramState, true⟩
+  let start : State := ⟨fd.params.reverse.map paramState, true, [], []⟩
   let ((), _) ← (do
       checkBlock prog fd fd.body
       if (← get).live then

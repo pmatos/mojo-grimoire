@@ -69,8 +69,9 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   arguments. A function's arguments are evaluated left to right by their
   parameters' conventions, and those passed by value are read when the
   call is made; temporaries are destroyed after the call. `append` adds a
-  value at the end of a list, and `len` gives the length of a list or an
-array. A method gets its
+  value at the end of a list, `pop` removes the last element and gives it
+  back, failing with $`\mathsf{indexOutOfBounds}` on an empty list, and
+  `len` gives the length of a list or an array. A method gets its
   receiver by reference, or a copy for a `var self`.
 - *References.* A `ref` binding, and the `return` of a function with an
   origin, give a reference: to a place, or the one a call returns. Used as

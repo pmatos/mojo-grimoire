@@ -47,6 +47,7 @@ inductive CheckError where
   | notAReference
   | invalidOrigin (name : Name)
   | escapingReference (name : Name)
+  | invalidatedReference (p : Place)
   deriving BEq
 
 /-- A rejection: the error, and the declaration it was found in, a function,

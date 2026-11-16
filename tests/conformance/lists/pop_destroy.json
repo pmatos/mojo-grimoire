@@ -1,0 +1,16 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "took 30",
+    "gone 20",
+    "gone 10",
+    "left 1",
+    "gone 40",
+    "kept 50",
+    "gone 50",
+    "done 30",
+    "gone 30"
+  ],
+  "class": null,
+  "diagnostic": null
+}
