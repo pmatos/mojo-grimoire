@@ -83,6 +83,10 @@ where the compiler and the manual disagree, the model follows the compiler.
   compiler reads it then: `f(a.id, g(a^))` uses `a.id` after its move.
 - `return x` moves a variable the function owns. Any other returned place
   is copied implicitly, so it must be implicitly copyable.
+- At every return, explicit or implicit, a `mut` parameter and the `self`
+  of `__init__` must be wholly initialized. Otherwise the program is
+  rejected as `uninitializedAtExit`, the class of the compiler's "is
+  uninitialized at (the implicit) return from this function" (#52).
 - Argument exclusivity rejects a `mut` argument that overlaps another
   argument passed as a location. The manual exempts `Int` and `Bool`, but
   the compiler rejects two aliasing `mut` arguments of any type. An `Int`
