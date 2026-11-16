@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "argumentExclusivity",
+  "diagnostic": "aliasing values passed immutably to 'a' argument and passed mutably to 'b' argument in 'n' call"
+}

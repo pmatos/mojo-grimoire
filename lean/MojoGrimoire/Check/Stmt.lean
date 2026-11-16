@@ -138,10 +138,10 @@ def checkConstructed (prog : Program) (p : Place) (e : Expr) : CheckM Unit := do
   let builds (sig : Signature) := sig.origin.isNone && (sig.generic || !sig.result.byValue)
   let changed ← match e with
     | .call f args => match callSig prog f with
-      | .ok sig => if builds sig then changedArgs sig.params args else pure []
+      | .ok sig => if builds sig then changedArgs prog sig.params args else pure []
       | .error _ => pure []
     | .method q m args => match methodSig prog (← placeTy prog q) m args.length with
-      | .ok sig => if builds sig then changedArgs sig.allParams (.place q :: args) else pure []
+      | .ok sig => if builds sig then changedArgs prog sig.allParams (.place q :: args) else pure []
       | .error _ => pure []
     | _ => pure []
   let vars := (← get).vars

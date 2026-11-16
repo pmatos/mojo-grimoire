@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.State
+import MojoGrimoire.Check.Fit
 
 /-!
 The checking of expressions and of the arguments of calls.
@@ -14,6 +14,10 @@ passed by its parameter's convention: `read`, `mut` and `ref` pass the
 location, which must be initialized, and `mut` also needs a place the
 function may change; `var` passes a value, which is copied implicitly unless
 the argument transfers it.
+A call that returns a reference and is a located operand
+(`MojoGrimoire.Check.locOf`), passed to a `read`, `mut` or `ref` parameter
+or to `len`, is passed the same way: it is not copied, it stands for its
+origins, and for `mut` it must be mutable.
 
 A `mut` argument may not alias another argument that is passed as a location,
 Mojo's argument exclusivity. An `Int` or a `Bool` passed to a `read`
@@ -21,22 +25,21 @@ parameter is not passed as a location: Mojo copies it. A `mut` argument of
 any type is.
 
 A call records as changed each place it is passed `mut`, or `ref` when the
-place may be changed, once its operands are checked. That invalidates the
+place may be changed, once its operands are checked; a call that returns a
+reference passed so changes its origins. That invalidates the
 references into the elements of a list that the place holds: the `ref`
 bindings, and the place operands of an enclosing operation that were
 located before the call.
 
 An initialization whose arguments fit no initializer is `noMatchingInit`,
-however they misfit, since the compiler tries every initializer and reports
-only that none fits (#46): a construction `S(…)`, a literal that
-initializes the list or array expected where it stands, and
-`List[u](e₁, …, eₙ)`, which no initializer of `List` takes, but for one
-iterable argument, which is outside the subset. A literal
-passed to a function or a method is converted to its parameter's type, and
-the compiler reports a literal that does not fit, also inside it, as a
-type mismatch. A literal with no expected type takes the type of its
-elements, and an element that differs from the first is a type mismatch
-too.
+however they misfit (`MojoGrimoire.Check.Fit`, #46): a construction
+`S(…)`, a literal that initializes the list or array expected where it
+stands, and `List[u](e₁, …, eₙ)`, which no initializer of `List` takes,
+but for one iterable argument, which is outside the subset. A literal
+passed to a function or a method is converted, and one that does not fit,
+also inside it, is a type mismatch. A literal with no expected type takes
+the type of its elements, and an element that differs from the first is a
+type mismatch too.
 -/
 
 namespace MojoGrimoire.Check
@@ -49,30 +52,6 @@ def lift {α : Type} (r : Except CheckError α) : CheckM α := StateT.lift r
 /-- Rejects unless the type `actual` is the type `expected`. -/
 def expect (expected actual : Ty) : CheckM Unit :=
   unless expected == actual do throw (CheckError.typeMismatch expected actual)
-
-/-- How a call reports an argument that does not fit its parameter: a
-function or a method by the error itself, and an initializer of the type
-`t` by `noMatchingInit t`, whatever the misfit. -/
-inductive Fit where
-  | call
-  | init (t : Ty)
-
-/-- The error that a call of fit `fit` reports for the misfit `e`. -/
-def Fit.misfit : Fit → CheckError → CheckError
-  | .call, e => e
-  | .init t, _ => .noMatchingInit t
-
-/-- Rejects unless the type of an argument, `actual`, is its parameter's,
-`expected`, by the error that `fit` reports. -/
-def expectArg (fit : Fit) (expected actual : Ty) : CheckM Unit :=
-  unless expected == actual do throw (fit.misfit (CheckError.typeMismatch expected actual))
-
-/-- Whether a variable held this way may be changed: assigned to, or passed
-`mut`. -/
-def Access.canChange : Access → Bool
-  | .readOnly => false
-  | .alias _ m => m
-  | _ => true
 
 /-- Rejects unless the place `p` may be changed: not through `q^`. It
 reports the error that `fit` gives when `p` is an argument. -/
@@ -157,32 +136,44 @@ def overlaps (p q : Place) : Bool :=
   let (y, b) := splitPlace q
   x == y && (a.isPrefixOf b || b.isPrefixOf a)
 
-/-- The places among `args` that are passed as locations, with their
-conventions: every place argument whose parameter is `read`, `mut` or
-`ref`, except an `Int` or a `Bool` passed `read`, which is copied. -/
-def locationArgs : List Param → List Expr → List (Conv × Place)
-  | prm :: prms, .place p :: args =>
-    if passedByValue prm then
-      locationArgs prms args
-    else (prm.conv, p) :: locationArgs prms args
-  | _ :: prms, _ :: args => locationArgs prms args
-  | _, _ => []
+/-- A location passed to a call: the convention it is passed by, the place
+reported when it is aliased, and the places it may be. -/
+structure PassedLoc where
+  conv : Conv
+  place : Place
+  places : List Place
 
-/-- Rejects a `mut` location among `locs` that overlaps another one. A
-reference counts as every place it may point into. -/
-def checkExclusive (locs : List (Conv × Place)) : CheckM Unit := do
-  go (← get).vars locs []
+/-- The place `p` passed by the convention `c`. A reference counts as every
+place it may point into. -/
+def passedPlace (c : Conv) (p : Place) : CheckM PassedLoc := do
+  pure ⟨c, p, resolvePlace (← get).vars p⟩
+
+/-- The arguments among `args` that are passed as locations: every located
+operand whose parameter is `read`, `mut` or `ref`, except an `Int` or a
+`Bool` passed `read`, which is copied. A call that returns a reference is
+reported by its first origin. -/
+def locationArgs (prog : Program) : List Param → List Expr → CheckM (List PassedLoc)
+  | prm :: prms, a :: args => do
+    let rest ← locationArgs prog prms args
+    if passedByValue prm then return rest
+    match a, ← locOf prog a with
+    | .place p, some _ => pure ((← passedPlace prm.conv p) :: rest)
+    | _, some (o :: os, _) => pure (⟨prm.conv, o, o :: os⟩ :: rest)
+    | _, _ => pure rest
+  | _, _ => pure []
+
+/-- Rejects a `mut` location among `locs` that overlaps another one. -/
+def checkExclusive (locs : List PassedLoc) : CheckM Unit :=
+  go locs []
 where
   /-- Checks each location against those before and after it. -/
-  go (vars : List VarState) : List (Conv × Place) → List (Conv × Place) → CheckM Unit
+  go : List PassedLoc → List PassedLoc → CheckM Unit
     | [], _ => pure ()
-    | (c, p) :: rest, seen => do
-      let others := seen ++ rest
-      let clash (q : Place) :=
-        (resolvePlace vars p).any fun a => (resolvePlace vars q).any (overlaps a)
-      if c == .mutable && others.any (clash ·.2) then
-        throw (CheckError.argumentExclusivity p)
-      go vars rest ((c, p) :: seen)
+    | l :: rest, seen => do
+      let clash (o : PassedLoc) := l.places.any fun a => o.places.any (overlaps a)
+      if l.conv == .mutable && (seen ++ rest).any clash then
+        throw (CheckError.argumentExclusivity l.place)
+      go rest (l :: seen)
 
 /-- Passes the place `p` to a parameter of convention `c` and type `t`, of
 a call of fit `fit`. -/
@@ -195,24 +186,6 @@ def passPlace (prog : Program) (fit : Fit) (callee : Name) (c : Conv) (t : Ty) (
     requireMutable p fit
   | .owned => expectArg fit t (← copyPlace prog p)
   | .out | .deinit => throw (CheckError.invalidConvention callee)
-
-/-- Rejects a value that is not a place passed to a parameter of convention
-`c`, of a call of `callee` of fit `fit`: only an owned or a borrowed value
-may be. -/
-def passValue (fit : Fit) (callee : Name) (c : Conv) : CheckM Unit := do
-  if c == .mutable then throw (fit.misfit (CheckError.notAPlace callee))
-  if c == .out || c == .deinit then throw (CheckError.invalidConvention callee)
-
-/-- The element type of a literal of `n` elements that has the expected type
-`t`, which a call of fit `fit` initializes or converts it to. It rejects a
-`t` that is not a list or an array of a valid type, and an array of another
-size. -/
-def literalElem (prog : Program) (fit : Fit) (t : Ty) (n : Nat) : CheckM Ty := do
-  let .ok u := elemOf t | throw (CheckError.invalidType t)
-  unless validTy prog u do throw (CheckError.invalidType t)
-  if let .array _ k := t then
-    unless k == n do throw (fit.misfit (CheckError.typeMismatch t (.array u n)))
-  pure u
 
 /-- How many changes the state records so far: where an operand checked
 now stands among them. -/
@@ -232,14 +205,19 @@ def changePlace (prog : Program) (p : Place) : CheckM Unit := do
     modify fun s => { s with stale := union s.stale stale, changes := s.changes ++ [m] }
 
 /-- The places among the arguments `args` that a call changes: those passed
-`mut`, and those passed `ref` that may be changed. -/
-def changedArgs : List Param → List Expr → CheckM (List Place)
+`mut`, and those passed `ref` that may be changed. A call that returns a
+reference changes its origins. -/
+def changedArgs (prog : Program) : List Param → List Expr → CheckM (List Place)
   | prm :: prms, a :: args => do
-    let rest ← changedArgs prms args
+    let rest ← changedArgs prog prms args
     match prm.conv, a with
     | .mutable, .place q => pure (q :: rest)
     | .ref, .place q =>
       if (← lookup (splitPlace q).1).access.canChange then pure (q :: rest) else pure rest
+    | .mutable, a | .ref, a =>
+      match ← locOf prog a with
+      | some (os, m) => pure (if prm.conv == .mutable || m then os ++ rest else rest)
+      | none => pure rest
     | _, _ => pure rest
   | _, _ => pure []
 
@@ -253,17 +231,22 @@ def requireUnchanged (prog : Program) (p : Place) (k : Nat) : CheckM Unit := do
       let o ← shapeOf prog q
       if later.any (invalidates · o) then throw (CheckError.invalidatedReference p)
 
-/-- Rejects a place among the operands `es` that a later operand left
-uninitialized or invalidated: Mojo reads a place operand only once every
-operand of its operation is evaluated, and a reference argument is used
-during the call. `ks` holds, for each operand, how many changes were
-recorded once it was checked. -/
+/-- Rejects a place among the operands' locations `ls` that a later operand
+left uninitialized or invalidated: Mojo reads a place operand only once
+every operand of its operation is evaluated, and a reference argument is
+used during the call. Each operand gives the places it is read from, with
+how many changes were recorded once it was checked. -/
+def recheckLocs (prog : Program) (ls : List (List Place × Nat)) : CheckM Unit :=
+  ls.forM fun (ps, k) => ps.forM fun p => do
+    let _ ← readPlace prog p
+    requireUnchanged prog p k
+
+/-- Rechecks the place operands among `es`, with `recheckLocs`. `ks` holds,
+for each operand, how many changes were recorded once it was checked. -/
 def recheckPlaces (prog : Program) (es : List Expr) (ks : List Nat) : CheckM Unit :=
-  (es.zip ks).forM fun
-    | (.place p, k) => do
-      let _ ← readPlace prog p
-      requireUnchanged prog p k
-    | _ => pure ()
+  recheckLocs prog ((es.zip ks).map fun
+    | (.place p, k) => ([p], k)
+    | (_, k) => ([], k))
 
 /-- The type of a call of signature `sig`. A call that returns a reference,
 used as a value, copies the value it points to implicitly, unless `asRef`
@@ -294,10 +277,9 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     | .ok sig =>
       let params := sig.params
       let fit := if (findStruct prog f).isSome then Fit.init (.struct f) else .call
-      checkExclusive (locationArgs params args)
-      let ks ← checkArgs prog fit f params args params.length args.length
-      recheckPlaces prog args ks
-      for q in ← changedArgs params args do changePlace prog q
+      checkExclusive (← locationArgs prog params args)
+      recheckLocs prog (← checkArgs prog fit f params args params.length args.length)
+      for q in ← changedArgs prog params args do changePlace prog q
       refResult prog asRef sig
     | .error err =>
       match f, args, err with
@@ -307,7 +289,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         let _ ← lift (elemOf t)
         pure .int
       | "len", [e], .unknownFunction _ => do
-        let t ← checkExprAs prog false e
+        let t ← checkExprAs prog (← locOf prog e).isSome e
         let _ ← lift (elemOf t)
         pure .int
       | "len", _, .unknownFunction _ => throw (CheckError.arityMismatch f 1 args.length)
@@ -319,16 +301,16 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     let some self := sig.self | throw (CheckError.invalidSelf m)
     let params := sig.params
     let consumed := consumedReceiver self.conv p
-    let recv := match consumed with
-      | some q => [(.mutable, q)]
-      | none => if self.conv == .owned then [] else [(self.conv, p)]
-    checkExclusive (recv ++ locationArgs params args)
+    let recv ← match consumed with
+      | some q => do pure [← passedPlace .mutable q]
+      | none => if self.conv == .owned then pure [] else do pure [← passedPlace self.conv p]
+    checkExclusive (recv ++ (← locationArgs prog params args))
     if consumed.isNone then passPlace prog .call m self.conv t p
     let k ← mark
     let ks ← checkArgs prog .call m params args params.length args.length
-    recheckPlaces prog (.place p :: args) (k :: ks)
+    recheckLocs prog (([p], k) :: ks)
     if let some q := consumed then let _ ← transferPlace prog q
-    for q in ← changedArgs sig.allParams (.place p :: args) do changePlace prog q
+    for q in ← changedArgs prog sig.allParams (.place p :: args) do changePlace prog q
     refResult prog asRef sig
   | .unary op a => do lift (unaryTy op (← checkExprAs prog false a))
   | .binary op a b => do
@@ -343,24 +325,23 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     checkIndices prog p
     let u ← copyPlace prog p
     let k ← mark
-    let ks ← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
-      es.length es.length
-    recheckPlaces prog (.place p :: es) (k :: ks)
+    recheckLocs prog (([p], k) ::
+      (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
+        es.length es.length))
     pure (.array u (es.length + 1))
   | .list .noneType (e :: es) => do
     let u ← checkExprAs prog false e
     let t := Ty.array u (es.length + 1)
     unless validTy prog u do throw (CheckError.invalidType t)
     let k ← mark
-    let ks ← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
-      es.length es.length
-    recheckPlaces prog (e :: es) (k :: ks)
+    recheckLocs prog (([], k) ::
+      (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
+        es.length es.length))
     pure t
   | .list t es => do
     let u ← literalElem prog (.init t) t es.length
-    let ks ← checkArgs prog (.init t) (typeName t) (es.map fun _ => ⟨.owned, "value", u⟩) es
-      es.length es.length
-    recheckPlaces prog es ks
+    recheckLocs prog (← checkArgs prog (.init t) (typeName t)
+      (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length)
     pure t
   | .listInit u args => do
     checkOperands prog args
@@ -400,36 +381,50 @@ def checkIndices (prog : Program) : Place → CheckM Unit
     checkIndices prog p
     let _ ← requireTransferable prog p
 
-/-- Checks the arguments `args` of a call of `callee`, of fit `fit`, against
-its parameters `params`, in order, and gives how many changes were recorded
-once each was checked. `n` and `m` are the numbers of parameters and
-arguments, for the error when they differ. A literal passed to a function
-or a method is converted to its parameter's type. -/
+/-- Checks the arguments `args` of a call of `callee` against its parameters
+`params`, in order, and gives, for each, the places it is read from once
+every argument is evaluated, with how many changes were recorded once it
+was checked. A call that returns a reference, passed by reference, is
+passed as a location, uncopied, when it is a located operand, and for
+`mut` it must be mutable; the origin it is reported by is its first. One
+with a temporary origin argument is checked as a value. `n` and `m` are
+the numbers of parameters and arguments, for the error when they differ.
+The call's fit `fit` says how a misfit is reported; a literal passed to a
+function or a method is converted to its parameter's type. -/
 def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
-    List Param → List Expr → Nat → Nat → CheckM (List Nat)
+    List Param → List Expr → Nat → Nat → CheckM (List (List Place × Nat))
   | [], [], _, _ => pure []
   | prm :: prms, .place p :: args, n, m => do
     checkIndices prog p
     passPlace prog fit callee prm.conv prm.ty p
     let k ← mark
-    pure (k :: (← checkArgs prog fit callee prms args n m))
+    pure (([p], k) :: (← checkArgs prog fit callee prms args n m))
   | prm :: prms, (e@(.list t es)) :: args, n, m => do
     passValue fit callee prm.conv
     let t' ← if t == .noneType || fit matches .init _ then checkExprAs prog false e
       else do
         let u ← literalElem prog .call t es.length
-        let ks ← checkArgs prog .call (typeName t) (es.map fun _ => ⟨.owned, "value", u⟩) es
-          es.length es.length
-        recheckPlaces prog es ks
+        recheckLocs prog (← checkArgs prog .call (typeName t)
+          (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length)
         pure t
     expectArg fit prm.ty t'
     let k ← mark
-    pure (k :: (← checkArgs prog fit callee prms args n m))
+    pure (([], k) :: (← checkArgs prog fit callee prms args n m))
   | prm :: prms, e :: args, n, m => do
-    passValue fit callee prm.conv
-    expectArg fit prm.ty (← checkExprAs prog false e)
-    let k ← mark
-    pure (k :: (← checkArgs prog fit callee prms args n m))
+    if prm.conv == .out || prm.conv == .deinit then
+      throw (CheckError.invalidConvention callee)
+    match ← if passedByValue prm then pure none else locOf prog e with
+    | some (os, mq) =>
+      expectArg fit prm.ty (← checkExprAs prog true e)
+      if prm.conv == .mutable && !mq then
+        throw (fit.misfit (CheckError.immutablePlace (os.headD (.var callee))))
+      let k ← mark
+      pure ((os, k) :: (← checkArgs prog fit callee prms args n m))
+    | none =>
+      if prm.conv == .mutable then throw (fit.misfit (CheckError.notAPlace callee))
+      expectArg fit prm.ty (← checkExprAs prog false e)
+      let k ← mark
+      pure (([], k) :: (← checkArgs prog fit callee prms args n m))
   | _, _, n, m => throw (fit.misfit (CheckError.arityMismatch callee n m))
 end
 

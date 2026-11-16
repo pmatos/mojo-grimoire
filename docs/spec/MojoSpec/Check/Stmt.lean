@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3063584664463565043")
+:::moduleDocs (fingerprint := "601194485333263081")
 :::
 
 :::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9586730624127733473")
@@ -63,12 +63,12 @@ value it points to, uncopied. Anything else, a struct or a list of
 structs, is $`\mathsf{notPrintable}`.
 :::
 
-:::readable MojoGrimoire.Check.checkConstructed (fingerprint := "1666461694677879200")
+:::readable MojoGrimoire.Check.checkConstructed (fingerprint := "13095619089498858650")
 *Rule: building into an element.* $`p = e` is rejected as
 $`\mathsf{argumentExclusivity}` when $`p` is inside an element of a list,
 and $`e` is a call that builds its result in place and is passed `mut`, or
-`ref` when it may change it, the list or a place that holds it: the change
-would invalidate $`p`. A call of a function or a method builds its result
+`ref` when it may change it, the list or a place that holds it, or a call
+that returns a reference to one: the change would invalidate $`p`. A call of a function or a method builds its result
 in place unless it returns an $`\mathsf{Int}`, a $`\mathsf{Bool}` or a
 reference, and so does a struct's `__init__`; a call whose signature has
 a generic result, such as a list method that gives an element, always

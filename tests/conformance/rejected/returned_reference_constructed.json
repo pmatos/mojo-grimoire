@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "argumentExclusivity",
+  "diagnostic": "aliasing values passed mutably to 'ys' argument and constructed as a result in 'build' call"
+}
