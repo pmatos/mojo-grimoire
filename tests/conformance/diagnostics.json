@@ -1,9 +1,13 @@
 {
-  "note": "Patterns that map the compiler's first error to a class of the model's CheckError, tried in order. A failed instantiation's first error carries the note of the constraint that failed. 'has no attribute 'copy'' comes before unknownField: the compiler reports .copy() of a value that is not Copyable as a missing attribute, the model as notCopyable. 'does not designate a value with an origin', the compiler's error for moving an element out of a list or an array, comes before escapingReference, whose pattern also matches 'origin'. 'use of invalidated interior reference' is the compiler's error for a reference to a list element used after the list changed. In the subset, only a struct that holds a list or an array of itself has a field of a non-'Deinitable' type. 'does not conform to trait 'Writable'' is the compiler's error for printing a value that print cannot write.",
+  "note": "Patterns that map the compiler's first error to a class of the model's CheckError, tried in order. A failed instantiation's first error carries the note of the constraint that failed. 'has no attribute 'copy'' comes before unknownField: the compiler reports .copy() of a value that is not Copyable as a missing attribute, the model as notCopyable. 'does not designate a value with an origin', the compiler's error for moving an element out of a list or an array, comes before escapingReference, whose pattern also matches 'origin'. 'use of invalidated interior reference' is the compiler's error for a reference to a list element used after the list changed. 'is uninitialized at (the implicit )?return from this function', the compiler's error for a 'mut' parameter or the 'self' of '__init__' left partly uninitialized when the function returns, comes before uninitializedUse, whose pattern also matches 'uninitialized'. In the subset, only a struct that holds a list or an array of itself has a field of a non-'Deinitable' type. 'does not conform to trait 'Writable'' is the compiler's error for printing a value that print cannot write.",
   "patterns": [
     {
       "pattern": "cannot be implicitly copied|does not conform to 'ImplicitlyCopyable'|implicitly copy",
       "class": "implicitCopy"
+    },
+    {
+      "pattern": "is uninitialized at (the implicit )?return from this function",
+      "class": "uninitializedAtExit"
     },
     {
       "pattern": "use of uninitialized value|uninitialized",
