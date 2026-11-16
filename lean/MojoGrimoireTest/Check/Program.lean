@@ -48,7 +48,11 @@ private def addInts : FunDecl := ⟨"addInts", [⟨.mutable, "a", .int⟩, ⟨.r
 private def incBoth : FunDecl := ⟨"incBoth", [⟨.mutable, "a", .int⟩, ⟨.mutable, "b", .int⟩],
   .noneType, [.assign (v "a") (.binary .add (use "a") (.int 1))], none⟩
 
-private def lib : List FunDecl := [consume, showRes, bump, addInts, incBoth]
+/-- `def takeId(var r: Res) -> Int: return r.id` -/
+private def takeId : FunDecl :=
+  ⟨"takeId", [⟨.owned, "r", res⟩], .int, [.ret (some (.place (fld "r" "id")))], none⟩
+
+private def lib : List FunDecl := [consume, showRes, bump, addInts, incBoth, takeId]
 
 /-- A program with the shared declarations, extra functions `funs`, and a
 `main` whose body is `body`. -/
@@ -99,6 +103,15 @@ private def verdict (p : Program) : Option CheckError :=
 -- `bump(a, a)`: `a` passed `mut` and also as a location.
 #guard verdict (prog [newRes "a" 1, .expr (.call "bump" [use "a", use "a"])]) ==
   some (.argumentExclusivity (v "a"))
+
+-- `print(a.id, takeId(a^))` and `print(a.id + takeId(a^))`: a place operand is
+-- read once every operand is evaluated, after the move.
+#guard verdict (prog [newRes "a" 1,
+  .print [.place (fld "a" "id"), .call "takeId" [.transfer (v "a")]]]) ==
+  some (.uninitializedUse (fld "a" "id"))
+#guard verdict (prog [newRes "a" 1,
+  .print [.binary .add (.place (fld "a" "id")) (.call "takeId" [.transfer (v "a")])]]) ==
+  some (.uninitializedUse (fld "a" "id"))
 
 -- `incBoth(n, n)`: two `mut` arguments alias, even of type `Int`.
 #guard verdict (prog [.decl "n" .int (some (.int 1)),

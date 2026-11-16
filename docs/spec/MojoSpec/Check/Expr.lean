@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10999557509629153694")
+:::moduleDocs (fingerprint := "11261463048530726658")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -70,6 +70,14 @@ also be a place the function may change; one passed `var` is copied
 implicitly. No argument may be passed `out` or `deinit`.
 :::
 
+:::readable MojoGrimoire.Check.recheckPlaces (fingerprint := "77372215329890455")
+*Rule: places read late.* Mojo reads a place operand only once every
+operand of its operation is evaluated, and a place passed by reference is
+used during the call. So once the operands are checked, every operand that
+is a place must still be initialized: `f(a.id, g(a^))` is a use of `a.id`
+after its move.
+:::
+
 :::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "10866291844482346932")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
@@ -92,6 +100,9 @@ type:
 * $`\mathsf{drops}(e; p^*; q^*)`, which only elaboration inserts, after
   checking, has the type of $`e`.
 
+The place operands of a call, a method call, an operator other than
+`and` and `or`, and a list literal are checked again once every operand
+is, by `recheckPlaces`.
 Every index in a place is checked first, and must be an $`\mathsf{Int}`;
 a constant index may not be negative.
 A call of a function that returns a reference gives the value it points to,

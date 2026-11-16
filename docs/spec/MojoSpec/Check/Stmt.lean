@@ -71,7 +71,8 @@ an expression, so a place is copied implicitly.
   place the function may change; the old value of $`p` ends, and $`p`
   is initialized;
 * an expression statement checks its expression;
-* `print` checks its arguments as above;
+* `print` checks its arguments as above, then that its place arguments are
+  still initialized;
 * `if` needs a $`\mathsf{Bool}` condition and joins its branches, each a
   scope of its own; `while` needs a $`\mathsf{Bool}` condition and a
   body that keeps what was initialized;

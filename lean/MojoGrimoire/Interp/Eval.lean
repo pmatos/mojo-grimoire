@@ -10,12 +10,12 @@ are evaluated in order, but an operand that is a place passed by value is
 only located then: as in Mojo, it is read once every operand has been
 evaluated, so a call among the later operands may change it first. An `Int`
 or a `Bool` passed to a `read` parameter is passed by value: Mojo copies
-it. Every function of the evaluator
-takes fuel, which each step spends; a run that spends it all stops with
-`outOfFuel`, so every run ends, even of a program that loops forever.
+it. Every function of the evaluator takes fuel, which each step spends; a
+run that spends it all stops with `outOfFuel`, so every run ends, even of a
+program that loops forever.
 
-A value is destroyed where elaboration put a `drop`, when it is replaced by
-an assignment, when a temporary passed to a borrowing parameter is no longer
+A value is destroyed where elaboration put a `drop` or a `withDrops`, when
+it is replaced by an assignment, when a temporary passed to a borrowing parameter is no longer
 needed after its call, when a call's result is not used, and when a
 function returns, for every value it still owns. Destroying a struct runs
 its `__deinit__`, whose elaborated body destroys its fields; a struct

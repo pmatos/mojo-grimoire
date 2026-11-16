@@ -5,7 +5,8 @@ The checking of expressions and of the arguments of calls.
 
 An expression is checked from left to right, as Mojo evaluates it, and the
 state follows: a transfer `p^` leaves `p` uninitialized for what comes after
-it. A place passed as an argument is passed by its parameter's convention:
+it. Mojo reads a place operand only once every operand of its operation is
+evaluated, so each place operand must still be initialized then. A place passed as an argument is passed by its parameter's convention:
 `read`, `mut` and `ref` pass the location, which must be initialized, and
 `mut` also needs a place the function may change; `var` passes a value, which
 is copied implicitly unless the argument transfers it.
@@ -142,6 +143,14 @@ def passPlace (prog : Program) (callee : Name) (c : Conv) (t : Ty) (p : Place) :
   | .owned => expect t (← copyPlace prog p)
   | .out | .deinit => throw (CheckError.invalidConvention callee)
 
+/-- Rejects a place among the operands `es` that a later operand left
+uninitialized: Mojo reads a place operand only once every operand of its
+operation is evaluated, and a reference argument is used during the call. -/
+def recheckPlaces (prog : Program) (es : List Expr) : CheckM Unit :=
+  es.forM fun
+    | .place p => do let _ ← readPlace prog p
+    | _ => pure ()
+
 /-- The type of a call of `fd`. A call that returns a reference, used as a
 value, copies the value it points to implicitly, unless `asRef` holds. -/
 def refResult (prog : Program) (asRef : Bool) (fd : FunDecl) : CheckM Ty := do
@@ -175,10 +184,12 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
           else throw (CheckError.noInitializer f)
       checkExclusive (locationArgs params args)
       checkArgs prog f params args params.length args.length
+      recheckPlaces prog args
       pure (.struct f)
     | none, some fd => do
       checkExclusive (locationArgs fd.params args)
       checkArgs prog f fd.params args fd.params.length args.length
+      recheckPlaces prog args
       refResult prog asRef fd
     | none, none =>
       match f, args with
@@ -201,6 +212,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       let _ ← readPlace prog p
       requireMutable p
       checkArgs prog m [⟨.owned, "value", et⟩] args 1 args.length
+      recheckPlaces prog (.place p :: args)
       return .noneType
     let .struct s := t | throw (CheckError.typeMismatch (.struct "") t)
     let some sd := findStruct prog s | throw (CheckError.unknownStruct s)
@@ -211,15 +223,18 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     passPlace prog m self.conv t p
     let params := fd.params.tail
     checkArgs prog m params args params.length args.length
+    recheckPlaces prog (.place p :: args)
     refResult prog asRef fd
   | .unary op a => do lift (unaryTy op (← checkExprAs prog false a))
   | .binary op a b => do
     let ta ← checkExprAs prog false a
     let tb ← checkExprAs prog false b
+    unless op == .and || op == .or do recheckPlaces prog [a, b]
     lift (binaryTy op ta tb)
   | .list t es => do
     unless validTy prog t do throw (CheckError.invalidType t)
     checkArgs prog "List" (es.map fun _ => ⟨.owned, "value", t⟩) es es.length es.length
+    recheckPlaces prog es
     pure (.list t)
   | .withDrops e _ _ => checkExprAs prog asRef e
 

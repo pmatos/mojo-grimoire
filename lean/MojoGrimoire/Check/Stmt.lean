@@ -131,7 +131,9 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
       throw (CheckError.partiallyDestroyed x)
     setUninit x (initPart prog v.uninit v.ty path)
   | .expr e => do let _ ← checkExpr prog e
-  | .print args => args.attach.forM fun ⟨e, _⟩ => checkPrintArg (checkExpr prog) e
+  | .print args => do
+    args.attach.forM fun ⟨e, _⟩ => checkPrintArg (checkExpr prog) e
+    recheckPlaces prog args
   | .ifElse c thenBlock elseBlock => do
     expect .bool (← checkExpr prog c)
     let s0 ← get

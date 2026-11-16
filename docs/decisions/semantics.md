@@ -54,6 +54,9 @@ where the compiler and the manual disagree, the model follows the compiler.
   the rest is destroyed field by field. The exception is a part that has a
   `__deinit__` of its own, which needs the whole value. Inside
   `__deinit__`, `self`'s fields may be moved out.
+- A place operand, of a call, an operator, a list literal or `print`, must
+  still be initialized once every operand is evaluated, since the
+  compiler reads it then: `f(a.id, g(a^))` uses `a.id` after its move.
 - `return x` moves a variable the function owns. Any other returned place
   is copied implicitly, so it must be implicitly copyable.
 - Argument exclusivity rejects a `mut` argument that overlaps another
