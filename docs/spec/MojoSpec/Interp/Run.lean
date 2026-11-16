@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Running a program: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5978432905255121163")
+:::moduleDocs (fingerprint := "2888190355538251931")
 :::
 
 :::readable MojoGrimoire.Interp.Outcome (fingerprint := "3429656939002660297")
@@ -23,7 +23,7 @@ the lines it printed; or it fails with a run-time error, after printing
 some lines.
 :::
 
-:::readable MojoGrimoire.Interp.runMain MojoGrimoire.Interp.run (fingerprint := "2321347576569549253")
+:::readable MojoGrimoire.Interp.runMain MojoGrimoire.Interp.run (fingerprint := "16431783587329518701")
 *Definition: running.* A program is checked; if it is accepted, it is
 elaborated, and `main` is called on an empty machine with the fuel given.
 :::

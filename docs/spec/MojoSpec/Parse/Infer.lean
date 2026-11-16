@@ -13,19 +13,22 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11207519296145628600")
+:::moduleDocs (fingerprint := "15502130861766024983")
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "17188177613617268651")
+:::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "7491183084080357663")
 *Definition: the types in scope.* Inference keeps the types of the
 variables in scope, innermost first. An arithmetic operator gives an
 $`\mathsf{Int}`, and every other binary operator a $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "4134415264142089499")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "17916874179727791758")
 *Definition: the types of places and expressions.* A variable has its
-declared type, a field the type its struct declares, and an element its
-list's element type. A literal has its own type. A call or a method call
+declared type, a field the type its struct declares, and an element the
+element type of its list or array. A literal has its own type, and
+`p.copy()` the type of $`p`. A negation gives an $`\mathsf{Int}`, `not` a
+$`\mathsf{Bool}`, and a binary operator the type of its result, as above.
+A call or a method call
 has the result of its signature. A call of a struct that cannot be built
 still has the struct's type, so that the checker reports why, and `len`
 gives an $`\mathsf{Int}`. Any other call with no signature has no type. A literal left open takes the type expected where
@@ -43,7 +46,7 @@ $`\mathsf{Bool}` becomes the place $`p`, since Mojo does not move such a
 value; one through an element of a list or an array stays a transfer.
 :::
 
-:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.paramTys MojoGrimoire.Parse.unsignedResult (fingerprint := "10243996572664085767")
+:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.paramTys MojoGrimoire.Parse.unsignedResult (fingerprint := "18258247691432712068")
 *Definition: expected types.* A literal expected to have a list type or an
 array type has that type, which the checker compares with its elements;
 otherwise its elements decide. Its elements are expected to have its
@@ -56,7 +59,7 @@ with no signature has the type of a struct the program declares, `len`'s
 $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "507949887862353920")
+:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "9908368116585406001")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 and `ref x = e` binds $`x` with the type of $`e`. An initial value is
 expected to have the declared type of its variable, an assigned value the

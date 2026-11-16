@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The lexer: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15672268694869089244")
+:::moduleDocs (fingerprint := "10062317002505781530")
 :::
 
 :::readable MojoGrimoire.Parse.Tok MojoGrimoire.Parse.Token MojoGrimoire.Parse.SyntaxError (fingerprint := "12871311785592106213")
@@ -37,12 +37,12 @@ lexer or the parser, gives a line and a message.
 
 :::readable MojoGrimoire.Parse.symbols MojoGrimoire.Parse.isNameStart MojoGrimoire.Parse.isNameChar (fingerprint := "961679266447367512")
 *Definition: symbols and names.* The symbols are listed longest first, so
-that the longest symbol at a position is read: `//` before `/`, `->` before
-`-`. A name starts with a letter or `_` and continues with letters, digits
-and `_`.
+that the longest symbol at a position is read: `->` before `-`, `==`
+before `=`. A name starts with a letter or `_` and continues with letters,
+digits and `_`.
 :::
 
-:::readable MojoGrimoire.Parse.lexChars MojoGrimoire.Parse.lexChars.close MojoGrimoire.Parse.lexLine (fingerprint := "18221403455036770234")
+:::readable MojoGrimoire.Parse.lexChars MojoGrimoire.Parse.lexChars.close MojoGrimoire.Parse.lexLine (fingerprint := "8824115498293957067")
 *Definition: the tokens of a line.* The characters of a line are read left
 to right. Blanks are skipped and `#` ends the line. Digits make an integer
 literal, and a name start makes a name. `"""…"""` is a docstring, which
@@ -52,18 +52,19 @@ parentheses and square brackets, the bracket depth, across lines. Each step
 reads at least one character, so the length of the line is enough fuel.
 :::
 
-:::readable MojoGrimoire.Parse.indentation MojoGrimoire.Parse.isBlank (fingerprint := "13018137188185731497")
+:::readable MojoGrimoire.Parse.indentation MojoGrimoire.Parse.isBlank (fingerprint := "3986675793349799579")
 *Definition: indentation and blank lines.* A line's indentation is its
 number of leading spaces. A line that is empty, or holds only blanks and a
 comment, is blank, and the lexer skips it.
 :::
 
-:::readable MojoGrimoire.Parse.lexLines MojoGrimoire.Parse.lex (fingerprint := "3269693425791201034")
+:::readable MojoGrimoire.Parse.lexLines MojoGrimoire.Parse.lex (fingerprint := "18025934526813102547")
 *Definition: layout.* The lexer keeps a stack of the indentations of the
 enclosing blocks, starting with $`[0]`. A line deeper than the top of the
 stack pushes it and starts with $`\mathsf{indent}`; a shallower line pops
 every deeper indentation, with one $`\mathsf{dedent}` each, and must land on
 one that is on the stack. A logical line ends with $`\mathsf{newline}`,
 unless a bracket is still open: then the next line continues it, whatever
-its indentation. At the end of the file every open block is closed.
+its indentation. At the end of the file every open block is closed, and
+a last $`\mathsf{newline}` ends the tokens.
 :::

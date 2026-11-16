@@ -13,19 +13,20 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16909498418861481046")
+:::moduleDocs (fingerprint := "4011080102971351850")
 :::
 
-:::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "35485823105497894")
+:::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "14136961392570647166")
 *Definition: arguments.* A call receives each argument as a place, passed
-by reference to a `read`, `mut` or `ref` parameter; as a value, moved or
-copied into a `var` parameter, which the callee owns; or as a temporary,
-a value passed to a borrowing parameter, which the caller destroys after
-the call. The callee's parameters are bound to them, each value at a new
-location.
+by reference to a `read`, `mut`, `ref` or `out` parameter; as a value,
+moved or copied into a `var` parameter, which the callee owns, or copied
+into a `read` parameter of type $`\mathsf{Int}` or $`\mathsf{Bool}`; or
+as a temporary, a value passed to a borrowing parameter, which the caller
+destroys after the call. The callee's parameters are bound to them, each
+value at a new location.
 :::
 
-:::readable MojoGrimoire.Interp.Operand MojoGrimoire.Interp.Operand.load MojoGrimoire.Interp.Pending MojoGrimoire.Interp.Pending.loadAll (fingerprint := "16597088413972013435")
+:::readable MojoGrimoire.Interp.Operand MojoGrimoire.Interp.Operand.load MojoGrimoire.Interp.Pending MojoGrimoire.Interp.Pending.loadAll (fingerprint := "3189860708977689654")
 *Definition: operands read late.* An operand that is a place passed by
 value is first only located; it is read once every operand of its
 operation has been evaluated, as Mojo does. A call's arguments wait in
@@ -34,13 +35,13 @@ $`\mathsf{Int}` or a $`\mathsf{Bool}` passed to a `read` parameter is
 passed by value.
 :::
 
-:::readable MojoGrimoire.Interp.asInt MojoGrimoire.Interp.asBool MojoGrimoire.Interp.lookupVar (fingerprint := "14008624707944704668")
+:::readable MojoGrimoire.Interp.asInt MojoGrimoire.Interp.asBool MojoGrimoire.Interp.lookupVar (fingerprint := "2000511689573242902")
 *Definition: helpers.* An index is an $`\mathsf{Int}`, a condition a
 $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "16113056348452932004")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "3503047420727152711")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -74,7 +75,8 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   `pop(i)` evaluates $`i`, then removes the element at the position $`i`
   names and gives it back, failing with $`\mathsf{indexOutOfBounds}` when
   $`i` is negative or past the last element, and
-  `len` gives the length of a list or an array. A method gets its
+  `len` gives the length of a list or an array, and destroys its argument
+  when that is not a place. A method gets its
   receiver by reference, or a copy for a `var self`.
 - *References.* A `ref` binding, and the `return` of a function with an
   origin, give a reference: to a place, or the one a call returns. Used as

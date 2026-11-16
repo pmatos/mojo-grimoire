@@ -14,8 +14,8 @@ destroyed:
   right after the operation is done, for one passed by reference;
 - right after the statement that last uses it otherwise, or right after its
   declaration when nothing uses it;
-- at the start of a branch of an `if` that does not use it, when the other
-  branch does;
+- at the start of a branch of an `if` that does not use it, when the test
+  or the other branch does;
 - right after a loop that uses it, since the next iteration might use it;
 - at the start of a function body, for a `var` parameter the body never
   uses.
@@ -27,8 +27,9 @@ Inside `__deinit__(deinit self)`, each field of `self` is destroyed on its own,
 at the same points, so a field the body never uses is destroyed before the
 body runs.
 
-Only values of struct type, and lists of them, are dropped: values of the
-other types of the core calculus have no destruction that can be observed.
+Only values of struct type, and lists and arrays of them, are dropped:
+values of the other types of the core calculus have no destruction that can
+be observed.
 Several values destroyed at the same point are destroyed as the compiler
 does: the parameters first, then the local variables, each the last
 declared first; the fields of `self` in `__deinit__` in their order, and
@@ -85,16 +86,16 @@ def dying (sl : Slots) (s : Stmt) (after : List Place) : List Place :=
   diff (union (diff (usesStmt sl s) (movesStmt sl s)) (defs sl s)) after
 
 mutual
-/-- The local variables of struct type that the statement `s` declares,
-in order, each once. -/
+/-- The local variables whose values are dropped that the statement `s`
+declares, in order, each once. -/
 def declared : Stmt → List Place
   | .decl x t _ => if needsDrop t then [.var x] else []
   | .ifElse _ a b => union (declaredBlock a) (declaredBlock b)
   | .whileLoop _ body => declaredBlock body
   | _ => []
 
-/-- The local variables of struct type that the block `b` declares, in
-order, each once. -/
+/-- The local variables whose values are dropped that the block `b`
+declares, in order, each once. -/
 def declaredBlock : List Stmt → List Place
   | [] => []
   | s :: rest => union (declared s) (declaredBlock rest)
@@ -287,7 +288,7 @@ def elabBody (prog : Program) (sl : Slots) (env : TyEnv) (params : List Place)
   let owned := union params (declaredBlock body).reverse
   drops owned (diff params (liveBlock sl body [])) ++ elabBlock ⟨prog, sl, owned, env⟩ body []
 
-/-- The slots of the `var` parameters of struct type among `params`. -/
+/-- The slots of the `var` parameters among `params` whose values are dropped. -/
 def ownedParams (params : List Param) : List Place :=
   (params.filter fun prm => prm.conv == .owned && needsDrop prm.ty).map (.var ·.name)
 
@@ -302,7 +303,7 @@ def elabFun (prog : Program) (fd : FunDecl) : FunDecl :=
       (ownedParams fd.params).reverse fd.body }
 
 /-- Elaborates the body of the `__deinit__` of the struct `sd`: each field
-of struct type is a slot of its own. -/
+is a slot of its own, and those whose values are dropped are owned. -/
 def elabDeinit (prog : Program) (sd : StructDecl) (body : List Stmt) : List Stmt :=
   let self : Param := ⟨.deinit, "self", .struct sd.name⟩
   elabBody prog (slotsOf prog (some (sd.fields.map (·.1))) [self] body) (paramEnv [self])

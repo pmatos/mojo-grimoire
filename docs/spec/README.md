@@ -29,7 +29,9 @@ further definition its prose restates, and pins their fingerprint:
 ```
 
 The build fails when a declaration's statement, body, fields or
-constructors change, printing the new signatures and fingerprint: read the
+constructors change, printing the new signatures and fingerprint. A body
+includes the helpers that Lean generates for it, such as the body of a
+recursive definition and its pattern matchers: read the
 block again against the Lean, correct it, then pin the new fingerprint. It
 also fails when a declaration of the module has no block, when a
 ```` ```grammar ```` box misses a constructor or shows one twice, when a

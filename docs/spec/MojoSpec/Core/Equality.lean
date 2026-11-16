@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Equality of terms: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5549688951384410641")
+:::moduleDocs (fingerprint := "8021805015935980550")
 :::
 
-:::readable MojoGrimoire.Core.Place.beq MojoGrimoire.Core.instBEqPlace MojoGrimoire.Core.Expr.beq MojoGrimoire.Core.Place.beqList MojoGrimoire.Core.Expr.beqList MojoGrimoire.Core.Expr.beqOption MojoGrimoire.Core.instBEqExpr (fingerprint := "12632314759563879496")
+:::readable MojoGrimoire.Core.Place.beq MojoGrimoire.Core.instBEqPlace MojoGrimoire.Core.Expr.beq MojoGrimoire.Core.Place.beqList MojoGrimoire.Core.Expr.beqList MojoGrimoire.Core.Expr.beqOption MojoGrimoire.Core.instBEqExpr (fingerprint := "3783984212824872198")
 *Definition: equality of places and expressions.* Two places, or two
 expressions, are equal when they are the same tree: the same constructor, with equal parts. Lists of
 places and of expressions are equal element by element, and optional expressions when both
@@ -25,7 +25,7 @@ the Lean writes it out by structural recursion, since equality derived by
 Lean would be partial on a type that nests lists of itself.
 :::
 
-:::readable MojoGrimoire.Core.Stmt.beq MojoGrimoire.Core.Stmt.beqList MojoGrimoire.Core.instBEqStmt (fingerprint := "5136701517371614902")
+:::readable MojoGrimoire.Core.Stmt.beq MojoGrimoire.Core.Stmt.beqList MojoGrimoire.Core.instBEqStmt (fingerprint := "7675690164874309871")
 *Definition: equality of statements.* Two statements are equal, written
 `==`, when they are the same tree, comparing their expressions with the
 equality above and their blocks statement by statement.

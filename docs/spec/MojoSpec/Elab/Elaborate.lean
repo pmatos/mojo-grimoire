@@ -13,13 +13,13 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6827406554046613773")
+:::moduleDocs (fingerprint := "587006250446243951")
 :::
 
-:::readable MojoGrimoire.Elab.needsDrop (fingerprint := "12326641341485961637")
+:::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
 *Definition: values that are dropped.* Only values of struct type, and
-lists and arrays of them. Values
-of $`\mathsf{Int}`, $`\mathsf{Bool}` and string type have no destruction a
+lists and arrays of values that are dropped. Values of $`\mathsf{Int}`,
+$`\mathsf{Bool}`, string and $`\mathsf{None}` type have no destruction a
 program can observe.
 :::
 
@@ -32,22 +32,24 @@ of `self` in their order. A slot the function does not own, such as a
 borrowed parameter, is never dropped.
 :::
 
-:::readable MojoGrimoire.Elab.defs MojoGrimoire.Elab.usesStmt MojoGrimoire.Elab.movesStmt MojoGrimoire.Elab.dying (fingerprint := "2367692650024152127")
+:::readable MojoGrimoire.Elab.defs MojoGrimoire.Elab.usesStmt MojoGrimoire.Elab.movesStmt MojoGrimoire.Elab.dying (fingerprint := "14793584096165623495")
 *Definition: what dies at a simple statement.* A declaration, `ref`
 binding, assignment, expression or `print` uses, moves and defines slots as its parts do; an
-assignment to an element or a field uses the slot that holds it. The
+assignment to a part of a slot, such as an element or a field, uses the
+slot that holds it, and one through a reference the slots it may point
+into. The
 slots that die right after it are those it uses but does not move away,
 and those it defines, unless they are live after it. A value defined and
 never used dies right after its definition.
 :::
 
-:::readable MojoGrimoire.Elab.declared MojoGrimoire.Elab.declaredBlock (fingerprint := "898749486316296204")
-*Definition: local variables.* The variables of struct type that a body
-declares, in order, each once. Variables of sibling blocks may share a
+:::readable MojoGrimoire.Elab.declared MojoGrimoire.Elab.declaredBlock (fingerprint := "17446437079533637378")
+*Definition: local variables.* The variables of a type whose values are
+dropped that a body declares, in order, each once. Variables of sibling blocks may share a
 name, and then share a slot, since neither is live in the other.
 :::
 
-:::readable MojoGrimoire.Elab.callModes MojoGrimoire.Elab.methodModes (fingerprint := "4970388291402252032")
+:::readable MojoGrimoire.Elab.callModes MojoGrimoire.Elab.methodModes (fingerprint := "16327785967890316099")
 *Definition: operands passed by value.* A place passed to a `var`
 parameter, or an $`\mathsf{Int}` or a $`\mathsf{Bool}` passed to a `read`
 one, is passed by value: the call reads it once its arguments are
@@ -61,11 +63,12 @@ to a `var self`; the receiver's type, from the variables declared so far,
 gives the method.
 :::
 
-:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "5340827570988376781")
+:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "17347810789901240541")
 *Definition: what an operation destroys.* Inside a function, elaboration
 knows the program, the slots, the slots the function owns in the order they
 die, and the types of the variables declared so far. An operation uses
-directly the slots of the places among its operands; its other operands
+directly the slots of the places among its operands, and those their
+index expressions use; its other operands
 are operations of their own. Given the slots live once it is done, the
 slots it uses by value and nowhere later die once its operands are read,
 in the order they are read; those it uses by reference and nowhere later
@@ -74,7 +77,7 @@ evaluated with those slots, and the ones it reads, live after them. An
 operation that destroys nothing is left unwrapped.
 :::
 
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "3059022923887793458")
+:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "8905871195683765148")
 *Definition: elaborating expressions.* Each call, method call, operator,
 list literal and `.copy()` is wrapped with what it destroys, and its
 operands are elaborated in turn, each with the slots that the later
@@ -85,23 +88,23 @@ operand of `and` and `or` may not run, so it is not elaborated, and the
 operation destroys what it uses.
 :::
 
-:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.envAfter (fingerprint := "16316315461135927556")
+:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.envAfter (fingerprint := "12964929037588844030")
 *Definition: helpers.* The slots that an elaborated expression destroys;
 the slots that the places among a list of operands use; and the types of
 the variables after a statement, which a declaration or a `ref` binding
 extends.
 :::
 
-:::readable MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "9411454233380589243")
+:::readable MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "4605073921905777402")
 *Definition: elaboration.* Given the slots live after a statement:
 
 - a simple statement's expressions are elaborated, and the statement is
   followed by the drops of the slots that die at it and that its
   expressions do not destroy;
-- the test of an `if` is elaborated with the slots that either branch uses
-  live after it, and each branch starts with the drops of the slots live
-  before the `if` that the test neither moves nor destroys and that the
-  branch never uses;
+- the test of an `if` is elaborated with the slots live at the start of
+  either branch live after it, and each branch starts with the drops of
+  the slots live before the `if` that the test neither moves nor destroys
+  and that are not live at the start of the branch;
 - a `while` loop is followed by the drops of the slots live at its head
   that are dead after it, and its body is elaborated with the slots live at
   its head live at its end, since the next iteration may use them; its test
@@ -114,21 +117,21 @@ types of the variables declared before it.
 :::
 
 :::readable MojoGrimoire.Elab.elabBody MojoGrimoire.Elab.ownedParams MojoGrimoire.Elab.paramEnv MojoGrimoire.Elab.elabFun (fingerprint := "16178615905400234092")
-*Definition: function bodies.* A function owns its `var` parameters of
-struct type and its local variables of struct type; when several die at
-once, the parameters die first, then the local variables, each the last
-declared first. A `var` parameter its body never uses is dropped before
-the body runs; the rest of the body is elaborated with nothing live at its
+*Definition: function bodies.* A function owns its `var` parameters and
+its local variables whose values are dropped; when several die at once,
+the parameters die first, then the local variables, each the last declared
+first. An owned parameter that its body never uses is dropped before the
+body runs; the rest of the body is elaborated with nothing live at its
 end, the parameters' types, and the references the body binds, which
 `slotsOf` finds.
 :::
 
 :::readable MojoGrimoire.Elab.elabDeinit (fingerprint := "15846165684164288143")
 *Definition: destructors.* In `__deinit__(deinit self)` the fields of
-`self` are slots of their own, owned on entry, and die in their order when
-several die at once. So a field the body never uses is destroyed before
-the body runs, and every other field right after its own last use, as the
-compiler does.
+`self` are slots of their own. Those whose values are dropped are owned on
+entry, and die in their order when several die at once. So such a field
+that the body never uses is destroyed before the body runs, and every
+other one right after its own last use, as the compiler does.
 :::
 
 :::readable MojoGrimoire.Elab.elabStruct MojoGrimoire.Elab.elabProgram (fingerprint := "8521216551808215384")

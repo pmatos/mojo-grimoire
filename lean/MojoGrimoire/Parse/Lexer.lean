@@ -36,7 +36,7 @@ structure SyntaxError where
   message : String
   deriving DecidableEq, Repr
 
-/-- The symbols, longest first, so that `//` is read before `/`. -/
+/-- The symbols, longest first, so that `->` is read before `-`. -/
 def symbols : List String :=
   ["->", "//", "==", "!=", "<=", ">=", "+=", "-=", "*=", "(", ")", "[", "]", ",", ":", ".",
    "=", "+", "-", "*", "%", "<", ">", "^", "@"]

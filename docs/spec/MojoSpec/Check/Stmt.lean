@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3365059875252488528")
+:::moduleDocs (fingerprint := "14382997940473433092")
 :::
 
 :::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9586730624127733473")
@@ -45,19 +45,19 @@ a reference is invalidated when either branch invalidates it. A branch
 that cannot reach its end, because it returned, does not count.
 :::
 
-:::readable MojoGrimoire.Check.checkLoop (fingerprint := "11393517602813983322")
-*Rule: loops.* A loop body must leave initialized every part that was
-initialized before the loop, and may not add a field to $`M`, or its next
-iteration would use a moved value. As Mojo does, the checker reports such
-a part as a use of an uninitialized value.
+:::readable MojoGrimoire.Check.checkLoop (fingerprint := "15906415396099670179")
+*Rule: loops.* A loop body that can reach its end must leave initialized
+every part that was initialized before the loop, and may not add a field to
+$`M`, or its next iteration would use a moved value. As Mojo does, the
+checker reports such a part as a use of an uninitialized value.
 :::
 
-:::readable MojoGrimoire.Check.checkPrintArg (fingerprint := "15869644014447858079")
+:::readable MojoGrimoire.Check.checkPrintArg (fingerprint := "13996741714285547759")
 *Rule: printing.* `print` takes string literals, and values of type
 $`\mathsf{Int}` or $`\mathsf{Bool}`, which it reads as values.
 :::
 
-:::readable MojoGrimoire.Check.checkConstructed (fingerprint := "14579695824840431255")
+:::readable MojoGrimoire.Check.checkConstructed (fingerprint := "14481956837354778808")
 *Rule: building into an element.* $`p = e` is rejected as
 $`\mathsf{argumentExclusivity}` when $`p` is inside an element of a list,
 and $`e` is a call that builds its result in place and is passed `mut`, or
@@ -69,13 +69,13 @@ a generic result, such as a list method that gives an element, always
 does.
 :::
 
-:::readable MojoGrimoire.Check.checkReturnValue (fingerprint := "8211605308112301922")
+:::readable MojoGrimoire.Check.checkReturnValue (fingerprint := "9539121513654081288")
 *Rule: returned values.* `return x` moves the variable $`x` out when the
 function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "9919481853655389240")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "14743613404177069484")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
@@ -83,11 +83,11 @@ an expression, so a place is copied implicitly.
   may not be the name of a variable in scope, so no variable hides another;
 * $`\mathsf{ref}~x = e` binds $`x` to a reference, as the next section
   says; $`x` may not hide a variable in scope either;
-* $`p = e` checks $`e` first, then needs $`p` of $`e`'s type, then
-  that $`e` does not build its result into $`p` while changing the list
-  that holds it, then needs a place the function may change; $`p` is changed as a
+* $`p = e` checks $`e` first, then the indices of $`p`, then needs $`p`
+  of $`e`'s type, then that $`e` does not build its result into $`p`
+  while changing the list that holds it, then needs a place the function may change; $`p` is changed as a
   whole, its old value ends, and $`p` is initialized. The old value may not end with a field in $`M` below
-  $`p`, nor with a part moved out below a struct with a destructor of its
+  $`p`, nor with an uninitialized part below a struct with a destructor of its
   own, as at the end of a variable. Assigning exactly a field in $`M`
   removes it from $`M`; assigning a part below that field does not.
   Through a reference or to an element, the old value is read first, so

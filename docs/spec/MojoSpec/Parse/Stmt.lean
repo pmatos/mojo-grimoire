@@ -13,17 +13,17 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and declarations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15996223734491639344")
+:::moduleDocs (fingerprint := "13148500742184141091")
 :::
 
-:::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.exprStmt (fingerprint := "4168575402372941327")
+:::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.exprStmt (fingerprint := "8316553191041905862")
 *Definition: sugar.* `p += e`, `p -= e` and `p *= e` are `p = p + e`,
 `p = p - e` and `p = p * e`. A call of `print` on a line of its own is the
 $`\mathsf{print}` statement; any other expression there is evaluated and
 its value discarded.
 :::
 
-:::readable MojoGrimoire.Parse.simpleStmt MojoGrimoire.Parse.exprTail MojoGrimoire.Parse.stmt MojoGrimoire.Parse.ifRest MojoGrimoire.Parse.block MojoGrimoire.Parse.stmts (fingerprint := "12642228634953323282")
+:::readable MojoGrimoire.Parse.simpleStmt MojoGrimoire.Parse.exprTail MojoGrimoire.Parse.stmt MojoGrimoire.Parse.ifRest MojoGrimoire.Parse.block MojoGrimoire.Parse.stmts (fingerprint := "581247963703489719")
 *Definition: statements and blocks.*
 
 $$`\begin{array}{lcl}
@@ -43,14 +43,14 @@ is a place followed by `=` or an augmented operator, and otherwise an
 expression whose first operand is that chain.
 :::
 
-:::readable MojoGrimoire.Parse.conv MojoGrimoire.Parse.params MojoGrimoire.Parse.originNames MojoGrimoire.Parse.funDecl (fingerprint := "10151670689596070118")
+:::readable MojoGrimoire.Parse.conv MojoGrimoire.Parse.params MojoGrimoire.Parse.originNames MojoGrimoire.Parse.funDecl (fingerprint := "12198880054367436714")
 *Definition: functions.*
 
 $$`\begin{array}{lcl}
 \mathit{fun} & ::= & (\mathsf{def} \mid \mathsf{fn})~f(\mathit{param}^*)~\mathsf{raises}^?~(\to \mathit{result})^?~\mathit{block} \\
 \mathit{param} & ::= & \mathit{conv}^?~x~(:\mathit{type})^? \\
 \mathit{conv} & ::= & \mathsf{read} \mid \mathsf{mut} \mid \mathsf{var} \mid \mathsf{owned} \mid \mathsf{ref} \mid \mathsf{out} \mid \mathsf{deinit} \\
-\mathit{result} & ::= & \mathit{type} \mid \mathsf{ref}~[x^*]~\mathit{type}
+\mathit{result} & ::= & \mathit{type} \mid \mathsf{ref}~[x^+]~\mathit{type}
 \end{array}`
 
 A parameter without a convention is $`\mathsf{read}`, and `var` and `owned`
@@ -58,25 +58,26 @@ both mean $`\mathsf{owned}`. A parameter must have a type, except `self` in
 a method, whose type is its struct. A function without a result returns
 $`\mathsf{None}`. `raises` is read and ignored: the subset raises no
 errors. A result `ref [a, b] T` is a reference with the origins of the
-parameters named.
+parameters named; it names at least one.
 :::
 
-:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "237252837874664005")
+:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "3597653097922544660")
 *Definition: structs.*
 
 $$`\begin{array}{lcl}
-\mathit{struct} & ::= & (@\mathsf{fieldwise\_init})^?~\mathsf{struct}~S~((\mathit{name}^*))^?:~\mathit{member}^* \\
+\mathit{struct} & ::= & (@\mathsf{fieldwise\_init})^?~\mathsf{struct}~S~((\mathit{name}^+))^?:~\mathit{member}^* \\
 \mathit{member} & ::= & \mathsf{var}~x:\mathit{type} \mid \mathit{fun} \mid \mathsf{pass} \mid \mathit{string}
 \end{array}`
 
 A struct's conformances say how its values are copied: `ImplicitlyCopyable`
 implicitly, `Copyable` explicitly, and otherwise not at all; other
-conformances, such as `Movable`, are read and ignored. The method
-`__init__` is the initializer and the body of `__deinit__` is the
-destructor; every other function is a method.
+conformances, such as `Movable`, are read and ignored. Parentheses after
+the name hold at least one conformance. The method `__init__` is the
+initializer and the body of `__deinit__` is the destructor; every other
+function is a method.
 :::
 
-:::readable MojoGrimoire.Parse.decls MojoGrimoire.Parse.parseRaw (fingerprint := "18250684152060520694")
+:::readable MojoGrimoire.Parse.decls MojoGrimoire.Parse.parseRaw (fingerprint := "11830877125119029656")
 *Definition: programs.* A program is a sequence of structs and functions,
 in any order. The only decorator is `@fieldwise_init`. The parser is given
 ten times the number of tokens, plus a hundred, as fuel, which is more than

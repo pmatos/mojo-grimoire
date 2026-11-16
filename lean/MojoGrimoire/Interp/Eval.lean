@@ -15,11 +15,13 @@ run that spends it all stops with `outOfFuel`, so every run ends, even of a
 program that loops forever.
 
 A value is destroyed where elaboration put a `drop` or a `withDrops`, when
-it is replaced by an assignment, when a temporary passed to a borrowing parameter is no longer
-needed after its call, when a call's result is not used, and when a
-function returns, for every value it still owns. Destroying a struct runs
-its `__deinit__`, whose elaborated body destroys its fields; a struct
-without one has its fields destroyed in order, and a list its elements.
+it is replaced by an assignment, when a temporary passed to a borrowing
+parameter is no longer needed after its call, when a call's result is not
+used, when `len` has read the length of a list that is not a place, and
+when a function returns, for every value it still owns. Destroying a
+struct runs its `__deinit__`, whose elaborated body destroys its fields; a
+struct without one has its fields destroyed in order, and a list its
+elements.
 -/
 
 namespace MojoGrimoire.Interp

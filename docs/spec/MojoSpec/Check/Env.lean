@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14010994217253651371")
+:::moduleDocs (fingerprint := "14811460100782069791")
 :::
 
-:::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "17441515373986636163")
+:::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "2654669946631487798")
 *Definition: lookups.* The checker finds a struct or a function of the
 program by its name, the first one declared with that name, and a field or
 method of a struct by its name. `fieldOf` gives the type of the field
@@ -35,7 +35,7 @@ for. A function's signature takes its parameters as they are declared; a
 method's takes the first, `self`, as its receiver.
 :::
 
-:::readable MojoGrimoire.Check.listMethod (fingerprint := "5898892595285092841")
+:::readable MojoGrimoire.Check.listMethod (fingerprint := "1574394717472103448")
 *Definition: the methods of a list.* A list of $`t` has two methods, which
 take their list `mut` and depend on the number $`n` of arguments of the
 call: `append` takes one `var` argument of type $`t` and gives
@@ -45,24 +45,26 @@ $`n = 0`, `pop` takes no argument; with any other $`n`, it takes one
 arguments is an arity mismatch.
 :::
 
-:::readable MojoGrimoire.Check.typeName (fingerprint := "5915273905220259329")
+:::readable MojoGrimoire.Check.typeName (fingerprint := "7030328644115975064")
 *Definition: type names.* The name of a type, as Mojo writes it without
-its parameters, names the type in an error about its methods.
+its parameters, names the type in an error about its methods or about
+the elements of a list literal of that type.
 :::
 
-:::readable MojoGrimoire.Check.callSig MojoGrimoire.Check.methodSig (fingerprint := "7317073360924282579")
+:::readable MojoGrimoire.Check.callSig MojoGrimoire.Check.methodSig (fingerprint := "10778790566369669665")
 *Definition: the signature of a call.* $`f(e^*)` constructs the struct
 $`f`, when the program declares one, with the parameters of its `__init__`
 after `self`, or with one `var` parameter per field if it is
 `@fieldwise_init`, and is rejected if it has neither; otherwise it calls
 the function $`f`. `len` has no signature, since it takes a list or an
 array of any type. $`p.m(e^*)` calls a method of the type of $`p`: one of
-a list's methods, or a method of a struct, whose `self` takes $`p`. An
-array has no methods, nor does any other type. Inference, the checker and
+a list's methods, or a method of a struct, whose `self` takes $`p`; a
+method of a struct with no parameter at all is rejected. An array has no
+methods, nor does any other type. Inference, the checker and
 elaboration all read the signatures of calls here.
 :::
 
-:::readable MojoGrimoire.Check.copyingOf (fingerprint := "4318683737232947193")
+:::readable MojoGrimoire.Check.copyingOf (fingerprint := "11191475259856383167")
 *Definition: how a type is copied.* $`\mathsf{Int}` and
 $`\mathsf{Bool}` are implicitly copyable, as in Mojo; a struct is copied as
 it declares; a list or an array is copied only explicitly, with
@@ -70,18 +72,20 @@ it declares; a list or an array is copied only explicitly, with
 never copied.
 :::
 
-:::readable MojoGrimoire.Check.hasDeinit (fingerprint := "18219250075115973939")
+:::readable MojoGrimoire.Check.hasDeinit (fingerprint := "13047813040906958986")
 *Definition: types with a destructor.* A type has a destructor of its own
 when it is a struct that declares `__deinit__`.
 :::
 
-:::readable MojoGrimoire.Check.validTy (fingerprint := "2209953286527928859")
+:::readable MojoGrimoire.Check.validTy (fingerprint := "16319643588843478444")
 *Definition: declarable types.* A variable, parameter or field may have the
 type $`\mathsf{Int}`, $`\mathsf{Bool}`, a struct of the program, or a
-list or an array of values of such a type, and no other.
+list or an array of values of such a type, and no other. So may a
+function's result, unless it is `None`, and the elements of a list
+literal.
 :::
 
-:::readable MojoGrimoire.Check.elemBase MojoGrimoire.Check.contains (fingerprint := "14586368853234422197")
+:::readable MojoGrimoire.Check.elemBase MojoGrimoire.Check.contains (fingerprint := "15804087117037256534")
 *Definition: containment.* A type $`t` contains the struct $`S` when it is
 $`S`, a struct with a field whose type contains $`S`, or a list or an
 array of a type that contains $`S`. The search looks through lists and

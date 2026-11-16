@@ -13,16 +13,16 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Elaboration only inserts drops: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13127095134879732002")
+:::moduleDocs (fingerprint := "5756441191664544226")
 :::
 
-:::readable MojoGrimoire.Elab.stripPlace MojoGrimoire.Elab.stripExpr MojoGrimoire.Elab.stripExprs (fingerprint := "15346972492104572464")
+:::readable MojoGrimoire.Elab.stripPlace MojoGrimoire.Elab.stripExpr MojoGrimoire.Elab.stripExprs (fingerprint := "14705780881091955096")
 *Definition: erasing drops from expressions.* A place or an expression with
 every $`\mathsf{drops}(e; p^*; q^*)` in it replaced by $`e`, at every
 depth.
 :::
 
-:::readable MojoGrimoire.Elab.stripStmt MojoGrimoire.Elab.stripBlock (fingerprint := "17318067068892795592")
+:::readable MojoGrimoire.Elab.stripStmt MojoGrimoire.Elab.stripBlock (fingerprint := "2099941355623106784")
 *Definition: erasing drops.* A statement or block with every `drop` in it
 removed, inside branches and loop bodies too, and the drops erased from
 its expressions.
