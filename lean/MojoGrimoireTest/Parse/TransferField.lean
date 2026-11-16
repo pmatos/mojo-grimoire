@@ -68,6 +68,15 @@ private def rejects (e : CheckError) : Option Outcome := some (.rejected ⟨"mai
 private def mainBody (ls : List String) : Option (List Stmt) :=
   (prog ("def main():" :: ls)).bind fun p => (findFun p "main").map (·.body)
 
+/-- Whether elaborating `main`, whose body is the lines `ls`, inserts no
+drop anywhere in it. -/
+private def elabSame (ls : List String) : Bool :=
+  match prog ("def main():" :: ls) with
+  | some p =>
+    let body (q : Program) := (findFun q "main").map (·.body)
+    body (elabProgram p) == body p && (body p).isSome
+  | none => false
+
 private def s : Place := .var "s"
 private def sT : Place := .transferred s
 
@@ -140,9 +149,8 @@ private def sT : Place := .transferred s
   some (.finished ["drop 1", "14"])
 #guard inMain ["    var s = S(Res(1), 7)", "    print(s^.take2(s^.k))"] ==
   some (.finished ["drop 1", "14"])
-#guard ((prog ["def main():", "    var s = S(Res(1), 7)", "    print(s^.take())"]).map
-    fun p => ((elabProgram p).funs.find? (·.name == "main")).map
-      (·.body.contains (.drop s))) == some (some false)
+#guard elabSame ["    var s = S(Res(1), 7)", "    print(s^.take())"]
+#guard elabSame ["    var s = S(Res(1), 7)", "    print(s^.take2(s.k))"]
 
 -- What the compiler rejects. Using `s` after it was consumed, or reading
 -- `s^.k` once `s` or a part of it was moved.
