@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4857728615782686939")
+:::moduleDocs (fingerprint := "8081790638346316652")
 :::
 
-:::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.checkEnd (fingerprint := "17538961837886157612")
+:::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9586730624127733473")
 *Rule: the end of a variable.* The compiler destroys a struct whole, so a
 variable may not end with a field in $`M`, moved out and not assigned
 again. Nor may it end with an uninitialized part below a struct that has a
@@ -37,14 +37,13 @@ them, and every variable must be allowed to end.
 each checked as above if the end of the block is reached.
 :::
 
-:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMoved MojoGrimoire.Check.joinStates (fingerprint := "8423190426617035971")
+:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinStates (fingerprint := "17284652900309032410")
 *Rule: joining branches.* After an `if`, a part is uninitialized when
-either branch leaves it so, and a field is moved out when either branch
-leaves it so. A branch that cannot reach its end, because it
+either branch leaves it so, and $`M` is the union of the branches' sets. A branch that cannot reach its end, because it
 returned, does not count.
 :::
 
-:::readable MojoGrimoire.Check.checkLoop (fingerprint := "2654675785511278145")
+:::readable MojoGrimoire.Check.checkLoop (fingerprint := "11393517602813983322")
 *Rule: loops.* A loop body must leave initialized every part that was
 initialized before the loop, and may not add a field to $`M`, or its next
 iteration would use a moved value. As Mojo does, the checker reports such

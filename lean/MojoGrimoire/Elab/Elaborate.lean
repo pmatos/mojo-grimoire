@@ -100,12 +100,6 @@ def declaredBlock : List Stmt → List Place
   | s :: rest => union (declared s) (declaredBlock rest)
 end
 
-/-- Whether a place passed to the parameter `prm` is passed by value: to a
-`var` parameter, or an `Int` or a `Bool` to a `read` one, which Mojo copies.
-Any other place is passed by reference. -/
-def passedByValue (prm : Param) : Bool :=
-  prm.conv == .owned || (prm.conv == .read && (prm.ty == .int || prm.ty == .bool))
-
 /-- Whether each argument of a call of `f` is passed by value, when it is a
 place. A struct's construction takes its arguments by its initializer's
 parameters after `self`, or by value; `len` takes its list by reference. -/

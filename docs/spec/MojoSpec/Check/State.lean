@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4571960786031505932")
+:::moduleDocs (fingerprint := "3040547801539185723")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "4845031522016519524")
@@ -80,10 +80,18 @@ way, which stay uninitialized. `partTy` gives the type of a part, and
 `remainder` the parts left on the way down.
 :::
 
-:::readable MojoGrimoire.Check.lookup MojoGrimoire.Check.setParts MojoGrimoire.Check.setParts.go (fingerprint := "2552617520351444517")
+:::readable MojoGrimoire.Check.partPlace MojoGrimoire.Check.below MojoGrimoire.Check.union (fingerprint := "7669376000255197553")
+*Definition: parts and sets of parts.* The part $`\pi` of the variable
+$`x` is the place $`x.\pi`. The parts of $`U` strictly below $`\rho`
+are the $`\sigma` with $`\rho\sigma \in U` and $`\sigma \neq \epsilon`.
+Sets are lists without repeats, kept in the order they are found:
+$`A \cup B` keeps $`A` and adds the elements of $`B` not in it.
+:::
+
+:::readable MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "16996342393925123152")
 *Definition: variables in scope.* A name refers to the innermost variable in
-scope with that name, and updating a variable's uninitialized parts and
-moved fields updates that variable. An unknown name is rejected.
+scope with that name, and updating a variable replaces the innermost
+variable with its name. An unknown name is rejected.
 :::
 
 :::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "14389053458028017532")

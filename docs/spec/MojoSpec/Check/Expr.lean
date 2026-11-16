@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9923768676773926016")
+:::moduleDocs (fingerprint := "3692257786948400776")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -27,7 +27,7 @@ assigning to it or passing it `mut`, unless its variable is a `read` or
 `ref` parameter, or a reference that may not be changed.
 :::
 
-:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.transferPlace (fingerprint := "6514386312051347088")
+:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.transferPlace (fingerprint := "6353307830953088488")
 *Rule: reading and moving a place.* Using a place $`p` as a value copies it
 implicitly: $`p` must be initialized, and its type implicitly copyable.
 Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable

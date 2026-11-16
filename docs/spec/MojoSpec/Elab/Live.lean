@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Uses, moves and liveness: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2269318565202964709")
+:::moduleDocs (fingerprint := "12454293434398600589")
 :::
 
 :::readable MojoGrimoire.Elab.Slots MojoGrimoire.Elab.Slots.of MojoGrimoire.Elab.Slots.isSlot (fingerprint := "1330877572997400442")
@@ -28,10 +28,10 @@ reference is no slot: a use of it touches every slot it may point into, so
 that their values live as long as it is used.
 :::
 
-:::readable MojoGrimoire.Elab.union MojoGrimoire.Elab.diff (fingerprint := "14856447206105194588")
+:::readable MojoGrimoire.Elab.diff (fingerprint := "9653185907753345644")
 *Definition: sets of slots.* Sets of slots are lists without repeats, kept
-in the order they are found. $`A \cup B` keeps $`A` and adds the slots of
-$`B` not in it; $`A \setminus B` keeps the slots of $`A` not in $`B`.
+in the order they are found. Their union $`A \cup B` is the checker's;
+$`A \setminus B` keeps the slots of $`A` not in $`B`.
 :::
 
 :::readable MojoGrimoire.Elab.indexUses MojoGrimoire.Elab.uses MojoGrimoire.Elab.usesList (fingerprint := "15538863250245669106")

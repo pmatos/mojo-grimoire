@@ -51,9 +51,6 @@ def Slots.isSlot (sl : Slots) (p : Place) : Bool :=
   | _, .var _ => true
   | _, _ => false
 
-/-- The union of two lists of slots, as sets. -/
-def union (a b : List Place) : List Place := a ++ b.filter (!a.contains ·)
-
 /-- The slots of `a` that are not in `b`. -/
 def diff (a b : List Place) : List Place := a.filter (!b.contains ·)
 

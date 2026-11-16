@@ -86,7 +86,7 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
   | .place p => let (p', t) := inferPlace prog env p; (.place p', t)
   | .transfer p =>
     let (p', t) := inferPlace prog env p
-    if (t == some .int || t == some .bool) && !splitPlace.indexed p' then (.place p', t)
+    if t.any Ty.byValue && !splitPlace.indexed p' then (.place p', t)
     else (.transfer p', t)
   | .copy p => let (p', t) := inferPlace prog env p; (.copy p', t)
   | .call f args =>

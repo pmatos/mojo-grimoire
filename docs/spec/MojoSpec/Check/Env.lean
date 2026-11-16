@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9492104776862680402")
+:::moduleDocs (fingerprint := "4241190327376094247")
 :::
 
 :::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "12927198337935588870")
@@ -53,4 +53,10 @@ structs of the program, since a longer chain of fields repeats a struct.
 A struct whose field contains the struct itself is rejected: held
 directly it would be infinite, and held in a list or an array the
 compiler rejects it too.
+:::
+
+:::readable MojoGrimoire.Check.passedByValue (fingerprint := "8359022073465340314")
+*Definition: places passed by value.* A place passed to a `var`
+parameter, or an $`\mathsf{Int}` or a $`\mathsf{Bool}` passed to a
+`read` one, is passed by value. Any other place is passed by reference.
 :::

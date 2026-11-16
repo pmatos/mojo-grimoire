@@ -84,4 +84,10 @@ def contains (prog : Program) (s : Name) : Nat → Ty → Bool
         sd.fields.any fun (_, ft) => contains prog s fuel ft
     | _ => false
 
+/-- Whether a place passed to the parameter `prm` is passed by value: to a
+`var` parameter, or an `Int` or a `Bool` to a `read` one, which Mojo copies.
+Any other place is passed by reference. -/
+def passedByValue (prm : Param) : Bool :=
+  prm.conv == .owned || (prm.conv == .read && prm.ty.byValue)
+
 end MojoGrimoire.Check

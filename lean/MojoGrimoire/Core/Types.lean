@@ -30,6 +30,13 @@ inductive Ty where
   | array (elem : Ty) (size : Nat)
   deriving DecidableEq, Repr
 
+/-- Whether Mojo uses a value of type `t` by value where it would otherwise
+use its location: an `Int` or a `Bool`, which Mojo copies when it is passed
+to a `read` parameter, and does not move with `^`. -/
+def Ty.byValue : Ty → Bool
+  | .int | .bool => true
+  | _ => false
+
 /-- The argument conventions. `read` is the default, which Mojo writes with no
 keyword; `mutable` is Mojo's `mut`, and `owned` is Mojo's `var`. `out` is
 only the convention of `self` in `__init__`, and `deinit` only that of

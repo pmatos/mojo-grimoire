@@ -58,10 +58,6 @@ def Pending.loadAll (ps : List Pending) : EvalM (List Arg) :=
     | .arg a => pure a
     | .load o => do pure (.value (← o.load))
 
-/-- Whether a value of type `t` is passed to a `read` parameter by value:
-Mojo copies an `Int` or a `Bool`. -/
-def byValue (t : Ty) : Bool := t == .int || t == .bool
-
 /-- The variables a function starts with: its parameters bound to the
 arguments, each owned when it is passed `var`. The temporaries are given
 locations of their own. -/
@@ -230,7 +226,7 @@ def evalArgs (prog : Program) (fuel : Nat) (env : Env) :
         let x ← match prm.conv, a with
           | .owned, a => do pure (.load (← evalOperand prog n env a))
           | .read, .place p =>
-            if byValue prm.ty then do pure (.load (← evalOperand prog n env (.place p)))
+            if prm.ty.byValue then do pure (.load (← evalOperand prog n env (.place p)))
             else do pure (.arg (.place (← placeRef prog n env p)))
           | _, .place p => do pure (.arg (.place (← placeRef prog n env p)))
           | _, a => do pure (.arg (.temp (← evalExpr prog n env a)))

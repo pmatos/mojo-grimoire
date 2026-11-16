@@ -81,6 +81,17 @@ where
     | .field p _ => indexed p
     | .index _ _ => true
 
+/-- The place of the part `path` of the variable `x`: the inverse of
+`splitPlace` for a place that goes through no element. -/
+def partPlace (x : Name) (path : Path) : Place := path.foldl .field (.var x)
+
+/-- The parts among `us` strictly below the part `q`, as paths from `q`. -/
+def below (q : Path) (us : List Path) : List Path :=
+  (us.filter fun u => q.isPrefixOf u && u != q).map (·.drop q.length)
+
+/-- The union of two lists, as sets. -/
+def union {α : Type} [BEq α] (a b : List α) : List α := a ++ b.filter (!a.contains ·)
+
 /-- Whether the part `q` of a variable whose uninitialized parts are `us` is
 initialized: no uninitialized part is above or below it. -/
 def initialized (us : List Path) (q : Path) : Bool :=
@@ -127,15 +138,14 @@ def lookup (x : Name) : CheckM VarState := do
   let some v := (← get).vars.find? (·.name == x) | throw (CheckError.unknownVariable x)
   pure v
 
-/-- Replaces the uninitialized parts and the moved fields of the innermost
-variable named `x`. -/
-def setParts (x : Name) (us ms : List Path) : CheckM Unit :=
+/-- Replaces the innermost variable named as `v` by `v`. -/
+def setVar (v : VarState) : CheckM Unit :=
   modify fun s => { s with vars := go s.vars }
 where
-  /-- Updates the first variable named `x`. -/
+  /-- Replaces the first variable with `v`'s name. -/
   go : List VarState → List VarState
     | [] => []
-    | v :: vs => if v.name == x then { v with uninit := us, moved := ms } :: vs else v :: go vs
+    | w :: ws => if w.name == v.name then v :: ws else w :: go ws
 
 /-- The type of the elements of a list or an array of type `t`. -/
 def elemOf : Ty → Except CheckError Ty
