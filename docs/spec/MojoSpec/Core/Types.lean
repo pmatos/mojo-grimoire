@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Names, types, conventions and operators: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10632303303006193387")
+:::moduleDocs (fingerprint := "1908269469288049923")
 :::
 
 :::readable MojoGrimoire.Core.Name (fingerprint := "17987575212195285839")
@@ -40,6 +40,13 @@ values of type $`t`, whose length may change, and
 $`\mathsf{Array}[t, n]` an array of exactly $`n` of them. $`\mathsf{Str}` is the type of string
 literals, which a program may only print, and $`\mathsf{None}` the type of a
 call to a function that returns nothing.
+:::
+
+:::readable MojoGrimoire.Core.Ty.byValue (fingerprint := "13418444462996705911")
+*Definition: values used by value.* Mojo copies an $`\mathsf{Int}` or a
+$`\mathsf{Bool}` where it would otherwise use its location: when it is
+passed to a `read` parameter, and when it is transferred with `^`, which
+does not move it.
 :::
 
 :::readable MojoGrimoire.Core.Conv (fingerprint := "11609666784133341925")

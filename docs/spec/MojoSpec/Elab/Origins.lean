@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The origins of references: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8194931462425856860")
+:::moduleDocs (fingerprint := "15017224128749900813")
 :::
 
 :::readable MojoGrimoire.Elab.TyEnv MojoGrimoire.Elab.placeTyOf MojoGrimoire.Elab.refCallee (fingerprint := "15930353832573391946")
@@ -29,7 +29,7 @@ into the slots that the place touches; one returned by a call, into the
 slots of the arguments passed to the parameters its origin names.
 :::
 
-:::readable MojoGrimoire.Elab.addAlias MojoGrimoire.Elab.aliasStmt MojoGrimoire.Elab.aliasBlock MojoGrimoire.Elab.slotsOf (fingerprint := "16874505399776782759")
+:::readable MojoGrimoire.Elab.addAlias MojoGrimoire.Elab.aliasStmt MojoGrimoire.Elab.aliasBlock MojoGrimoire.Elab.slotsOf (fingerprint := "7734006516643555398")
 *Definition: the references of a body.* A pass through the body, in order,
 records each `ref` binding with the slots it may point into, so that a
 reference bound to another reference points into the same slots. Two

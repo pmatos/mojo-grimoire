@@ -146,13 +146,17 @@ private def verdict (p : Program) : Option CheckError :=
   .ifElse (use "c") [.expr (.call "consume" [.transfer (v "a")]), .ret none] [],
   .expr (.call "show" [use "a"])]) == none
 
--- Moving a field out of a `Pair` is allowed: the rest is destroyed field by field.
+-- Moving a field out of a `Pair` that then ends is not: the compiler cannot
+-- destroy it. `Check/PartialMoves.lean` tests the rule in full.
 #guard verdict (prog [.decl "p" (.struct "Pair") (some (.call "Pair" [.call "Res" [.int 1],
-  .call "Res" [.int 2]])), .expr (.call "consume" [.transfer (fld "p" "a")])]) == none
+  .call "Res" [.int 2]])), .expr (.call "consume" [.transfer (fld "p" "a")])]) ==
+  some (.partiallyDestroyed "p")
 
--- Moving `id` out of a `Res`, which has a `__deinit__`, is not.
-#guard verdict (prog [newRes "a" 1, .decl "n" .int (some (.transfer (fld "a" "id")))]) ==
-  some (.partiallyDestroyed "a")
+-- Moving the `Res` out of a struct with a `__deinit__` of its own is not.
+#guard verdict (prog [.decl "h" (.struct "Holder") (some (.call "Holder" [.call "Res" [.int 1]])),
+  .expr (.call "consume" [.transfer (fld "h" "r")])] []
+  [⟨"Holder", [("r", res)], .none, true, none, some [.print [.str "holder"]], []⟩]) ==
+  some (.partiallyDestroyed "h")
 
 -- In its own `__deinit__`, a struct may move its fields out.
 #guard verdict (prog [] [] [⟨"Holder", [("r", res)], .none, true, none,

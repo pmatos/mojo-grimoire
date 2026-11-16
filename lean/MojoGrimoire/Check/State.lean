@@ -13,6 +13,13 @@ transferred, has the whole variable, the empty path. Moving a field out adds
 that field's path. A part is initialized when no uninitialized part is
 above or below it. The elements of a list or an array are not parts: they
 are initialized whenever the list or array is.
+
+A variable also records the fields moved out of it with `^` that it has not
+been given again. The compiler cannot destroy a struct with such a field
+missing, nor overwrite it, so the variable may not end, and no part above
+such a field may be assigned, until that same field is assigned again.
+Assigning its sub-fields one by one does not count: until then, the field
+and the parts above it may not be read whole.
 -/
 
 namespace MojoGrimoire.Check
@@ -38,13 +45,15 @@ inductive Access where
 /-- A path of field names, from a variable to one of its parts. -/
 abbrev Path := List Name
 
-/-- A variable in scope: its name, type, how it is held, and its
-uninitialized parts. -/
+/-- A variable in scope: its name, type, how it is held, its
+uninitialized parts, and the fields moved out of it that it has not been
+given again. -/
 structure VarState where
   name : Name
   ty : Ty
   access : Access
   uninit : List Path
+  moved : List Path
   deriving BEq
 
 /-- The checker's state: the variables in scope, innermost first, and
@@ -71,6 +80,17 @@ where
     | .var _ => false
     | .field p _ => indexed p
     | .index _ _ => true
+
+/-- The place of the part `path` of the variable `x`: the inverse of
+`splitPlace` for a place that goes through no element. -/
+def partPlace (x : Name) (path : Path) : Place := path.foldl .field (.var x)
+
+/-- The parts among `us` strictly below the part `q`, as paths from `q`. -/
+def below (q : Path) (us : List Path) : List Path :=
+  (us.filter fun u => q.isPrefixOf u && u != q).map (·.drop q.length)
+
+/-- The union of two lists, as sets. -/
+def union {α : Type} [BEq α] (a b : List α) : List α := a ++ b.filter (!a.contains ·)
 
 /-- Whether the part `q` of a variable whose uninitialized parts are `us` is
 initialized: no uninitialized part is above or below it. -/
@@ -118,14 +138,14 @@ def lookup (x : Name) : CheckM VarState := do
   let some v := (← get).vars.find? (·.name == x) | throw (CheckError.unknownVariable x)
   pure v
 
-/-- Replaces the state of the innermost variable named `x`. -/
-def setUninit (x : Name) (us : List Path) : CheckM Unit :=
+/-- Replaces the innermost variable named as `v` by `v`. -/
+def setVar (v : VarState) : CheckM Unit :=
   modify fun s => { s with vars := go s.vars }
 where
-  /-- Updates the first variable named `x`. -/
+  /-- Replaces the first variable with `v`'s name. -/
   go : List VarState → List VarState
     | [] => []
-    | v :: vs => if v.name == x then { v with uninit := us } :: vs else v :: go vs
+    | w :: ws => if w.name == v.name then v :: ws else w :: go ws
 
 /-- The type of the elements of a list or an array of type `t`. -/
 def elemOf : Ty → Except CheckError Ty
@@ -145,13 +165,16 @@ where
 origins of a reference, or `p` itself. -/
 def resolvePlace (vars : List VarState) (p : Place) : List Place :=
   match vars.find? (·.name == (splitPlace p).1) with
-  | some ⟨_, _, .alias os _, _⟩ => os
+  | some ⟨_, _, .alias os _, _, _⟩ => os
   | _ => [p]
 
-/-- Rejects unless the place `p`, of a variable whose uninitialized parts are
-`us`, is initialized. -/
-def requireInit (us : List Path) (p : Place) : CheckM Unit :=
-  unless initialized us (splitPlace p).2 do throw (CheckError.uninitializedUse p)
+/-- Rejects unless the place `p` of the variable `v` is initialized, with no
+field moved out at or below it: a field moved out and refilled one
+sub-field at a time is still not whole. -/
+def requireInit (v : VarState) (p : Place) : CheckM Unit := do
+  let q := (splitPlace p).2
+  unless initialized v.uninit q && !v.moved.any (q.isPrefixOf ·) do
+    throw (CheckError.uninitializedUse p)
 
 /-- The type of a place that is initialized, so that its value may be read;
 it rejects a use of a part that is uninitialized. A place reached through a
@@ -160,8 +183,8 @@ def readPlace (prog : Program) (p : Place) : CheckM Ty := do
   let t ← placeTy prog p
   let v ← lookup (splitPlace p).1
   match v.access with
-  | .alias os _ => for o in os do requireInit (← lookup (splitPlace o).1).uninit o
-  | _ => requireInit v.uninit p
+  | .alias os _ => for o in os do requireInit (← lookup (splitPlace o).1) o
+  | _ => requireInit v p
   pure t
 
 end MojoGrimoire.Check

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5200223136269018276")
+:::moduleDocs (fingerprint := "8685612391761183842")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "12326641341485961637")
@@ -32,7 +32,7 @@ of `self` in their order. A slot the function does not own, such as a
 borrowed parameter, is never dropped.
 :::
 
-:::readable MojoGrimoire.Elab.defs MojoGrimoire.Elab.usesStmt MojoGrimoire.Elab.movesStmt MojoGrimoire.Elab.dying (fingerprint := "10096514676331244690")
+:::readable MojoGrimoire.Elab.defs MojoGrimoire.Elab.usesStmt MojoGrimoire.Elab.movesStmt MojoGrimoire.Elab.dying (fingerprint := "2367692650024152127")
 *Definition: what dies at a simple statement.* A declaration, `ref`
 binding, assignment, expression or `print` uses, moves and defines slots as its parts do; an
 assignment to an element or a field uses the slot that holds it. The
@@ -47,7 +47,7 @@ declares, in order, each once. Variables of sibling blocks may share a
 name, and then share a slot, since neither is live in the other.
 :::
 
-:::readable MojoGrimoire.Elab.passedByValue MojoGrimoire.Elab.callModes MojoGrimoire.Elab.methodModes (fingerprint := "16785628567574637297")
+:::readable MojoGrimoire.Elab.callModes MojoGrimoire.Elab.methodModes (fingerprint := "15736570097750512911")
 *Definition: operands passed by value.* A place passed to a `var`
 parameter, or an $`\mathsf{Int}` or a $`\mathsf{Bool}` passed to a `read`
 one, is passed by value: the call reads it once its arguments are
@@ -58,7 +58,7 @@ value. A method's receiver is passed by value only to a `var self`; the
 receiver's type, from the variables declared so far, gives the method.
 :::
 
-:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "5747458923791351075")
+:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "5340827570988376781")
 *Definition: what an operation destroys.* Inside a function, elaboration
 knows the program, the slots, the slots the function owns in the order they
 die, and the types of the variables declared so far. An operation uses
@@ -110,7 +110,7 @@ A block elaborates each statement with the slots live after it, and the
 types of the variables declared before it.
 :::
 
-:::readable MojoGrimoire.Elab.elabBody MojoGrimoire.Elab.ownedParams MojoGrimoire.Elab.paramEnv MojoGrimoire.Elab.elabFun (fingerprint := "17745960687633318779")
+:::readable MojoGrimoire.Elab.elabBody MojoGrimoire.Elab.ownedParams MojoGrimoire.Elab.paramEnv MojoGrimoire.Elab.elabFun (fingerprint := "16178615905400234092")
 *Definition: function bodies.* A function owns its `var` parameters of
 struct type and its local variables of struct type; when several die at
 once, the parameters die first, then the local variables, each the last

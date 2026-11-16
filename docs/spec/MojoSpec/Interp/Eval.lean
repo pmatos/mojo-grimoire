@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3937884299681944360")
+:::moduleDocs (fingerprint := "16909498418861481046")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "35485823105497894")
@@ -25,7 +25,7 @@ the call. The callee's parameters are bound to them, each value at a new
 location.
 :::
 
-:::readable MojoGrimoire.Interp.Operand MojoGrimoire.Interp.Operand.load MojoGrimoire.Interp.Pending MojoGrimoire.Interp.Pending.loadAll MojoGrimoire.Interp.byValue (fingerprint := "9279331057875394553")
+:::readable MojoGrimoire.Interp.Operand MojoGrimoire.Interp.Operand.load MojoGrimoire.Interp.Pending MojoGrimoire.Interp.Pending.loadAll (fingerprint := "16597088413972013435")
 *Definition: operands read late.* An operand that is a place passed by
 value is first only located; it is read once every operand of its
 operation has been evaluated, as Mojo does. A call's arguments wait in

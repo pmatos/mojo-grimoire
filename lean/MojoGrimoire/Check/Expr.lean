@@ -50,7 +50,9 @@ def copyPlace (prog : Program) (p : Place) : CheckM Ty := do
 /-- Transfers the value out of the place `p`, Mojo's `p^`, which leaves `p`
 uninitialized. The function must own the value, or hold it `mut`: a `read`
 or `ref` parameter cannot give its value away. An element of a list or an
-array cannot be transferred out, since it would be left with a hole. -/
+array cannot be transferred out, since it would be left with a hole. A field
+moved out is recorded as moved. In Mojo, `p^` of an `Int` or a `Bool` is
+the place `p`, which inference puts in its stead. -/
 def transferPlace (prog : Program) (p : Place) : CheckM Ty := do
   let t ← readPlace prog p
   if splitPlace.indexed p then throw (CheckError.transferFromElement p)
@@ -58,7 +60,8 @@ def transferPlace (prog : Program) (p : Place) : CheckM Ty := do
   let v ← lookup x
   unless v.access.canChange do throw (CheckError.transferFromBorrowed p)
   if let .alias _ _ := v.access then throw (CheckError.transferFromBorrowed p)
-  setUninit x (uninitialize v.uninit path)
+  setVar { v with uninit := uninitialize v.uninit path,
+                  moved := if path.isEmpty then v.moved else path :: v.moved }
   pure t
 
 /-- The type of the result of the operator `op` on operands of types `a` and
@@ -111,7 +114,7 @@ conventions: every place argument whose parameter is `read`, `mut` or
 `ref`, except an `Int` or a `Bool` passed `read`, which is copied. -/
 def locationArgs : List Param → List Expr → List (Conv × Place)
   | prm :: prms, .place p :: args =>
-    if prm.conv == .owned || (prm.conv == .read && (prm.ty == .int || prm.ty == .bool)) then
+    if passedByValue prm then
       locationArgs prms args
     else (prm.conv, p) :: locationArgs prms args
   | _ :: prms, _ :: args => locationArgs prms args

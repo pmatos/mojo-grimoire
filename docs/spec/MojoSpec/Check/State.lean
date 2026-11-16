@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13404295024667404229")
+:::moduleDocs (fingerprint := "3040547801539185723")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "4845031522016519524")
@@ -38,12 +38,13 @@ $`\mathsf{alias}(p^*, m)`: it may point into the places $`p^*`, its
 origins, and may be changed when $`m` holds.
 :::
 
-:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.State MojoGrimoire.Check.CheckM (fingerprint := "2523236488195471872")
+:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.State MojoGrimoire.Check.CheckM (fingerprint := "8653612022171607735")
 *Definition: the checker's state.* A path $`\pi = f_1 \dots f_n` names a
 part of a variable: the empty path $`\epsilon` is the variable itself, and
 $`f_1 \dots f_n` its field $`f_1.\dots.f_n`. For each variable in scope,
-innermost first, the state holds its name, type and access, and the set
-$`U` of its uninitialized parts. The state also says whether the current
+innermost first, the state holds its name, type and access, the set
+$`U` of its uninitialized parts, and the set $`M` of its fields moved out
+with `^` and not assigned again. The state also says whether the current
 point can be reached; after a `return` it cannot. The checker runs in a
 monad that reads and updates this state and may reject the program.
 :::
@@ -79,18 +80,28 @@ way, which stay uninitialized. `partTy` gives the type of a part, and
 `remainder` the parts left on the way down.
 :::
 
-:::readable MojoGrimoire.Check.lookup MojoGrimoire.Check.setUninit MojoGrimoire.Check.setUninit.go (fingerprint := "17668896228086885876")
-*Definition: variables in scope.* A name refers to the innermost variable in
-scope with that name, and updating a variable's uninitialized parts updates
-that variable. An unknown name is rejected.
+:::readable MojoGrimoire.Check.partPlace MojoGrimoire.Check.below MojoGrimoire.Check.union (fingerprint := "7669376000255197553")
+*Definition: parts and sets of parts.* The part $`\pi` of the variable
+$`x` is the place $`x.\pi`. The parts of $`U` strictly below $`\rho`
+are the $`\sigma` with $`\rho\sigma \in U` and $`\sigma \neq \epsilon`.
+Sets are lists without repeats, kept in the order they are found:
+$`A \cup B` keeps $`A` and adds the elements of $`B` not in it.
 :::
 
-:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "14848336578567107707")
+:::readable MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "16996342393925123152")
+*Definition: variables in scope.* A name refers to the innermost variable in
+scope with that name, and updating a variable replaces the innermost
+variable with its name. An unknown name is rejected.
+:::
+
+:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "14389053458028017532")
 *Definition: reading a place.* The type of a place is the type of its
 variable, then of each field or element on the way; only a list or an
 array has elements. Reading a place's value needs the
-part it names to be initialized, and is otherwise rejected as a use of an
-uninitialized value. Through a reference, every origin must be
+part it names to be initialized, with no field in $`M` at or below it, and
+is otherwise rejected as a use of an uninitialized value: a field moved out
+and refilled one sub-field at a time is still not whole. Through a
+reference, every origin must be
 initialized: a value moved away cannot be used through a reference to it.
 A reference resolves to its origins, and any other place to itself.
 :::

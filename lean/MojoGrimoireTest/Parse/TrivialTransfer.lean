@@ -1,0 +1,82 @@
+import MojoGrimoire.Parse.Infer
+import MojoGrimoire.Interp.Run
+
+/-!
+Tests of `^` on a value of type `Int` or `Bool`. The compiler does not move
+such a value: it warns that the transfer has no effect, and treats `p^` as
+the place `p`. Inference does the same, so these programs are parsed from
+text, then checked and run. Each program is written one line per string.
+-/
+
+namespace MojoGrimoireTest.Parse.TrivialTransfer
+
+open MojoGrimoire.Core MojoGrimoire.Check MojoGrimoire.Parse MojoGrimoire.Interp
+
+/-- Parses, checks and runs the program whose lines are `ls`, after the
+shared declarations. -/
+private def go (ls : List String) : Option Outcome :=
+  (parse ("\n".intercalate (decls ++ ls))).toOption.map (run · 100000)
+where
+  decls := [
+    "@fieldwise_init",
+    "struct Res:",
+    "    var id: Int",
+    "    fn __deinit__(deinit self):",
+    "        print(\"drop\", self.id)",
+    "@fieldwise_init",
+    "struct Flags:",
+    "    var on: Bool",
+    "    var n: Int",
+    "def take(var r: Res) -> Int:",
+    "    return r.id",
+    "def two(x: Int, y: Int):",
+    "    print(x, y)",
+    "def bump(mut x: Int) -> Int:",
+    "    x += 10",
+    "    return x",
+    "def show(x: Int):",
+    "    var y = x^",
+    "    print(\"show\", x, y)"]
+
+-- A variable, a `Bool`, a field, a `read` parameter and a reference keep
+-- their values, and a struct whose `Int` field was transferred stays whole.
+#guard go [
+  "def main():",
+  "    var x = 1",
+  "    var y = x^",
+  "    var b = True",
+  "    var c = b^",
+  "    var f = Flags(False, 2)",
+  "    var n = f.n^",
+  "    show(x^)",
+  "    ref r = x",
+  "    var z = r^",
+  "    print(x, y, b, c, f.on, f.n, n, z)"] ==
+  some (.finished ["show 1 1", "1 1 True True False 2 2 1"])
+
+-- `x^` of a `Res`'s `Int` field leaves the `Res` whole, though it has a
+-- `__deinit__`.
+#guard go ["def main():", "    var a = Res(1)", "    var n = a.id^", "    print(n, a.id)"] ==
+  some (.finished ["1 1", "drop 1"])
+
+-- `two(a.id^, take(a^))`: `a.id^` is the place `a.id`, read once every
+-- argument is evaluated, after `a` was moved.
+#guard go ["def main():", "    var a = Res(1)", "    two(a.id^, take(a^))"] ==
+  some (.rejected ⟨"main", .uninitializedUse (.field (.var "a") "id")⟩)
+
+-- `two(z^, bump(z))`: `z^` is read after `bump` changed `z`.
+#guard go ["def main():", "    var z = 1", "    two(z^, bump(z))"] == some (.finished ["11 11"])
+
+-- `bump(x^)`: the place is passed to the `mut` parameter.
+#guard go ["def main():", "    var x = 1", "    var y = bump(x^)", "    print(x, y)"] ==
+  some (.finished ["11 11"])
+
+-- The place must still be initialized.
+#guard go ["def main():", "    var x: Int", "    var y = x^"] ==
+  some (.rejected ⟨"main", .uninitializedUse (.var "x")⟩)
+
+-- An element of a list stays a transfer, which the checker rejects (#43).
+#guard go ["def main():", "    var xs: List[Int] = [1, 2]", "    var y = xs[0]^"] ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "xs") (.int 0))⟩)
+
+end MojoGrimoireTest.Parse.TrivialTransfer
