@@ -29,7 +29,6 @@ multiplicative `*`, `//`, `%`. The parser reads an operator of a level
 when it is next.
 :::
 
-
 :::readable MojoGrimoire.Parse.nonOperandKeywords MojoGrimoire.Parse.startsOperand (fingerprint := "5206625054672960058")
 *Definition: tokens that start an operand.* A token can start an
 expression when it is an integer or string literal, one of the symbols
@@ -66,8 +65,8 @@ and `^`, `.copy()`, a method call or a call make an expression. A call
 names a function or a struct. `^` is a transfer only when the token after
 it does not start an operand; otherwise the compiler reads binary XOR,
 which is outside the subset, and the parser fails (#54). So $`p\,\hat{}`
-ends a chain: what follows it is an operator or the end of the expression. A literal $`[e^*]` is left for inference to
-type, and $`\mathsf{List}[\mathit{type}](e^*)` is a list literal; Mojo
+ends a chain: what follows it is an operator or the end of the expression.
+A literal $`[e^*]` is left for inference to type, and $`\mathsf{List}[\mathit{type}](e^*)` is a list literal; Mojo
 1.2.0 accepts it only with no elements (#46). Each function takes fuel and spends it on
 each call, so parsing ends.
 :::

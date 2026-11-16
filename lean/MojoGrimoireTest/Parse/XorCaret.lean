@@ -49,8 +49,14 @@ private def xor : String := "a binary `^` (XOR), which is outside the subset"
 -- XOR is decided before the term is checked to be a place.
 #guard withX "var y = (x)^ + 1" == .error 3 xor
 
--- Inside brackets the line break does not end the statement.
+-- The lexer ignores line breaks inside brackets. The compiler reads XOR in
+-- call arguments and on a deeper-indented line, and fails to parse a
+-- parenthesized expression whose next line is at the statement's column.
 #guard runLines ["def main():", "    var x = 3", "    var y = (x^", "        + 1)", "    print(y)"] ==
+  .error 4 xor
+#guard runLines ["def f(a: Int) -> Int:", "    return a", "def main():", "    var x = 3",
+  "    var y = f(x^", "+ 1)", "    print(y)"] == .error 6 xor
+#guard runLines ["def main():", "    var x = 3", "    var y = (x^", "    + 1)", "    print(y)"] ==
   .error 4 xor
 
 -- `^` at the end of an expression is a transfer.
