@@ -125,14 +125,17 @@ def stmts (fuel : Nat) : P (List Stmt) :=
     | _ => pure ((← stmt n) :: (← stmts n))
 end
 
-/-- Reads an argument convention, if one is next. -/
+/-- Reads an argument convention, if one is next. `imm` is the immutable
+convention, which the checker calls `read`. As in the compiler, `read` where
+a parameter starts is an error, and `owned` is a name. -/
 def conv : P (Option Conv) := do
   match ← peek, ← peek2 with
+  | some (.ident "read"), _ => fail "`read` was removed; use `imm`"
+  | some (.ident "imm"), _ => let _ ← next; pure (some .read)
   | some (.ident k), some (.ident _) =>
     let c? : Option Conv := match k with
-      | "read" => some .read
       | "mut" => some .mutable
-      | "var" | "owned" => some .owned
+      | "var" => some .owned
       | "ref" => some .ref
       | "out" => some .out
       | "deinit" => some .deinit

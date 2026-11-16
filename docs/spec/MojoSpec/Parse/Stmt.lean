@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and declarations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13148500742184141091")
+:::moduleDocs (fingerprint := "1206750225263204822")
 :::
 
 :::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.exprStmt (fingerprint := "8316553191041905862")
@@ -43,18 +43,21 @@ is a place followed by `=` or an augmented operator, and otherwise an
 expression whose first operand is that chain.
 :::
 
-:::readable MojoGrimoire.Parse.conv MojoGrimoire.Parse.params MojoGrimoire.Parse.originNames MojoGrimoire.Parse.funDecl (fingerprint := "12198880054367436714")
+:::readable MojoGrimoire.Parse.conv MojoGrimoire.Parse.params MojoGrimoire.Parse.originNames MojoGrimoire.Parse.funDecl (fingerprint := "13064837100808414567")
 *Definition: functions.*
 
 $$`\begin{array}{lcl}
 \mathit{fun} & ::= & (\mathsf{def} \mid \mathsf{fn})~f(\mathit{param}^*)~\mathsf{raises}^?~(\to \mathit{result})^?~\mathit{block} \\
 \mathit{param} & ::= & \mathit{conv}^?~x~(:\mathit{type})^? \\
-\mathit{conv} & ::= & \mathsf{read} \mid \mathsf{mut} \mid \mathsf{var} \mid \mathsf{owned} \mid \mathsf{ref} \mid \mathsf{out} \mid \mathsf{deinit} \\
+\mathit{conv} & ::= & \mathsf{imm} \mid \mathsf{mut} \mid \mathsf{var} \mid \mathsf{ref} \mid \mathsf{out} \mid \mathsf{deinit} \\
 \mathit{result} & ::= & \mathit{type} \mid \mathsf{ref}~[x^+]~\mathit{type}
 \end{array}`
 
-A parameter without a convention is $`\mathsf{read}`, and `var` and `owned`
-both mean $`\mathsf{owned}`. A parameter must have a type, except `self` in
+`imm` is $`\mathsf{read}`, as is a parameter without a convention, and
+`var` is $`\mathsf{owned}`. As in the compiler, `read` where a parameter
+starts is a syntax error, "`read` was removed; use `imm`", `imm` must be
+followed by the parameter's name, and `owned` is a name, not a convention:
+`owned xs: T` lacks a type. A parameter must have a type, except `self` in
 a method, whose type is its struct. A function without a result returns
 $`\mathsf{None}`. `raises` is read and ignored: the subset raises no
 errors. A result `ref [a, b] T` is a reference with the origins of the

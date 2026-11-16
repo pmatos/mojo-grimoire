@@ -292,8 +292,11 @@ else. These choices hold:
 - A struct's conformances give its copying: `ImplicitlyCopyable` implicit,
   `Copyable` explicit, and otherwise none. Other conformances, `raises` and
   the decorator `@fieldwise_init` aside, are read and ignored.
-- `var` and `owned` parameters are both owned; a parameter with no
-  convention is `read`; `self` may omit its type.
+- `imm` is the immutable convention, which the checker calls `read`, as
+  is a parameter with no convention; `var` is owned; `self` may omit its
+  type. As in the compiler, `read` where a parameter starts, `imm` with no
+  name after it, and `owned xs: T` are syntax errors, and `imm`, `read` and
+  `owned` are names elsewhere (#68).
 - `p += e`, `-=` and `*=` are `p = p op e`; `print(...)` on a line of its
   own is the print statement; docstrings are skipped.
 - `^` after a term is binary XOR, as in the compiler's postfix loop
@@ -321,4 +324,6 @@ else. These choices hold:
   (`rejected: CLASS in DECL` on standard error), 2 a run-time error
   (`run-time error: NAME`), 3 a syntax error (`syntax error: line N:
   MESSAGE`), 4 a command line or file that cannot be used. The conformance
-  suite compares these, and the printed lines, with the compiler's.
+  suite compares 0 to 2, and the printed lines, with the compiler's. It
+  cannot compare a syntax error with the compiler's parse error, so those
+  (#54, #68) are pinned by `#guard` tests and have no suite program.
