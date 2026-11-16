@@ -106,4 +106,31 @@ where
 #guard go ["def main():", "    var rs: List[Res] = [Res(1)]", "    var r = rs[0]^"] ==
   some (.rejected ⟨"main", .transferFromElement (.index (.var "rs") (.int 0))⟩)
 
+-- So does one of an `ImplicitlyCopyable` struct, of a list or an array (#105).
+private def tok := ["@fieldwise_init", "struct Tok(ImplicitlyCopyable):", "    var id: Int",
+  "    fn __deinit__(deinit self):", "        print(\"drop\", self.id)"]
+#guard go (tok ++ ["def main():", "    var ts: List[Tok] = [Tok(1), Tok(2)]",
+  "    var t = ts[0]^"]) ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "ts") (.int 0))⟩)
+#guard go (tok ++ ["def main():", "    var ts = [Tok(1), Tok(2)]", "    var t = ts[1]^"]) ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "ts") (.int 1))⟩)
+
+-- And one of a `Copyable` struct.
+private def point := ["@fieldwise_init", "struct Point(Copyable):", "    var x: Int",
+  "    var y: Int"]
+#guard go (point ++ ["def main():", "    var ps: List[Point] = [Point(1, 2)]",
+  "    var p = ps[0]^"]) ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "ps") (.int 0))⟩)
+#guard go (point ++ ["def main():", "    var ps = [Point(1, 2), Point(3, 4)]",
+  "    var p = ps[1]^"]) ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "ps") (.int 1))⟩)
+
+-- And a `List[Int]` element of a list or an array.
+#guard go ["def main():", "    var xss: List[List[Int]] = [[1], [2, 3]]",
+  "    var ys = xss[1]^"] ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "xss") (.int 1))⟩)
+#guard go ["def main():", "    var xss: Array[List[Int], 2] = [[1], [2, 3]]",
+  "    var ys = xss[1]^"] ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "xss") (.int 1))⟩)
+
 end MojoGrimoireTest.Parse.TrivialTransfer

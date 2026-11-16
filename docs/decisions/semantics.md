@@ -78,7 +78,8 @@ where the compiler and the manual disagree, the model follows the compiler.
   is read when other places are, and may be passed to a `mut` parameter.
   Inference rewrites `p^` to `p`, so the core calculus's transfer always
   moves (#50, #43). Any other element, or a field of one, is rejected as
-  `transferFromElement`, as the compiler does.
+  `transferFromElement`, as the compiler does, even an element that is
+  implicitly copyable or copyable, or a list (#105).
 - `p^` followed by a field or a method, `p^.f` or `p^.m(…)`, is the place
   `transferred p` (#66). The compiler warns that the transfer has no
   effect, and borrows `p`: `p^.f` is the field `p.f`, read, copied or
