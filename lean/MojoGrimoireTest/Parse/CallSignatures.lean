@@ -51,6 +51,11 @@ private def bare : List String := ["struct Bare:", "    var xs: List[Int]", ""]
 #guard rejects ["def main():", "    var a = [1, 2]", "    var b = a^", "    a.pop()"]
   (.unknownMethod "Array" "pop")
 
+-- A method with no signature has no type, so a literal of its result has
+-- none either, and the variable that would hold it is rejected.
+#guard rejects ["def main():", "    var xs: List[Int] = [1]", "    var zs = [xs.insert(0)]"]
+  (.invalidType .noneType)
+
 -- A receiver that is neither a struct, a list nor an array has no methods.
 #guard rejects ["def main():", "    var n = 1", "    n.pop()"] (.typeMismatch (.struct "") .int)
 
