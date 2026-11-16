@@ -69,6 +69,7 @@ def inferPlace (prog : Program) (env : TyEnv) : Place → Place × Option Ty
   | .index p i =>
     let (p', t) := inferPlace prog env p
     (.index p' (inferExpr prog env .noneType i).1, t.bind fun t => (elemOf t).toOption)
+  | .transferred p => let (p', t) := inferPlace prog env p; (.transferred p', t)
 
 /-- Infers inside the expression `e`, expected to have the type `exp`
 (`None` when nothing is expected), and gives its type, if it has one. -/

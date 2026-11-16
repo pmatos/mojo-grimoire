@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17462688304784183921")
+:::moduleDocs (fingerprint := "5809354481053193351")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "4845031522016519524")
@@ -65,13 +65,15 @@ places changed as a whole so far in the current statement, in order. The checker
 that reads and updates this state and may reject the program.
 :::
 
-:::readable MojoGrimoire.Check.splitPlace MojoGrimoire.Check.splitPlace.indexed (fingerprint := "14800216798997210122")
+:::readable MojoGrimoire.Check.splitPlace MojoGrimoire.Check.splitPlace.indexed MojoGrimoire.Check.throughTransfer (fingerprint := "13723236062265300283")
 *Definition: the parts of a place.* A place is a variable and a path:
 $`x` is $`x` with $`\epsilon`, and $`p.f` is the variable of $`p`
 with the path of $`p` followed by $`f`. The checker does not follow the
 elements of a list or an array: the path of a place that goes through
 $`p[e]` stops at $`p`, so an element counts as initialized when its list
-or array is.
+or array is. $`p\,\hat{}` has the variable and path of $`p`. A place is
+reached through a transfer when $`p\,\hat{}` is on its way down from its
+variable, not counting its indices: nothing may be changed through it.
 :::
 
 :::readable MojoGrimoire.Check.initialized MojoGrimoire.Check.uninitialize (fingerprint := "11992667982633253845")
@@ -110,10 +112,10 @@ scope with that name, and updating a variable replaces the innermost
 variable with its name. An unknown name is rejected.
 :::
 
-:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "12412211197911174642")
+:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "5600170809980915703")
 *Definition: reading a place.* The type of a place is the type of its
 variable, then of each field or element on the way; only a list or an
-array has elements. Reading a place's value needs the
+array has elements, and $`p\,\hat{}` has the type of $`p`. Reading a place's value needs the
 part it names to be initialized, with no field in $`M` at or below it, and
 is otherwise rejected as a use of an uninitialized value: a field moved out
 and refilled one sub-field at a time is still not whole. Through a
@@ -121,13 +123,15 @@ reference, the reference must not be invalidated, and every origin must be
 initialized: a value moved away cannot be used through a reference to it.
 A place reached through a reference resolves to the same place in each of
 its origins, the reference's variable replaced by the origin; any other
-place resolves to itself.
+place resolves to itself. Replacing the variable of a place keeps each
+$`\hat{}` on the way.
 :::
 
-:::readable MojoGrimoire.Check.shapeOf MojoGrimoire.Check.invalidates (fingerprint := "16224895323870270460")
+:::readable MojoGrimoire.Check.shapeOf MojoGrimoire.Check.invalidates (fingerprint := "1346872709055547422")
 *Definition: invalidation.* The shape of $`p[e]` ends in
 $`[\cdot]_{\mathsf{list}}` when $`p` is a list, and in
-$`[\cdot]_{\mathsf{array}}` when it is an array. Changing a place of
+$`[\cdot]_{\mathsf{array}}` when it is an array, and $`p\,\hat{}` has
+the shape of $`p`. Changing a place of
 shape $`(x, \mu)` as a whole invalidates a reference into a place of
 shape $`(y, \omega)` when $`x = y`, $`\mu` is a prefix of $`\omega`,
 and the rest of $`\omega` holds a $`[\cdot]_{\mathsf{list}}`: the

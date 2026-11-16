@@ -15,6 +15,7 @@ def Place.beq : Place → Place → Bool
   | .var x, .var y => x == y
   | .field p f, .field q g => Place.beq p q && f == g
   | .index p i, .index q j => Place.beq p q && Expr.beq i j
+  | .transferred p, .transferred q => Place.beq p q
   | _, _ => false
 termination_by structural p => p
 

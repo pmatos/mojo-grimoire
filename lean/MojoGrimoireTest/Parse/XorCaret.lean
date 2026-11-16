@@ -72,12 +72,10 @@ private def xor : String := "a binary `^` (XOR), which is outside the subset"
 #guard runLines ["def main():", "    var b = True", "    print(b^ and True, b^ or False)"] ==
   .ok (.finished ["True True"])
 
--- `.` is excluded on purpose: `s^.f` is a transfer and then a field. The
--- model does not read a field of a transfer, so it stays a syntax error,
--- but not the XOR one.
+-- `.` is excluded on purpose: `s^.f` is a transfer and then a field, which
+-- the compiler reads as the field `s.f` (#66; more in `TransferField`).
 #guard runLines ["@fieldwise_init", "struct S(Movable):", "    var f: Int", "def main():",
-  "    var s = S(4)", "    var y = s^.f", "    print(y)"] ==
-  .error 6 "expected the end of the line"
+  "    var s = S(4)", "    var y = s^.f", "    print(y)"] == .ok (.finished ["4"])
 
 -- A deeper-indented next line continues the statement for the compiler,
 -- which reads `x^` and `+ 1` below as XOR. The model's lexer ends the

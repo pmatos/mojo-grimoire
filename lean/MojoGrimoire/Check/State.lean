@@ -95,17 +95,27 @@ abbrev CheckM := StateT State (Except CheckError)
 
 /-- The variable a place starts from, and the path from it to the place.
 The elements of a list or an array are not parts that the checker follows:
-the path to a place inside an element stops at the list or array. -/
+the path to a place inside an element stops at the list or array. `p^`
+before a field or a method is the place `p`. -/
 def splitPlace : Place → Name × Path
   | .var x => (x, [])
   | .field p f => let (x, path) := splitPlace p; if indexed p then (x, path) else (x, path ++ [f])
   | .index p _ => splitPlace p
+  | .transferred p => splitPlace p
 where
   /-- Whether the place goes through an element of a list or an array. -/
   indexed : Place → Bool
     | .var _ => false
     | .field p _ => indexed p
     | .index _ _ => true
+    | .transferred p => indexed p
+
+/-- Whether the place `p` is reached through `q^`, which the compiler
+borrows as a value that cannot be changed. -/
+def throughTransfer : Place → Bool
+  | .var _ => false
+  | .field p _ | .index p _ => throughTransfer p
+  | .transferred _ => true
 
 /-- The place of the part `path` of the variable `x`: the inverse of
 `splitPlace` for a place that goes through no element. -/
@@ -183,6 +193,7 @@ def placeTy (prog : Program) : Place → CheckM Ty
   | .var x => do pure (← lookup x).ty
   | .field p f => do liftM (fieldOf prog (← placeTy prog p) f)
   | .index p _ => do liftM (elemOf (← placeTy prog p))
+  | .transferred p => placeTy prog p
 where
   /-- Lifts a result of the program's tables into the checker. -/
   liftM {α : Type} (r : Except CheckError α) : CheckM α := StateT.lift r
@@ -193,6 +204,7 @@ def rebase (o : Place) : Place → Place
   | .var _ => o
   | .field p f => .field (rebase o p) f
   | .index p i => .index (rebase o p) i
+  | .transferred p => .transferred (rebase o p)
 
 /-- The places that the place `p` may be, given the variables `vars`: for a
 place reached through a reference, the same place in each of its origins,
@@ -212,6 +224,7 @@ def shapeOf (prog : Program) : Place → CheckM Shape
     let (x, steps) ← shapeOf prog p
     let step := if let .list _ := ← placeTy prog p then ShapeStep.listElem else .arrayElem
     pure (x, steps ++ [step])
+  | .transferred p => shapeOf prog p
 
 /-- Whether changing the place of shape `m` as a whole invalidates a
 reference into the place of shape `o`: `o` is inside an element of a list

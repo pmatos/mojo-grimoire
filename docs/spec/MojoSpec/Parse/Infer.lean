@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14420157884473697847")
+:::moduleDocs (fingerprint := "8455550574986616351")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "7491183084080357663")
@@ -22,10 +22,10 @@ variables in scope, innermost first. An arithmetic operator gives an
 $`\mathsf{Int}`, and every other binary operator a $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "1276985125836610710")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "17223929135659761574")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
-element type of its list or array. A literal has its own type, and
+element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
 `p.copy()` the type of $`p`. A negation gives an $`\mathsf{Int}`, `not` a
 $`\mathsf{Bool}`, and a binary operator the type of its result, as above.
 A call or a method call

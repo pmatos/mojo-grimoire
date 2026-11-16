@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2120655222104769282")
+:::moduleDocs (fingerprint := "6995135939223804330")
 :::
 
 :::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9586730624127733473")
@@ -52,7 +52,7 @@ $`M`, or its next iteration would use a moved value. As Mojo does, the
 checker reports such a part as a use of an uninitialized value.
 :::
 
-:::readable MojoGrimoire.Check.printable MojoGrimoire.Check.checkPrintArg (fingerprint := "13834425737851471387")
+:::readable MojoGrimoire.Check.printable MojoGrimoire.Check.checkPrintArg (fingerprint := "12889667288130040369")
 *Rule: printing.* `print` takes string literals, and values it can write:
 those of type $`\mathsf{Int}` or $`\mathsf{Bool}`, and lists and arrays
 of values it can write, nested ones included. It reads a place by
@@ -63,7 +63,7 @@ value it points to, uncopied. Anything else, a struct or a list of
 structs, is $`\mathsf{notPrintable}`.
 :::
 
-:::readable MojoGrimoire.Check.checkConstructed (fingerprint := "14481956837354778808")
+:::readable MojoGrimoire.Check.checkConstructed (fingerprint := "2305605990762636210")
 *Rule: building into an element.* $`p = e` is rejected as
 $`\mathsf{argumentExclusivity}` when $`p` is inside an element of a list,
 and $`e` is a call that builds its result in place and is passed `mut`, or
@@ -75,13 +75,13 @@ a generic result, such as a list method that gives an element, always
 does.
 :::
 
-:::readable MojoGrimoire.Check.checkReturnValue (fingerprint := "14471232924325759677")
+:::readable MojoGrimoire.Check.checkReturnValue (fingerprint := "16417798933034731172")
 *Rule: returned values.* `return x` moves the variable $`x` out when the
 function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "1600335221908082079")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "14548714882599981022")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`

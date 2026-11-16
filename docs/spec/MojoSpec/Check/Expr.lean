@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14957620892344993413")
+:::moduleDocs (fingerprint := "2675023124322179844")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -21,20 +21,23 @@ pins their fingerprint; the build fails when the Lean changes under it.
 the checker, and `expect` rejects a type other than the one expected.
 :::
 
-:::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.requireMutable (fingerprint := "5018425723968581920")
+:::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.requireMutable (fingerprint := "4788367758502297592")
 *Definition: places that may change.* A function may change a place, by
 assigning to it or passing it `mut`, unless its variable is a `read` or
-`ref` parameter, or a reference that may not be changed.
+`ref` parameter, or a reference that may not be changed, or it is reached
+through $`q\,\hat{}`: the compiler borrows $`q` there as a value that
+cannot be changed.
 :::
 
-:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.transferPlace (fingerprint := "16151132820143481761")
+:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "6464575898280999177")
 *Rule: reading and moving a place.* Using a place $`p` as a value copies it
 implicitly: $`p` must be initialized, and its type implicitly copyable.
 Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable
 that the function may change, owned or held `mut`; afterwards $`p` is
 uninitialized, and a field $`p` is added to $`M`. An element of a list or
 an array, or a part of one, cannot be transferred out, nor can a value
-through a reference.
+through a reference. These conditions, without the move, are what
+$`q\,\hat{}` before a field or a method needs of $`q`.
 :::
 
 :::readable MojoGrimoire.Check.binaryTy MojoGrimoire.Check.unaryTy (fingerprint := "17580043234083190239")
@@ -47,19 +50,20 @@ and give $`\mathsf{Bool}`. Negation takes an $`\mathsf{Int}`, and
 $`\mathsf{not}` a $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Check.constInt (fingerprint := "8531533329913966214")
+:::readable MojoGrimoire.Check.constInt (fingerprint := "5106496572261359333")
 *Definition: constant indices.* An index made only of integer literals,
 negation, $`+`, $`-`, $`\times`, `//` and `%` has a value that Mojo
 computes when it compiles the program, with the same integer arithmetic
 as a run.
 :::
 
-:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "12638888469153640984")
+:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "17698991800197855880")
 *Rule: argument exclusivity.* Two places overlap when they have the same
 variable and one path is a prefix of the other. The arguments of a call
 that are passed as locations are the places whose parameters are `read`,
 `mut` or `ref`, and the receiver of a method unless its `self` is
-`var`; an $`\mathsf{Int}` or a $`\mathsf{Bool}` passed `read` is copied
+`var`, except a receiver $`q\,\hat{}` that a `var self` consumes, which
+counts as $`q` passed `mut`; an $`\mathsf{Int}` or a $`\mathsf{Bool}` passed `read` is copied
 instead. A call is rejected when a location passed `mut`, of any type,
 overlaps another location of the same call. A reference overlaps what its
 origins overlap.
@@ -72,7 +76,7 @@ also be a place the function may change; one passed `var` is copied
 implicitly. No argument may be passed `out` or `deinit`.
 :::
 
-:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "14412631876457973370")
+:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "2795293570928681005")
 *Rule: changes.* A call changes as a whole each place it is passed `mut`,
 and each place it is passed `ref` that the function may change; `append`
 and `pop` change their list. The checker records the change once the
@@ -81,7 +85,7 @@ bound with `ref` whose origin the change invalidates. The mark of an
 operand is the number of changes recorded once it is checked.
 :::
 
-:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckPlaces (fingerprint := "12962784635631300491")
+:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckPlaces (fingerprint := "15938842556604813879")
 *Rule: places read late.* Mojo reads a place operand only once every
 operand of its operation is evaluated, and a place passed by reference is
 used during the call. So once the operands are checked, every operand that
@@ -93,7 +97,7 @@ $`k` changes were recorded is invalidated when a change recorded since
 then invalidates it.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "15804093419461687712")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "16684194783566812425")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -103,7 +107,9 @@ type:
   $`p.\mathsf{copy}()` needs an initialized place of a copyable type;
 * $`f(e^*)` and $`p.m(e^*)` pass their arguments to the parameters of
   their signature, $`p` first, by the convention of the method's `self`,
-  and have its result type;
+  and have its result type; a receiver $`q\,\hat{}` of a method whose
+  `self` is `var` is not copied: once the arguments are checked and read
+  again, $`q` is transferred;
 * operators have the types above;
 * $`[e^*]_t`, with $`t` a list or an array of $`u` and $`u` a type a
   variable may have, passes each element as to a `var` parameter of type
@@ -121,7 +127,9 @@ operand is, by `recheckPlaces`; then the call records what it changes.
 Every index in a place is checked first, and must be an $`\mathsf{Int}`;
 a constant index may not be negative, nor, into an array of $`n`
 elements, $`n` or more. Mojo locates $`q` in $`q[i]` before it
-evaluates $`i`, so $`i` may not invalidate $`q`.
+evaluates $`i`, so $`i` may not invalidate $`q`. Each $`q\,\hat{}` in a
+place needs $`q` whole, as `p^` would, and a value that $`q\,\hat{}`
+could transfer, by the conditions above.
 A call or a method call that returns a reference gives the value it
 points to, which must be implicitly copyable, unless the call is bound
 with `ref`.

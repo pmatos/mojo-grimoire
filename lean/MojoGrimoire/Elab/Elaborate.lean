@@ -20,7 +20,8 @@ destroyed:
 - at the start of a function body, for a `var` parameter the body never
   uses.
 
-A value moved away with `^` is not destroyed: its new owner destroys it. A
+A value moved away with `^` is not destroyed: its new owner destroys it.
+Nor is one that `p^.m(…)` gives to a method that takes `var self`. A
 use of a reference bound with `ref` is a use of every value it may point
 into, so those values live until its last use.
 Inside `__deinit__(deinit self)`, each field of `self` is destroyed on its own,
@@ -126,6 +127,31 @@ structure Ctx where
   owned : List Place
   env : TyEnv
 
+/-- The slot that a call of the method `m` with `n` arguments on the
+receiver `p` consumes: `q`, when `p` is `q^`, `q` is a whole slot, and the
+method takes `var self`. The call moves it away, so nothing destroys it. -/
+def consumedSlot (ctx : Ctx) (p : Place) (m : Name) (n : Nat) : List Place :=
+  let self := (placeTyOf ctx.prog ctx.env p).bind fun t =>
+    (methodSig ctx.prog t m n).toOption.bind (·.self)
+  match self.bind (consumedReceiver ·.conv p) with
+  | some q => if ctx.sl.isSlot q then [q] else []
+  | none => []
+
+mutual
+/-- The slots that the method calls in `e` consume. -/
+def consumedIn (ctx : Ctx) : Expr → List Place
+  | .method p m args => union (consumedSlot ctx p m args.length) (consumedList ctx args)
+  | .call _ args | .list _ args => consumedList ctx args
+  | .binary _ a b => union (consumedIn ctx a) (consumedIn ctx b)
+  | .unary _ a | .withDrops a _ _ => consumedIn ctx a
+  | _ => []
+
+/-- The slots that the method calls in `es` consume. -/
+def consumedList (ctx : Ctx) : List Expr → List Place
+  | [] => []
+  | e :: es => union (consumedIn ctx e) (consumedList ctx es)
+end
+
 /-- The slots that the operand `e` uses directly, with whether it is passed
 by value `m`: a place uses its slots and those of its indices; any other
 operand is an operation of its own, which destroys what it last uses. -/
@@ -175,7 +201,9 @@ def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Expr :=
     let ms := methodModes ctx.prog ctx.env p m args.length
     let d := opDrops ctx.owned (directOf ctx.sl (.place p) ms.1 :: directArgs ctx.sl args ms.2)
       after
-    withDropsOf (.method p m (elabOps ctx args d.2.2)) d.1 (if top then [] else d.2.1)
+    let gone := consumedSlot ctx p m args.length
+    withDropsOf (.method p m (elabOps ctx args d.2.2)) (diff d.1 gone)
+      (if top then [] else diff d.2.1 gone)
   | .binary op a b =>
     if op == .and || op == .or then
       let d := opDrops ctx.owned [directOf ctx.sl a true, (uses ctx.sl b, false)] after
@@ -247,28 +275,34 @@ def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
     let la := liveBlock sl a after
     let lb := liveBlock sl b after
     let c' := elabExpr ctx true c (union la lb)
-    let avail := diff (diff (liveStmt sl (.ifElse c a b) after) (moves sl c)) (droppedIn c')
+    let avail := diff (diff (liveStmt sl (.ifElse c a b) after) (moves sl c))
+      (droppedIn c' ++ consumedIn ctx c)
     [.ifElse c'
       (drops ctx.owned (diff avail la) ++ elabBlock ctx a after)
       (drops ctx.owned (diff avail lb) ++ elabBlock ctx b after)]
   | .whileLoop c body =>
     let head := liveStmt sl (.whileLoop c body) after
-    .whileLoop c (elabBlock ctx body head) :: drops ctx.owned (diff head after)
+    .whileLoop c (elabBlock ctx body head) ::
+      drops ctx.owned (diff head (after ++ consumedIn ctx c))
   | .ret value => [.ret (value.map (elabExpr ctx false · []))]
   | .pass => [.pass]
   | .drop p => [.drop p]
   | .decl x t init =>
     let init' := init.map (elabExpr ctx true · after)
-    rest (.decl x t init') (droppedOpt init')
-  | .refDecl x e => let e' := elabExpr ctx true e after; rest (.refDecl x e') (droppedIn e')
+    rest (.decl x t init') (droppedOpt init' ++ (init.map (consumedIn ctx)).getD [])
+  | .refDecl x e =>
+    let e' := elabExpr ctx true e after
+    rest (.refDecl x e') (droppedIn e' ++ consumedIn ctx e)
   | .assign p e =>
     let target := if sl.isSlot p then indexUses sl p else union (sl.of p) (indexUses sl p)
     let e' := elabExpr ctx true e (union after target)
-    rest (.assign p e') (droppedIn e')
-  | .expr e => let e' := elabExpr ctx true e after; rest (.expr e') (droppedIn e')
+    rest (.assign p e') (droppedIn e' ++ consumedIn ctx e)
+  | .expr e =>
+    let e' := elabExpr ctx true e after
+    rest (.expr e') (droppedIn e' ++ consumedIn ctx e)
   | .print args =>
     let args' := elabOps ctx args (union after (placeUses sl args))
-    rest (.print args') (droppedList args')
+    rest (.print args') (droppedList args' ++ consumedList ctx args)
 
 /-- Elaborates the block `b`, given the slots live after it. -/
 def elabBlock (ctx : Ctx) (b : List Stmt) (after : List Place) : List Stmt :=

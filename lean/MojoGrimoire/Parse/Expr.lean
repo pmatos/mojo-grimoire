@@ -7,7 +7,11 @@ then the postfix forms of a primary expression.
 
 A postfix chain starts from a primary expression. From a name, it stays a
 place while it reads fields and indices; `x^`, `x.copy()`, a method call
-`x.m(…)` and a call `f(…)` make it an expression. The type of a literal
+`x.m(…)` and a call `f(…)` make it an expression. `x^` followed by `.`
+stays a place, `transferred x`, whose fields and methods the chain goes on
+to read: the compiler reads `x^.f` as the field `f` of `x`, which it
+borrows, and `x^.m(…)` as a call on `x` that takes it only for a method
+whose `self` is `var`. The type of a literal
 `[…]` is left for inference, and `List[T](…)` is a list of `T`.
 
 `^` is also binary XOR, which is outside the subset. As in the compiler,
@@ -176,7 +180,8 @@ def trailers (fuel : Nat) (t : Term) : P Term :=
     else if ← acceptSym "^" then
       if (← peek).any startsOperand then fail "a binary `^` (XOR), which is outside the subset"
       let .place p := t | fail "a transfer of a value that is not a place"
-      pure (.expr (.transfer p))
+      if (← peek) matches some (.sym ".") then trailers n (.place (.transferred p))
+      else pure (.expr (.transfer p))
     else if ← acceptSym "(" then
       let .place (.var f) := t | fail "a call of something that is not a name"
       trailers n (.expr (.call f (← exprList n ")")))

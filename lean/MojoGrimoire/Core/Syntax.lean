@@ -4,7 +4,10 @@ import MojoGrimoire.Core.Types
 The places, expressions and statements of the core calculus.
 
 A place names a location that holds a value: a variable, a field of a
-place, or an element of a list or an array, whose index is an expression. Places are their own syntactic category because Mojo's argument
+place, or an element of a list or an array, whose index is an expression.
+Mojo's `p^.f` and `p^.m(…)` read a field of, or call a method on, the place
+`p` reached by a transfer, which the compiler borrows instead of moving: the
+place `transferred p`. Places are their own syntactic category because Mojo's argument
 conventions pass some arguments as locations and others as values: a place
 used as an argument is passed as a reference when the parameter's convention
 is `read`, `mut` or `ref`, and read as a value otherwise.
@@ -19,12 +22,15 @@ that running a program never has to find a value's last use.
 namespace MojoGrimoire.Core
 
 mutual
-/-- A place: a variable `x`, a field `p.f` of a place `p`, or the element
-`p[i]` of a list or an array. -/
+/-- A place: a variable `x`, a field `p.f` of a place `p`, the element
+`p[i]` of a list or an array, or `p^` when a field or a method follows it,
+`transferred p`: the place `p`, which cannot be changed through it, unless
+a method that takes `var self` consumes it. -/
 inductive Place where
   | var (name : Name)
   | field (base : Place) (field : Name)
   | index (base : Place) (index : Expr)
+  | transferred (base : Place)
 
 /-- The expressions. `place p` uses a place: as a value, which copies it
 implicitly, or as a reference argument. `transfer p` is Mojo's `p^`, which
