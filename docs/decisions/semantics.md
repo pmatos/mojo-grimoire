@@ -62,9 +62,11 @@ where the compiler and the manual disagree, the model follows the compiler.
   below a struct with a `__deinit__` of its own may not be uninitialized
   when the struct ends either. Inside `__deinit__`, `self`'s own fields may
   stay moved out, but not fields of its fields.
-- A field of type `Int` or `Bool` does not count as moved out when a struct
-  ends, since the compiler's `^` does not move it. The checker still treats
-  the field as uninitialized after `^`, unlike the compiler (#50).
+- `p^` of type `Int` or `Bool` is a copy: the compiler warns that the
+  transfer has no effect, and `p` keeps its value. So it may be read again,
+  it may be a `read` parameter, a field of one, or a reference, and a
+  struct whose `Int` field was transferred stays whole (#50). An element of
+  a list or an array is still rejected as `transferFromElement` (#43).
 - A field moved out of a struct that was built field by field, and never
   initialized whole, is rejected like any other. The compiler accepts that
   program when the struct's other fields stay uninitialized (#51).

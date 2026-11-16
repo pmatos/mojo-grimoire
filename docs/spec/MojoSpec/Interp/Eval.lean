@@ -55,7 +55,8 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   element on the way, whose index is evaluated and checked against the
   list's length.
 - *Expressions.* Literals are values; a place is read, a transfer reads it
-  and leaves $`\bot` behind, and `.copy()` reads it. `and` and `or`
+  and leaves $`\bot` behind, unless the value is an $`\mathsf{Int}` or a
+  $`\mathsf{Bool}`, which it copies, and `.copy()` reads it. `and` and `or`
   evaluate their right operand only when the left does not decide.
   The operands of an operator, the elements of a list literal and the
   values printed are evaluated left to right, and those that are places

@@ -18,8 +18,8 @@ A variable also records the fields moved out of it with `^` that it has not
 been given again. The compiler cannot destroy a struct with such a field
 missing, nor overwrite it, so the variable may not end, and no part above
 such a field may be assigned, until that same field is assigned again. A
-field of type `Int` or `Bool` is not recorded: the compiler does not move it
-(#50).
+value of type `Int` or `Bool` is never moved: `^` copies it, as the
+compiler does.
 -/
 
 namespace MojoGrimoire.Check

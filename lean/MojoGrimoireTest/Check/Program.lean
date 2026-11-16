@@ -152,9 +152,15 @@ private def verdict (p : Program) : Option CheckError :=
   .call "Res" [.int 2]])), .expr (.call "consume" [.transfer (fld "p" "a")])]) ==
   some (.partiallyDestroyed "p")
 
--- Moving `id` out of a `Res`, which has a `__deinit__`, is not.
-#guard verdict (prog [newRes "a" 1, .decl "n" .int (some (.transfer (fld "a" "id")))]) ==
-  some (.partiallyDestroyed "a")
+-- `var n = a.id^` copies the `Int`, so `a` stays whole, though `Res` has a
+-- `__deinit__`.
+#guard verdict (prog [newRes "a" 1, .decl "n" .int (some (.transfer (fld "a" "id")))]) == none
+
+-- Moving the `Res` out of a struct with a `__deinit__` of its own is not.
+#guard verdict (prog [.decl "h" (.struct "Holder") (some (.call "Holder" [.call "Res" [.int 1]])),
+  .expr (.call "consume" [.transfer (fld "h" "r")])] []
+  [⟨"Holder", [("r", res)], .none, true, none, some [.print [.str "holder"]], []⟩]) ==
+  some (.partiallyDestroyed "h")
 
 -- In its own `__deinit__`, a struct may move its fields out.
 #guard verdict (prog [] [] [⟨"Holder", [("r", res)], .none, true, none,

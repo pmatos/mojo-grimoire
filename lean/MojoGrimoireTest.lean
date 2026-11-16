@@ -8,6 +8,7 @@ import MojoGrimoireTest.Check.Lists
 import MojoGrimoireTest.Check.Refs
 import MojoGrimoireTest.Check.PartialMoves
 import MojoGrimoireTest.Interp.Run
+import MojoGrimoireTest.Interp.TrivialTransfer
 import MojoGrimoireTest.Parse.Programs
 import MojoGrimoireTest.Parse.Arrays
 import MojoGrimoireCli

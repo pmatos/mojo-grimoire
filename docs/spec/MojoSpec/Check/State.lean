@@ -45,8 +45,8 @@ $`f_1 \dots f_n` its field $`f_1.\dots.f_n`. For each variable in scope,
 innermost first, the state holds its name, type and access, the set
 $`U` of its uninitialized parts, and the set $`M` of its fields moved out
 with `^` and not assigned again. A field of type $`\mathsf{Int}` or
-$`\mathsf{Bool}` is never in $`M`: the compiler does not move it. The
-state also says whether the current
+$`\mathsf{Bool}` is never in $`M`, since `^` copies it. The state also
+says whether the current
 point can be reached; after a `return` it cannot. The checker runs in a
 monad that reads and updates this state and may reject the program.
 :::

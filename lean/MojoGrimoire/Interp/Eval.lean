@@ -10,7 +10,8 @@ are evaluated in order, but an operand that is a place passed by value is
 only located then: as in Mojo, it is read once every operand has been
 evaluated, so a call among the later operands may change it first. An `Int`
 or a `Bool` passed to a `read` parameter is passed by value: Mojo copies
-it. Every function of the evaluator takes fuel, which each step spends; a
+it. A transfer `p^` of an `Int` or a `Bool` copies it too, and leaves `p`
+as it was. Every function of the evaluator takes fuel, which each step spends; a
 run that spends it all stops with `outOfFuel`, so every run ends, even of a
 program that loops forever.
 
@@ -161,7 +162,9 @@ def evalExpr (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Value 
     | .transfer p => do
       let r ← placeRef prog n env p
       let v ← readRef r
-      writeRef r .uninit
+      match v with
+      | .int _ | .bool _ => pure ()
+      | _ => writeRef r .uninit
       pure v
     | .unary op a => do unary op (← evalExpr prog n env a)
     | .binary .and a b => do
