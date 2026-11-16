@@ -9,8 +9,8 @@ compiler ([docs/decisions/conformance.md](../../docs/decisions/conformance.md#th
 - `AREA/NAME.json` is its expected result, recorded from the compiler. Do
   not write it by hand.
 - `diagnostics.json` maps the compiler's first error to a class of error.
-- `known.json` lists the programs on which the model disagrees with the
-  compiler by an entry of the
+- `known.json` lists the programs on which the model departs from the
+  compiler, a compiler bug or a spec decision, by an entry of the
   [decision log](../../docs/conformance/decision-log.md).
 
 The programs are written for this project. Never copy a program or an

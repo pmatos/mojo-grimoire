@@ -3,8 +3,8 @@
 An executable, proof-carrying semantics of [Mojo](https://www.modular.com/mojo)
 in Lean 4. Its fidelity is established by differential testing against the
 open-source Mojo compiler: every test program runs through both the Lean model
-and the compiler, and every disagreement is recorded in the
-[decision log](docs/conformance/decision-log.md).
+and the compiler. The model follows the compiler, and the
+[decision log](docs/conformance/decision-log.md) records where it departs.
 
 ## Status
 

@@ -1,13 +1,15 @@
 # Decision log
 
 Mojo has no written specification. The open-source Mojo compiler at the pinned
-release is the reference, and every disagreement between it and the Lean model
-is recorded here (ADR-2026-11-15-1907).
+release is the reference, and the Lean model follows it (ADR-2026-11-15-1907).
+This log records where the model departs from the compiler, and why.
+
+A disagreement in which the model is wrong is a model bug. It is fixed, not
+logged: the PR that fixes it says what changed, and the suite program that
+found it keeps it fixed. The human ruled this on 2026-11-16.
 
 Each entry is classified as one of:
 
-- **model bug**: the Lean model is wrong. The entry stays until the fix merges,
-  and the fix cites it.
 - **compiler bug**: the compiler is wrong. The model keeps its behaviour, and
   the entry links an upstream report when there is one.
 - **spec decision**: the behaviour is incidental or ambiguous. The entry says

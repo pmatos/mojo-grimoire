@@ -5,9 +5,16 @@ compiler.
 
 ## The decision log
 
-Every disagreement between the model and the compiler is recorded in
-[the decision log](../conformance/decision-log.md) as a model bug, a compiler
-bug or a spec decision. The reference is set on
+The model follows the compiler. A disagreement in which the model is wrong is
+fixed in the model, and the PR that fixes it says what changed.
+[The decision log](../conformance/decision-log.md) records only where the
+model departs from the compiler: a compiler bug, where the compiler is
+broken, or a spec decision, where its behaviour is incidental. The human
+ruled this on 2026-11-16.
+
+Rejected: logging every disagreement, model bugs included. Their entries
+repeated what the fixing PR and the suite already record, and hid the
+departures that matter. The reference is set on
 [semantics.md](semantics.md#the-reference).
 
 ## The Phase 0 baseline
@@ -59,7 +66,7 @@ compares the model's executable with every recorded result: how the run
 ended, the lines printed, and the class of a rejection. A run-time failure's
 lines are compared, but not its kind, which the compiler does not name. A
 disagreement passes only when `tests/conformance/known.json` lists the
-program with its decision-log entry. The first results were recorded on
+program with its decision-log entry, a compiler bug or a spec decision. The first results were recorded on
 2026-11-16 (#25), with every program agreeing, and the hook no longer
 passes `--allow-unrecorded`: a program with no recorded result fails it, so
 a new program is recorded before it is committed.

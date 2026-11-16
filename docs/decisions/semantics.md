@@ -12,9 +12,10 @@ The open-source Mojo compiler at a pinned release is the reference
 compiler from a checkout at that commit and refuses any other. The pin moves
 forward with new releases as needed; each move updates the conformance
 suite's recorded results, the script, the decision log and this page in the
-same PR. The human chose this on 2026-11-15. Every disagreement between the
-model and the compiler goes in
-[the decision log](../conformance/decision-log.md).
+same PR. The human chose this on 2026-11-15. The model follows the compiler,
+and [the decision log](../conformance/decision-log.md) records each place
+where it departs: a compiler bug or a spec decision
+([conformance.md](conformance.md#the-decision-log)).
 
 Rejected: testing against the compiler's tip, where expected results would go
 stale with no change on our side.
