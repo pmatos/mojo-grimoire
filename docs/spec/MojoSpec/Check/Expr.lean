@@ -49,8 +49,8 @@ $`\mathsf{not}` a $`\mathsf{Bool}`.
 :::readable MojoGrimoire.Check.constInt (fingerprint := "10006634048597442841")
 *Definition: constant indices.* An index made only of integer literals,
 negation, $`+`, $`-`, $`\times`, `//` and `%` has a value that Mojo
-computes when it compiles the program. `//` and `%` round toward negative
-infinity, and give $`0` for a zero divisor, as they do at run time.
+computes when it compiles the program, with the same integer arithmetic
+as a run.
 :::
 
 :::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "17226001677944748869")

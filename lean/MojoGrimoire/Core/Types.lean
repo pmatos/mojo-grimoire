@@ -68,4 +68,17 @@ inductive BinOp where
   | or
   deriving DecidableEq, Repr
 
+/-- The integer function of an arithmetic operator, before any wrapping to
+a machine width; `none` for the others. `//` and `%` round toward negative
+infinity and give `0` for a zero divisor, as Mojo defines them. The
+checker folds constant indices with it and the interpreter computes with
+it, so the two agree. -/
+def BinOp.arith : BinOp → Option (Int → Int → Int)
+  | .add => some (· + ·)
+  | .sub => some (· - ·)
+  | .mul => some (· * ·)
+  | .floorDiv => some fun x y => if y == 0 then 0 else x.fdiv y
+  | .mod => some fun x y => if y == 0 then 0 else x.fmod y
+  | _ => none
+
 end MojoGrimoire.Core

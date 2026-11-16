@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4901654192864183592")
+:::moduleDocs (fingerprint := "16751088435563507939")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "17188177613617268651")
@@ -29,8 +29,8 @@ list's element type. A literal has its own type. A call of a struct has
 the struct's type, a call of a function its result, and `len` gives an
 $`\mathsf{Int}`. A method of a list gives $`\mathsf{None}`, and a method
 of a struct its result. A literal left open takes the type expected where
-it stands: a list type as it is, and an array type with the literal's own
-length, which the checker compares. With no list or array expected, it is
+it stands, a list type or an array type, and the checker compares an
+array's size with the literal's length. With no list or array expected, it is
 an array of its elements, of the type of the first: Mojo's
 $`\mathsf{Array}[t, n]`. The elements of a literal are expected to have its
 element type, and the arguments of a call the types of its parameters; the
@@ -40,10 +40,9 @@ in the literals inside an expression as it goes; where it finds no type,
 it gives none.
 :::
 
-:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.callParamTys MojoGrimoire.Parse.methodParamTys (fingerprint := "5802502470161267199")
-*Definition: expected types.* A literal of $`n` elements expected to have
-the type $`\mathsf{List}[t]` has that type, and one expected to have the
-type $`\mathsf{Array}[t, m]` has the type $`\mathsf{Array}[t, n]`;
+:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.callParamTys MojoGrimoire.Parse.methodParamTys (fingerprint := "4029517101416492324")
+*Definition: expected types.* A literal expected to have a list type or an
+array type has that type, which the checker compares with its elements;
 otherwise its elements decide. Its elements are expected to have its
 element type. The arguments of a call are expected to have the types of
 the parameters of the function, of the struct's initializer, or of the

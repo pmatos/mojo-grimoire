@@ -89,23 +89,14 @@ def unaryTy (op : UnOp) (a : Ty) : Except CheckError Ty :=
   | .not => if a == .bool then pure .bool else throw (.typeMismatch .bool a)
 
 /-- The value of an index made only of integer literals, negation, `+`, `-`,
-`*`, `//` and `%`: Mojo computes it when it compiles the program. `//` and
-`%` round toward negative infinity, and give `0` for a zero divisor, as
-they do at run time. -/
+`*`, `//` and `%`: Mojo computes it when it compiles the program, with
+`BinOp.arith`, as the interpreter does at run time. -/
 def constInt : Expr → Option Int
   | .int k => some k
   | .unary .neg a => (constInt a).map (- ·)
-  | .binary .add a b => do pure ((← constInt a) + (← constInt b))
-  | .binary .sub a b => do pure ((← constInt a) - (← constInt b))
-  | .binary .mul a b => do pure ((← constInt a) * (← constInt b))
-  | .binary .floorDiv a b => do
-    let x ← constInt a
-    let y ← constInt b
-    pure (if y == 0 then 0 else x.fdiv y)
-  | .binary .mod a b => do
-    let x ← constInt a
-    let y ← constInt b
-    pure (if y == 0 then 0 else x.fmod y)
+  | .binary op a b => do
+    let f ← op.arith
+    pure (f (← constInt a) (← constInt b))
   | _ => none
 
 /-- Whether two places may be the same location or overlap: one is the other
@@ -243,13 +234,10 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     unless op == .and || op == .or do recheckPlaces prog [a, b]
     lift (binaryTy op ta tb)
   | .list t es => do
-    let u ← match t with
-      | .list u => pure u
-      | .array u n =>
-        if n == es.length then pure u
-        else throw (CheckError.typeMismatch t (.array u es.length))
-      | _ => throw (CheckError.invalidType t)
+    let .ok u := elemOf t | throw (CheckError.invalidType t)
     unless validTy prog u do throw (CheckError.invalidType t)
+    if let .array _ n := t then
+      unless n == es.length do throw (CheckError.typeMismatch t (.array u es.length))
     checkArgs prog "List" (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length
     recheckPlaces prog es
     pure t
@@ -264,8 +252,8 @@ def checkIndices (prog : Program) : Place → CheckM Unit
   | .index p i => do
     checkIndices prog p
     expect .int (← checkExprAs prog false i)
-    if (constInt i).any (· < 0) then throw (CheckError.negativeIndex (.index p i))
     if let some k := constInt i then
+      if k < 0 then throw (CheckError.negativeIndex (.index p i))
       if let .array _ n := (← placeTy prog p) then
         if n ≤ k then throw (CheckError.constantIndexOutOfBounds (.index p i))
 

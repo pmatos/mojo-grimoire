@@ -29,14 +29,11 @@ def binaryResult : BinOp → Ty
   | .add | .sub | .mul | .floorDiv | .mod => .int
   | _ => .bool
 
-/-- The type of an open literal of `n` elements that is expected to have
-the type `t`: `t` itself when it is a list, an array of `n` elements when
-`t` is an array, whose size the checker compares with the expected one,
-and otherwise `None`, which the elements decide. -/
-def openLiteralTy (t : Ty) (n : Nat) : Ty :=
-  match t with
-  | .list u => .list u
-  | .array u _ => .array u n
+/-- The type of an open literal that is expected to have the type `t`: `t`
+itself when it is a list or an array, whose size the checker compares with
+the literal's length, and otherwise `None`, which the elements decide. -/
+def openLiteralTy : Ty → Ty
+  | t@(.list _) | t@(.array ..) => t
   | _ => .noneType
 
 /-- The type that the elements of a literal of type `t` are expected to
@@ -104,10 +101,11 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
     (.binary op (inferExpr prog env .noneType a).1 (inferExpr prog env .noneType b).1,
       some (binaryResult op))
   | .list t es =>
-    let t := if t == .noneType then openLiteralTy exp es.length else t
-    let es' := inferList prog env (es.map fun _ => elemExpected t) es
+    let n := es.length
+    let t := if t == .noneType then openLiteralTy exp else t
+    let es' := inferList prog env (List.replicate n (elemExpected t)) es
     let t' := match t, es'.head?.bind (·.2) with
-      | .noneType, some u => .array u es.length
+      | .noneType, some u => .array u n
       | t, _ => t
     (.list t' (es'.map (·.1)), if t' == .noneType then none else some t')
   | .withDrops e pre post =>

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Names, types, conventions and operators: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16751197271220933565")
+:::moduleDocs (fingerprint := "10632303303006193387")
 :::
 
 :::readable MojoGrimoire.Core.Name (fingerprint := "17987575212195285839")
@@ -95,4 +95,12 @@ towards negative infinity, the Lean's `floorDiv`, and $`\%` its remainder.
 The second row compares integers. $`\mathsf{and}` and $`\mathsf{or}`
 short-circuit, as in Mojo: the right operand is evaluated only when the left
 one does not decide the result.
+:::
+
+:::readable MojoGrimoire.Core.BinOp.arith (fingerprint := "7794664695434502313")
+*Definition: integer arithmetic.* Each operator of the first row is a
+function on the integers, before any wrapping to 64 bits: $`/\!/` rounds
+toward negative infinity and $`\%` takes the sign of the divisor, and both
+give $`0` for a zero divisor, as Mojo defines them. Constant indices and
+runs use the same functions.
 :::
