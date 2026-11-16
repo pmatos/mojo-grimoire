@@ -6,8 +6,7 @@ once every operand of an operation is evaluated.
 
 A call records as changed each place it is passed `mut`, or `ref` when the
 place may be changed and is not reached through `q^`, once its operands are
-checked; a call that returns a
-reference passed so changes its origins. That invalidates the references
+checked; a call that returns a reference passed so changes its origins. That invalidates the references
 into the elements of a list that the place holds: the `ref` bindings, and
 the operands of an enclosing operation that were located before the call.
 
@@ -41,8 +40,8 @@ def changePlace (prog : Program) (p : Place) : CheckM Unit := do
     modify fun s => { s with stale := union s.stale stale, changes := s.changes ++ [m] }
 
 /-- The places among the arguments `args` that a call changes: those passed
-`mut`, and those passed `ref` that pass on a mutable reference. A call that returns a
-reference changes its origins. -/
+`mut`, and those passed `ref` that pass on a mutable reference. A call that
+returns a reference changes its origins. -/
 def changedArgs (prog : Program) : List Param → List Expr → CheckM (List Place)
   | prm :: prms, a :: args => do
     let rest ← changedArgs prog prms args

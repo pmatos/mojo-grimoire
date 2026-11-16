@@ -35,8 +35,8 @@ choices (#18):
   place of each of the other's origins.
 - A reference into an element of a list is invalidated when the list, or a
   place that holds it, changes as a whole. That means it is assigned,
-  passed `mut`, or passed `ref` from a place that may be changed and is
-  not reached through `p^`, which includes `append` and `pop`. Using the reference afterwards, on any path
+  passed `mut`, which includes `append` and `pop`, or passed `ref` from a
+  place that may be changed and is not reached through `p^`. Using the reference afterwards, on any path
   or on a later iteration of a loop, is rejected (`invalidatedReference`),
   as the compiler does (#55). Changing one element, reading the list,
   or assigning a whole array does not invalidate it, since an array holds

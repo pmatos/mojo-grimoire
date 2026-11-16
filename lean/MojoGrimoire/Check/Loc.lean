@@ -30,8 +30,10 @@ def Access.canChange : Access → Bool
   | .alias _ m => m
   | _ => true
 
-/-- Whether the place `p` may be changed through; a place whose variable is
-not in scope may not. -/
+/-- Whether the variable of the place `p` may be changed through; a place
+whose variable is not in scope may not. It ignores `q^`: a `ref` binding to
+`q^.f` may change `q.f`, as the compiler allows. A place passed on as an
+argument uses `passedMutable`, and a change of the place `requireMutable`. -/
 def placeMutable (p : Place) : CheckM Bool := do
   pure (((← get).vars.find? (·.name == (splitPlace p).1)).any (·.access.canChange))
 

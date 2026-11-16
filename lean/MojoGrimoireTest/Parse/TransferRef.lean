@@ -66,6 +66,15 @@ private def r : Place := .var "r"
 #guard inMain ["    var a = Pair(Res(1), 7)", "    setk(pick(a^.k))", "    print(a.k)"] ==
   rejects (.immutablePlace (.field (.transferred a) "k"))
 
+-- The same holds through an element of a list reached through `h^`; without
+-- `^` the reference may be changed.
+#guard inMain ["    var h = H([1, 2], 3)", "    ref r = pick(h^.l[0])", "    r = 5"] ==
+  rejects (.immutablePlace r)
+#guard inMain ["    var h = H([1, 2], 3)", "    setk(pick(h^.l[0]))"] ==
+  rejects (.immutablePlace (.index (.field (.transferred (.var "h")) "l") (.int 0)))
+#guard inMain ["    var h = H([1, 2], 3)", "    ref r = pick(h.l[0])", "    r = 5",
+    "    print(h.l[0])"] == some (.finished ["5"])
+
 -- It may still be read, and a method whose `self` is `mut` stays rejected.
 #guard inMain ["    var a = Pair(Res(1), 7)", "    ref r = a^.me()", "    print(r.k)"] ==
   some (.finished ["7", "drop 1"])
