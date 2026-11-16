@@ -72,7 +72,7 @@ def uses (sl : Slots) : Expr → List Place
   | .method p _ args => union (union (sl.of p) (indexUses sl p)) (usesList sl args)
   | .unary _ a => uses sl a
   | .binary _ a b => union (uses sl a) (uses sl b)
-  | .list _ es => usesList sl es
+  | .list _ es | .listInit _ es => usesList sl es
   | .withDrops e _ _ => uses sl e
 
 /-- The slots that the expressions `es` use. -/
@@ -99,7 +99,7 @@ def moves (sl : Slots) : Expr → List Place
   | .method p _ args => union (indexMoves sl p) (movesList sl args)
   | .unary _ a => moves sl a
   | .binary _ a b => union (moves sl a) (moves sl b)
-  | .list _ es => movesList sl es
+  | .list _ es | .listInit _ es => movesList sl es
   | .withDrops e _ _ => moves sl e
 
 /-- The slots that the expressions `es` move away whole. -/

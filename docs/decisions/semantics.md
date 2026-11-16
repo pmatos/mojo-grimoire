@@ -3,7 +3,8 @@
 This page says what holds today for what Mojo means in this project and what
 the model takes as its reference.
 [semantics-parser.md](semantics-parser.md) continues it with the parser and
-the driver.
+the driver, and [semantics-lists.md](semantics-lists.md) with lists and
+arrays.
 
 ## The reference
 
@@ -125,62 +126,22 @@ where the compiler and the manual disagree, the model follows the compiler.
   type, is one class, `unknownAttribute`, named with the type's name: the
   compiler reports both as "has no attribute" (#42,
   [conformance.md](conformance.md#unknown-fields-and-methods)).
+- An initialization whose arguments fit no initializer is one class,
+  `noMatchingInit`, however they misfit: a construction `S(…)` with a
+  wrong number of arguments, a wrong one, or a value passed to a `mut`
+  parameter that is not a place or cannot change; a literal that does not
+  fit the list or array it initializes; and `List[T](e1, …, en)`. The
+  compiler reports each as "no matching function in initialization" (#46,
+  [conformance.md](conformance.md#initializations-that-fit-no-initializer)).
 - A declaration may not reuse the name of a variable in scope, a
   parameter included, so no variable hides another. Sibling blocks may
   reuse a name. ASAP elaboration relies on this, since it tracks
   variables by name.
 
-### Lists
+### Lists and arrays
 
-Lists, `List[T]`, follow the same rules, with these choices (#17):
-
-- An element is part of its list for initialization: it is initialized
-  whenever the list is, and cannot be transferred out (`xs[i]^`).
-- Two places that go through elements of the same list overlap for
-  argument exclusivity, whatever their indices.
-- A list is copied only explicitly, with `.copy()`, and only when its
-  elements can be copied.
-- The only methods modelled are `append`, `pop()`, `pop(i)` and the
-  built-in `len`, which a function named `len` hides (#40). `pop()` takes
-  its list `mut`, removes the last element and gives it back as an owned
-  value of the element type. On an empty list it fails at run time, as the
-  compiler's bounds check does. `pop(i)` removes and gives back the
-  element at the `Int` index `i` (#58). Its index is evaluated before the
-  list is read, and is checked only at run time: a negative index, even a
-  constant one, fails as out of bounds, as the stdlib's `check_bounds`
-  does. A wrong call of `pop` is an arity or a type mismatch in the model.
-  The compiler reports both as "no matching method", which no pattern of
-  the suite classifies, so only Lean tests cover them. An index must be
-  an `Int`. An index `xs[i]` made only of integer literals, negation,
-  `+`, `-`, `*`, `//` and `%` is computed when the program is compiled,
-  and is rejected when it is negative (`negativeIndex`). `//` and `%` round toward negative infinity
-  and give 0 for a zero divisor, as the compiler does.
-
-### Arrays
-
-Arrays, `Array[T, N]`, hold exactly `N` elements inline. They follow the
-rules of lists, with these differences, which the compiler at the pin
-shows. The human ruled on 2026-11-16 that the model follows the compiler
-here (#27).
-
-- A literal `[e1, …, en]` is an `Array[T, n]`, with `T` the type of `e1`,
-  unless a list is expected where it stands. A list is expected by the
-  declared type of a variable, the type of a place assigned to, a
-  function's result, a parameter, and the element type of an enclosing
-  literal or of the list that `append` adds to. A literal with no type
-  expected and no elements, `var xs = []`, is rejected.
-- An array has no methods. `len` and indexing work as on a list. At run
-  time an array is a list value whose length is its size `N`.
-- An array's size is part of its type, so `[1, 2, 3]` is not an
-  `Array[Int, 2]`. The size in a type is an integer literal.
-- A constant index into an array of `N` elements is rejected when it is `N`
-  or more (`constantIndexOutOfBounds`); one known only at run time fails
-  then, as on a list. A constant index into a list fails only at run time.
-- A struct may not hold an array, or a list, of itself: the compiler
-  rejects both, and so does the model (`recursiveStruct`).
-
-Rejected: keeping every literal a `List`, which would accept programs that
-the compiler rejects, such as `append` to an unannotated literal.
+The choices for lists and arrays are on
+[semantics-lists.md](semantics-lists.md).
 
 ### References
 

@@ -88,3 +88,29 @@ other reason. Also rejected: keeping both classes in the checker and
 giving them one name in the driver. The class that the checker reports
 would then differ from the one the suite compares, and the Lean tests would
 pin a distinction that the compiler does not make.
+
+### Initializations that fit no initializer
+
+The compiler gives one error, "no matching function in initialization",
+for every initialization whose arguments fit none of the type's
+initializers: it tries each one and reports only that none fits. That
+covers a construction `S(…)` with a wrong number of arguments, a wrong
+one, or a value that is not a place, or cannot change, passed to a `mut`
+parameter, whether `S` is `@fieldwise_init` or has its own `__init__`; a
+literal whose length or elements do not fit the list or array it
+initializes; and `List[T](e1, …, en)` with arguments. The model reports
+all of them as one class, `noMatchingInit`, and `diagnostics.json` maps
+that message, matched whole, to it alone. The human ruled this on
+2026-11-16 (#46), following the precedent of `unknownAttribute`.
+
+Ordinary calls keep their classes, since the compiler names the misfit
+there: `typeMismatch` and `arityMismatch`. So does a literal passed to a
+function or a method, which the compiler converts and reports as "cannot
+be converted from list literal", and a literal with no expected type whose
+elements differ, which it reports as "not compatible". An argument's own
+error, and one the compiler finds only once an initializer fits, such as
+`implicitCopy` or `uninitializedUse`, keep their classes too.
+
+Rejected: leaving the message unclassified, which the suite counts as a
+disagreement, so that these programs could never be compared; and letting
+one message accept several classes, which loosens the comparison.

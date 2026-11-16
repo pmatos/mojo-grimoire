@@ -44,8 +44,15 @@ else. These choices hold:
   implicit, since no variable of the subset has that type. Inference then
   gives `var x = e` the type of `e`, and a literal `[e1, …, en]` the type
   expected where it stands, or else `Array[T, n]` (see
-  [Arrays](semantics.md#arrays)).
-  What it cannot find stays `None`, and the checker rejects it.
+  [Arrays](semantics-lists.md#arrays)).
+  What it cannot find stays `None`, and the checker rejects it. A literal
+  with no expected type keeps `None` as its own type, which the checker
+  replaces with its elements' type, so that the checker tells it from a
+  literal that initializes an expected type (#46).
+- `List[T]()` is an empty list. `List[T](e1, …, en)` with arguments is
+  read as its own expression, which the checker always rejects (see
+  [Lists](semantics-lists.md#lists)). `List[T](capacity=n)` is outside the
+  subset and a syntax error.
 - The exit code says how a run ended: 0 finished, 1 rejected
   (`rejected: CLASS in DECL` on standard error), 2 a run-time error
   (`run-time error: NAME`), 3 a syntax error (`syntax error: line N:

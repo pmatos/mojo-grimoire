@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "References: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7658103838350710100")
+:::moduleDocs (fingerprint := "14775532301410814693")
 :::
 
-:::readable MojoGrimoire.Check.placeMutable MojoGrimoire.Check.callOrigins (fingerprint := "12133608150144169221")
+:::readable MojoGrimoire.Check.placeMutable MojoGrimoire.Check.callOrigins (fingerprint := "130590535566181752")
 *Rule: the origins of a call.* A call or a method call that returns a
 reference points into the arguments, a method's receiver included, passed
 to the parameters its origin names, or, for an argument reached through a
@@ -27,7 +27,7 @@ parameter does, a `ref` parameter does when its argument may be changed,
 and a `read` parameter does not.
 :::
 
-:::readable MojoGrimoire.Check.refTarget (fingerprint := "14606966117482135184")
+:::readable MojoGrimoire.Check.refTarget (fingerprint := "4111217539187183732")
 *Rule: what a reference names.* $`\mathsf{ref}~x = e` needs $`e` to be a
 place, which must be initialized, or a call or a method call whose
 signature returns a reference. A place gives a reference to itself, or

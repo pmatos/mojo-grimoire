@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15670401715942740676")
+:::moduleDocs (fingerprint := "16039575607398524349")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
@@ -63,7 +63,7 @@ to a `var self`; the receiver's type, from the variables declared so far,
 gives the method.
 :::
 
-:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "6572841657424087197")
+:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "1980529672550102452")
 *Definition: what an operation destroys.* Inside a function, elaboration
 knows the program, the slots, the slots the function owns in the order they
 die, and the types of the variables declared so far. An operation uses
@@ -77,14 +77,14 @@ evaluated with those slots, and the ones it reads, live after them. An
 operation that destroys nothing is left unwrapped.
 :::
 
-:::readable MojoGrimoire.Elab.consumedSlot MojoGrimoire.Elab.consumedIn MojoGrimoire.Elab.consumedList (fingerprint := "11391358353719964809")
+:::readable MojoGrimoire.Elab.consumedSlot MojoGrimoire.Elab.consumedIn MojoGrimoire.Elab.consumedList (fingerprint := "3815886912729584611")
 *Definition: consumed receivers.* A method call on $`q\,\hat{}`, where
 $`q` is a whole slot and the method takes `var self`, consumes $`q`: it
 moves the value away, and the method destroys it. An expression consumes
 the slots that the method calls in it consume, at any depth.
 :::
 
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "16992007596424006050")
+:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "4247161697326049752")
 *Definition: elaborating expressions.* Each call, method call, operator,
 list literal and `.copy()` is wrapped with what it destroys, and its
 operands are elaborated in turn, each with the slots that the later
@@ -96,7 +96,7 @@ operation destroys what it uses. A method call never destroys the slot it
 consumes, though it uses it.
 :::
 
-:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.envAfter (fingerprint := "15903920460541454485")
+:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.envAfter (fingerprint := "17071799620170729577")
 *Definition: helpers.* The slots that an elaborated expression destroys;
 the slots that the places among a list of operands use; and the types of
 the variables after a statement, which a declaration or a `ref` binding

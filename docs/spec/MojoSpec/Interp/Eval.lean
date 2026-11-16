@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4711320054933436031")
+:::moduleDocs (fingerprint := "11238531126452848318")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "14136961392570647166")
@@ -41,7 +41,7 @@ $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "14999121157647796042")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "18368620337605060923")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -64,7 +64,8 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   $`\mathsf{drops}(e; p^*; q^*)` evaluates $`e`, destroying the values in
   $`p^*` once a call's arguments are read, before it is made, and those in
   $`q^*` once $`e` is done; for an operation that is not a call, both once
-  it is done.
+  it is done. $`\mathsf{List}[u](e^+)`, which the checker always rejects,
+  gets stuck.
 - *Calls.* A struct with `__init__` is built in a location holding the
   empty struct, passed as `out self`; a `@fieldwise_init` struct from its
   arguments. A function's arguments are evaluated left to right by their

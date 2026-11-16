@@ -13,7 +13,11 @@ open MojoGrimoire.Core
 
 /-- The classes of error that the checker reports. `unknownAttribute` is a
 field or a method that the type named `ty` does not have: the compiler
-reports both alike, so the model does not tell them apart. -/
+reports both alike, so the model does not tell them apart. For the same
+reason, `noMatchingInit` is any initialization of the type `ty` whose
+arguments fit no initializer: a construction `S(…)` with a wrong number of
+arguments or a wrong one, a literal whose elements do not fit the list or
+array it initializes, and `List[u](e₁, …, eₙ)`. -/
 inductive CheckError where
   | unknownVariable (name : Name)
   | unknownFunction (name : Name)
@@ -29,6 +33,7 @@ inductive CheckError where
   | notPrintable (ty : Ty)
   | stringOutsidePrint
   | arityMismatch (callee : Name) (expected actual : Nat)
+  | noMatchingInit (ty : Ty)
   | invalidConvention (name : Name)
   | invalidSelf (name : Name)
   | noInitializer (struct : Name)

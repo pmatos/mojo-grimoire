@@ -13,8 +13,13 @@ stands: the declared type of its variable, the type of the place it is
 assigned to, the function's result when it is returned, the parameter it
 is passed to, or the element type of the literal or list that holds it.
 Where none is expected, it is an `Array[t, n]` of its `n` elements, with
-the type `t` of the first, as in Mojo. What inference cannot find stays
+the type `t` of the first, as in Mojo: inference gives that type to what
+holds the literal, and leaves the literal's own type `None`, so that the
+checker tells a literal that initializes an expected type from one that
+takes the type of its elements (#46). What inference cannot find stays
 `None`, which the checker rejects as a type that may not be declared.
+`List[u](e₁, …, eₙ)` is a list of `u`; nothing is expected of its
+arguments, which no initializer takes.
 
 Inference also gives `p^` its meaning when `p` is an `Int` or a `Bool`.
 Mojo does not move such a value: it warns that the transfer has no effect,
@@ -103,7 +108,9 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
     let t' := match t, es'.head?.bind (·.2) with
       | .noneType, some u => .array u n
       | t, _ => t
-    (.list t' (es'.map (·.1)), if t' == .noneType then none else some t')
+    (.list t (es'.map (·.1)), if t' == .noneType then none else some t')
+  | .listInit u args =>
+    (.listInit u ((inferList prog env [] args).map (·.1)), some (.list u))
   | .withDrops e pre post =>
     let (e', t) := inferExpr prog env exp e
     (.withDrops e' pre post, t)
