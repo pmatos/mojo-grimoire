@@ -1,4 +1,6 @@
 {
   "note": "Programs whose result disagrees with the compiler's by a decision-log entry, docs/conformance/decision-log.md, with the entry's id.",
-  "known": {}
+  "known": {
+    "lists/store_after_grow": "D-0002"
+  }
 }
