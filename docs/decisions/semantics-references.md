@@ -10,10 +10,10 @@ choices (#18):
 
 - A reference's origins are the places it may point into: the place it is
   bound to, or the arguments passed to the parameters a returned
-  reference's origin names. Those arguments must be located operands:
-  places, or calls that return a reference, whose origins are those of
-  their own origin arguments (#69). A temporary is rejected
-  (`notAPlace`), where the compiler accepts it (#80).
+  reference's origin names. For a `ref` binding, those arguments must be
+  located operands: places, or calls that return a reference, whose
+  origins are those of their own origin arguments (#69). A temporary is
+  rejected (`notAPlace`), where the compiler accepts it (#80).
 - A use of a reference needs every origin initialized, so a value moved
   away cannot be used through a reference to it. A value cannot be
   transferred out through a reference.
@@ -57,14 +57,18 @@ choices (#18):
   reference. `pop` always does, since its result has a generic type.
 - A call that returns a reference, used as a value, copies the value
   implicitly. Passed to `len`, or to a `read`, `mut` or `ref` parameter,
-  it is a location, as the compiler does (#69): it is not copied, it
+  it is a location when it is a located operand, as the compiler does
+  (#69): it is not copied, it
   overlaps what its origins overlap for argument exclusivity (`n(first(xs),
   xs)` is rejected when `n` takes its second argument `mut`), it must be
   mutable for `mut` (`immutablePlace`), and the call changes its origins
   as it would a place. Its origins must still be initialized, and not
   invalidated, once the call's later arguments are evaluated. An `Int` or
   a `Bool` passed `read` is copied, and a `var` parameter copies it
-  implicitly.
+  implicitly. One with a temporary origin argument is checked as a value
+  (#80). The interpreter still passes the reference, so the temporary is
+  destroyed once, when the inner call returns, which matches the
+  compiler's output for `show(id(P(1)))` with an implicitly copyable `P`.
 - Elaboration counts each use of a reference as a use of its origins, so
   their values live until the reference's last use. A call that returns a
   reference, passed by reference, keeps its origins alive until the

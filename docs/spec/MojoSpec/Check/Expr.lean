@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11360617214982278453")
+:::moduleDocs (fingerprint := "7128597364662432060")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -96,7 +96,7 @@ $`k` changes were recorded is invalidated when a change recorded since
 then invalidates it.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "10898209889308545326")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "11709366588237412315")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -114,7 +114,8 @@ type:
 * the methods of a list take it `mut`, so they need a list the function
   may change; `len(e)`, when the program declares no function or struct
   `len`, takes one list or array and gives an $`\mathsf{Int}`: a place
-  argument, or a call that returns a reference, is read, not copied;
+  argument, or a call that returns a reference that is a located
+  operand, is read, not copied;
 * $`\mathsf{drops}(e; p^*; q^*)`, which only elaboration inserts, after
   checking, has the type of $`e`.
 
@@ -132,8 +133,8 @@ with `ref`, passed by reference, or read by `len` or `print`.
 
 The arguments of a call are checked in order against the parameters, after
 the exclusivity rule: a place by `passPlace`; a call that returns a
-reference, passed to a `read`, `mut` or `ref` parameter, as a location,
-by `locatedOrigins`, which must be mutable for `mut`, or the call is
+reference and is a located operand, passed to a `read`, `mut` or `ref`
+parameter, as a location, which must be mutable for `mut`, or the call is
 $`\mathsf{immutablePlace}`, named by its first origin; and any other
 expression by its type, which must be the parameter's. A `mut` parameter
 needs a place or such a call.

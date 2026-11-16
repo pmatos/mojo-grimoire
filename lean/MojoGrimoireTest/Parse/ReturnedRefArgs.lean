@@ -80,6 +80,10 @@ private def x : Place := .var "xs"
     "def keep(a: Int, mut b: Array[Int, 2]) -> Int:", "    b[0] = 100", "    return a"]
   ["var a: Array[Int, 2] = [1, 2]", "print(keep(at(a), a))"] ["1"]
 
+-- A call with a temporary origin argument is checked as a value.
+#guard prints ["def id(ref x: Int) -> ref [x] Int:", "    return x",
+    "def show(ref a: Int) -> Int:", "    return a"] ["print(show(id(5)))"] ["5"]
+
 -- The list lives until the call it is passed to is done.
 #guard prints [] ["var rs: List[Res] = [Res(1), Res(2)]", "print(len(firsts(rs)))",
   "print(\"a\")"] ["drop 1", "drop 2", "2", "a"]

@@ -78,16 +78,6 @@ def originsOf (prog : Program) (os : List Name) :
   | _, _ => pure (some ([], true))
 end
 
-/-- Whether `e` calls a function or a method that returns a reference. -/
-def refCall (prog : Program) : Expr → CheckM Bool
-  | .call f _ => pure ((callSig prog f).toOption.any (·.origin.isSome))
-  | .method p m args =>
-    tryCatch (do
-      pure ((methodSig prog (← placeTy prog p) m args.length).toOption.any (·.origin.isSome)))
-      fun _ => pure false
-  | .withDrops e _ _ => refCall prog e
-  | _ => pure false
-
 /-- The name of the function or method that `e` calls; empty for an
 expression that is no call. -/
 def calleeOf : Expr → Name

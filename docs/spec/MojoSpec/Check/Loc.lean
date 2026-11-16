@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Located operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9408697929668008984")
+:::moduleDocs (fingerprint := "9304692610022720365")
 :::
 
 :::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable (fingerprint := "514862980997807548")
@@ -39,10 +39,11 @@ origins, and it may be changed when each of them passes on a mutable
 reference. Nothing else is one.
 :::
 
-:::readable MojoGrimoire.Check.refCall MojoGrimoire.Check.calleeOf MojoGrimoire.Check.locatedOrigins (fingerprint := "15658119373482322397")
-*Rule: a call as a location.* A call or a method call whose signature
-returns a reference is used as a location by `ref`, by `len` and by an
-argument passed by reference. Each argument passed to a parameter its
-origin names must then be a located operand, or the call is rejected with
-$`\mathsf{notAPlace}`: a temporary would not outlive the call.
+:::readable MojoGrimoire.Check.calleeOf MojoGrimoire.Check.locatedOrigins (fingerprint := "8114409834890792204")
+*Rule: a call bound as a reference.* A call or a method call whose
+signature returns a reference, bound with `ref`, must be a located
+operand: an argument passed to a parameter its origin names that is not
+one is rejected with $`\mathsf{notAPlace}`, since a temporary would not
+outlive the call. Passed to `len` or by reference, such a call is a
+location only when it is a located operand, and a value otherwise.
 :::

@@ -10,9 +10,10 @@ evaluated, so each place operand must still be initialized then. A place passed 
 `read`, `mut` and `ref` pass the location, which must be initialized, and
 `mut` also needs a place the function may change; `var` passes a value, which
 is copied implicitly unless the argument transfers it. A call that returns
-a reference, passed to a `read`, `mut` or `ref` parameter or to `len`, is a
-located operand (`MojoGrimoire.Check.locOf`) and is passed the same way: it
-is not copied, it stands for its origins, and for `mut` it must be mutable.
+a reference and is a located operand (`MojoGrimoire.Check.locOf`), passed
+to a `read`, `mut` or `ref` parameter or to `len`, is passed the same way:
+it is not copied, it stands for its origins, and for `mut` it must be
+mutable.
 
 A `mut` argument may not alias another argument that is passed as a location,
 Mojo's argument exclusivity. An `Int` or a `Bool` passed to a `read`
@@ -263,11 +264,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         let _ ← lift (elemOf t)
         pure .int
       | "len", [e], .unknownFunction _ => do
-        let t ← if ← refCall prog e then do
-            let t ← checkExprAs prog true e
-            let _ ← locatedOrigins prog e
-            pure t
-          else checkExprAs prog false e
+        let t ← checkExprAs prog (← locOf prog e).isSome e
         let _ ← lift (elemOf t)
         pure .int
       | "len", _, .unknownFunction _ => throw (CheckError.arityMismatch f 1 args.length)
@@ -325,8 +322,9 @@ def checkIndices (prog : Program) : Place → CheckM Unit
 `params`, in order, and gives, for each, the places it is read from once
 every argument is evaluated, with how many changes were recorded once it
 was checked. A call that returns a reference, passed by reference, is
-passed as a location, uncopied, and for `mut` it must be mutable; the
-origin it is reported by is its first. `n` and `m` are the numbers of
+passed as a location, uncopied, when it is a located operand, and for
+`mut` it must be mutable; the origin it is reported by is its first. One
+with a temporary origin argument is checked as a value. `n` and `m` are the numbers of
 parameters and arguments, for the error when they differ. -/
 def checkArgs (prog : Program) (callee : Name) :
     List Param → List Expr → Nat → Nat → CheckM (List (List Place × Nat))
@@ -339,14 +337,14 @@ def checkArgs (prog : Program) (callee : Name) :
   | prm :: prms, e :: args, n, m => do
     if prm.conv == .out || prm.conv == .deinit then
       throw (CheckError.invalidConvention callee)
-    if !passedByValue prm && (← refCall prog e) then
+    match ← if passedByValue prm then pure none else locOf prog e with
+    | some (os, mq) =>
       expect prm.ty (← checkExprAs prog true e)
-      let (os, mq) ← locatedOrigins prog e
       if prm.conv == .mutable && !mq then
         throw (CheckError.immutablePlace (os.headD (.var callee)))
       let k ← mark
       pure ((os, k) :: (← checkArgs prog callee prms args n m))
-    else
+    | none =>
       if prm.conv == .mutable then throw (CheckError.notAPlace callee)
       expect prm.ty (← checkExprAs prog false e)
       let k ← mark
