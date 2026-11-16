@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "uninitializedAtExit",
+  "diagnostic": "'p' is uninitialized at return from this function"
+}

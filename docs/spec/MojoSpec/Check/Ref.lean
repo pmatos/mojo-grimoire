@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "References: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6982109247482644144")
+:::moduleDocs (fingerprint := "7658103838350710100")
 :::
 
-:::readable MojoGrimoire.Check.placeMutable MojoGrimoire.Check.callOrigins (fingerprint := "15604810996950739958")
+:::readable MojoGrimoire.Check.placeMutable MojoGrimoire.Check.callOrigins (fingerprint := "12133608150144169221")
 *Rule: the origins of a call.* A call or a method call that returns a
 reference points into the arguments, a method's receiver included, passed
 to the parameters its origin names, or, for an argument reached through a
@@ -27,12 +27,13 @@ parameter does, a `ref` parameter does when its argument may be changed,
 and a `read` parameter does not.
 :::
 
-:::readable MojoGrimoire.Check.refTarget (fingerprint := "2662123181359292307")
+:::readable MojoGrimoire.Check.refTarget (fingerprint := "14606966117482135184")
 *Rule: what a reference names.* $`\mathsf{ref}~x = e` needs $`e` to be a
 place, which must be initialized, or a call or a method call whose
 signature returns a reference. A place gives a reference to itself, or
-to the origins of the reference it goes through; a call gives the origins
-above. Any other expression, a struct's construction included, is
+to the origins of the reference it goes through, and may be changed when
+its variable may be: through $`p\,\hat{}` too, as the compiler allows. A
+call gives the origins above. Any other expression, a struct's construction included, is
 rejected.
 :::
 

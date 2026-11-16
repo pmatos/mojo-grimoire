@@ -173,4 +173,11 @@ Any other place is passed by reference. -/
 def passedByValue (prm : Param) : Bool :=
   prm.conv == .owned || (prm.conv == .read && prm.ty.byValue)
 
+/-- The place that a method call consumes when its receiver `p` is `q^`
+and its `self` has the convention `c`: `q`, when `self` is `var`. Any other
+receiver is passed as its convention says. -/
+def consumedReceiver (c : Conv) : Place → Option Place
+  | .transferred q => if c == .owned then some q else none
+  | _ => none
+
 end MojoGrimoire.Check

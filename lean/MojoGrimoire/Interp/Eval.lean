@@ -18,7 +18,8 @@ A value is destroyed where elaboration put a `drop` or a `withDrops`, when
 it is replaced by an assignment, when a temporary passed to a borrowing
 parameter is no longer needed after its call, when a call's result is not
 used, when `len` has read the length of a list that is not a place, and
-when a function returns, for every value it still owns. Destroying a
+when a function returns, for every value it still owns. A method whose
+`self` is `var`, called on `p^`, takes the value out of `p`. Destroying a
 struct runs its `__deinit__`, whose elaborated body destroys its fields; a
 struct without one has its fields destroyed in order, and a list its
 elements. A value that `print` writes is not destroyed after it: it holds
@@ -146,6 +147,7 @@ def placeRef (prog : Program) (fuel : Nat) (env : Env) (p : Place) : EvalM Ref :
       let .list es ← readRef r | stuck "index into a value that is not a list"
       let j ← position es.length k
       pure { r with path := r.path ++ [.elem j] }
+    | .transferred q => placeRef prog n env q
 
 /-- The value of the expression `e`. A call that returns a reference gives
 the value it points to. -/
@@ -312,6 +314,7 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
         let recv ← if self.conv == .owned then do pure (Arg.value (← readRef r))
           else pure (Arg.place r)
         let args ← Pending.loadAll rest
+        if (consumedReceiver self.conv p).isSome then writeRef r .uninit
         dropAll prog n env pre
         callFun prog n fd (recv :: args)
       | _ => stuck "a method call on a value that is not a struct"

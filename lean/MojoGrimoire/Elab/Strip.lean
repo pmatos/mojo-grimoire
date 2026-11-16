@@ -17,6 +17,7 @@ def stripPlace : Place → Place
   | .var x => .var x
   | .field p f => .field (stripPlace p) f
   | .index p i => .index (stripPlace p) (stripExpr i)
+  | .transferred p => .transferred (stripPlace p)
 
 /-- The expression `e` with every `withDrops` in it erased. -/
 def stripExpr : Expr → Expr

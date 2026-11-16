@@ -13,18 +13,18 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The origins of references: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17765821851420592100")
+:::moduleDocs (fingerprint := "15988979083330930476")
 :::
 
-:::readable MojoGrimoire.Elab.TyEnv MojoGrimoire.Elab.placeTyOf MojoGrimoire.Elab.refCallee (fingerprint := "2511568776226270142")
+:::readable MojoGrimoire.Elab.TyEnv MojoGrimoire.Elab.placeTyOf MojoGrimoire.Elab.refCallee (fingerprint := "14274364052316001101")
 *Definition: callees.* Elaboration follows the types of the variables
-declared so far, to find the type of a place and so the signature of the
-method a call names. A call's signature, that of a function, of a
+declared so far, to find the type of a place, $`p\,\hat{}` having the
+type of $`p`, and so the signature of the method a call names. A call's signature, that of a function, of a
 struct's construction or of a method, comes with its arguments, the
 receiver of a method first.
 :::
 
-:::readable MojoGrimoire.Elab.originArgs MojoGrimoire.Elab.refSlots (fingerprint := "12455551791382063524")
+:::readable MojoGrimoire.Elab.originArgs MojoGrimoire.Elab.refSlots (fingerprint := "12209789676025803899")
 *Definition: what a reference points into.* A reference to a place points
 into the slots that the place touches; one returned by a call, into the
 slots that the arguments passed to the parameters its origin names touch,
