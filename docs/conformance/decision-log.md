@@ -61,8 +61,8 @@ Each move of the Mojo pin gets an entry below.
 - Program: `tests/conformance/lists/store_after_grow.mojo`
 - Compiler: accepts `xs[0] = bump(xs)`, where `bump` appends to `xs` and
   returns 5, and prints `1 3`. It locates `xs[0]` before it evaluates the
-  call, the call grows the list, and the store lands in a stale element: the
-  buffer that the append reallocated. When the list has capacity reserved
+  call, the call grows the list, and the store lands in a stale element, in
+  the buffer that the append replaced when it reallocated. When the list has capacity reserved
   beforehand, so the append does not reallocate, the same program prints
   `5 3`. When the call shrinks the list instead, as in
   `xs[1] = shrink(xs)` where `shrink` pops twice from `[1, 2, 3]`, the
@@ -77,8 +77,8 @@ Each move of the Mojo pin gets an entry below.
   list, since `e` would name an element that no longer exists.
 - Classification: compiler bug, ruled by the human on 2026-11-16 (#57).
 - Decision and rationale: the model keeps its behaviour. A store into a
-  stale element writes to memory the list no longer owns, and its effect
-  depends on whether the list reallocated, which no program can observe
-  through the language.
+  stale element writes to memory the list no longer owns, and whether the
+  store is lost depends on whether the call happened to reallocate the
+  list's buffer.
 - Upstream report: not filed yet. A draft on #57 awaits the human's
   approval; its link goes here once it is filed.
