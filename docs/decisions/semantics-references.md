@@ -56,7 +56,14 @@ choices (#18):
   builds its result in place unless it returns an `Int`, a `Bool` or a
   reference. `pop` always does, since its result has a generic type.
 - A call that returns a reference, used as a value, copies the value
-  implicitly. Passed to `len`, or to a `read`, `mut` or `ref` parameter,
+  implicitly. Printed, an operand of a binary operator other than `and`
+  and `or`, an argument passed by value or an element of a list or an
+  array literal, it is read only once every operand of the operation is
+  evaluated, as the compiler does (#76). Its origins must then still be
+  initialized (`uninitializedUse`), and not invalidated by a later operand
+  (`invalidatedReference`): `print(pick(xs[0], b, True), xs.pop())` is
+  rejected. The operand of a unary operator, `and` or `or` is read at
+  once. Passed to `len`, or to a `read`, `mut` or `ref` parameter,
   it is a location when it is a located operand, as the compiler does
   (#69): it is not copied, it
   overlaps what its origins overlap for argument exclusivity (`n(first(xs),
@@ -73,4 +80,9 @@ choices (#18):
   their values live until the reference's last use. A call that returns a
   reference, passed by reference, keeps its origins alive until the
   operation it is passed to is done: `len(first(xs))` destroys `xs` right
-  after `len`, as the compiler does.
+  after `len`, as the compiler does. Read by value, it keeps them alive
+  until the operation's operands are read, and those that die then are
+  destroyed the last declared first, in the order the operands are read
+  (#76). Before #76 they were destroyed when the inner call returned, so
+  the interpreter read a destroyed value (#94). The value of a `return`
+  reads it before the function destroys what it owns.

@@ -9,7 +9,9 @@ it. Before a field or a method, `p^` borrows `p`, which must be whole and
 could be transferred, and cannot be changed through it; a method whose
 `self` is `var` takes it, once the arguments are read. Mojo reads a place
 operand only once every operand of its operation is evaluated, so each place
-operand must still be initialized then. A place passed as an argument is
+operand must still be initialized then; so it reads a call that returns a
+reference, read by value, whose origins must then still be initialized and
+not invalidated. A place passed as an argument is
 passed by its parameter's convention: `read`, `mut` and `ref` pass the
 location, which must be initialized, and `mut` also needs a place the
 function may change; `var` passes a value, which is copied implicitly unless
@@ -228,12 +230,19 @@ def recheckLocs (prog : Program) (ls : List (List Place × Nat)) : CheckM Unit :
     let _ ← readPlace prog p
     requireUnchanged prog p k
 
-/-- Rechecks the place operands among `es`, with `recheckLocs`. `ks` holds,
-for each operand, how many changes were recorded once it was checked. -/
-def recheckPlaces (prog : Program) (es : List Expr) (ks : List Nat) : CheckM Unit :=
-  recheckLocs prog ((es.zip ks).map fun
-    | (.place p, k) => ([p], k)
-    | (_, k) => ([], k))
+/-- The places that the operand `e` is read from once every operand of its
+operation is evaluated: a place itself, or the origins of a call that
+returns a reference and is a located operand. Mojo reads such a call's
+reference only then. -/
+def lateLocs (prog : Program) : Expr → CheckM (List Place)
+  | .place p => pure [p]
+  | e => do pure (((← locOf prog e).map (·.1)).getD [])
+
+/-- Rechecks the operands among `es`, read from their `lateLocs`, with
+`recheckLocs`. `ks` holds, for each operand, how many changes were recorded
+once it was checked. -/
+def recheckPlaces (prog : Program) (es : List Expr) (ks : List Nat) : CheckM Unit := do
+  recheckLocs prog (← (es.zip ks).mapM fun (e, k) => do pure (← lateLocs prog e, k))
 
 /-- The type of a call of signature `sig`. A call that returns a reference,
 used as a value, copies the value it points to implicitly, unless `asRef`
@@ -367,7 +376,7 @@ def checkArgs (prog : Program) (callee : Name) :
       if prm.conv == .mutable then throw (CheckError.notAPlace callee)
       expect prm.ty (← checkExprAs prog false e)
       let k ← mark
-      pure (([], k) :: (← checkArgs prog callee prms args n m))
+      pure ((← lateLocs prog e, k) :: (← checkArgs prog callee prms args n m))
   | _, _, n, m => throw (CheckError.arityMismatch callee n m)
 end
 

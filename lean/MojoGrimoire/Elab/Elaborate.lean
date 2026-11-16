@@ -25,7 +25,11 @@ Nor is one that `p^.m(…)` gives to a method that takes `var self`. A
 use of a reference bound with `ref` is a use of every value it may point
 into, so those values live until its last use. A call that returns a
 reference, passed by reference to an operation, uses the values it points
-into the same way, so they live until that operation is done.
+into the same way, so they live until that operation is done; read by
+value, it uses them until the operation's operands are read, since Mojo
+reads the reference only then, and those that die then are destroyed the
+last declared first. The value of a `return` uses them until the function
+returns.
 Inside `__deinit__(deinit self)`, each field of `self` is destroyed on its own,
 at the same points, so a field the body never uses is destroyed before the
 body runs.
@@ -157,12 +161,16 @@ end
 /-- The slots that the operand `e` uses directly, with whether it is passed
 by value `m`: a place uses its slots and those of its indices; any other
 operand is an operation of its own, which destroys what it last uses. A
-call that returns a reference, passed by reference, also uses the slots it
-points into, which live until the operation is done. -/
+call that returns a reference also uses the slots it points into: passed
+by reference, they live until the operation is done; passed by value, until
+the operands are read, since Mojo reads the reference then, and those the
+function owns die then in the order of `owned`. -/
 def directOf (ctx : Ctx) (e : Expr) (m : Bool) : List Place × Bool :=
   match e with
   | .place p => (union (ctx.sl.of p) (indexUses ctx.sl p), m)
-  | e => (if m then [] else locSlots ctx.prog ctx.sl ctx.env e, m)
+  | e =>
+    let ls := locSlots ctx.prog ctx.sl ctx.env e
+    (if m then ctx.owned.filter (ls.contains ·) else ls, m)
 
 /-- The direct uses of the operands `es`, passed by value as `ms` says. -/
 def directArgs (ctx : Ctx) : List Expr → List Bool → List (List Place × Bool)
@@ -269,7 +277,9 @@ def envAfter (prog : Program) (sl : Slots) (env : TyEnv) (s : Stmt) : TyEnv :=
 
 mutual
 /-- Elaborates the statement `s`, given the slots live after it. What its
-expressions do not destroy, and is dead after it, dies right after it. -/
+expressions do not destroy, and is dead after it, dies right after it. The
+values that the value of a `return` reads through a returned reference
+live until the function returns, which destroys them after reading it. -/
 def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
   let sl := ctx.sl
   let rest (s' : Stmt) (inner : List Place) : List Stmt :=
@@ -288,7 +298,7 @@ def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
     let head := liveStmt sl (.whileLoop c body) after
     .whileLoop c (elabBlock ctx body head) ::
       drops ctx.owned (diff head (after ++ consumedIn ctx c))
-  | .ret value => [.ret (value.map (elabExpr ctx false · []))]
+  | .ret value => [.ret (value.map fun e => elabExpr ctx false e (directOf ctx e true).1)]
   | .pass => [.pass]
   | .drop p => [.drop p]
   | .decl x t init =>

@@ -6,9 +6,11 @@ The big-step evaluation of elaborated programs.
 
 Evaluation goes left to right, as in Mojo. The operands of an operation, the
 arguments of a call, the elements of a list literal or the values printed,
-are evaluated in order, but an operand that is a place passed by value is
-only located then: as in Mojo, it is read once every operand has been
-evaluated, so a call among the later operands may change it first. An `Int`
+are evaluated in order, but an operand that is a place passed by value, or
+a call that returns a reference, is only located then: as in Mojo, it is
+read once every operand has been evaluated, so a call among the later
+operands may change it first. The operand of a unary operator, and those
+of `and` and `or`, are read at once. An `Int`
 or a `Bool` passed to a `read` parameter is passed by value: Mojo copies
 it. Every function of the evaluator takes fuel, which each step spends; a
 run that spends it all stops with `outOfFuel`, so every run ends, even of a
@@ -19,8 +21,8 @@ it is replaced by an assignment, when a temporary passed to a borrowing
 parameter is no longer needed after its call, when a call's result is not
 used, when `len` has read the length of a list that is neither a place
 nor a reference that a call returns, and when a function returns, for
-every value it still owns. A method whose `self` is `var`, called on `p^`,
-takes the value out of `p`. Destroying a
+every value it still owns, the last declared first. A method whose
+`self` is `var`, called on `p^`, takes the value out of `p`. Destroying a
 struct runs its `__deinit__`, whose elaborated body destroys its fields; a
 struct without one has its fields destroyed in order, and a list its
 elements. A value that `print` writes is not destroyed after it: it holds
@@ -39,8 +41,9 @@ inductive Arg where
   | value (v : Value)
   | temp (v : Value)
 
-/-- An operand as evaluation first finds it: a place passed by value,
-located but not yet read, or the value of any other expression. -/
+/-- An operand as evaluation first finds it: a place passed by value, or
+the reference that a call returns, located but not yet read, or the value
+of any other expression. -/
 inductive Operand where
   | loc (r : Ref)
   | val (v : Value)
@@ -121,12 +124,12 @@ def runBody (prog : Program) (fuel : Nat) (refs : Bool) (env : Env) (body : List
       | .returned r => pure r
       | e => throw e
 
-/-- Destroys what is left of each owned variable of `env`, in the order of
-their declaration. -/
+/-- Destroys what is left of each owned variable of `env`, the last
+declared first, as Mojo destroys values that die together. -/
 def destroyOwned (prog : Program) (fuel : Nat) (env : Env) : EvalM Unit :=
   match fuel with
   | 0 => fail .outOfFuel
-  | n + 1 => env.reverse.forM fun (_, b) => do
+  | n + 1 => env.forM fun (_, b) => do
     if b.owned then
       let v ← readRef b.ref
       writeRef b.ref .uninit
@@ -217,17 +220,20 @@ def dropAll (prog : Program) (fuel : Nat) (env : Env) (ps : List Place) : EvalM 
   | 0 => fail .outOfFuel
   | n + 1 => ps.forM (dropPlace prog n env)
 
-/-- The operand `e`: a place is located, and any other expression
-evaluated. -/
+/-- The operand `e`: a place, or a call that returns a reference, is
+located, and any other expression evaluated. -/
 def evalOperand (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Operand :=
   match fuel with
   | 0 => fail .outOfFuel
   | n + 1 => match e with
     | .place p => do pure (.loc (← placeRef prog n env p))
-    | e => do pure (.val (← evalExpr prog n env e))
+    | e => do
+      match ← evalResult prog n env e with
+      | .ref r => pure (.loc r)
+      | .value v => pure (.val v)
 
 /-- The arguments `args` passed to the parameters `params`, before the
-places passed by value are read. A place passed to a `read`, `mut` or `ref`
+places and returned references passed by value are read. A place passed to a `read`, `mut` or `ref`
 parameter is passed by reference, except an `Int` or a `Bool` passed
 `read`, and so is the reference that a call returns; anything else is
 passed by value. -/
@@ -246,7 +252,7 @@ def evalArgs (prog : Program) (fuel : Nat) (env : Env) :
           | _, a => do
             match ← evalResult prog n env a with
             | .ref r =>
-              if passedByValue prm then do pure (.arg (.temp (← readRef r)))
+              if passedByValue prm then pure (.load (.loc r))
               else pure (.arg (.place r))
             | .value v => pure (.arg (.temp v))
         pure (x :: (← evalArgs prog n env prms args))

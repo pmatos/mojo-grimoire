@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16908524155139981408")
+:::moduleDocs (fingerprint := "15639394698345286966")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
@@ -63,14 +63,17 @@ to a `var self`; the receiver's type, from the variables declared so far,
 gives the method.
 :::
 
-:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "15334562521233864914")
+:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "14891605846161825460")
 *Definition: what an operation destroys.* Inside a function, elaboration
 knows the program, the slots, the slots the function owns in the order they
 die, and the types of the variables declared so far. An operation uses
 directly the slots of the places among its operands, and those their
 index expressions use, and, by reference, the slots that a call returning
 a reference passed by reference points into, so that they outlive it:
-`len(first(xs))` destroys `xs` once `len` is done. Its other operands
+`len(first(xs))` destroys `xs` once `len` is done. By value, it uses the
+owned slots that such a call read by value points into, in the order of
+the owned slots, since Mojo reads the reference only once every operand
+is evaluated. Its other operands
 are operations of their own. Given the slots live once it is done, the
 slots it uses by value and nowhere later die once its operands are read,
 in the order they are read; those it uses by reference and nowhere later
@@ -105,7 +108,7 @@ the variables after a statement, which a declaration or a `ref` binding
 extends.
 :::
 
-:::readable MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "18429392250706560484")
+:::readable MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "15549682606444552412")
 *Definition: elaboration.* Given the slots live after a statement:
 
 - a simple statement's expressions are elaborated, and the statement is
@@ -119,8 +122,10 @@ extends.
   that are dead after it and that its test does not consume, and its body is elaborated with the slots live at
   its head live at its end, since the next iteration may use them; its test
   is left as it is, since every slot it uses is live at the head;
-- a `return` gets no drops of its own: its value is elaborated with nothing
-  live after it, and returning destroys whatever is still alive.
+- a `return` gets no drops of its own: its value is elaborated with
+  nothing live after it but the slots that a call it reads by value as a
+  returned reference points into, and returning destroys whatever is
+  still alive, after reading the value.
 
 A block elaborates each statement with the slots live after it, and the
 types of the variables declared before it.
