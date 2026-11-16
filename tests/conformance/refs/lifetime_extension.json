@@ -1,0 +1,11 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "x",
+    "via ref 1",
+    "drop 1",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

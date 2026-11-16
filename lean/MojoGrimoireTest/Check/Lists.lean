@@ -49,6 +49,17 @@ private def ress : Stmt := .decl "rs" (.list res) (some (.list res [newRes 1, ne
   .expr (.call "bump" [.place (at_ "rs" 1)]),
   .print [.place (.field (at_ "rs" 0) "id")]]) == none
 
+-- `print(xs[-1])` and `print(xs[1 - 2])`: a negative index that Mojo computes
+-- when it compiles the program is rejected.
+#guard verdict (prog [ints, .print [.place (at_ "xs" (-1))]]) ==
+  some (.negativeIndex (at_ "xs" (-1)))
+#guard verdict (prog [ints, .print [.place (.index (v "xs") (.binary .sub (.int 1) (.int 2)))]]) ==
+  some (.negativeIndex (.index (v "xs") (.binary .sub (.int 1) (.int 2))))
+
+-- `var i = -1; print(xs[i])`: an index known only at run time is not.
+#guard verdict (prog [ints, .decl "i" .int (some (.int (-1))),
+  .print [.place (.index (v "xs") (use "i"))]]) == none
+
 -- `rs[0] = Res(3)`: an element is replaced in place.
 #guard verdict (prog [ress, .assign (at_ "rs" 0) (newRes 3)]) == none
 

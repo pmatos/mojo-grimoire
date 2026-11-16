@@ -2,7 +2,7 @@ struct Counter(Movable):
     var count: Int
     var step: Int
 
-    fn __init__(out self, step: Int):
+    def __init__(out self, step: Int):
         self.count = 0
         self.step = step
 

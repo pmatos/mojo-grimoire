@@ -2,7 +2,7 @@
 struct Res(Movable):
     var id: Int
 
-    fn __deinit__(deinit self):
+    def __deinit__(deinit self):
         print("drop", self.id)
 
 

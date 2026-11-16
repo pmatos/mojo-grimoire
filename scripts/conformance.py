@@ -13,7 +13,9 @@ Each program `tests/conformance/AREA/NAME.mojo` has its expected result in
 A rejection's class is found by matching the compiler's first error against
 the patterns of tests/conformance/diagnostics.json, in order; a diagnostic
 that none matches is recorded with the class null, and `record` lists it, so
-that a pattern is added for it.
+that a pattern is added for it. When the first error only says that a
+function could not be instantiated, the note that names the constraint
+which failed is added to it, since that note says why.
 
 Usage:
   scripts/conformance.py record --mojo WRAPPER [PROGRAM...]
@@ -125,14 +127,41 @@ def run_model(program: Path, model: Path = MODEL) -> Result:
 # --- the compiler ---------------------------------------------------------
 
 ERROR_LINE = re.compile(r"error: (.*)")
+CONSTRAINT_NOTE = re.compile(r"note: (constraint failed: .*)")
 
 
 def first_error(stderr: str) -> str:
-    """The message of the compiler's first error, without its location."""
-    for line in stderr.splitlines():
+    """The message of the compiler's first error, without its location, with
+    the failed constraint's note when the error is a failed instantiation."""
+    lines = stderr.splitlines()
+    for i, line in enumerate(lines):
         if m := ERROR_LINE.search(line):
-            return m.group(1).strip()
+            message = m.group(1).strip()
+            if message == "function instantiation failed":
+                for later in lines[i + 1 :]:
+                    if ERROR_LINE.search(later):
+                        break
+                    if n := CONSTRAINT_NOTE.search(later):
+                        return f"{message}: {n.group(1).strip()}"
+            return message
     return stderr.strip().splitlines()[0] if stderr.strip() else ""
+
+
+ASSERT_LINE = re.compile(r"^At: \S+: Assert Error: (.*)$")
+
+
+def failed_output(stdout: str) -> tuple[tuple[str, ...], str | None]:
+    """The lines that a failed run printed, and the message of the assertion
+    that stopped it. The runtime writes a failed assertion on standard
+    output, with the program's absolute path; it is how the run ended, not
+    a line the program printed."""
+    printed, assertion = [], None
+    for line in lines(stdout):
+        if m := ASSERT_LINE.match(line):
+            assertion = assertion or m.group(1)
+        else:
+            printed.append(line)
+    return tuple(printed), assertion
 
 
 def classify(message: str, patterns: list[tuple[str, str]]) -> str | None:
@@ -166,8 +195,9 @@ def run_compiler(program: Path, mojo: str, patterns: list[tuple[str, str]]) -> R
         )
         if run.returncode == 0:
             return Result("finished", lines(run.stdout))
-        detail = first_error(run.stderr) or f"exit {run.returncode}"
-        return Result("failed", lines(run.stdout), None, detail)
+        printed, assertion = failed_output(run.stdout)
+        detail = assertion or first_error(run.stderr) or f"exit {run.returncode}"
+        return Result("failed", printed, None, detail)
 
 
 # --- comparison -----------------------------------------------------------

@@ -91,7 +91,7 @@ private def res : List String := [
   "    var ys = List[Int]()",
   "    var zs: List[Int] = []",
   "    xs.append(3)",
-  "    ys.append(xs[0] + xs[-1])",
+  "    ys.append(xs[0] + xs[2])",
   "    xs[1] = 20",
   "    print(len(xs), xs[1], ys[0], len(zs))"] == .ok (.finished ["3 20 4 0"])
 
@@ -108,7 +108,7 @@ private def res : List String := [
   "    ref r = pick(a, b, False)",
   "    r.id = 12",
   "    print(\"x\")",
-  "    print(r.id)"]) == .ok (.finished ["x", "12", "drop 1", "drop 12"])
+  "    print(r.id)"]) == .ok (.finished ["x", "12", "drop 12", "drop 1"])
 
 -- A rejected program reports its class of error.
 #guard runLines (res ++ [

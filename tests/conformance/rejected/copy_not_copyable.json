@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "notCopyable",
+  "diagnostic": "'Res' value has no attribute 'copy'"
+}

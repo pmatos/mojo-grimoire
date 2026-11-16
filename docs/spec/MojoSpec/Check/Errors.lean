@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Errors: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1398389244927822096")
+:::moduleDocs (fingerprint := "16029818118207469757")
 :::
 
-:::readable MojoGrimoire.Check.CheckError (fingerprint := "12810947781111785992")
+:::readable MojoGrimoire.Check.CheckError (fingerprint := "13237670193164661329")
 *Definition: the classes of error.* The checker rejects a program with one
 of these classes, each with the names or types it concerns:
 
@@ -25,7 +25,8 @@ of these classes, each with the names or types it concerns:
 * types: a type that may not be declared, such as that of string literals
   (`invalidType`), a struct that contains itself (`recursiveStruct`), a
   type other than the one expected (`typeMismatch`), an index into a
-  value that is not a list (`notAList`), a value that
+  value that is not a list (`notAList`), a negative index that Mojo
+  computes when it compiles the program (`negativeIndex`), a value that
   `print` cannot print (`notPrintable`), a string literal outside
   `print` (`stringOutsidePrint`), and a call with the wrong number of
   arguments (`arityMismatch`);
@@ -37,16 +38,15 @@ of these classes, each with the names or types it concerns:
   returning (`missingReturn`), a program with no `main` (`noMain`), and
   an origin that names something other than a parameter passed as a
   location (`invalidOrigin`);
-* ownership: a use of a part that is not initialized
-  (`uninitializedUse`), an implicit copy of a value that is not implicitly
+* ownership: a use of a part that is not initialized, such as a loop
+  body that moves a value from before the loop (`uninitializedUse`), an implicit copy of a value that is not implicitly
   copyable (`implicitCopy`), `.copy()` of a value that is not copyable
   (`notCopyable`), a transfer out of a value the function does not own
   (`transferFromBorrowed`) or out of an element of a list
   (`transferFromElement`), a change to a place the function may not
   change (`immutablePlace`), a `mut` argument that is not a place
   (`notAPlace`) or that aliases another argument
-  (`argumentExclusivity`), a loop that moves a value from before it
-  (`movedInLoop`), a `mut` parameter or the `self` of `__init__`
+  (`argumentExclusivity`), a `mut` parameter or the `self` of `__init__`
   not wholly initialized when the function returns
   (`uninitializedAtExit`), and a value with a destructor of its own that
   ends with a field moved out (`partiallyDestroyed`);

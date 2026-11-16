@@ -49,16 +49,20 @@ where the compiler is built. The compiler builds the program with
 run, and finishes or fails by its exit status. A rejection's class is the
 class of the model's `CheckError` that the compiler's first error matches in
 `tests/conformance/diagnostics.json`; the classes, not the wording, are
-compared.
+compared. When that error only says that a function could not be
+instantiated, the note naming the constraint that failed is added to it. A
+failed run's assertion, which the runtime writes on standard output with
+the program's absolute path, is how the run ended, not a printed line.
 
 The `conformance` hook runs `scripts/conformance.py check` in CI. It
 compares the model's executable with every recorded result: how the run
 ended, the lines printed, and the class of a rejection. A run-time failure's
 lines are compared, but not its kind, which the compiler does not name. A
 disagreement passes only when `tests/conformance/known.json` lists the
-program with its decision-log entry. Until the first results are recorded,
-the hook runs with `--allow-unrecorded`, and checks only that the model reads
-every program and runs it without getting stuck; recording removes the flag.
+program with its decision-log entry. The first results were recorded on
+2026-11-16 (#25), with every program agreeing, and the hook no longer
+passes `--allow-unrecorded`: a program with no recorded result fails it, so
+a new program is recorded before it is committed.
 
 Rejected: comparing the compiler's diagnostics word for word. Their wording
 changes between releases and says nothing the class does not.

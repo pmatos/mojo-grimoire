@@ -13,12 +13,19 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Elaboration only inserts drops: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2137699260014510000")
+:::moduleDocs (fingerprint := "13127095134879732002")
+:::
+
+:::readable MojoGrimoire.Elab.stripPlace MojoGrimoire.Elab.stripExpr MojoGrimoire.Elab.stripExprs (fingerprint := "15346972492104572464")
+*Definition: erasing drops from expressions.* A place or an expression with
+every $`\mathsf{drops}(e; p^*; q^*)` in it replaced by $`e`, at every
+depth.
 :::
 
 :::readable MojoGrimoire.Elab.stripStmt MojoGrimoire.Elab.stripBlock (fingerprint := "17318067068892795592")
 *Definition: erasing drops.* A statement or block with every `drop` in it
-removed, inside branches and loop bodies too.
+removed, inside branches and loop bodies too, and the drops erased from
+its expressions.
 :::
 
 :::readable MojoGrimoire.Elab.stripFun MojoGrimoire.Elab.stripStruct MojoGrimoire.Elab.stripProgram (fingerprint := "12505016125399784277")
@@ -31,10 +38,18 @@ with its drops erased.
 that elaboration adds to nothing.
 :::
 
-:::readable MojoGrimoire.Elab.stripBlock_elabStmt MojoGrimoire.Elab.stripBlock_elabBlock MojoGrimoire.Elab.stripBlock_elabBody (fingerprint := "17262067809458915494")
+:::readable MojoGrimoire.Elab.stripExpr_withDropsOf MojoGrimoire.Elab.stripExpr_elabExpr MojoGrimoire.Elab.stripExprs_elabOps (fingerprint := "15992725089829730898")
+*Lemma: expressions.* Erasing the drops of an operation that elaboration
+wraps gives the operation, and erasing the drops of an elaborated
+expression, or list of operands, gives what was elaborated, with its drops
+erased. The proof is by mutual induction on expressions and lists of them.
+:::
+
+:::readable MojoGrimoire.Elab.stripBlock_elabStmt MojoGrimoire.Elab.stripBlock_elabBlock MojoGrimoire.Elab.stripBlock_elabBody (fingerprint := "8249992941401530058")
 *Lemma: statements, blocks and bodies.* Erasing the drops of an elaborated
 statement, block or body gives what was elaborated, with its drops erased.
-The proof is by mutual induction on statements and blocks.
+The proof is by mutual induction on statements and blocks, using the lemma
+on expressions.
 :::
 
 :::readable MojoGrimoire.Elab.stripProgram_elabProgram (fingerprint := "18027251158332834446")

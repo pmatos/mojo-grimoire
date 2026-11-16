@@ -9,6 +9,7 @@ another, though sibling blocks may reuse a name. After an `if`, a part of a vari
 initialized only when both branches leave it initialized, and a branch that
 returns does not count. A loop body must leave initialized every part that
 was initialized before the loop, or its next iteration would use a moved
+value: like Mojo, the checker reports that as a use of an uninitialized
 value.
 
 Where a variable ends, at the end of its block or when the function
@@ -75,12 +76,13 @@ def joinStates (a b : State) : State :=
          live := true }
 
 /-- Rejects a loop whose body, from the state `before`, ends in the state
-`after` with a part uninitialized that was initialized before. -/
+`after` with a part uninitialized that was initialized before: the next
+iteration would use it uninitialized. -/
 def checkLoop (before after : State) : CheckM Unit := do
   if after.live then
     for (v, w) in List.zip before.vars after.vars do
-      unless w.uninit.all (fun u => v.uninit.any (·.isPrefixOf u)) do
-        throw (CheckError.movedInLoop v.name)
+      if let some u := w.uninit.find? (fun u => !v.uninit.any (·.isPrefixOf u)) then
+        throw (CheckError.uninitializedUse (u.foldl .field (.var v.name)))
 
 /-- Checks a value printed by `print`: a string literal, an `Int` or a
 `Bool`. -/
@@ -129,7 +131,9 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
       throw (CheckError.partiallyDestroyed x)
     setUninit x (initPart prog v.uninit v.ty path)
   | .expr e => do let _ ← checkExpr prog e
-  | .print args => args.attach.forM fun ⟨e, _⟩ => checkPrintArg (checkExpr prog) e
+  | .print args => do
+    args.attach.forM fun ⟨e, _⟩ => checkPrintArg (checkExpr prog) e
+    recheckPlaces prog args
   | .ifElse c thenBlock elseBlock => do
     expect .bool (← checkExpr prog c)
     let s0 ← get

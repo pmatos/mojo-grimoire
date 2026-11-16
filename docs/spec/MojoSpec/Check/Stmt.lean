@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9605884749792997657")
+:::moduleDocs (fingerprint := "1983159356606462047")
 :::
 
 :::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.checkEnd (fingerprint := "257519033953795896")
@@ -41,10 +41,11 @@ either branch leaves it so. A branch that cannot reach its end, because it
 returned, does not count.
 :::
 
-:::readable MojoGrimoire.Check.checkLoop (fingerprint := "11654448109731135871")
+:::readable MojoGrimoire.Check.checkLoop (fingerprint := "18258324302713265945")
 *Rule: loops.* A loop body must leave initialized every part that was
 initialized before the loop, or its next iteration would use a moved
-value.
+value. As Mojo does, the checker reports such a part as a use of an
+uninitialized value.
 :::
 
 :::readable MojoGrimoire.Check.checkPrintArg (fingerprint := "15869644014447858079")
@@ -70,7 +71,8 @@ an expression, so a place is copied implicitly.
   place the function may change; the old value of $`p` ends, and $`p`
   is initialized;
 * an expression statement checks its expression;
-* `print` checks its arguments as above;
+* `print` checks its arguments as above, then that its place arguments are
+  still initialized;
 * `if` needs a $`\mathsf{Bool}` condition and joins its branches, each a
   scope of its own; `while` needs a $`\mathsf{Bool}` condition and a
   body that keeps what was initialized;

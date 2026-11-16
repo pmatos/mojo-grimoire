@@ -16,6 +16,7 @@ from conformance import (
     check_known,
     classify,
     compare,
+    failed_output,
     first_error,
     load_patterns,
     model_result,
@@ -51,6 +52,34 @@ class Diagnostics(unittest.TestCase):
     def test_first_error_drops_the_location(self):
         stderr = "/x/a.mojo:3:5: error: use of uninitialized value 'a'\nnote: here\n"
         self.assertEqual(first_error(stderr), "use of uninitialized value 'a'")
+
+    def test_failed_instantiation_names_its_constraint(self):
+        stderr = (
+            "/x/a.mojo:1:5: error: function instantiation failed\n"
+            "/x/a.mojo:3:13: note: call expansion failed\n"
+            "list.mojo:9:9: note: constraint failed: negative indexing is not supported\n"
+            "mojo: error: failed to run the pass manager\n"
+        )
+        self.assertEqual(
+            first_error(stderr),
+            "function instantiation failed: "
+            "constraint failed: negative indexing is not supported",
+        )
+
+    def test_a_constraint_after_the_next_error_is_not_taken(self):
+        stderr = (
+            "a.mojo:1:5: error: function instantiation failed\n"
+            "a.mojo:2:5: error: other\n"
+            "note: constraint failed: unrelated\n"
+        )
+        self.assertEqual(first_error(stderr), "function instantiation failed")
+
+    def test_an_assertion_is_not_printed_output(self):
+        stdout = "before\nAt: /x/a.mojo:5:13: Assert Error: index -1 is out of bounds\n"
+        self.assertEqual(
+            failed_output(stdout), (("before",), "index -1 is out of bounds")
+        )
+        self.assertEqual(failed_output("a\nb\n"), (("a", "b"), None))
 
     def test_classify_takes_the_first_match(self):
         patterns = [("uninit", "uninitializedUse"), ("value", "other")]

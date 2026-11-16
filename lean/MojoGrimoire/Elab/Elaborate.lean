@@ -5,10 +5,14 @@ ASAP elaboration: the insertion of an explicit `drop` wherever Mojo destroys
 a value.
 
 Mojo destroys a value right after its last use. Elaboration makes those
-points explicit, so that the interpreter only destroys what a `drop` names,
-and what remains when a function returns. A value is destroyed:
+points explicit, so that the interpreter only destroys what a `drop` or a
+`withDrops` names, and what remains when a function returns. A value is
+destroyed:
 
-- right after the statement that last uses it, or right after its
+- inside an expression, when an operation nested in it last uses the value:
+  right after the operation reads it, for an operand passed by value, or
+  right after the operation is done, for one passed by reference;
+- right after the statement that last uses it otherwise, or right after its
   declaration when nothing uses it;
 - at the start of a branch of an `if` that does not use it, when the other
   branch does;
@@ -24,9 +28,11 @@ at the same points, so a field the body never uses is destroyed before the
 body runs.
 
 Only values of struct type, and lists of them, are dropped: values of the
-other types of the core calculus have no destruction that can be observed. Several values destroyed
-at the same point are destroyed in the order of their declaration, parameters
-first.
+other types of the core calculus have no destruction that can be observed.
+Several values destroyed at the same point are destroyed as the compiler
+does: the parameters first, then the local variables, each the last
+declared first; the fields of `self` in `__deinit__` in their order, and
+values read by value in the order they are read.
 -/
 
 namespace MojoGrimoire.Elab
@@ -41,8 +47,9 @@ def needsDrop : Ty → Bool
   | _ => false
 
 /-- The statements that drop the slots of `d`, in the order of `owned`, the
-slots a function owns. A slot that the function does not own, such as a
-borrowed parameter, is never dropped. -/
+slots a function owns, in the order they die when several die at once. A
+slot that the function does not own, such as a borrowed parameter, is never
+dropped. -/
 def drops (owned d : List Place) : List Stmt :=
   (owned.filter (d.contains ·)).map .drop
 
@@ -93,57 +100,224 @@ def declaredBlock : List Stmt → List Place
   | s :: rest => union (declared s) (declaredBlock rest)
 end
 
+/-- Whether a place passed to the parameter `prm` is passed by value: to a
+`var` parameter, or an `Int` or a `Bool` to a `read` one, which Mojo copies.
+Any other place is passed by reference. -/
+def passedByValue (prm : Param) : Bool :=
+  prm.conv == .owned || (prm.conv == .read && (prm.ty == .int || prm.ty == .bool))
+
+/-- Whether each argument of a call of `f` is passed by value, when it is a
+place. A struct's construction takes its arguments by its initializer's
+parameters after `self`, or by value; `len` takes its list by reference. -/
+def callModes (prog : Program) (f : Name) : List Bool :=
+  match findStruct prog f, findFun prog f with
+  | some sd, _ => match sd.init with
+    | some fd => fd.params.tail.map passedByValue
+    | none => sd.fields.map fun _ => true
+  | none, some fd => fd.params.map passedByValue
+  | none, none => []
+
+/-- Whether the receiver `p` of a call of the method `m`, and each argument,
+is passed by value. `append` takes its list by reference and its argument
+by value. -/
+def methodModes (prog : Program) (env : TyEnv) (p : Place) (m : Name) : Bool × List Bool :=
+  match placeTyOf prog env p with
+  | some (.list _) => (false, [true])
+  | some (.struct s) => match (findStruct prog s).bind (findMethod · m) with
+    | some ⟨_, self :: params, _, _, _⟩ => (self.conv == .owned, params.map passedByValue)
+    | _ => (false, [])
+  | _ => (false, [])
+
+/-- What elaboration knows inside a function: the program, its slots, the
+slots it owns in the order they die when several die at once, and the types
+of the variables declared so far. -/
+structure Ctx where
+  prog : Program
+  sl : Slots
+  owned : List Place
+  env : TyEnv
+
+/-- The slots that the operand `e` uses directly, with whether it is passed
+by value `m`: a place uses its slots and those of its indices; any other
+operand is an operation of its own, which destroys what it last uses. -/
+def directOf (sl : Slots) (e : Expr) (m : Bool) : List Place × Bool :=
+  match e with
+  | .place p => (union (sl.of p) (indexUses sl p), m)
+  | _ => ([], m)
+
+/-- The direct uses of the operands `es`, passed by value as `ms` says. -/
+def directArgs (sl : Slots) : List Expr → List Bool → List (List Place × Bool)
+  | [], _ => []
+  | e :: es, ms => directOf sl e (ms.headD false) :: directArgs sl es ms.tail
+
+/-- The values that an operation destroys, given the direct uses of its
+operands, `direct`, and the slots live once it is done, `after`: those read
+by value die once the operands are read, in the order they are read, and
+those used by reference once it is done, in the order of `owned`. Also the
+slots live once every operand is evaluated. -/
+def opDrops (owned : List Place) (direct : List (List Place × Bool)) (after : List Place) :
+    List Place × List Place × List Place :=
+  let byRef := (direct.filter (!·.2)).foldl (fun acc d => union acc d.1) []
+  let byVal := (direct.filter (·.2)).foldl (fun acc d => union acc d.1) []
+  let atLoad := union after byRef
+  (byVal.filter fun x => owned.contains x && !atLoad.contains x,
+   owned.filter fun x => byRef.contains x && !after.contains x,
+   union atLoad byVal)
+
+/-- The operation `e`, destroying `pre` once its operands are read and
+`post` once it is done; `e` itself when it destroys nothing. -/
+def withDropsOf (e : Expr) (pre post : List Place) : Expr :=
+  if pre.isEmpty && post.isEmpty then e else .withDrops e pre post
+
 mutual
-/-- Elaborates the statement `s`, given the slots live after it. `owned` is
-the slots that the function owns. -/
-def elabStmt (sl : Slots) (owned : List Place) (s : Stmt) (after : List Place) :
-    List Stmt :=
+/-- Elaborates the expression `e`, given the slots live once it is
+evaluated, `after`: each operation in it destroys the values whose last use
+it is, and a place is left as it is, for the operation or the statement
+that uses it. At the top of a statement, `top`, an operation leaves what
+dies once it is done to the statement, which destroys it with the
+statement's other values. The right operand of `and` and `or` may not run,
+so the operation destroys what it uses. -/
+def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Expr :=
+  match e with
+  | .call f args =>
+    let d := opDrops ctx.owned (directArgs ctx.sl args (callModes ctx.prog f)) after
+    withDropsOf (.call f (elabOps ctx args d.2.2)) d.1 (if top then [] else d.2.1)
+  | .method p m args =>
+    let ms := methodModes ctx.prog ctx.env p m
+    let d := opDrops ctx.owned (directOf ctx.sl (.place p) ms.1 :: directArgs ctx.sl args ms.2)
+      after
+    withDropsOf (.method p m (elabOps ctx args d.2.2)) d.1 (if top then [] else d.2.1)
+  | .binary op a b =>
+    if op == .and || op == .or then
+      let d := opDrops ctx.owned [directOf ctx.sl a true, (uses ctx.sl b, false)] after
+      withDropsOf (.binary op (elabExpr ctx false a d.2.2) b) d.1 (if top then [] else d.2.1)
+    else
+      let d := opDrops ctx.owned (directArgs ctx.sl [a, b] [true, true]) after
+      withDropsOf (.binary op (elabExpr ctx false a (union d.2.2 (uses ctx.sl b)))
+        (elabExpr ctx false b d.2.2)) d.1 (if top then [] else d.2.1)
+  | .unary op a =>
+    let d := opDrops ctx.owned [directOf ctx.sl a true] after
+    withDropsOf (.unary op (elabExpr ctx false a d.2.2)) d.1 (if top then [] else d.2.1)
+  | .list t es =>
+    let d := opDrops ctx.owned (directArgs ctx.sl es (es.map fun _ => true)) after
+    withDropsOf (.list t (elabOps ctx es d.2.2)) d.1 (if top then [] else d.2.1)
+  | .copy p =>
+    let d := opDrops ctx.owned [directOf ctx.sl (.place p) false] after
+    withDropsOf (.copy p) d.1 (if top then [] else d.2.1)
+  | e => e
+
+/-- Elaborates the operands `es`, evaluated in order, given the slots live
+once the last is evaluated. -/
+def elabOps (ctx : Ctx) (es : List Expr) (after : List Place) : List Expr :=
+  match es with
+  | [] => []
+  | e :: rest => elabExpr ctx false e (union after (usesList ctx.sl rest)) :: elabOps ctx rest after
+end
+
+mutual
+/-- The slots that the elaborated expression `e` destroys. -/
+def droppedIn : Expr → List Place
+  | .withDrops e pre post => pre ++ post ++ droppedIn e
+  | .call _ args | .method _ _ args | .list _ args => droppedList args
+  | .binary _ a b => droppedIn a ++ droppedIn b
+  | .unary _ a => droppedIn a
+  | _ => []
+
+/-- The slots that the elaborated expressions `es` destroy. -/
+def droppedList : List Expr → List Place
+  | [] => []
+  | e :: es => droppedIn e ++ droppedList es
+end
+
+/-- The slots that the elaborated optional expression `e` destroys. -/
+def droppedOpt : Option Expr → List Place
+  | some e => droppedIn e
+  | none => []
+
+/-- The slots that the places among `es` use directly. -/
+def placeUses (sl : Slots) : List Expr → List Place
+  | [] => []
+  | e :: es => union (directOf sl e false).1 (placeUses sl es)
+
+/-- The variable types after the statement `s`, from those before it. -/
+def envAfter (prog : Program) (sl : Slots) (env : TyEnv) (s : Stmt) : TyEnv :=
+  match s with
+  | .decl x t _ => (x, t) :: env
+  | .refDecl .. => (aliasStmt prog (sl, env) s).2
+  | _ => env
+
+mutual
+/-- Elaborates the statement `s`, given the slots live after it. What its
+expressions do not destroy, and is dead after it, dies right after it. -/
+def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
+  let sl := ctx.sl
+  let rest (s' : Stmt) (inner : List Place) : List Stmt :=
+    s' :: drops ctx.owned (diff (dying sl s after) inner)
   match s with
   | .ifElse c a b =>
-    let avail := diff (liveStmt sl (.ifElse c a b) after) (moves sl c)
-    [.ifElse c
-      (drops owned (diff avail (liveBlock sl a after)) ++ elabBlock sl owned a after)
-      (drops owned (diff avail (liveBlock sl b after)) ++ elabBlock sl owned b after)]
+    let la := liveBlock sl a after
+    let lb := liveBlock sl b after
+    let c' := elabExpr ctx true c (union la lb)
+    let avail := diff (diff (liveStmt sl (.ifElse c a b) after) (moves sl c)) (droppedIn c')
+    [.ifElse c'
+      (drops ctx.owned (diff avail la) ++ elabBlock ctx a after)
+      (drops ctx.owned (diff avail lb) ++ elabBlock ctx b after)]
   | .whileLoop c body =>
     let head := liveStmt sl (.whileLoop c body) after
-    .whileLoop c (elabBlock sl owned body head) :: drops owned (diff head after)
-  | .ret value => [.ret value]
+    .whileLoop c (elabBlock ctx body head) :: drops ctx.owned (diff head after)
+  | .ret value => [.ret (value.map (elabExpr ctx false · []))]
   | .pass => [.pass]
   | .drop p => [.drop p]
-  | .decl x t init => .decl x t init :: drops owned (dying sl (.decl x t init) after)
-  | .refDecl x e => .refDecl x e :: drops owned (dying sl (.refDecl x e) after)
-  | .assign p e => .assign p e :: drops owned (dying sl (.assign p e) after)
-  | .expr e => .expr e :: drops owned (dying sl (.expr e) after)
-  | .print args => .print args :: drops owned (dying sl (.print args) after)
+  | .decl x t init =>
+    let init' := init.map (elabExpr ctx true · after)
+    rest (.decl x t init') (droppedOpt init')
+  | .refDecl x e => let e' := elabExpr ctx true e after; rest (.refDecl x e') (droppedIn e')
+  | .assign p e =>
+    let target := if sl.isSlot p then indexUses sl p else union (sl.of p) (indexUses sl p)
+    let e' := elabExpr ctx true e (union after target)
+    rest (.assign p e') (droppedIn e')
+  | .expr e => let e' := elabExpr ctx true e after; rest (.expr e') (droppedIn e')
+  | .print args =>
+    let args' := elabOps ctx args (union after (placeUses sl args))
+    rest (.print args') (droppedList args')
 
 /-- Elaborates the block `b`, given the slots live after it. -/
-def elabBlock (sl : Slots) (owned : List Place) (b : List Stmt) (after : List Place) :
-    List Stmt :=
+def elabBlock (ctx : Ctx) (b : List Stmt) (after : List Place) : List Stmt :=
   match b with
   | [] => []
-  | s :: rest => elabStmt sl owned s (liveBlock sl rest after) ++ elabBlock sl owned rest after
+  | s :: rest =>
+    elabStmt ctx s (liveBlock ctx.sl rest after) ++
+      elabBlock { ctx with env := envAfter ctx.prog ctx.sl ctx.env s } rest after
 end
 
 /-- Elaborates a function body. `params` is the slots the function owns on
-entry; those the body never uses are dropped before it runs. -/
-def elabBody (sl : Slots) (params : List Place) (body : List Stmt) : List Stmt :=
-  let owned := union params (declaredBlock body)
-  drops owned (diff params (liveBlock sl body [])) ++ elabBlock sl owned body []
+entry, in the order they die when several die at once; those the body never
+uses are dropped before it runs. The local variables die after them, the
+last declared first. -/
+def elabBody (prog : Program) (sl : Slots) (env : TyEnv) (params : List Place)
+    (body : List Stmt) : List Stmt :=
+  let owned := union params (declaredBlock body).reverse
+  drops owned (diff params (liveBlock sl body [])) ++ elabBlock ⟨prog, sl, owned, env⟩ body []
 
 /-- The slots of the `var` parameters of struct type among `params`. -/
 def ownedParams (params : List Param) : List Place :=
   (params.filter fun prm => prm.conv == .owned && needsDrop prm.ty).map (.var ·.name)
 
+/-- The types of the parameters `params`. -/
+def paramEnv (params : List Param) : TyEnv := params.map fun prm => (prm.name, prm.ty)
+
 /-- Elaborates a function, a method or an initializer of the program
 `prog`. -/
 def elabFun (prog : Program) (fd : FunDecl) : FunDecl :=
   { fd with
-    body := elabBody (slotsOf prog none fd.params fd.body) (ownedParams fd.params) fd.body }
+    body := elabBody prog (slotsOf prog none fd.params fd.body) (paramEnv fd.params)
+      (ownedParams fd.params).reverse fd.body }
 
 /-- Elaborates the body of the `__deinit__` of the struct `sd`: each field
 of struct type is a slot of its own. -/
 def elabDeinit (prog : Program) (sd : StructDecl) (body : List Stmt) : List Stmt :=
-  elabBody (slotsOf prog (some (sd.fields.map (·.1))) [⟨.deinit, "self", .struct sd.name⟩] body)
+  let self : Param := ⟨.deinit, "self", .struct sd.name⟩
+  elabBody prog (slotsOf prog (some (sd.fields.map (·.1))) [self] body) (paramEnv [self])
     ((sd.fields.filter (needsDrop ·.2)).map (.field (.var "self") ·.1)) body
 
 /-- Elaborates a struct: its initializer, destructor and methods. -/

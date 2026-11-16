@@ -31,11 +31,11 @@ private def body (b : List Stmt) (params : List Param := []) : List Stmt :=
 #guard body [newRes "a" 1, newRes "b" 2, showS (v "a"), showS (v "b")] ==
   [newRes "a" 1, newRes "b" 2, showS (v "a"), .drop (v "a"), showS (v "b"), .drop (v "b")]
 
--- `show(a); show(b)` after both: they die together, in declaration order.
+-- `both(b, a)` after both: they die together, the last declared first.
 #guard body [newRes "a" 1, newRes "b" 2,
     .expr (.call "both" [.place (v "b"), .place (v "a")])] ==
   [newRes "a" 1, newRes "b" 2, .expr (.call "both" [.place (v "b"), .place (v "a")]),
-    .drop (v "a"), .drop (v "b")]
+    .drop (v "b"), .drop (v "a")]
 
 -- `consume(a^)`: a moved value is not destroyed here.
 #guard body [newRes "a" 1, consumeS "a"] == [newRes "a" 1, consumeS "a"]
@@ -55,11 +55,27 @@ private def body (b : List Stmt) (params : List Param := []) : List Stmt :=
 #guard body [newRes "a" 1, .ifElse (.bool true) [consumeS "a"] [say "no"]] ==
   [newRes "a" 1, .ifElse (.bool true) [consumeS "a"] [.drop (v "a"), say "no"]]
 
--- `if a.id > 0: print("pos") else: print("neg")`: `a` dies with the test.
+-- `if a.id > 0: print("pos") else: print("neg")`: `a` dies inside the test,
+-- once `>` has read `a.id`.
 #guard body [newRes "a" 1,
     .ifElse (.binary .gt (.place (fld "a" "id")) (.int 0)) [say "pos"] [say "neg"]] ==
-  [newRes "a" 1, .ifElse (.binary .gt (.place (fld "a" "id")) (.int 0))
-    [.drop (v "a"), say "pos"] [.drop (v "a"), say "neg"]]
+  [newRes "a" 1,
+    .ifElse (.withDrops (.binary .gt (.place (fld "a" "id")) (.int 0)) [v "a"] [])
+      [say "pos"] [say "neg"]]
+
+-- `if show(a): print("pos")`: a value used by reference in the test dies at
+-- the start of each branch.
+#guard body [newRes "a" 1, .ifElse (.call "show" [.place (v "a")]) [say "pos"] []] ==
+  [newRes "a" 1, .ifElse (.call "show" [.place (v "a")]) [.drop (v "a"), say "pos"]
+    [.drop (v "a")]]
+
+-- `print(show(a), b.id)`: `a` dies once `show` returns, before `print`, and
+-- `b` once `print` is done.
+#guard body [newRes "a" 1, newRes "b" 2,
+    .print [.call "show" [.place (v "a")], .place (fld "b" "id")]] ==
+  [newRes "a" 1, newRes "b" 2,
+    .print [.withDrops (.call "show" [.place (v "a")]) [] [v "a"], .place (fld "b" "id")],
+    .drop (v "b")]
 
 -- `while i < 3: show(a); i = i + 1`, then `print(i)`: `a` lives through the
 -- loop and dies after it; `i` is an `Int` and is never dropped.

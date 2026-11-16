@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The origins of references: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9853331377837519568")
+:::moduleDocs (fingerprint := "8194931462425856860")
 :::
 
-:::readable MojoGrimoire.Elab.TyEnv MojoGrimoire.Elab.placeTyOf MojoGrimoire.Elab.refCallee (fingerprint := "10429214017240303158")
+:::readable MojoGrimoire.Elab.TyEnv MojoGrimoire.Elab.placeTyOf MojoGrimoire.Elab.refCallee (fingerprint := "15930353832573391946")
 *Definition: callees.* Elaboration follows the types of the variables
 declared so far, to find the type of a place and so the method a call
 names. A struct's construction calls no function that could return a

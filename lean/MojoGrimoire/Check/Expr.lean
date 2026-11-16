@@ -5,14 +5,16 @@ The checking of expressions and of the arguments of calls.
 
 An expression is checked from left to right, as Mojo evaluates it, and the
 state follows: a transfer `p^` leaves `p` uninitialized for what comes after
-it. A place passed as an argument is passed by its parameter's convention:
+it. Mojo reads a place operand only once every operand of its operation is
+evaluated, so each place operand must still be initialized then. A place passed as an argument is passed by its parameter's convention:
 `read`, `mut` and `ref` pass the location, which must be initialized, and
 `mut` also needs a place the function may change; `var` passes a value, which
 is copied implicitly unless the argument transfers it.
 
 A `mut` argument may not alias another argument that is passed as a location,
-Mojo's argument exclusivity. As in Mojo, the rule does not apply to `Int`
-and `Bool`, which are always passed by copy.
+Mojo's argument exclusivity. An `Int` or a `Bool` passed to a `read`
+parameter is not passed as a location: Mojo copies it. A `mut` argument of
+any type is.
 -/
 
 namespace MojoGrimoire.Check
@@ -86,6 +88,16 @@ def unaryTy (op : UnOp) (a : Ty) : Except CheckError Ty :=
   | .neg => if a == .int then pure .int else throw (.typeMismatch .int a)
   | .not => if a == .bool then pure .bool else throw (.typeMismatch .bool a)
 
+/-- The value of an index made only of integer literals, negation, `+`, `-`
+and `*`: Mojo computes it when it compiles the program. -/
+def constInt : Expr → Option Int
+  | .int k => some k
+  | .unary .neg a => (constInt a).map (- ·)
+  | .binary .add a b => do pure ((← constInt a) + (← constInt b))
+  | .binary .sub a b => do pure ((← constInt a) - (← constInt b))
+  | .binary .mul a b => do pure ((← constInt a) * (← constInt b))
+  | _ => none
+
 /-- Whether two places may be the same location or overlap: one is the other
 or a field of it. -/
 def overlaps (p q : Place) : Bool :=
@@ -95,18 +107,18 @@ def overlaps (p q : Place) : Bool :=
 
 /-- The places among `args` that are passed as locations, with their
 conventions: every place argument whose parameter is `read`, `mut` or
-`ref`. -/
+`ref`, except an `Int` or a `Bool` passed `read`, which is copied. -/
 def locationArgs : List Param → List Expr → List (Conv × Place)
   | prm :: prms, .place p :: args =>
-    if prm.conv == .owned then locationArgs prms args
+    if prm.conv == .owned || (prm.conv == .read && (prm.ty == .int || prm.ty == .bool)) then
+      locationArgs prms args
     else (prm.conv, p) :: locationArgs prms args
   | _ :: prms, _ :: args => locationArgs prms args
   | _, _ => []
 
-/-- Rejects a `mut` location among `locs` that overlaps another one, unless
-it is an `Int` or a `Bool`. A reference counts as every place it may point
-into. -/
-def checkExclusive (prog : Program) (locs : List (Conv × Place)) : CheckM Unit := do
+/-- Rejects a `mut` location among `locs` that overlaps another one. A
+reference counts as every place it may point into. -/
+def checkExclusive (locs : List (Conv × Place)) : CheckM Unit := do
   go (← get).vars locs []
 where
   /-- Checks each location against those before and after it. -/
@@ -117,8 +129,7 @@ where
       let clash (q : Place) :=
         (resolvePlace vars p).any fun a => (resolvePlace vars q).any (overlaps a)
       if c == .mutable && others.any (clash ·.2) then
-        let t ← placeTy prog p
-        unless t == .int || t == .bool do throw (CheckError.argumentExclusivity p)
+        throw (CheckError.argumentExclusivity p)
       go vars rest ((c, p) :: seen)
 
 /-- Passes the place `p` to a parameter of convention `c` and type `t`. -/
@@ -131,6 +142,14 @@ def passPlace (prog : Program) (callee : Name) (c : Conv) (t : Ty) (p : Place) :
     requireMutable p
   | .owned => expect t (← copyPlace prog p)
   | .out | .deinit => throw (CheckError.invalidConvention callee)
+
+/-- Rejects a place among the operands `es` that a later operand left
+uninitialized: Mojo reads a place operand only once every operand of its
+operation is evaluated, and a reference argument is used during the call. -/
+def recheckPlaces (prog : Program) (es : List Expr) : CheckM Unit :=
+  es.forM fun
+    | .place p => do let _ ← readPlace prog p
+    | _ => pure ()
 
 /-- The type of a call of `fd`. A call that returns a reference, used as a
 value, copies the value it points to implicitly, unless `asRef` holds. -/
@@ -163,12 +182,14 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         | none =>
           if sd.fieldwiseInit then pure (sd.fields.map fun (x, t) => ⟨.owned, x, t⟩)
           else throw (CheckError.noInitializer f)
-      checkExclusive prog (locationArgs params args)
+      checkExclusive (locationArgs params args)
       checkArgs prog f params args params.length args.length
+      recheckPlaces prog args
       pure (.struct f)
     | none, some fd => do
-      checkExclusive prog (locationArgs fd.params args)
+      checkExclusive (locationArgs fd.params args)
       checkArgs prog f fd.params args fd.params.length args.length
+      recheckPlaces prog args
       refResult prog asRef fd
     | none, none =>
       match f, args with
@@ -191,34 +212,41 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       let _ ← readPlace prog p
       requireMutable p
       checkArgs prog m [⟨.owned, "value", et⟩] args 1 args.length
+      recheckPlaces prog (.place p :: args)
       return .noneType
     let .struct s := t | throw (CheckError.typeMismatch (.struct "") t)
     let some sd := findStruct prog s | throw (CheckError.unknownStruct s)
     let some fd := findMethod sd m | throw (CheckError.unknownMethod s m)
     let some self := fd.params.head? | throw (CheckError.invalidSelf m)
-    checkExclusive prog ((if self.conv == .owned then [] else [(self.conv, p)]) ++
+    checkExclusive ((if self.conv == .owned then [] else [(self.conv, p)]) ++
       locationArgs fd.params.tail args)
     passPlace prog m self.conv t p
     let params := fd.params.tail
     checkArgs prog m params args params.length args.length
+    recheckPlaces prog (.place p :: args)
     refResult prog asRef fd
   | .unary op a => do lift (unaryTy op (← checkExprAs prog false a))
   | .binary op a b => do
     let ta ← checkExprAs prog false a
     let tb ← checkExprAs prog false b
+    unless op == .and || op == .or do recheckPlaces prog [a, b]
     lift (binaryTy op ta tb)
   | .list t es => do
     unless validTy prog t do throw (CheckError.invalidType t)
     checkArgs prog "List" (es.map fun _ => ⟨.owned, "value", t⟩) es es.length es.length
+    recheckPlaces prog es
     pure (.list t)
+  | .withDrops e _ _ => checkExprAs prog asRef e
 
-/-- Checks the index expressions of the place `p`: each is an `Int`. -/
+/-- Checks the index expressions of the place `p`: each is an `Int`, and
+one that Mojo computes when it compiles the program may not be negative. -/
 def checkIndices (prog : Program) : Place → CheckM Unit
   | .var _ => pure ()
   | .field p _ => checkIndices prog p
   | .index p i => do
     checkIndices prog p
     expect .int (← checkExprAs prog false i)
+    if (constInt i).any (· < 0) then throw (CheckError.negativeIndex (.index p i))
 
 /-- Checks the arguments `args` of a call of `callee` against its parameters
 `params`, in order. `n` and `m` are the numbers of parameters and arguments,

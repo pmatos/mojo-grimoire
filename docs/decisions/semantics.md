@@ -45,23 +45,29 @@ Python interop, async, GPU kernels and codegen correctness are out of v1.
 The checker, `MojoGrimoire.Check`, accepts a program of the core calculus
 or rejects it with a class of error, `CheckError`. The conformance suite
 compares these classes with the compiler's diagnostics, not their wording.
-Each choice below was made from Mojo's manual at the pin. Each is to be
-confirmed against the compiler when the suite records results (step 5 of
-Phase 1), and any disagreement goes in the decision log.
+Each choice below was made from Mojo's manual at the pin, and confirmed or
+corrected against the compiler when the suite recorded its results (#25):
+where the compiler and the manual disagree, the model follows the compiler.
 
 - Initialization is tracked per part of a variable: a field may be moved
   out and initialized again. A variable may end with fields moved out, and
   the rest is destroyed field by field. The exception is a part that has a
   `__deinit__` of its own, which needs the whole value. Inside
   `__deinit__`, `self`'s fields may be moved out.
+- A place operand, of a call, an operator, a list literal or `print`, must
+  still be initialized once every operand is evaluated, since the
+  compiler reads it then: `f(a.id, g(a^))` uses `a.id` after its move.
 - `return x` moves a variable the function owns. Any other returned place
   is copied implicitly, so it must be implicitly copyable.
 - Argument exclusivity rejects a `mut` argument that overlaps another
-  argument passed as a location. As the manual says, it does not apply to
-  `Int` and `Bool`.
+  argument passed as a location. The manual exempts `Int` and `Bool`, but
+  the compiler rejects two aliasing `mut` arguments of any type. An `Int`
+  or a `Bool` passed to a `read` parameter is copied, so it is not a
+  location and never clashes.
 - After an `if`, a part counts as initialized only when both branches leave
   it initialized. A loop body must leave initialized every part that was
-  initialized before the loop.
+  initialized before the loop; as the compiler does, the checker reports
+  a body that does not as `uninitializedUse`.
 - A declaration may not reuse the name of a variable in scope, a
   parameter included, so no variable hides another. Sibling blocks may
   reuse a name. ASAP elaboration relies on this, since it tracks
@@ -78,7 +84,10 @@ Lists, `List[T]`, follow the same rules, with these choices (#17):
 - A list is copied only explicitly, with `.copy()`, and only when its
   elements can be copied.
 - The only methods modelled are `append` and the built-in `len`, which a
-  function named `len` hides. An index must be an `Int`.
+  function named `len` hides. An index must be an `Int`. An index made
+  only of integer literals, negation, `+`, `-` and `*` is computed when
+  the program is compiled, and is rejected when it is negative
+  (`negativeIndex`).
 
 ### References
 
@@ -110,11 +119,18 @@ Elaboration, `MojoGrimoire.Elab`, makes Mojo's destruction points explicit:
 it inserts a `drop` wherever the compiler destroys a value, and is proved
 to insert nothing else (`stripProgram_elabProgram`). The interpreter
 destroys what a `drop` names, and what is still alive when a function
-returns. As with the checker, each choice below is to be confirmed against
-the compiler when the suite records results.
+returns. As with the checker, each choice below was confirmed or corrected
+against the compiler's recorded results (#25).
 
-- A value dies right after the statement that last uses it, or right after
-  its definition when nothing uses it. A value moved away with `^` is not
+- A value dies right after its last use, which may be inside a statement:
+  right after a nested operation reads it, when the operation takes it by
+  value (a `var` argument, an `Int` or `Bool` passed `read`, an operator's
+  operand), and right after the operation is done when it takes it by
+  reference. The core calculus marks these points with `withDrops`. A
+  value last used by the statement itself, by `print` or by the operation
+  at the top of the statement, dies right after the statement, since the
+  compiler destroys a discarded result first. A value never used dies
+  right after its definition. A value moved away with `^` is not
   destroyed there.
 - A branch of an `if` that does not use a value the other branch uses
   destroys it first. A value a loop uses dies after the loop.
@@ -123,22 +139,30 @@ the compiler when the suite records results.
   last use, and a field never used dies before the body runs. The human
   ruled on 2026-11-15 that the model gets this right from the start.
 - Only values of struct type are dropped. Values destroyed at the same
-  point die in the order of declaration, parameters first.
-- A `return` gets no drops: the interpreter destroys what remains after
-  evaluating the returned value.
+  point die as the compiler destroys them: the parameters first, then the
+  local variables, each the last declared first; the fields of `self` in
+  `__deinit__` in their order; values read by value in the order they are
+  read.
+- A `return` gets no drops of its own: its value is elaborated, and the
+  interpreter destroys what remains after evaluating it.
 
 ## The interpreter
 
 The interpreter, `MojoGrimoire.Interp`, runs an elaborated program with
 fuel (#21). Its outcome is the class of error that rejects the program, or
-the lines printed and how the run ends. These choices are to be confirmed
-against the compiler when the suite records results:
+the lines printed and how the run ends. These choices were confirmed or
+corrected against the compiler's recorded results (#25):
 
 - `Int` is 64-bit and wraps around on overflow. `//` rounds toward
-  negative infinity and `%` takes the sign of the divisor. Division by zero
-  stops the run with an error.
-- A list index may be negative, counting from the end; an index out of
-  bounds stops the run with an error.
+  negative infinity and `%` takes the sign of the divisor. Both give 0 for
+  a zero divisor, as Mojo's standard library defines them.
+- An index out of bounds stops the run with an error. A negative index
+  is out of bounds: Mojo's `List` does not count from the end.
+- An operand that is a place passed by value, an argument, an operator's
+  operand, a list element or a printed value, is located in order but read
+  only once every operand of its operation has been evaluated, as the
+  compiler does: `f(a.id, g(a))` sees what `g` did to `a`. An `Int` or a
+  `Bool` passed to a `read` parameter is passed by value.
 - A struct without a `__deinit__` has its fields destroyed in declaration
   order, and a list its elements in index order.
 - A temporary passed to a borrowing parameter is destroyed right after the

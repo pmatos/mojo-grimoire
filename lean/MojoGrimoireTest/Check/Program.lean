@@ -44,7 +44,15 @@ private def bump : FunDecl := ⟨"bump", [⟨.mutable, "r", res⟩, ⟨.read, "o
 private def addInts : FunDecl := ⟨"addInts", [⟨.mutable, "a", .int⟩, ⟨.read, "b", .int⟩], .noneType,
   [.assign (v "a") (.binary .add (use "a") (use "b"))], none⟩
 
-private def lib : List FunDecl := [consume, showRes, bump, addInts]
+/-- `def incBoth(mut a: Int, mut b: Int): a = a + 1` -/
+private def incBoth : FunDecl := ⟨"incBoth", [⟨.mutable, "a", .int⟩, ⟨.mutable, "b", .int⟩],
+  .noneType, [.assign (v "a") (.binary .add (use "a") (.int 1))], none⟩
+
+/-- `def takeId(var r: Res) -> Int: return r.id` -/
+private def takeId : FunDecl :=
+  ⟨"takeId", [⟨.owned, "r", res⟩], .int, [.ret (some (.place (fld "r" "id")))], none⟩
+
+private def lib : List FunDecl := [consume, showRes, bump, addInts, incBoth, takeId]
 
 /-- A program with the shared declarations, extra functions `funs`, and a
 `main` whose body is `body`. -/
@@ -96,7 +104,20 @@ private def verdict (p : Program) : Option CheckError :=
 #guard verdict (prog [newRes "a" 1, .expr (.call "bump" [use "a", use "a"])]) ==
   some (.argumentExclusivity (v "a"))
 
--- `addInts(n, n)` is allowed: an `Int` is passed by copy.
+-- `print(a.id, takeId(a^))` and `print(a.id + takeId(a^))`: a place operand is
+-- read once every operand is evaluated, after the move.
+#guard verdict (prog [newRes "a" 1,
+  .print [.place (fld "a" "id"), .call "takeId" [.transfer (v "a")]]]) ==
+  some (.uninitializedUse (fld "a" "id"))
+#guard verdict (prog [newRes "a" 1,
+  .print [.binary .add (.place (fld "a" "id")) (.call "takeId" [.transfer (v "a")])]]) ==
+  some (.uninitializedUse (fld "a" "id"))
+
+-- `incBoth(n, n)`: two `mut` arguments alias, even of type `Int`.
+#guard verdict (prog [.decl "n" .int (some (.int 1)),
+  .expr (.call "incBoth" [use "n", use "n"])]) == some (.argumentExclusivity (v "n"))
+
+-- `addInts(n, n)` is allowed: an `Int` passed `read` is copied.
 #guard verdict (prog [.decl "n" .int (some (.int 1)),
   .expr (.call "addInts" [use "n", use "n"])]) == none
 
@@ -104,10 +125,11 @@ private def verdict (p : Program) : Option CheckError :=
 #guard verdict (prog [newRes "a" 1, .expr (.call "bump" [.call "Res" [.int 1], use "a"])]) ==
   some (.notAPlace "bump")
 
--- `while c: consume(a^)`: a move in a loop of a value from before it.
+-- `while c: consume(a^)`: a move in a loop of a value from before it, which
+-- the next iteration would use uninitialized.
 #guard verdict (prog [newRes "a" 1, .decl "c" .bool (some (.bool false)),
   .whileLoop (use "c") [.expr (.call "consume" [.transfer (v "a")])]]) ==
-  some (.movedInLoop "a")
+  some (.uninitializedUse (v "a"))
 
 -- The same loop is accepted when the body initializes `a` again.
 #guard verdict (prog [newRes "a" 1, .decl "c" .bool (some (.bool false)),

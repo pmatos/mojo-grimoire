@@ -1,0 +1,17 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "in take 10 31 20 30",
+    "drop 20",
+    "drop 10",
+    "drop 31",
+    "drop 30",
+    "1 3 2",
+    "drop 3",
+    "drop 2",
+    "drop 1",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

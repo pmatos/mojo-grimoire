@@ -23,6 +23,7 @@ inductive CheckError where
   | recursiveStruct (name : Name)
   | typeMismatch (expected actual : Ty)
   | notAList (ty : Ty)
+  | negativeIndex (p : Place)
   | notPrintable (ty : Ty)
   | stringOutsidePrint
   | arityMismatch (callee : Name) (expected actual : Nat)
@@ -37,7 +38,6 @@ inductive CheckError where
   | immutablePlace (p : Place)
   | notAPlace (callee : Name)
   | argumentExclusivity (p : Place)
-  | movedInLoop (name : Name)
   | uninitializedAtExit (name : Name)
   | partiallyDestroyed (name : Name)
   | missingReturn (name : Name)

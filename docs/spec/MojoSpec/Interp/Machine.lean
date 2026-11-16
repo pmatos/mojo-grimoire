@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The machine: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2732541180767120808")
+:::moduleDocs (fingerprint := "15202786099656399958")
 :::
 
 :::readable MojoGrimoire.Interp.Ref MojoGrimoire.Interp.Binding MojoGrimoire.Interp.Env (fingerprint := "5146776138028628767")
@@ -23,9 +23,9 @@ says whether the function owns the value there. The variables in scope are
 listed innermost first.
 :::
 
-:::readable MojoGrimoire.Interp.RunError MojoGrimoire.Interp.Result MojoGrimoire.Interp.Signal (fingerprint := "6021553595921615983")
+:::readable MojoGrimoire.Interp.RunError MojoGrimoire.Interp.Result MojoGrimoire.Interp.Signal (fingerprint := "12799556844993829968")
 *Definition: how evaluation stops.* A run stops early when it runs out of
-fuel, indexes a list out of its bounds, or divides by zero. It is stuck,
+fuel or indexes a list out of its bounds. It is stuck,
 with a description, in a state that a program the checker accepts never
 reaches. A call gives back a value, or a reference when its function has
 an origin; a `return` carries it to the call.
@@ -45,17 +45,19 @@ part of its location's value that its path names. `emit` adds a printed
 line.
 :::
 
-:::readable MojoGrimoire.Interp.wrap MojoGrimoire.Interp.binary MojoGrimoire.Interp.unary (fingerprint := "3380714503600258402")
+:::readable MojoGrimoire.Interp.wrap MojoGrimoire.Interp.binary MojoGrimoire.Interp.unary (fingerprint := "110111832484710264")
 *Definition: arithmetic.* $`\mathsf{Int}` is 64-bit: every result is wrapped
 into $`[-2^{63}, 2^{63})`. `//` rounds toward negative infinity and `%`
-takes the sign of the divisor, and both stop the run on a zero divisor.
+takes the sign of the divisor, and both give 0 for a zero divisor, as
+Mojo's standard library defines them.
 Comparisons give a $`\mathsf{Bool}`, and `==` and `!=` also compare two
 $`\mathsf{Bool}`s.
 :::
 
-:::readable MojoGrimoire.Interp.position MojoGrimoire.Interp.emptyStruct (fingerprint := "11127417990424263398")
+:::readable MojoGrimoire.Interp.position MojoGrimoire.Interp.emptyStruct (fingerprint := "5654665444625016957")
 *Definition: indices and empty structs.* An index into a list of length
-$`l` names position $`i` when $`0 \le i < l`, or $`l + i` when $`i` is
-negative, counting from the end; any other index stops the run. The `self`
+$`l` names position $`i` when $`0 \le i < l`; any other index, a negative
+one included, stops the run, since Mojo's `List` does not count from the
+end. The `self`
 of `__init__` starts as the struct with every field $`\bot`.
 :::
