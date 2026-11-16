@@ -6,6 +6,9 @@ Tests of `^` on a value of type `Int` or `Bool`. The compiler does not move
 such a value: it warns that the transfer has no effect, and treats `p^` as
 the place `p`. Inference does the same, so these programs are parsed from
 text, then checked and run. Each program is written one line per string.
+The last tests show that `^` on an element of any other type, even an
+implicitly copyable or copyable struct or a list, stays a transfer, which the
+checker rejects as the compiler does.
 -/
 
 namespace MojoGrimoireTest.Parse.TrivialTransfer
@@ -105,5 +108,44 @@ where
 -- An element of struct type stays a transfer, which the checker rejects.
 #guard go ["def main():", "    var rs: List[Res] = [Res(1)]", "    var r = rs[0]^"] ==
   some (.rejected ⟨"main", .transferFromElement (.index (.var "rs") (.int 0))⟩)
+
+-- So does one of an `ImplicitlyCopyable` struct, of a list or an array (#105),
+-- also passed to a `var` parameter, or followed by a field.
+private def tok := ["@fieldwise_init", "struct Tok(ImplicitlyCopyable):", "    var id: Int",
+  "    def __deinit__(deinit self):", "        print(\"drop\", self.id)"]
+#guard go (tok ++ ["def main():", "    var ts: List[Tok] = [Tok(1), Tok(2)]",
+  "    var t = ts[0]^"]) ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "ts") (.int 0))⟩)
+#guard go (tok ++ ["def main():", "    var ts = [Tok(1), Tok(2)]", "    var t = ts[1]^"]) ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "ts") (.int 1))⟩)
+#guard go (tok ++ ["def eat(var t: Tok) -> Int:", "    return t.id", "def main():",
+  "    var ts: List[Tok] = [Tok(1), Tok(2)]", "    print(eat(ts[0]^))"]) ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "ts") (.int 0))⟩)
+#guard go (tok ++ ["def main():", "    var ts: List[Tok] = [Tok(1), Tok(2)]",
+  "    print(ts[0]^.id)"]) ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "ts") (.int 0))⟩)
+
+-- Even with no `__deinit__`, like `Int`.
+#guard go ["@fieldwise_init", "struct Tok(ImplicitlyCopyable):", "    var id: Int",
+  "def main():", "    var ts: List[Tok] = [Tok(1), Tok(2)]", "    var t = ts[0]^"] ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "ts") (.int 0))⟩)
+
+-- And one of a `Copyable` struct.
+private def point := ["@fieldwise_init", "struct Point(Copyable):", "    var x: Int",
+  "    var y: Int"]
+#guard go (point ++ ["def main():", "    var ps: List[Point] = [Point(1, 2)]",
+  "    var p = ps[0]^"]) ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "ps") (.int 0))⟩)
+#guard go (point ++ ["def main():", "    var ps = [Point(1, 2), Point(3, 4)]",
+  "    var p = ps[1]^"]) ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "ps") (.int 1))⟩)
+
+-- And a `List[Int]` element of a list or an array.
+#guard go ["def main():", "    var xss: List[List[Int]] = [[1], [2, 3]]",
+  "    var ys = xss[1]^"] ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "xss") (.int 1))⟩)
+#guard go ["def main():", "    var xss: Array[List[Int], 2] = [[1], [2, 3]]",
+  "    var ys = xss[1]^"] ==
+  some (.rejected ⟨"main", .transferFromElement (.index (.var "xss") (.int 1))⟩)
 
 end MojoGrimoireTest.Parse.TrivialTransfer
