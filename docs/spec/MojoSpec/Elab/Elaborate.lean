@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15670401715942740676")
+:::moduleDocs (fingerprint := "16908524155139981408")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
@@ -63,12 +63,14 @@ to a `var self`; the receiver's type, from the variables declared so far,
 gives the method.
 :::
 
-:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "6572841657424087197")
+:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "15334562521233864914")
 *Definition: what an operation destroys.* Inside a function, elaboration
 knows the program, the slots, the slots the function owns in the order they
 die, and the types of the variables declared so far. An operation uses
 directly the slots of the places among its operands, and those their
-index expressions use; its other operands
+index expressions use, and, by reference, the slots that a call returning
+a reference passed by reference points into, so that they outlive it:
+`len(first(xs))` destroys `xs` once `len` is done. Its other operands
 are operations of their own. Given the slots live once it is done, the
 slots it uses by value and nowhere later die once its operands are read,
 in the order they are read; those it uses by reference and nowhere later
@@ -84,7 +86,7 @@ moves the value away, and the method destroys it. An expression consumes
 the slots that the method calls in it consume, at any depth.
 :::
 
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "16992007596424006050")
+:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "11189916522384604254")
 *Definition: elaborating expressions.* Each call, method call, operator,
 list literal and `.copy()` is wrapped with what it destroys, and its
 operands are elaborated in turn, each with the slots that the later
@@ -96,14 +98,14 @@ operation destroys what it uses. A method call never destroys the slot it
 consumes, though it uses it.
 :::
 
-:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.envAfter (fingerprint := "15903920460541454485")
+:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.envAfter (fingerprint := "14321159511264539484")
 *Definition: helpers.* The slots that an elaborated expression destroys;
-the slots that the places among a list of operands use; and the types of
+the slots that a list of operands read by reference uses directly; and the types of
 the variables after a statement, which a declaration or a `ref` binding
 extends.
 :::
 
-:::readable MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "14342383368461656854")
+:::readable MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "18429392250706560484")
 *Definition: elaboration.* Given the slots live after a statement:
 
 - a simple statement's expressions are elaborated, and the statement is
