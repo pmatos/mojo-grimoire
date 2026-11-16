@@ -44,7 +44,7 @@ ADR-2026-11-15-1904 records these rules.
 | Roadmap | [`docs/roadmap.md`](docs/roadmap.md), the human's original plan; [`docs/decisions/process.md`](docs/decisions/process.md) records where we depart from it | What we build next, and in what order |
 | Decision pages | [`docs/decisions/`](docs/decisions/) | What holds today, per area |
 | ADRs | [`docs/adrs/`](docs/adrs/) | What we decided, and why |
-| Decision log | [`docs/conformance/decision-log.md`](docs/conformance/decision-log.md) | Where the model and the compiler disagree, and what we chose |
+| Decision log | [`docs/conformance/decision-log.md`](docs/conformance/decision-log.md) | Where the model departs from the compiler, and why |
 
 - An agent starting cold reads the decision pages first. When a page and an
   ADR disagree, the page wins, and the ADR is fixed or deleted.
@@ -55,8 +55,11 @@ ADR-2026-11-15-1904 records these rules.
 
 - **The compiler is the reference.** Mojo has no written specification. The
   open-source compiler at the pinned release (1.2.x today) is the reference,
-  and every disagreement goes in the decision log as a model bug, a compiler
-  bug or a spec decision (ADR-2026-11-15-1907).
+  and the model follows it. When they disagree, fix the model; the PR that
+  fixes it says what changed. The model departs from the compiler only where
+  the compiler is broken, a compiler bug, or its behaviour is incidental, a
+  spec decision. Each departure has an entry in the decision log
+  (ADR-2026-11-15-1907).
 - **The project is independent.** The Isabelle formalisation
   `utting/mojo-semantics` is a reference point only. Never import, vendor,
   translate or generate code from it, and never copy its test programs or
