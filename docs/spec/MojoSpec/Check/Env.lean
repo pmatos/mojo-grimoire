@@ -13,16 +13,18 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14811460100782069791")
+:::moduleDocs (fingerprint := "11502399867915643455")
 :::
 
-:::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "2654669946631487798")
+:::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "4257948032270631622")
 *Definition: lookups.* The checker finds a struct or a function of the
 program by its name, the first one declared with that name, and a field or
 method of a struct by its name. `fieldOf` gives the type of the field
-$`f` of a value of type $`t`, and rejects $`t` when it is not a struct,
-or when the struct is unknown or has no field $`f`. `fieldNames` gives
-the names of the fields of a struct type, and none for any other type.
+$`f` of a value of type $`t`. Only a struct has fields: when $`t` is
+any other type, or a struct with no field $`f`, $`f` is an unknown
+attribute of the type, named with the type's name; an unknown struct is
+rejected as such. `fieldNames` gives the names of the fields of a struct
+type, and none for any other type.
 :::
 
 :::readable MojoGrimoire.Check.Signature MojoGrimoire.Check.Signature.allParams MojoGrimoire.Check.funSig (fingerprint := "16001441666545275462")
@@ -51,7 +53,7 @@ its parameters, names the type in an error about its methods or about
 the elements of a list literal of that type.
 :::
 
-:::readable MojoGrimoire.Check.callSig MojoGrimoire.Check.methodSig (fingerprint := "10778790566369669665")
+:::readable MojoGrimoire.Check.callSig MojoGrimoire.Check.methodSig (fingerprint := "13319122873340366001")
 *Definition: the signature of a call.* $`f(e^*)` constructs the struct
 $`f`, when the program declares one, with the parameters of its `__init__`
 after `self`, or with one `var` parameter per field if it is
@@ -60,7 +62,9 @@ the function $`f`. `len` has no signature, since it takes a list or an
 array of any type. $`p.m(e^*)` calls a method of the type of $`p`: one of
 a list's methods, or a method of a struct, whose `self` takes $`p`; a
 method of a struct with no parameter at all is rejected. An array has no
-methods, nor does any other type. Inference, the checker and
+methods, nor does any other type: a method that the type lacks is an
+unknown attribute of the type, as a missing field is, named with the
+type's name. Inference, the checker and
 elaboration all read the signatures of calls here.
 :::
 

@@ -73,3 +73,18 @@ a new program is recorded before it is committed.
 
 Rejected: comparing the compiler's diagnostics word for word. Their wording
 changes between releases and says nothing the class does not.
+
+### Unknown fields and methods
+
+The compiler gives one error, "'T' value has no attribute 'a'", for a field
+and for a method that the type `T` lacks, whatever `T` is. The model
+reports both as one class, `unknownAttribute`, and the suite compares it
+exactly, as every other class (#42).
+
+Rejected: keeping `unknownField` and `unknownMethod` in the model and
+letting the suite accept either for that error. It changes how the suite
+compares, and a program would agree even when the model rejects it for the
+other reason. Also rejected: keeping both classes in the checker and
+giving them one name in the driver. The class that the checker reports
+would then differ from the one the suite compares, and the Lean tests would
+pin a distinction that the compiler does not make.

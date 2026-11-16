@@ -90,7 +90,7 @@ private def ress : Stmt := .decl "rs" (.list res) (some (.list (.list res) [newR
 
 -- `xs.insert(0, 1)`: only `append` and `pop` are modelled.
 #guard verdict (prog [ints, .expr (.method (v "xs") "insert" [.int 0, .int 1])]) ==
-  some (.unknownMethod "List" "insert")
+  some (.unknownAttribute "List" "insert")
 
 -- `var n = 1; n[0]`: only a list has elements.
 #guard verdict (prog [.decl "n" .int (some (.int 1)), .print [.place (at_ "n" 0)]]) ==

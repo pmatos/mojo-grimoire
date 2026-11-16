@@ -91,7 +91,7 @@ private def res : List String := [
   "    f(xs)"] (.immutablePlace (.var "xs")) "f"
 
 -- An array has no `pop`.
-#guard rejects (inMain ["var xs = [1, 2]", "print(xs.pop())"]) (.unknownMethod "Array" "pop")
+#guard rejects (inMain ["var xs = [1, 2]", "print(xs.pop())"]) (.unknownAttribute "Array" "pop")
 
 -- A `mut` parameter's list may be popped, and the caller sees the change.
 #guard runLines [

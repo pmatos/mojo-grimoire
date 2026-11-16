@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "unknownAttribute",
+  "diagnostic": "'Array[Int, Int(2)]' value has no attribute 'append'"
+}
