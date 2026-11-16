@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Values: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6836320963325718107")
+:::moduleDocs (fingerprint := "781713539778564590")
 :::
 
 :::readable MojoGrimoire.Interp.Value (fingerprint := "6154955959241713508")
@@ -43,7 +43,9 @@ Reading a part, or replacing it with another value, fails when the path
 does not lead to a part.
 :::
 
-:::readable MojoGrimoire.Interp.Value.show (fingerprint := "15008849415867136296")
-*Definition: printing.* `print` writes an $`\mathsf{Int}` in decimal and a
-$`\mathsf{Bool}` as `True` or `False`.
+:::readable MojoGrimoire.Interp.Value.show (fingerprint := "16992733688740114149")
+*Definition: printing.* `print` writes an $`\mathsf{Int}` in decimal, a
+$`\mathsf{Bool}` as `True` or `False`, and a list or an array as its
+elements written so, separated by `, ` between brackets: `[1, 2]`,
+`[[True], []]`, and `[]` when it is empty.
 :::

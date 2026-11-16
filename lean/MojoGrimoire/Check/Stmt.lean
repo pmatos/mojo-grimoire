@@ -108,13 +108,24 @@ def checkLoop (before after : State) : CheckM Unit := do
         w.moved.filter (!v.moved.contains ·)
       if let some u := fresh.head? then throw (CheckError.uninitializedUse (partPlace v.name u))
 
-/-- Checks a value printed by `print`: a string literal, an `Int` or a
-`Bool`. -/
-def checkPrintArg (check : Expr → CheckM Ty) : Expr → CheckM Unit
+/-- Whether `print` can write a value of type `t`: an `Int`, a `Bool`, or a
+list or an array of values it can write. -/
+def printable : Ty → Bool
+  | .int | .bool => true
+  | .list t | .array t _ => printable t
+  | _ => false
+
+/-- Checks a value printed by `print`: a string literal, or a value that
+`print` can write. `print` reads a place by reference, so it copies
+nothing, and a call that returns a reference gives the value it points
+to, uncopied. -/
+def checkPrintArg (prog : Program) : Expr → CheckM Unit
   | .str _ => pure ()
   | e => do
-    let t ← check e
-    unless t == .int || t == .bool do throw (CheckError.notPrintable t)
+    let t ← match e with
+      | .place p => do checkIndices prog p; readPlace prog p
+      | e => checkExprAs prog true e
+    unless printable t do throw (CheckError.notPrintable t)
 
 /-- Rejects the assignment of the value `e` to the place `p` inside an
 element of a list when `e` is a call that builds its result in `p` and is
@@ -180,7 +191,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     setVar { v with uninit := initPart prog v.uninit v.ty path, moved := v.moved.erase path }
   | .expr e => do let _ ← checkExpr prog e
   | .print args => do
-    let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg (checkExpr prog) e; mark
+    let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark
     recheckPlaces prog args ks
   | .ifElse c thenBlock elseBlock => do
     expect .bool (← checkExpr prog c)
