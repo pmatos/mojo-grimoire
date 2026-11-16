@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9541830094257895588")
+:::moduleDocs (fingerprint := "13404295024667404229")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "4845031522016519524")
@@ -84,10 +84,10 @@ scope with that name, and updating a variable's uninitialized parts updates
 that variable. An unknown name is rejected.
 :::
 
-:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "5555966987329050818")
+:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "14848336578567107707")
 *Definition: reading a place.* The type of a place is the type of its
-variable, then of each field or element on the way; only a list has
-elements. Reading a place's value needs the
+variable, then of each field or element on the way; only a list or an
+array has elements. Reading a place's value needs the
 part it names to be initialized, and is otherwise rejected as a use of an
 uninitialized value. Through a reference, every origin must be
 initialized: a value moved away cannot be used through a reference to it.

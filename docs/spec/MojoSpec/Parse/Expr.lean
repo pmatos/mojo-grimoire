@@ -48,6 +48,7 @@ comparison is not chained, and `not` takes a comparison or another `not`.
 A negated integer literal is a negative literal. A postfix chain starts
 from a primary expression: fields and indices of a place stay a place,
 and `^`, `.copy()`, a method call or a call make an expression. A call
-names a function or a struct. Each function takes fuel and spends it on
+names a function or a struct. A literal $`[e^*]` is left for inference to
+type, and $`\mathsf{List}[\mathit{type}](e^*)` is a list literal. Each function takes fuel and spends it on
 each call, so parsing ends.
 :::

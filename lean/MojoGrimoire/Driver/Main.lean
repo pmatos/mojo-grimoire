@@ -39,6 +39,7 @@ def CheckError.className : CheckError → String
   | .typeMismatch .. => "typeMismatch"
   | .notAList .. => "notAList"
   | .negativeIndex .. => "negativeIndex"
+  | .constantIndexOutOfBounds .. => "constantIndexOutOfBounds"
   | .notPrintable .. => "notPrintable"
   | .stringOutsidePrint => "stringOutsidePrint"
   | .arityMismatch .. => "arityMismatch"

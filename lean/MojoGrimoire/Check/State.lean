@@ -127,9 +127,9 @@ where
     | [] => []
     | v :: vs => if v.name == x then { v with uninit := us } :: vs else v :: go vs
 
-/-- The type of the elements of a list of type `t`. -/
+/-- The type of the elements of a list or an array of type `t`. -/
 def elemOf : Ty → Except CheckError Ty
-  | .list t => pure t
+  | .list t | .array t _ => pure t
   | t => throw (.notAList t)
 
 /-- The type of a place, given the variables in scope. -/

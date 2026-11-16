@@ -8,4 +8,5 @@ import MojoGrimoireTest.Check.Lists
 import MojoGrimoireTest.Check.Refs
 import MojoGrimoireTest.Interp.Run
 import MojoGrimoireTest.Parse.Programs
+import MojoGrimoireTest.Parse.Arrays
 import MojoGrimoireCli

@@ -85,8 +85,8 @@ def name : P Name := do
   | .ident x => if keywords.contains x then fail s!"`{x}` is a keyword" else pure x
   | _ => fail "expected a name"
 
-/-- Reads a type: `Int`, `Bool`, `None`, `List[T]`, or the name of a
-struct. -/
+/-- Reads a type: `Int`, `Bool`, `None`, `List[T]`, `Array[T, N]` with
+`N` a literal, or the name of a struct. -/
 def ty : Nat → P Ty
   | 0 => fail "a type too deeply nested"
   | fuel + 1 => do
@@ -99,6 +99,13 @@ def ty : Nat → P Ty
       let t ← ty fuel
       expectSym "]"
       pure (.list t)
+    | "Array" => do
+      expectSym "["
+      let t ← ty fuel
+      expectSym ","
+      let .int n ← next | fail "expected the size of an array"
+      expectSym "]"
+      pure (.array t n)
     | s => pure (.struct s)
 
 end MojoGrimoire.Parse

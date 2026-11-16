@@ -40,10 +40,10 @@ namespace MojoGrimoire.Elab
 open MojoGrimoire.Core MojoGrimoire.Check
 
 /-- Whether a value of type `t` is dropped: one of struct type, or a list
-of them. -/
+or an array of them. -/
 def needsDrop : Ty → Bool
   | .struct _ => true
-  | .list t => needsDrop t
+  | .list t | .array t _ => needsDrop t
   | _ => false
 
 /-- The statements that drop the slots of `d`, in the order of `owned`, the

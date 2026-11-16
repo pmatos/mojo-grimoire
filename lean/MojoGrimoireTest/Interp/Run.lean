@@ -111,7 +111,7 @@ private def go (body : List Stmt) (pairDeinit : Option (List Stmt) := none)
 
 -- `var xs: List[Int] = [1, 2]; xs.append(3); xs[0] = 9;
 -- print(len(xs), xs[len(xs) - 1], xs[0])`
-#guard go [.decl "xs" (.list .int) (some (.list .int [.int 1, .int 2])),
+#guard go [.decl "xs" (.list .int) (some (.list (.list .int) [.int 1, .int 2])),
   .expr (.method (v "xs") "append" [.int 3]),
   .assign (.index (v "xs") (.int 0)) (.int 9),
   .print [.call "len" [use "xs"],
@@ -120,16 +120,16 @@ private def go (body : List Stmt) (pairDeinit : Option (List Stmt) := none)
 
 -- `var i = -1; print(xs[i])`: a negative index known only at run time is out
 -- of bounds.
-#guard go [.decl "xs" (.list .int) (some (.list .int [.int 1])),
+#guard go [.decl "xs" (.list .int) (some (.list (.list .int) [.int 1])),
   .decl "i" .int (some (.int (-1))), say "x",
   .print [.place (.index (v "xs") (use "i"))]] == .failed .indexOutOfBounds ["x"]
 
 -- `print(xs[5])` stops the run.
-#guard go [.decl "xs" (.list .int) (some (.list .int [.int 1])), say "x",
+#guard go [.decl "xs" (.list .int) (some (.list (.list .int) [.int 1])), say "x",
   .print [.place (.index (v "xs") (.int 5))]] == .failed .indexOutOfBounds ["x"]
 
 -- `var rs = [Res(1), Res(2)]; print("x")`: a list destroys its elements in order.
-#guard go [.decl "rs" (.list res) (some (.list res [.call "Res" [.int 1], .call "Res" [.int 2]])),
+#guard go [.decl "rs" (.list res) (some (.list (.list res) [.call "Res" [.int 1], .call "Res" [.int 2]])),
   say "x"] == .finished ["drop 1", "drop 2", "x"]
 
 -- `ref r = pick(a, b, False); bump(r); print("x"); show(b)`: `r` points into `b`,

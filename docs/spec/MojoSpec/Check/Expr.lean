@@ -32,7 +32,7 @@ assigning to it or passing it `mut`, unless its variable is a `read` or
 implicitly: $`p` must be initialized, and its type implicitly copyable.
 Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable
 that the function may change, owned or held `mut`; afterwards $`p` is
-uninitialized. An element of a list cannot be transferred out, nor can a
+uninitialized. An element of a list or an array cannot be transferred out, nor can a
 value through a reference.
 :::
 
@@ -93,10 +93,13 @@ type:
 * $`p.m(e^*)` passes $`p` by the convention of the method's `self`,
   then the other arguments;
 * operators have the types above;
-* $`[e^*]_t` passes each element as to a `var` parameter of type $`t`;
-* on a list, the only method is `append`, which needs a list the function
+* $`[e^*]_t`, with $`t` a list or an array of $`u`, passes each element as
+  to a `var` parameter of type $`u`; an array must have as many elements
+  as its type says;
+* an array has no methods, and on a list the only method is `append`, which needs a list the function
   may change and takes its argument as `var`; `len(e)`, when the program
-  declares no function `len`, takes a list and gives an $`\mathsf{Int}`;
+  declares no function `len`, takes a list or an array and gives an
+  $`\mathsf{Int}`;
 * $`\mathsf{drops}(e; p^*; q^*)`, which only elaboration inserts, after
   checking, has the type of $`e`.
 
@@ -104,7 +107,8 @@ The place operands of a call, a method call, an operator other than
 `and` and `or`, and a list literal are checked again once every operand
 is, by `recheckPlaces`.
 Every index in a place is checked first, and must be an $`\mathsf{Int}`;
-a constant index may not be negative.
+a constant index may not be negative, nor, into an array of $`n`
+elements, $`n` or more.
 A call of a function that returns a reference gives the value it points to,
 which must be implicitly copyable, unless the call is bound with `ref`.
 

@@ -18,7 +18,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "12326641341485961637")
 *Definition: values that are dropped.* Only values of struct type, and
-lists of them. Values
+lists and arrays of them. Values
 of $`\mathsf{Int}`, $`\mathsf{Bool}` and string type have no destruction a
 program can observe.
 :::

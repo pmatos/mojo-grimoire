@@ -3,15 +3,18 @@ import MojoGrimoire.Check.State
 
 /-!
 Type inference for what the parser leaves open: the type of a variable
-declared as `var x = e`, and the element type of a list literal.
+declared as `var x = e`, and the type of a literal `[e₁, …, eₙ]`.
 
 Inference follows the program's declarations: the types of the
 parameters, of the variables declared so far, of the fields of each
 struct, and the result of each function and method. A variable takes the
-type of its initial value. A list literal takes the type of its first
-element, or, when it is empty, the element type that its declaration or
-the function's result gives it. What inference cannot find stays `None`,
-which the checker rejects as a type that may not be declared.
+type of its initial value. A literal takes the type expected where it
+stands: the declared type of its variable, the type of the place it is
+assigned to, the function's result when it is returned, the parameter it
+is passed to, or the element type of the literal or list that holds it.
+Where none is expected, it is an `Array[t, n]` of its `n` elements, with
+the type `t` of the first, as in Mojo. What inference cannot find stays
+`None`, which the checker rejects as a type that may not be declared.
 -/
 
 namespace MojoGrimoire.Parse
@@ -26,6 +29,42 @@ def binaryResult : BinOp → Ty
   | .add | .sub | .mul | .floorDiv | .mod => .int
   | _ => .bool
 
+/-- The type of an open literal of `n` elements that is expected to have
+the type `t`: `t` itself when it is a list, an array of `n` elements when
+`t` is an array, whose size the checker compares with the expected one,
+and otherwise `None`, which the elements decide. -/
+def openLiteralTy (t : Ty) (n : Nat) : Ty :=
+  match t with
+  | .list u => .list u
+  | .array u _ => .array u n
+  | _ => .noneType
+
+/-- The type that the elements of a literal of type `t` are expected to
+have. -/
+def elemExpected : Ty → Ty
+  | .list u | .array u _ => u
+  | _ => .noneType
+
+/-- The types of the parameters of a call of `f`: of its initializer when
+`f` names a struct, or of the function. -/
+def callParamTys (prog : Program) (f : Name) : List Ty :=
+  match findStruct prog f, findFun prog f with
+  | some sd, _ => match sd.init with
+    | some fd => fd.params.tail.map (·.ty)
+    | none => sd.fields.map (·.2)
+  | none, some fd => fd.params.map (·.ty)
+  | none, none => []
+
+/-- The types of the parameters of the method `m` on a value of type `t`,
+`self` aside. `append` takes an element of its list. -/
+def methodParamTys (prog : Program) (t : Option Ty) (m : Name) : List Ty :=
+  match t with
+  | some (.list u) => [u]
+  | some (.struct s) => match (findStruct prog s).bind (findMethod · m) with
+    | some fd => fd.params.tail.map (·.ty)
+    | none => []
+  | _ => []
+
 mutual
 /-- Infers inside the place `p`, and gives its type, if it has one. -/
 def inferPlace (prog : Program) (env : TyEnv) : Place → Place × Option Ty
@@ -35,10 +74,11 @@ def inferPlace (prog : Program) (env : TyEnv) : Place → Place × Option Ty
     (.field p' f, t.bind fun t => (fieldOf prog t f).toOption)
   | .index p i =>
     let (p', t) := inferPlace prog env p
-    (.index p' (inferExpr prog env i).1, t.bind fun t => (elemOf t).toOption)
+    (.index p' (inferExpr prog env .noneType i).1, t.bind fun t => (elemOf t).toOption)
 
-/-- Infers inside the expression `e`, and gives its type, if it has one. -/
-def inferExpr (prog : Program) (env : TyEnv) : Expr → Expr × Option Ty
+/-- Infers inside the expression `e`, expected to have the type `exp`
+(`None` when nothing is expected), and gives its type, if it has one. -/
+def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Option Ty
   | .int k => (.int k, some .int)
   | .bool b => (.bool b, some .bool)
   | .str s => (.str s, some .str)
@@ -46,7 +86,7 @@ def inferExpr (prog : Program) (env : TyEnv) : Expr → Expr × Option Ty
   | .transfer p => let (p', t) := inferPlace prog env p; (.transfer p', t)
   | .copy p => let (p', t) := inferPlace prog env p; (.copy p', t)
   | .call f args =>
-    let args' := (inferList prog env args).map (·.1)
+    let args' := (inferList prog env (callParamTys prog f) args).map (·.1)
     let t := match findStruct prog f, findFun prog f with
       | some _, _ => some (.struct f)
       | none, some fd => some fd.result
@@ -54,60 +94,58 @@ def inferExpr (prog : Program) (env : TyEnv) : Expr → Expr × Option Ty
     (.call f args', t)
   | .method p m args =>
     let (p', pt) := inferPlace prog env p
-    let args' := (inferList prog env args).map (·.1)
+    let args' := (inferList prog env (methodParamTys prog pt m) args).map (·.1)
     let t := match pt with
       | some (.list _) => some .noneType
       | some (.struct s) => ((findStruct prog s).bind (findMethod · m)).map (·.result)
       | _ => none
     (.method p' m args', t)
   | .unary op a =>
-    (.unary op (inferExpr prog env a).1, some (if op == .neg then .int else .bool))
+    (.unary op (inferExpr prog env .noneType a).1, some (if op == .neg then .int else .bool))
   | .binary op a b =>
-    (.binary op (inferExpr prog env a).1 (inferExpr prog env b).1, some (binaryResult op))
+    (.binary op (inferExpr prog env .noneType a).1 (inferExpr prog env .noneType b).1,
+      some (binaryResult op))
   | .list t es =>
-    let es' := inferList prog env es
-    let t' := if t == .noneType then ((es'.head?.bind (·.2)).getD .noneType) else t
-    (.list t' (es'.map (·.1)), some (.list t'))
+    let t := if t == .noneType then openLiteralTy exp es.length else t
+    let es' := inferList prog env (es.map fun _ => elemExpected t) es
+    let t' := match t, es'.head?.bind (·.2) with
+      | .noneType, some u => .array u es.length
+      | t, _ => t
+    (.list t' (es'.map (·.1)), if t' == .noneType then none else some t')
   | .withDrops e pre post =>
-    let (e', t) := inferExpr prog env e
+    let (e', t) := inferExpr prog env exp e
     (.withDrops e' pre post, t)
 
-/-- Infers inside each of the expressions `es`. -/
-def inferList (prog : Program) (env : TyEnv) : List Expr → List (Expr × Option Ty)
+/-- Infers inside each of the expressions `es`, expected to have the types
+`exps` in order, or `None` past their end. -/
+def inferList (prog : Program) (env : TyEnv) (exps : List Ty) :
+    List Expr → List (Expr × Option Ty)
   | [] => []
-  | e :: es => inferExpr prog env e :: inferList prog env es
+  | e :: es => inferExpr prog env (exps.headD .noneType) e :: inferList prog env exps.tail es
 end
-
-/-- Gives an empty list literal the element type of the type `t` it is
-expected to have. -/
-def expecting (t : Ty) : Expr → Expr
-  | .list .noneType [] => match t with
-    | .list u => .list u []
-    | _ => .list .noneType []
-  | e => e
 
 mutual
 /-- Infers inside the statement `s` of a function whose result type is
 `result`, and gives the types in scope after it. -/
 def inferStmt (prog : Program) (result : Ty) (env : TyEnv) : Stmt → Stmt × TyEnv
   | .decl x t init =>
-    let init' := init.map fun e => inferExpr prog env (expecting t e)
+    let init' := init.map fun e => inferExpr prog env t e
     let t' := if t == .noneType then ((init'.bind (·.2)).getD .noneType) else t
     (.decl x t' (init'.map (·.1)), (x, t') :: env)
   | .refDecl x e =>
-    let (e', t) := inferExpr prog env e
+    let (e', t) := inferExpr prog env .noneType e
     (.refDecl x e', match t with | some t => (x, t) :: env | none => env)
   | .assign p e =>
     let (p', t) := inferPlace prog env p
-    (.assign p' (inferExpr prog env (expecting (t.getD .noneType) e)).1, env)
-  | .expr e => (.expr (inferExpr prog env e).1, env)
-  | .print args => (.print ((inferList prog env args).map (·.1)), env)
+    (.assign p' (inferExpr prog env (t.getD .noneType) e).1, env)
+  | .expr e => (.expr (inferExpr prog env .noneType e).1, env)
+  | .print args => (.print ((inferList prog env [] args).map (·.1)), env)
   | .ifElse c a b =>
-    (.ifElse (inferExpr prog env c).1 (inferBlock prog result env a)
+    (.ifElse (inferExpr prog env .noneType c).1 (inferBlock prog result env a)
       (inferBlock prog result env b), env)
   | .whileLoop c body =>
-    (.whileLoop (inferExpr prog env c).1 (inferBlock prog result env body), env)
-  | .ret value => (.ret (value.map fun e => (inferExpr prog env (expecting result e)).1), env)
+    (.whileLoop (inferExpr prog env .noneType c).1 (inferBlock prog result env body), env)
+  | .ret value => (.ret (value.map fun e => (inferExpr prog env result e).1), env)
   | .pass => (.pass, env)
   | .drop p => (.drop p, env)
 

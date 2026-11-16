@@ -207,6 +207,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .method p m args => do
     checkIndices prog p
     let t ← placeTy prog p
+    if let .array .. := t then throw (CheckError.unknownMethod "Array" m)
     if let .list et := t then
       unless m == "append" do throw (CheckError.unknownMethod "List" m)
       let _ ← readPlace prog p
@@ -233,13 +234,20 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     lift (binaryTy op ta tb)
   | .list t es => do
     unless validTy prog t do throw (CheckError.invalidType t)
-    checkArgs prog "List" (es.map fun _ => ⟨.owned, "value", t⟩) es es.length es.length
+    let u ← match t with
+      | .list u => pure u
+      | .array u n =>
+        if n == es.length then pure u
+        else throw (CheckError.typeMismatch t (.array u es.length))
+      | _ => throw (CheckError.invalidType t)
+    checkArgs prog "List" (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length
     recheckPlaces prog es
-    pure (.list t)
+    pure t
   | .withDrops e _ _ => checkExprAs prog asRef e
 
 /-- Checks the index expressions of the place `p`: each is an `Int`, and
-one that Mojo computes when it compiles the program may not be negative. -/
+one that Mojo computes when it compiles the program may not be negative,
+nor, into an array, beyond its last element. -/
 def checkIndices (prog : Program) : Place → CheckM Unit
   | .var _ => pure ()
   | .field p _ => checkIndices prog p
@@ -247,6 +255,8 @@ def checkIndices (prog : Program) : Place → CheckM Unit
     checkIndices prog p
     expect .int (← checkExprAs prog false i)
     if (constInt i).any (· < 0) then throw (CheckError.negativeIndex (.index p i))
+    if let (.array _ n, some k) := (← placeTy prog p, constInt i) then
+      if n ≤ k then throw (CheckError.constantIndexOutOfBounds (.index p i))
 
 /-- Checks the arguments `args` of a call of `callee` against its parameters
 `params`, in order. `n` and `m` are the numbers of parameters and arguments,
