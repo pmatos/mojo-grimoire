@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Elaboration only inserts drops: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17918146376030710690")
+:::moduleDocs (fingerprint := "8244454732086263513")
 :::
 
 :::readable MojoGrimoire.Elab.stripPlace MojoGrimoire.Elab.stripExpr MojoGrimoire.Elab.stripExprs (fingerprint := "653050961833656016")
@@ -45,11 +45,12 @@ expression, or list of operands, gives what was elaborated, with its drops
 erased. The proof is by mutual induction on expressions and lists of them.
 :::
 
-:::readable MojoGrimoire.Elab.stripBlock_elabStmt MojoGrimoire.Elab.stripBlock_elabBlock MojoGrimoire.Elab.stripBlock_elabBody (fingerprint := "8249992941401530058")
-*Lemma: statements, blocks and bodies.* Erasing the drops of an elaborated
-statement, block or body gives what was elaborated, with its drops erased.
-The proof is by mutual induction on statements and blocks, using the lemma
-on expressions.
+:::readable MojoGrimoire.Elab.stripExpr_elabReturn MojoGrimoire.Elab.stripBlock_elabStmt MojoGrimoire.Elab.stripBlock_elabBlock MojoGrimoire.Elab.stripBlock_elabBody (fingerprint := "4047838485057190857")
+*Lemma: statements, blocks and bodies.* Erasing the drops of the
+elaborated value of a `return` gives the value, and erasing the drops of
+an elaborated statement, block or body gives what was elaborated, with its
+drops erased. The proof is by mutual induction on statements and blocks,
+using the lemmas on expressions.
 :::
 
 :::readable MojoGrimoire.Elab.stripProgram_elabProgram (fingerprint := "18027251158332834446")

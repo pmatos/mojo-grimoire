@@ -101,6 +101,9 @@ where the compiler and the manual disagree, the model follows the compiler.
 - A place operand, of a call, an operator, a list literal or `print`, must
   still be initialized once every operand is evaluated, since the
   compiler reads it then: `f(a.id, g(a^))` uses `a.id` after its move.
+  So must the origins of an operand that is a call returning a reference,
+  which the compiler also reads then (#76; see
+  [semantics-references.md](semantics-references.md)).
 - `print` takes string literals and values it can write: `Int`, `Bool`,
   and lists and arrays of them, nested ones included (#41). It reads a
   place by reference, so it copies nothing: a list may be printed from a
@@ -199,8 +202,11 @@ corrected against the compiler's recorded results (#25):
 - An operand that is a place passed by value, an argument, an operator's
   operand, a list element or a printed value, is located in order but read
   only once every operand of its operation has been evaluated, as the
-  compiler does: `f(a.id, g(a))` sees what `g` did to `a`. An `Int` or a
-  `Bool` passed to a `read` parameter is passed by value.
+  compiler does: `f(a.id, g(a))` sees what `g` did to `a`. So is an
+  operand that is a call returning a reference (#76): `print(pick(a, b,
+  True), bump(a))` sees what `bump` did to `a`. The operand of a unary
+  operator, of `and` and of `or` is read at once, as the compiler does. An
+  `Int` or a `Bool` passed to a `read` parameter is passed by value.
 - `print` writes its values separated by spaces: an `Int` in decimal, a
   `Bool` as `True` or `False`, and a list or an array as `[1, 2]`, its
   elements written so and separated by `, `, `[]` when it is empty (#41).

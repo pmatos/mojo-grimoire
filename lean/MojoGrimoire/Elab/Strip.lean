@@ -121,6 +121,14 @@ theorem stripExprs_elabOps (ctx : Ctx) (es : List Expr) (after : List Place) :
     simp [elabOps, stripExprs, stripExpr_elabExpr, stripExprs_elabOps ctx rest after]
 end
 
+/-- Elaborating the value of a `return` only inserts drops. -/
+theorem stripExpr_elabReturn (ctx : Ctx) (e : Expr) :
+    stripExpr (elabReturn ctx e) = stripExpr e := by
+  unfold elabReturn
+  split
+  · rfl
+  · split <;> simp [stripExpr, stripExpr_elabExpr]
+
 mutual
 /-- Elaborating a statement only inserts drops. -/
 theorem stripBlock_elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) :
@@ -132,7 +140,7 @@ theorem stripBlock_elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) :
   | .whileLoop c body =>
     simp [elabStmt, stripBlock, stripStmt, stripBlock_drops, stripBlock_elabBlock]
   | .ret value =>
-    cases value <;> simp [elabStmt, stripBlock, stripStmt, stripExpr_elabExpr]
+    cases value <;> simp [elabStmt, stripBlock, stripStmt, stripExpr_elabReturn]
   | .pass | .drop _ => simp [elabStmt, stripBlock, stripStmt]
   | .decl x t init =>
     cases init <;> simp [elabStmt, stripBlock, stripStmt, stripBlock_drops, stripExpr_elabExpr]

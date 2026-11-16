@@ -80,6 +80,8 @@ compared with the compiler's diagnostics.
 
 {includeReadable "." MojoGrimoire.Check.Fit "Arguments that do not fit" MojoSpec.Check.Fit (level := 2)}
 
+{includeReadable "." MojoGrimoire.Check.Change "Changes and late re-checks" MojoSpec.Check.Change (level := 2)}
+
 {includeReadable "." MojoGrimoire.Check.Expr "Expressions and arguments" MojoSpec.Check.Expr (level := 2)}
 
 {includeReadable "." MojoGrimoire.Check.Ref "References" MojoSpec.Check.Ref (level := 2)}

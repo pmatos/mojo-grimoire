@@ -23,4 +23,5 @@ import MojoGrimoireTest.Parse.Conventions
 import MojoGrimoireTest.Parse.TransferField
 import MojoGrimoireTest.Parse.Initializers
 import MojoGrimoireTest.Parse.ReturnedRefArgs
+import MojoGrimoireTest.Parse.ReturnedRefLate
 import MojoGrimoireCli

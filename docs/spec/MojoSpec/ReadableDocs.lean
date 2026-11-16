@@ -8,6 +8,7 @@ import MojoSpec.Check.Env
 import MojoSpec.Check.State
 import MojoSpec.Check.Loc
 import MojoSpec.Check.Fit
+import MojoSpec.Check.Change
 import MojoSpec.Check.Expr
 import MojoSpec.Check.Ref
 import MojoSpec.Check.Stmt

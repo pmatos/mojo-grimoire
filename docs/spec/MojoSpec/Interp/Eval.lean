@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "241245551574562422")
+:::moduleDocs (fingerprint := "10471155671902397603")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "14136961392570647166")
@@ -28,7 +28,7 @@ value at a new location.
 
 :::readable MojoGrimoire.Interp.Operand MojoGrimoire.Interp.Operand.load MojoGrimoire.Interp.Pending MojoGrimoire.Interp.Pending.loadAll (fingerprint := "3189860708977689654")
 *Definition: operands read late.* An operand that is a place passed by
-value is first only located; it is read once every operand of its
+value, or the reference that a call returns, is first only located; it is read once every operand of its
 operation has been evaluated, as Mojo does. A call's arguments wait in
 the same way: those passed by value are read when the call is made. An
 $`\mathsf{Int}` or a $`\mathsf{Bool}` passed to a `read` parameter is
@@ -41,7 +41,7 @@ $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "16452102210378339875")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "1269127837166606162")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -59,8 +59,10 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   and leaves $`\bot` behind, and `.copy()` reads it. `and` and `or`
   evaluate their right operand only when the left does not decide.
   The operands of an operator, the elements of a list literal and the
-  values printed are evaluated left to right, and those that are places
-  are read after the last one is evaluated.
+  values printed are evaluated left to right, and those that are places,
+  or calls that return a reference, are read after the last one is
+  evaluated. The operand of a unary operator, `and` or `or` is read at
+  once.
   $`\mathsf{drops}(e; p^*; q^*)` evaluates $`e`, destroying the values in
   $`p^*` once a call's arguments are read, before it is made, and those in
   $`q^*` once $`e` is done; for an operation that is not a call, both once
@@ -72,7 +74,8 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   parameters' conventions, and those passed by value are read when the
   call is made; the reference that a call returns is passed by reference
   to a `read`, `mut` or `ref` parameter, except an $`\mathsf{Int}` or a
-  $`\mathsf{Bool}` passed `read`, which is read; temporaries are
+  $`\mathsf{Bool}` passed `read`, which is read when the call is made, as
+  it is for a `var` parameter; temporaries are
   destroyed after the call. `append` adds a
   value at the end of a list, `pop()` removes the last element and gives
   it back, failing with $`\mathsf{indexOutOfBounds}` on an empty list,
@@ -86,7 +89,7 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   behind once the arguments are read.
 - *References.* A `ref` binding, and the `return` of a function with an
   origin, give a reference: to a place, or the one a call returns. Used as
-  a value, such a call's result is read. A call gives what it returns, a
+  a value, such a call's result is read where a place would be. A call gives what it returns, a
   reference or a value, and any other expression its value.
 - *Statements.* A declaration puts its value at a new location the
   function owns. An assignment evaluates its value, then its place, writes

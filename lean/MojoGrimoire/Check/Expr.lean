@@ -1,4 +1,5 @@
 import MojoGrimoire.Check.Fit
+import MojoGrimoire.Check.Change
 
 /-!
 The checking of expressions and of the arguments of calls.
@@ -9,7 +10,9 @@ it. Before a field or a method, `p^` borrows `p`, which must be whole and
 could be transferred, and cannot be changed through it; a method whose
 `self` is `var` takes it, once the arguments are read. Mojo reads a place
 operand only once every operand of its operation is evaluated, so each place
-operand must still be initialized then. A place passed as an argument is
+operand must still be initialized then; so it reads a call that returns a
+reference, read by value, whose origins must then still be initialized and
+not invalidated. A place passed as an argument is
 passed by its parameter's convention: `read`, `mut` and `ref` pass the
 location, which must be initialized, and `mut` also needs a place the
 function may change; `var` passes a value, which is copied implicitly unless
@@ -25,11 +28,8 @@ parameter is not passed as a location: Mojo copies it. A `mut` argument of
 any type is.
 
 A call records as changed each place it is passed `mut`, or `ref` when the
-place may be changed, once its operands are checked; a call that returns a
-reference passed so changes its origins. That invalidates the
-references into the elements of a list that the place holds: the `ref`
-bindings, and the place operands of an enclosing operation that were
-located before the call.
+place may be changed, once its operands are checked, and the operands read
+late are checked again then (`MojoGrimoire.Check.Change`).
 
 An initialization whose arguments fit no initializer is `noMatchingInit`,
 however they misfit (`MojoGrimoire.Check.Fit`, #46): a construction
@@ -186,67 +186,6 @@ def passPlace (prog : Program) (fit : Fit) (callee : Name) (c : Conv) (t : Ty) (
     requireMutable p fit
   | .owned => expectArg fit t (← copyPlace prog p)
   | .out | .deinit => throw (CheckError.invalidConvention callee)
-
-/-- How many changes the state records so far: where an operand checked
-now stands among them. -/
-def mark : CheckM Nat := do pure (← get).changes.length
-
-/-- Records that the place `p` is changed as a whole, and invalidates every
-reference bound with `ref` into an element of a list that `p` holds. -/
-def changePlace (prog : Program) (p : Place) : CheckM Unit := do
-  for q in resolvePlace (← get).vars p do
-    let m ← shapeOf prog q
-    let mut stale := []
-    for v in (← get).vars do
-      if let .alias os _ := v.access then
-        for o in os do
-          if (splitPlace o).1 == m.1 && invalidates m (← shapeOf prog o) then
-            stale := v.name :: stale
-    modify fun s => { s with stale := union s.stale stale, changes := s.changes ++ [m] }
-
-/-- The places among the arguments `args` that a call changes: those passed
-`mut`, and those passed `ref` that may be changed. A call that returns a
-reference changes its origins. -/
-def changedArgs (prog : Program) : List Param → List Expr → CheckM (List Place)
-  | prm :: prms, a :: args => do
-    let rest ← changedArgs prog prms args
-    match prm.conv, a with
-    | .mutable, .place q => pure (q :: rest)
-    | .ref, .place q =>
-      if (← lookup (splitPlace q).1).access.canChange then pure (q :: rest) else pure rest
-    | .mutable, a | .ref, a =>
-      match ← locOf prog a with
-      | some (os, m) => pure (if prm.conv == .mutable || m then os ++ rest else rest)
-      | none => pure rest
-    | _, _ => pure rest
-  | _, _ => pure []
-
-/-- Rejects the place `p`, located once `k` changes were recorded, when a
-change recorded since then invalidates it. -/
-def requireUnchanged (prog : Program) (p : Place) (k : Nat) : CheckM Unit := do
-  let s ← get
-  let later := s.changes.drop k
-  unless later.isEmpty do
-    for q in resolvePlace s.vars p do
-      let o ← shapeOf prog q
-      if later.any (invalidates · o) then throw (CheckError.invalidatedReference p)
-
-/-- Rejects a place among the operands' locations `ls` that a later operand
-left uninitialized or invalidated: Mojo reads a place operand only once
-every operand of its operation is evaluated, and a reference argument is
-used during the call. Each operand gives the places it is read from, with
-how many changes were recorded once it was checked. -/
-def recheckLocs (prog : Program) (ls : List (List Place × Nat)) : CheckM Unit :=
-  ls.forM fun (ps, k) => ps.forM fun p => do
-    let _ ← readPlace prog p
-    requireUnchanged prog p k
-
-/-- Rechecks the place operands among `es`, with `recheckLocs`. `ks` holds,
-for each operand, how many changes were recorded once it was checked. -/
-def recheckPlaces (prog : Program) (es : List Expr) (ks : List Nat) : CheckM Unit :=
-  recheckLocs prog ((es.zip ks).map fun
-    | (.place p, k) => ([p], k)
-    | (_, k) => ([], k))
 
 /-- The type of a call of signature `sig`. A call that returns a reference,
 used as a value, copies the value it points to implicitly, unless `asRef`
@@ -424,7 +363,7 @@ def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
       if prm.conv == .mutable then throw (fit.misfit (CheckError.notAPlace callee))
       expectArg fit prm.ty (← checkExprAs prog false e)
       let k ← mark
-      pure (([], k) :: (← checkArgs prog fit callee prms args n m))
+      pure ((← lateLocs prog e, k) :: (← checkArgs prog fit callee prms args n m))
   | _, _, n, m => throw (fit.misfit (CheckError.arityMismatch callee n m))
 end
 

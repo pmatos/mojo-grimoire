@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "664151028166794542")
+:::moduleDocs (fingerprint := "6462096020453492941")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -79,30 +79,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "7115847317380969779")
-*Rule: changes.* A call changes as a whole each place it is passed `mut`,
-and each place it is passed `ref` that the function may change; for a
-call that returns a reference passed so, its origins; `append` and `pop`
-change their list. The checker records the change once the
-call's operands are checked, and marks as invalidated every reference
-bound with `ref` whose origin the change invalidates. The mark of an
-operand is the number of changes recorded once it is checked.
-:::
-
-:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.recheckPlaces (fingerprint := "1246902372397728290")
-*Rule: places read late.* Mojo reads a place operand only once every
-operand of its operation is evaluated, and a place passed by reference is
-used during the call. So once the operands are checked, every operand that
-is a place must still be initialized: `f(a.id, g(a^))` is a use of `a.id`
-after its move. So must every origin of a call that returns a reference
-passed by reference: `two(first(xs), take(xs^))` is rejected. It is also rejected as invalidated when a change recorded
-after its mark invalidates it: in `print(xs[0], xs.pop())`, `pop` changes
-the list that holds `xs[0]` before `xs[0]` is read. A place located once
-$`k` changes were recorded is invalidated when a change recorded since
-then invalidates it.
-:::
-
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "1662121642251475496")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "1387918912435258342")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -137,9 +114,10 @@ type:
   checking, has the type of $`e`.
 
 The place operands of a call, a method call, a binary operator other
-than `and` and `or`, and a list literal, and the origins of a call that
-returns a reference passed by reference, are checked again once every
-operand is, by `recheckLocs`; then the call records what it changes.
+than `and` and `or`, a list literal and `print`, and the origins of an
+operand among them that is a call that returns a reference and is a
+located operand, are checked again once every operand is, by
+`recheckLocs`; then the call records what it changes.
 Every index in a place is checked first, and must be an $`\mathsf{Int}`;
 a constant index may not be negative, nor, into an array of $`n`
 elements, $`n` or more. Mojo locates $`q` in $`q[i]` before it

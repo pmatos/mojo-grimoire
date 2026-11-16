@@ -8,6 +8,7 @@ import MojoGrimoire.Check.Env
 import MojoGrimoire.Check.State
 import MojoGrimoire.Check.Loc
 import MojoGrimoire.Check.Fit
+import MojoGrimoire.Check.Change
 import MojoGrimoire.Check.Expr
 import MojoGrimoire.Check.Ref
 import MojoGrimoire.Check.Stmt
