@@ -26,7 +26,8 @@ field. When a function returns, its `mut` parameters and the `self` of
 `__init__` must be wholly initialized, since the caller holds them.
 
 Returning a variable that the function owns moves it out, as Mojo does; any
-other place is copied, implicitly.
+other place is copied, implicitly. A function that returns a reference
+returns a location within its own origin, as `withinOrigin` decides.
 
 An assignment changes its place as a whole. After an `if`, a reference is
 invalidated when either branch invalidates it. A loop whose body can reach
@@ -222,7 +223,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     | some e, some os => do
       let (t, origins, _) ← refTarget prog e
       expect sig.result t
-      unless origins.all (fun o => os.contains (splitPlace o).1) do
+      unless ← origins.allM (withinOrigin prog os) do
         throw (CheckError.escapingReference sig.name)
     checkExit prog
     modify fun s => { s with live := false }

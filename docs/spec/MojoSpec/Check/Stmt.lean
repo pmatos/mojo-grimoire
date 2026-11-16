@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7058572777491562361")
+:::moduleDocs (fingerprint := "2120655222104769282")
 :::
 
 :::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9586730624127733473")
@@ -81,7 +81,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "16582121280960209720")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "1600335221908082079")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
@@ -110,7 +110,8 @@ an expression, so a place is copied implicitly.
 * `return` needs a value of the result type exactly when the result type
   is not $`\mathsf{None}`, checks the state at a return, and makes what
   follows unreachable; a function that returns a reference returns a
-  location whose origins are all within its own origin;
+  location whose origins are all within its own origin, as the previous
+  section says;
 * `drop p` transfers $`p` away.
 
 A block checks its statements in order, and the changes recorded for
