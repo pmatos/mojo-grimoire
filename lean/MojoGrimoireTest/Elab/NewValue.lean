@@ -75,10 +75,35 @@ private def after : Stmt := .print [.str "after"]
 #guard inMain ["    var s = Res(1)", "    s = ident(s^.consume())", "    print(\"after\", s.id)"] ==
   some (.finished ["consume 1", "drop 1", "after 101", "drop 101"])
 
+-- In a branch, the new value dies right after the assignment, inside it.
+#guard inMain ["    var s = Res(1)", "    if True:", "        s = s^.consume()",
+    "        print(\"in\")", "    else:", "        print(\"no\")", "    print(\"after\")"] ==
+  some (.finished ["consume 1", "drop 1", "drop 101", "in", "after"])
+
 -- `s = eat(s^)`, which moves the old value away, is unchanged.
 #guard elabMain ["    var s = Res(1)", "    s = eat(s^)", "    print(\"after\")"] ==
   some [newS, .assign s (.call "eat" [.transfer s]), .drop s, after]
 #guard inMain ["    var s = Res(1)", "    s = eat(s^)", "    print(\"after\")"] ==
   some (.finished ["eat 1", "drop 1", "drop 101", "after"])
+
+-- In a `__deinit__`, a field given a new value made from its old one: the
+-- new value dies right after the assignment.
+#guard ((parse ("\n".intercalate (decls ++ [
+    "def peek(r: Res) -> Int:",
+    "    print(\"peek\", r.id)",
+    "    return r.id",
+    "def make(k: Int) -> Res:",
+    "    return Res(k + 100)",
+    "@fieldwise_init",
+    "struct Pair(Movable):",
+    "    var a: Res",
+    "    var b: Res",
+    "    def __deinit__(deinit self):",
+    "        self.a = make(peek(self.a))",
+    "        print(\"in deinit\")",
+    "def main():",
+    "    var p = Pair(Res(1), Res(2))",
+    "    print(\"after\")"]))).toOption.map (run · 100000)) ==
+  some (.finished ["drop 2", "peek 1", "drop 1", "drop 101", "in deinit", "after"])
 
 end MojoGrimoireTest.Elab.NewValue
