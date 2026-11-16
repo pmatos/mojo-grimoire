@@ -60,7 +60,7 @@ def callParamTys (prog : Program) (f : Name) : List Ty :=
 `self` aside. `append` takes an element of its list, and `pop` nothing. -/
 def methodParamTys (prog : Program) (t : Option Ty) (m : Name) : List Ty :=
   match t with
-  | some (.list u) => if m == "append" then [u] else []
+  | some (.list u) => (listMethod u m).elim [] (·.1.map (·.ty))
   | some (.struct s) => match (findStruct prog s).bind (findMethod · m) with
     | some fd => fd.params.tail.map (·.ty)
     | none => []
@@ -100,7 +100,7 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
     let (p', pt) := inferPlace prog env p
     let args' := (inferList prog env (methodParamTys prog pt m) args).map (·.1)
     let t := match pt with
-      | some (.list u) => some (if m == "pop" then u else .noneType)
+      | some (.list u) => some ((listMethod u m).elim .noneType (·.2))
       | some (.struct s) => ((findStruct prog s).bind (findMethod · m)).map (·.result)
       | _ => none
     (.method p' m args', t)

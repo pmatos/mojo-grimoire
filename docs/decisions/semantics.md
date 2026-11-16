@@ -176,6 +176,12 @@ choices (#18):
   operands after it are evaluated, and read once they all are. A later
   operand that changes the list invalidates it, and the model rejects the
   operation, as the compiler does: `print(xs[0], xs.pop())`.
+- An assignment through a reference into a list element is rejected
+  (`invalidatedReference`) when its own value invalidates the reference:
+  `ref e = xs[0]; e = grow(xs)`. The compiler accepts that and appears to
+  store into the list's old buffer. The model rejects it until the human
+  rules on #57, since running it could leave the interpreter stuck when the
+  call shrinks the list.
 - An assignment into a list element is rejected (`argumentExclusivity`)
   when the value is a call that builds its result in place and is passed
   `mut` the list, or a place that holds it: `xs[0] = xs.pop()`. A call

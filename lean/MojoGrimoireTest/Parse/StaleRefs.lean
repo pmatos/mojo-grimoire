@@ -24,7 +24,7 @@ private def runLines (ls : List String) : Option Outcome :=
 
 /-- The declarations the programs share: `S` holds a list, `R` has a method
 that changes it and one that builds an `R`, and the functions take a list
-`mut`, `ref` or `read`. -/
+`mut`, `ref` or `read`. `W`'s initializer takes a list of `W` `mut`. -/
 private def lib : List String := [
   "@fieldwise_init",
   "struct R(Movable):",
@@ -64,6 +64,11 @@ private def lib : List String := [
   "",
   "def mkRead(rs: List[R]) -> R:",
   "    return R(len(rs))",
+  "",
+  "struct W(Movable):",
+  "    var v: Int",
+  "    def __init__(out self, mut ws: List[W]):",
+  "        self.v = len(ws)",
   ""]
 
 /-- The program whose `main` starts with the variables every test uses,
@@ -74,7 +79,8 @@ private def prog (body : List String) : List String :=
     "var xss: List[List[Int]] = [[1], [2]]",
     "var rs: List[R] = [R(1), R(2)]",
     "var s = S([1, 2], [R(1), R(2)], R(0))",
-    "var arr = [1, 2]"] ++ body).map ("    " ++ ·)
+    "var arr = [1, 2]",
+    "var ws = List[W]()"] ++ body).map ("    " ++ ·)
 
 private def stale (body : List String) (p : Place) : Bool :=
   runLines (prog body) == some (.rejected ⟨"main", .invalidatedReference p⟩)
@@ -121,6 +127,14 @@ private def at_ (p : Place) (i : Int) : Place := .index p (.int i)
 #guard stale ["print(xs[0], len(xs), xs.pop())"] (at_ (x "xs") 0)
 #guard stale ["ref e = xs[0]", "print(e, xs.pop())"] e
 
+-- An index that changes the list holding the place it indexes.
+#guard stale ["print(xss[1][len(xss.pop()) - 1])"] (at_ (x "xss") 1)
+#guard stale ["xss[1][len(xss.pop()) - 1] = 5"] (at_ (x "xss") 1)
+
+-- A loop body that cannot reach its end invalidates nothing after the loop.
+#guard prints ["ref e = xs[0]", "var i = 0", "while i < len(xs) - 5:", "    xs.append(i)",
+  "    return", "print(e)"] ["1"]
+
 -- What keeps a reference valid: changing one element, reading the list,
 -- changing another field, changing an element of the list, or an array.
 #guard prints ["ref e = xs[1]", "xs[0] = 5", "xs[1] = 6", "print(e)"] ["6"]
@@ -148,6 +162,10 @@ private def at_ (p : Place) (i : Int) : Place := .index p (.int i)
 #guard aliased ["s.rs[0] = s.build()"] (x "s")
 #guard aliased ["ref e = xs[0]", "e = xs.pop()"] (x "xs")
 #guard aliased ["ref ys = xs", "ys[0] = xs.pop()"] (x "xs")
+#guard aliased ["ws[0] = W(ws)"] (x "ws")
+-- A badly typed assignment is a type mismatch first.
+#guard runLines (prog ["xss[0][0] = xss.pop()"]) ==
+  some (.rejected ⟨"main", .typeMismatch .int (.list .int)⟩)
 -- Not when the result is an `Int` of a call, the place is not an element,
 -- the call is passed another list or reads it, or is nested.
 #guard prints ["rs[0].v = rs[1].bump()", "print(rs[0].v)"] ["3"]

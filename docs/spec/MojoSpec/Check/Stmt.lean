@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17621398200149278722")
+:::moduleDocs (fingerprint := "8996524880192530108")
 :::
 
 :::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9586730624127733473")
@@ -57,14 +57,15 @@ a part as a use of an uninitialized value.
 $`\mathsf{Int}` or $`\mathsf{Bool}`, which it reads as values.
 :::
 
-:::readable MojoGrimoire.Check.checkConstructed (fingerprint := "16335097865387270397")
+:::readable MojoGrimoire.Check.checkConstructed (fingerprint := "16962242353956809651")
 *Rule: building into an element.* $`p = e` is rejected as
 $`\mathsf{argumentExclusivity}` when $`p` is inside an element of a list,
 and $`e` is a call that builds its result in place and is passed `mut`, or
 `ref` when it may change it, the list or a place that holds it: the change
 would invalidate $`p`. A call of a function or a method builds its result
 in place unless it returns an $`\mathsf{Int}`, a $`\mathsf{Bool}` or a
-reference; `pop` always does, since its result has a generic type in Mojo.
+reference, and so does a struct's `__init__`; a list method that gives an
+element always does, since its result has a generic type in Mojo.
 :::
 
 :::readable MojoGrimoire.Check.checkReturnValue (fingerprint := "8211605308112301922")
@@ -81,9 +82,9 @@ an expression, so a place is copied implicitly.
   may not be the name of a variable in scope, so no variable hides another;
 * $`\mathsf{ref}~x = e` binds $`x` to a reference, as the next section
   says; $`x` may not hide a variable in scope either;
-* $`p = e` checks $`e` first, then that $`e` does not build its result
-  into $`p` while changing the list that holds it, then needs $`p` of
-  $`e`'s type and a place the function may change; $`p` is changed as a
+* $`p = e` checks $`e` first, then needs $`p` of $`e`'s type, then
+  that $`e` does not build its result into $`p` while changing the list
+  that holds it, then needs a place the function may change; $`p` is changed as a
   whole, its old value ends, and $`p` is initialized. The old value may not end with a field in $`M` below
   $`p`, nor with a part moved out below a struct with a destructor of its
   own, as at the end of a variable. Assigning exactly a field in $`M`
@@ -95,13 +96,16 @@ an expression, so a place is copied implicitly.
   still initialized and not invalidated;
 * `if` needs a $`\mathsf{Bool}` condition and joins its branches, each a
   scope of its own; `while` needs a $`\mathsf{Bool}` condition and a
-  body that keeps what was initialized. When the body invalidates a
-  reference, the condition and the body are checked once more with it
-  invalidated, as the next iteration finds it, and it stays invalidated
-  after the loop;
+  body that keeps what was initialized. When the body can reach its end
+  and invalidates a reference, the condition and the body are checked once
+  more with it invalidated, as the next iteration finds it, and it stays
+  invalidated after the loop;
 * `return` needs a value of the result type exactly when the result type
   is not $`\mathsf{None}`, checks the state at a return, and makes what
   follows unreachable; a function that returns a reference returns a
   location whose origins are all within its own origin;
 * `drop p` transfers $`p` away.
+
+A block checks its statements in order, and the changes recorded for
+operands start afresh with each statement.
 :::

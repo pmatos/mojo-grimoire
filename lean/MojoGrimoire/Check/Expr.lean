@@ -166,7 +166,8 @@ def changePlace (prog : Program) (p : Place) : CheckM Unit := do
     for v in (← get).vars do
       if let .alias os _ := v.access then
         for o in os do
-          if invalidates m (← shapeOf prog o) then stale := v.name :: stale
+          if (splitPlace o).1 == m.1 && invalidates m (← shapeOf prog o) then
+            stale := v.name :: stale
     modify fun s => { s with stale := union s.stale stale, changes := s.changes ++ [m] }
 
 /-- The places among the arguments `args` that a call changes: those passed
@@ -181,6 +182,16 @@ def changedArgs : List Param → List Expr → CheckM (List Place)
     | _, _ => pure rest
   | _, _ => pure []
 
+/-- Rejects the place `p`, located once `k` changes were recorded, when a
+change recorded since then invalidates it. -/
+def requireUnchanged (prog : Program) (p : Place) (k : Nat) : CheckM Unit := do
+  let s ← get
+  let later := s.changes.drop k
+  unless later.isEmpty do
+    for q in resolvePlace s.vars p do
+      let o ← shapeOf prog q
+      if later.any (invalidates · o) then throw (CheckError.invalidatedReference p)
+
 /-- Rejects a place among the operands `es` that a later operand left
 uninitialized or invalidated: Mojo reads a place operand only once every
 operand of its operation is evaluated, and a reference argument is used
@@ -190,11 +201,7 @@ def recheckPlaces (prog : Program) (es : List Expr) (ks : List Nat) : CheckM Uni
   (es.zip ks).forM fun
     | (.place p, k) => do
       let _ ← readPlace prog p
-      let s ← get
-      for q in resolvePlace s.vars p do
-        let o ← shapeOf prog q
-        if (s.changes.drop k).any (invalidates · o) then
-          throw (CheckError.invalidatedReference p)
+      requireUnchanged prog p k
     | _ => pure ()
 
 /-- The type of a call of `fd`. A call that returns a reference, used as a
@@ -257,17 +264,15 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     let t ← placeTy prog p
     if let .array .. := t then throw (CheckError.unknownMethod "Array" m)
     if let .list et := t then
-      let params : List Param ← match m with
-        | "append" => pure [⟨.owned, "value", et⟩]
-        | "pop" => pure []
-        | _ => throw (CheckError.unknownMethod "List" m)
+      let some (params, result) := listMethod et m
+        | throw (CheckError.unknownMethod "List" m)
       let _ ← readPlace prog p
       requireMutable p
       let k ← mark
       let ks ← checkArgs prog m params args params.length args.length
       recheckPlaces prog (.place p :: args) (k :: ks)
       changePlace prog p
-      return if m == "pop" then et else .noneType
+      return result
     let .struct s := t | throw (CheckError.typeMismatch (.struct "") t)
     let some sd := findStruct prog s | throw (CheckError.unknownStruct s)
     let some fd := findMethod sd m | throw (CheckError.unknownMethod s m)
@@ -301,13 +306,16 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
 
 /-- Checks the index expressions of the place `p`: each is an `Int`, and
 one that Mojo computes when it compiles the program may not be negative,
-nor, into an array, beyond its last element. -/
+nor, into an array, beyond its last element. Mojo locates `q` in `q[i]`
+before it evaluates `i`, so `i` may not invalidate `q`. -/
 def checkIndices (prog : Program) : Place → CheckM Unit
   | .var _ => pure ()
   | .field p _ => checkIndices prog p
   | .index p i => do
     checkIndices prog p
+    let k ← mark
     expect .int (← checkExprAs prog false i)
+    requireUnchanged prog p k
     if let some k := constInt i then
       if k < 0 then throw (CheckError.negativeIndex (.index p i))
       if let .array _ n := (← placeTy prog p) then

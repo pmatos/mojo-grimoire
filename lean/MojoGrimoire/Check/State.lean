@@ -27,8 +27,8 @@ place that holds it, is changed as a whole: assigned, or passed `mut`, or
 `append` and `pop`. Changing one element does not invalidate it, and an
 array's elements are not invalidated by changes to the array, since an array holds them in place. The state
 records the references bound with `ref` that are invalidated, and the
-changes made so far, so that an operand located before a later operand
-changes its list is found too.
+changes made so far in the current statement, so that an operand located
+before a later operand changes its list is found too.
 -/
 
 namespace MojoGrimoire.Check
@@ -79,7 +79,8 @@ abbrev Shape := Name × List ShapeStep
 
 /-- The checker's state: the variables in scope, innermost first, whether
 the current point can be reached, the references bound with `ref` that are
-invalidated, and the places changed as a whole so far, in order. After a
+invalidated, and the places changed as a whole so far in the current
+statement, in order. After a
 `return`, the current point cannot be reached. -/
 structure State where
   vars : List VarState

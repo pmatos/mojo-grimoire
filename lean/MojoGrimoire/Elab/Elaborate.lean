@@ -116,7 +116,7 @@ is passed by value. `append` takes its list by reference and its argument
 by value, and `pop` takes its list by reference. -/
 def methodModes (prog : Program) (env : TyEnv) (p : Place) (m : Name) : Bool × List Bool :=
   match placeTyOf prog env p with
-  | some (.list _) => (false, [true])
+  | some (.list u) => (false, ((listMethod u m).elim [] (·.1)).map passedByValue)
   | some (.struct s) => match (findStruct prog s).bind (findMethod · m) with
     | some ⟨_, self :: params, _, _, _⟩ => (self.conv == .owned, params.map passedByValue)
     | _ => (false, [])

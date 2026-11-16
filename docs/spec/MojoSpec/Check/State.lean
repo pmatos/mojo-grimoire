@@ -61,7 +61,7 @@ $`U` of its uninitialized parts, and the set $`M` of its fields moved out
 with `^` and not assigned again. The state also says whether the current
 point can be reached; after a `return` it cannot. It holds the set of
 references bound with `ref` that are invalidated, and the shapes of the
-places changed as a whole so far, in order. The checker runs in a monad
+places changed as a whole so far in the current statement, in order. The checker runs in a monad
 that reads and updates this state and may reject the program.
 :::
 

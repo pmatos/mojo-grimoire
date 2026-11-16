@@ -29,9 +29,10 @@ Returning a variable that the function owns moves it out, as Mojo does; any
 other place is copied, implicitly.
 
 An assignment changes its place as a whole. After an `if`, a reference is
-invalidated when either branch invalidates it. A loop whose body
-invalidates a reference is checked once more from the state where it is
-invalidated, since the next iteration uses it so.
+invalidated when either branch invalidates it. A loop whose body can reach
+its end and invalidates a reference is checked once more from the state
+where it is invalidated, since the next iteration uses it so. The changes
+recorded for operands start afresh with each statement.
 -/
 
 namespace MojoGrimoire.Check
@@ -118,17 +119,21 @@ def checkPrintArg (check : Expr → CheckM Ty) : Expr → CheckM Unit
 /-- Rejects the assignment of the value `e` to the place `p` inside an
 element of a list when `e` is a call that builds its result in `p` and is
 passed `mut` that list, or a place that holds it: Mojo reports the result
-as aliased with the argument. A call builds its result in place unless the
-result is an `Int`, a `Bool` or a reference; `pop` always does, since its
-result has the list's element type. -/
+as aliased with the argument. A call, an initializer included, builds its
+result in place unless the result is an `Int`, a `Bool` or a reference; a
+list method that gives an element always does, since its result has a
+generic type. -/
 def checkConstructed (prog : Program) (p : Place) (e : Expr) : CheckM Unit := do
   let builds (fd : FunDecl) := fd.origin.isNone && !fd.result.byValue
   let changed ← match e with
     | .call f args => match findStruct prog f, findFun prog f with
+      | some sd, _ => match sd.init with
+        | some fd => changedArgs fd.params.tail args
+        | none => pure []
       | none, some fd => if builds fd then changedArgs fd.params args else pure []
-      | _, _ => pure []
+      | none, none => pure []
     | .method q m args => match ← placeTy prog q with
-      | .list _ => pure (if m == "pop" then [q] else [])
+      | .list et => pure (if (listMethod et m).any (·.2 != .noneType) then [q] else [])
       | .struct s => match (findStruct prog s).bind (findMethod · m) with
         | some fd => if builds fd then changedArgs fd.params (.place q :: args) else pure []
         | none => pure []
@@ -167,9 +172,9 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     modify fun s => { s with vars := ⟨x, t, .alias origins m, [], []⟩ :: s.vars }
   | .assign p e => do
     let t ← checkExpr prog e
-    checkConstructed prog p e
     checkIndices prog p
     expect (← placeTy prog p) t
+    checkConstructed prog p e
     requireMutable p
     changePlace prog p
     let (x, path) := splitPlace p
@@ -203,7 +208,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
       set { s0 with stale := s0.stale ++ fresh }
       expect .bool (← checkExpr prog c)
       checkScope prog sig body
-    set { s0 with stale := union s0.stale fresh }
+    set { s0 with stale := if s1.live then union s0.stale fresh else s0.stale }
   | .ret value => do
     match value, sig.origin with
     | none, _ => unless sig.result == .noneType do throw (CheckError.invalidReturn sig.name)
@@ -231,6 +236,7 @@ def checkScope (prog : Program) (sig : FunDecl) (b : List Stmt) :
 def checkBlock (prog : Program) (sig : FunDecl) : List Stmt → CheckM Unit
   | [] => pure ()
   | s :: rest => do
+    modify fun st => { st with changes := [] }
     checkStmt prog sig s
     checkBlock prog sig rest
 end
