@@ -11,7 +11,9 @@ are the places it may point into: the place itself, or the same place in
 each origin of the reference it starts from, or the origins of the arguments
 that a call passes to the parameters its origin names, the receiver of a
 method among them. It may be changed through when its place may be, or,
-for a call, when each origin argument passes on a mutable reference.
+for a call, when each origin argument passes on a mutable reference. A
+place reached through `q^` passes on an immutable one: the compiler borrows
+it as a value that cannot be changed.
 A reference that a call returns and that is read late is re-checked
 through the origins of those of its origin arguments that are located
 operands, a temporary among them left out.
@@ -28,10 +30,19 @@ def Access.canChange : Access → Bool
   | .alias _ m => m
   | _ => true
 
-/-- Whether the place `p` may be changed through; a place whose variable is
-not in scope may not. -/
+/-- Whether the variable of the place `p` may be changed through; a place
+whose variable is not in scope may not. It ignores `q^`: a `ref` binding to
+`q^.f` may change `q.f`, as the compiler allows. A place passed on as an
+argument uses `passedMutable`, and a change of the place `requireMutable`. -/
 def placeMutable (p : Place) : CheckM Bool := do
   pure (((← get).vars.find? (·.name == (splitPlace p).1)).any (·.access.canChange))
+
+/-- Whether the place `p`, passed to a `ref` parameter or a `ref self`
+receiver, passes on a mutable reference: it may be changed through, and is
+not reached through `q^`, which the compiler borrows as a value that cannot
+be changed. -/
+def passedMutable (p : Place) : CheckM Bool := do
+  pure ((← placeMutable p) && !throughTransfer p)
 
 /-- Whether a reference that a callee returns through a parameter of
 convention `c` may be changed, when its argument `m` may be: a `mut`
@@ -50,7 +61,7 @@ that is not one. Unless `strict` holds, such an argument, a temporary, is
 skipped instead: the call then gives the origins of its other origin
 arguments, and may not be changed through. -/
 def locOfAs (prog : Program) (strict : Bool) : Expr → CheckM (Option (List Place × Bool))
-  | .place p => do pure (some (resolvePlace (← get).vars p, ← placeMutable p))
+  | .place p => do pure (some (resolvePlace (← get).vars p, ← passedMutable p))
   | .call f args =>
     match callSig prog f with
     | .ok ⟨_, params, _, some os, _⟩ => originsOf prog strict os params args
@@ -63,7 +74,7 @@ def locOfAs (prog : Program) (strict : Bool) : Expr → CheckM (Option (List Pla
     match self with
     | some s =>
       if os.contains s.name then
-        pure (some (resolvePlace (← get).vars p ++ rest, passOn s.conv (← placeMutable p) && mr))
+        pure (some (resolvePlace (← get).vars p ++ rest, passOn s.conv (← passedMutable p) && mr))
       else pure (some (rest, mr))
     | none => pure (some (rest, mr))
   | .withDrops e _ _ => locOfAs prog strict e

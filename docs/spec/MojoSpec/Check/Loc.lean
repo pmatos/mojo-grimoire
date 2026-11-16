@@ -13,13 +13,17 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Located operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2743739407871050504")
+:::moduleDocs (fingerprint := "9763875266898242485")
 :::
 
-:::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable (fingerprint := "514862980997807548")
+:::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable MojoGrimoire.Check.passedMutable (fingerprint := "13335214914752779514")
 *Definition: places that may change.* A function may change a place, by
 assigning to it or passing it `mut`, unless its variable is a `read` or
-`ref` parameter, or a reference that may not be changed.
+`ref` parameter, or a reference that may not be changed; a `ref` binding
+to a place reached through `p^` may change it, as the compiler allows. A
+place passed to a `ref` parameter or a `ref self` receiver passes on a
+mutable reference when it may be changed and is not reached through `p^`,
+which the compiler borrows as a value that cannot be changed.
 :::
 
 :::readable MojoGrimoire.Check.passOn (fingerprint := "2491400132329808649")
@@ -28,10 +32,11 @@ returns through a `mut` parameter may be changed; through a `ref`
 parameter, when its argument may be; through a `read` parameter, never.
 :::
 
-:::readable MojoGrimoire.Check.locOfAs MojoGrimoire.Check.originsOf MojoGrimoire.Check.locOf (fingerprint := "8701476551061711265")
+:::readable MojoGrimoire.Check.locOfAs MojoGrimoire.Check.originsOf MojoGrimoire.Check.locOf (fingerprint := "4619920407038218378")
 *Rule: located operands.* A located operand names a location. A place is
 one: its origins are the place, or the same place in each origin of the
-reference it goes through, and it may be changed when its variable may be.
+reference it goes through, and it passes on a mutable reference when its
+variable may be changed and it is not reached through `p^`.
 A call or a method call that returns a reference is one when every
 argument passed to a parameter its origin names, a method's receiver
 included, is a located operand in turn: its origins are those arguments'
