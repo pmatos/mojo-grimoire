@@ -1,0 +1,13 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "popped 1 2",
+    "drop 3",
+    "drop 2",
+    "after discard 1",
+    "end 1",
+    "drop 1"
+  ],
+  "class": null,
+  "diagnostic": null
+}

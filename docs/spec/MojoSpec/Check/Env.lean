@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16079503390489695119")
+:::moduleDocs (fingerprint := "17399876368173659085")
 :::
 
 :::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "12927198337935588870")
@@ -25,10 +25,13 @@ or when the struct is unknown or has no field $`f`. `fieldNames` gives
 the names of the fields of a struct type, and none for any other type.
 :::
 
-:::readable MojoGrimoire.Check.listMethod (fingerprint := "2784193299032275779")
+:::readable MojoGrimoire.Check.listMethod (fingerprint := "733980435644582305")
 *Definition: the methods of a list.* A list of $`t` has two methods, which
-take their list `mut`: `append` takes one `var` argument of type $`t` and
-gives $`\mathsf{None}`, and `pop` takes none and gives a $`t`.
+take their list `mut` and depend on the number $`n` of arguments of the
+call: `append` takes one `var` argument of type $`t` and gives
+$`\mathsf{None}`, and `pop` gives a $`t`. With $`n = 0`, `pop` takes no
+argument; with any other $`n`, it takes one `read` argument `i` of type
+$`\mathsf{Int}`, so that a call with two arguments is an arity mismatch.
 Inference, the checker and elaboration all read them here.
 :::
 

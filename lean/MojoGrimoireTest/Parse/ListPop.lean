@@ -90,10 +90,6 @@ private def res : List String := [
   "    var xs: List[Int] = [1]",
   "    f(xs)"] (.immutablePlace (.var "xs")) "f"
 
--- `pop` takes no argument here; Mojo's `pop(i)` is outside the subset.
-#guard rejects (inMain ["var xs: List[Int] = [1, 2]", "print(xs.pop(1))"])
-  (.arityMismatch "pop" 0 1)
-
 -- An array has no `pop`.
 #guard rejects (inMain ["var xs = [1, 2]", "print(xs.pop())"]) (.unknownMethod "Array" "pop")
 

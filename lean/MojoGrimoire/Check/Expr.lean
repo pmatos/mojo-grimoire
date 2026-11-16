@@ -264,7 +264,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     let t ← placeTy prog p
     if let .array .. := t then throw (CheckError.unknownMethod "Array" m)
     if let .list et := t then
-      let some (params, result) := listMethod et m
+      let some (params, result) := listMethod et m args.length
         | throw (CheckError.unknownMethod "List" m)
       let _ ← readPlace prog p
       requireMutable p

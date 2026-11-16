@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "invalidatedReference",
+  "diagnostic": "use of invalidated interior reference 'xss[\"element\"]'"
+}

@@ -107,15 +107,20 @@ Lists, `List[T]`, follow the same rules, with these choices (#17):
   argument exclusivity, whatever their indices.
 - A list is copied only explicitly, with `.copy()`, and only when its
   elements can be copied.
-- The only methods modelled are `append`, `pop()` and the built-in `len`,
-  which a function named `len` hides (#40). `pop()` takes its list `mut`,
-  removes the last element and gives it back as an owned value of the
-  element type. On an empty list it fails at run time, as the compiler's
-  bounds check does. Mojo's `pop(i)` is outside the subset (#58), and the model
-  rejects it as an arity mismatch. An index must be an `Int`. An index made
-  only of integer literals, negation, `+`, `-`, `*`, `//` and `%` is
-  computed when the program is compiled, and is rejected when it is
-  negative (`negativeIndex`). `//` and `%` round toward negative infinity
+- The only methods modelled are `append`, `pop()`, `pop(i)` and the
+  built-in `len`, which a function named `len` hides (#40). `pop()` takes
+  its list `mut`, removes the last element and gives it back as an owned
+  value of the element type. On an empty list it fails at run time, as the
+  compiler's bounds check does. `pop(i)` removes and gives back the
+  element at the `Int` index `i` (#58). Its index is evaluated before the
+  list is read, and is checked only at run time: a negative index, even a
+  constant one, fails as out of bounds, as the stdlib's `check_bounds`
+  does. A wrong call of `pop` is an arity or a type mismatch in the model.
+  The compiler reports both as "no matching method", which no pattern of
+  the suite classifies, so only Lean tests cover them. An index must be
+  an `Int`. An index `xs[i]` made only of integer literals, negation,
+  `+`, `-`, `*`, `//` and `%` is computed when the program is compiled,
+  and is rejected when it is negative (`negativeIndex`). `//` and `%` round toward negative infinity
   and give 0 for a zero divisor, as the compiler does.
 
 ### Arrays

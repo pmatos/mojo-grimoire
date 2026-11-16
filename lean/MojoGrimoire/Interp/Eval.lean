@@ -293,6 +293,14 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
           let some v := es.getLast? | fail .indexOutOfBounds
           writeRef r (.list es.dropLast)
           pure (.value v)
+        | "pop", [a] => do
+          let k ← asInt (← evalExpr prog n env a)
+          dropAll prog n env pre
+          let .list es ← readRef r | stuck "pop from a value that is not a list"
+          let j ← position es.length k
+          let some v := es[j]? | fail .indexOutOfBounds
+          writeRef r (.list (es.eraseIdx j))
+          pure (.value v)
         | _, _ => stuck s!"unknown list method {m}"
       | .struct s _ => do
         let some fd := (findStruct prog s).bind (findMethod · m) | stuck s!"unknown method {m}"
