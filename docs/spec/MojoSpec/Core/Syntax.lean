@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Places, expressions and statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14154441587506395592")
+:::moduleDocs (fingerprint := "7137499917617355434")
 :::
 
-:::readable MojoGrimoire.Core.Place MojoGrimoire.Core.Expr (fingerprint := "3018596764382334364")
+:::readable MojoGrimoire.Core.Place MojoGrimoire.Core.Expr (fingerprint := "519563516514138862")
 *Definition: places and expressions.* A place $`p` names a location that holds a value:
 
 ```grammar MojoGrimoire.Core.Place
@@ -48,6 +48,7 @@ method        p.m(e^*)
 unary         \mathit{unop}~e
 binary        e~\mathit{binop}~e
 list          [e^*]_t
+listInit      \mathsf{List}[t](e^+)
 withDrops     \mathsf{drops}(e; p^*; p^*)
 ```
 
@@ -66,8 +67,13 @@ Here $`n` is an integer, $`b` a boolean and $`s` a string literal.
 * $`[e^*]_t` builds a value of the type $`t`, a list or an array, with the
   elements $`e^*`: Mojo's literal `[e1, e2]`, or `List[u]()` when it is
   empty. Mojo gives `[e1, e2]` the type `Array[u, 2]` unless a list is
-  expected where it stands. The parser also reads `List[u](e1, e2)`, which
-  Mojo 1.2.0 rejects (#46).
+  expected where it stands. The parser gives a literal the type `None`,
+  which inference replaces only when a list or an array is expected.
+* $`\mathsf{List}[t](e^+)` is Mojo's `List[u](e1, e2)` with at least one
+  argument, which Mojo 1.2.0 rejects (#46): no initializer of `List` takes
+  its elements as arguments. It accepts one argument that is a list or an
+  array, as an iterable, but that form is outside the subset, and the
+  model rejects it too. The Lean calls it `listInit`.
 * $`\mathsf{drops}(e; p^*; q^*)` performs the operation $`e`, destroying
   the values in the places $`p^*` once its operands are read and those in
   $`q^*` once it is done. No program contains it: elaboration inserts it

@@ -110,9 +110,9 @@ private def xs : Place := .var "xs"
 #guard runLines (inMain ["var xs: List[Int] = [1, 2, 3]", "print(xs[3])"]) ==
   some (.failed .indexOutOfBounds [])
 
--- The size of an array is part of its type.
-#guard rejects (inMain ["var xs: Array[Int, 2] = [1, 2, 3]"])
-  (.typeMismatch (.array .int 2) (.array .int 3))
+-- The size of an array is part of its type. A literal of another size fits
+-- no initializer of the array it initializes (#46).
+#guard rejects (inMain ["var xs: Array[Int, 2] = [1, 2, 3]"]) (.noMatchingInit (.array .int 2))
 #guard rejects (inMain ["var xs = [[1], [2, 3]]"]) (.typeMismatch (.array .int 1) (.array .int 2))
 
 -- An empty literal needs an expected type.

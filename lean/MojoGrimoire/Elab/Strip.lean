@@ -32,6 +32,7 @@ def stripExpr : Expr → Expr
   | .unary op a => .unary op (stripExpr a)
   | .binary op a b => .binary op (stripExpr a) (stripExpr b)
   | .list t es => .list t (stripExprs es)
+  | .listInit u es => .listInit u (stripExprs es)
   | .withDrops e _ _ => stripExpr e
 
 /-- The expressions `es` with every `withDrops` in them erased. -/
@@ -108,7 +109,8 @@ theorem stripExpr_elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Pla
   | .unary op a => simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
   | .list t es => simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
   | .copy p => simp [elabExpr, stripExpr_withDropsOf]
-  | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .withDrops .. => simp [elabExpr]
+  | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .listInit .. | .withDrops .. =>
+    simp [elabExpr]
 
 /-- Elaborating operands only inserts drops. -/
 theorem stripExprs_elabOps (ctx : Ctx) (es : List Expr) (after : List Place) :

@@ -26,7 +26,9 @@ field. When a function returns, its `mut` parameters and the `self` of
 `__init__` must be wholly initialized, since the caller holds them.
 
 Returning a variable that the function owns moves it out, as Mojo does; any
-other place is copied, implicitly. A function that returns a reference
+other place is copied, implicitly. A literal with no list or array expected
+that initializes a declared variable, a place assigned to or a function's
+result fits no initializer of its type (#46). A function that returns a reference
 returns a location within its own origin, as `withinOrigin` decides.
 
 An assignment changes its place as a whole. After an `if`, a reference is
@@ -151,6 +153,17 @@ def checkConstructed (prog : Program) (p : Place) (e : Expr) : CheckM Unit := do
       for t in resolvePlace vars p do
         if invalidates ms (← shapeOf prog t) then throw (CheckError.argumentExclusivity q)
 
+/-- Checks the value `e` that initializes a value of the type `t`, given
+`value`, which checks it and gives its type. A literal with no type expected,
+where `t` is not a list or an array, fits no initializer of `t`: Mojo calls
+`t`'s initializer with the elements, which none takes (#46). -/
+def checkInitValue (prog : Program) (t : Ty) (e : Expr) (value : CheckM Ty) : CheckM Unit := do
+  if let .list .noneType es := e then
+    unless t matches .list _ | .array .. do
+      checkOperands prog es
+      throw (CheckError.noMatchingInit t)
+  expect t (← value)
+
 /-- The type of the value of `return e`: a variable that the function owns
 is moved out, and any other expression is checked as usual. -/
 def checkReturnValue (prog : Program) : Expr → CheckM Ty
@@ -168,7 +181,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     if (← get).vars.any (·.name == x) then throw (CheckError.duplicate x)
     unless validTy prog t do throw (CheckError.invalidType t)
     let us ← match init with
-      | some e => do expect t (← checkExpr prog e); pure []
+      | some e => do checkInitValue prog t e (checkExpr prog e); pure []
       | none => pure [[]]
     modify fun s => { s with vars := ⟨x, t, .owned, us, []⟩ :: s.vars }
   | .refDecl x e => do
@@ -176,7 +189,12 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let (t, origins, m) ← refTarget prog e
     modify fun s => { s with vars := ⟨x, t, .alias origins m, [], []⟩ :: s.vars }
   | .assign p e => do
-    let t ← checkExpr prog e
+    let t ← match e with
+      | .list .noneType _ => do
+        let u ← placeTy prog p
+        checkInitValue prog u e (checkExpr prog e)
+        pure u
+      | _ => checkExpr prog e
     checkIndices prog p
     expect (← placeTy prog p) t
     checkConstructed prog p e
@@ -219,7 +237,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     | none, _ => unless sig.result == .noneType do throw (CheckError.invalidReturn sig.name)
     | some e, none => do
       if sig.result == .noneType then throw (CheckError.invalidReturn sig.name)
-      expect sig.result (← checkReturnValue prog e)
+      checkInitValue prog sig.result e (checkReturnValue prog e)
     | some e, some os => do
       let (t, origins, _) ← refTarget prog e
       expect sig.result t
