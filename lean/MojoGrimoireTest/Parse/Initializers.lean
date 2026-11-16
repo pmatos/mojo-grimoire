@@ -101,6 +101,19 @@ private def withStructs (body : List String) : List String := structs ++ inMain 
 #guard rejects (withStructs ["print(h([True]))"]) (.typeMismatch .int .bool)
 #guard rejects (inMain ["var xs = [1, True]"]) (.typeMismatch .int .bool)
 
+-- A literal that initializes a struct or a `Bool` calls its initializer with
+-- the elements, which none takes; passed to a function, it is converted.
+#guard rejects (withStructs ["var p: P = [1]"]) (.noMatchingInit (.struct "P"))
+#guard rejects (withStructs ["var p: P = [1, True]"]) (.noMatchingInit (.struct "P"))
+#guard rejects (withStructs ["var p: P = []"]) (.noMatchingInit (.struct "P"))
+#guard rejects (withStructs ["var p = P(1)", "p = [2]"]) (.noMatchingInit (.struct "P"))
+#guard rejects (inMain ["var b: Bool = [True]"]) (.noMatchingInit .bool)
+#guard runLines (structs ++ ["def mk() -> P:", "    return [1]", "def main():",
+    "    var p = mk()"]) == some (.rejected ⟨"mk", .noMatchingInit (.struct "P")⟩)
+#guard rejects (withStructs ["var p: P = [nope]"]) (.unknownVariable "nope")
+#guard rejects (structs ++ ["def gp(p: P) -> Int:", "    return p.x", "def main():",
+    "    print(gp([1]))"]) (.typeMismatch (.struct "P") (.array .int 1))
+
 -- A construction with a wrong argument or a wrong number of them, whether
 -- the struct is `@fieldwise_init` or has an `__init__`.
 #guard rejects (withStructs ["var p = P(True)"]) (.noMatchingInit (.struct "P"))

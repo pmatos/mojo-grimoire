@@ -17,7 +17,8 @@ reports both alike, so the model does not tell them apart. For the same
 reason, `noMatchingInit` is any initialization of the type `ty` whose
 arguments fit no initializer: a construction `S(…)` with a wrong number of
 arguments or a wrong one, a literal whose elements do not fit the list or
-array it initializes, and `List[u](e₁, …, eₙ)`. -/
+array it initializes, or that initializes another type, and
+`List[u](e₁, …, eₙ)`. -/
 inductive CheckError where
   | unknownVariable (name : Name)
   | unknownFunction (name : Name)

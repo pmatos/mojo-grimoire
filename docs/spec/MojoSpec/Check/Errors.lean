@@ -37,7 +37,7 @@ of these classes, each with the names or types it concerns:
   arguments fit no initializer (`noMatchingInit`, one class however they
   misfit, since the compiler reports them alike): a construction with
   wrong arguments, a literal that does not fit the list or array it
-  initializes, and `List[u](e1, …, en)`;
+  initializes, or that initializes another type, and `List[u](e1, …, en)`;
 * declarations: a parameter of a convention its function may not have
   (`invalidConvention`), a method or initializer whose `self` is wrong
   (`invalidSelf`), a construction of a struct with no initializer

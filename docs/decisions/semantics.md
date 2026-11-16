@@ -131,7 +131,8 @@ where the compiler and the manual disagree, the model follows the compiler.
   `noMatchingInit`, however they misfit: a construction `S(…)` with a
   wrong number of arguments, a wrong one, or a value passed to a `mut`
   parameter that is not a place or cannot change; a literal that does not
-  fit the list or array it initializes; and `List[T](e1, …, en)`. The
+  fit the list or array it initializes, or that initializes a struct or a
+  `Bool`; and `List[T](e1, …, en)`. The
   compiler reports each as "no matching function in initialization" (#46,
   [conformance.md](conformance.md#initializations-that-fit-no-initializer)).
 - A declaration may not reuse the name of a variable in scope, a

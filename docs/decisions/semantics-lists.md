@@ -71,6 +71,12 @@ here (#27).
   it, and reports one that does not fit, even inside it, as a type
   mismatch, as the model does. So is an element of a literal with no
   expected type that differs from the first (#46).
+- A literal that initializes a declared variable, a place or a result of
+  a type that is neither a list nor an array, a struct or a `Bool`, is
+  `noMatchingInit` too, since that type has no initializer from a list
+  literal. The compiler accepts one for an `Int`, through the
+  `__list_literal__` initializer of `SIMD` (`std/simd.mojo:943`): that is
+  outside the subset, and the model rejects it as `noMatchingInit`.
 - A constant index into an array of `N` elements is rejected when it is `N`
   or more (`constantIndexOutOfBounds`); one known only at run time fails
   then, as on a list. A constant index into a list fails only at run time.
