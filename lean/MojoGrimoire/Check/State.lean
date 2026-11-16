@@ -20,6 +20,15 @@ missing, nor overwrite it, so the variable may not end, and no part above
 such a field may be assigned, until that same field is assigned again.
 Assigning its sub-fields one by one does not count: until then, the field
 and the parts above it may not be read whole.
+
+A reference into an element of a list is invalidated when the list, or a
+place that holds it, is changed as a whole: assigned, or passed `mut`, or
+`ref` from a place that may be changed, which includes the list methods
+`append` and `pop`. Changing one element does not invalidate it, and an
+array's elements are not invalidated by changes to the array, since an array holds them in place. The state
+records the references bound with `ref` that are invalidated, and the
+changes made so far in the current statement, so that an operand located
+before a later operand changes its list is found too.
 -/
 
 namespace MojoGrimoire.Check
@@ -56,11 +65,28 @@ structure VarState where
   moved : List Path
   deriving BEq
 
-/-- The checker's state: the variables in scope, innermost first, and
-whether the current point can be reached. After a `return`, it cannot. -/
+/-- A step from a place down to a part of it, with indices left out: a
+field, an element of a list, or an element of an array. -/
+inductive ShapeStep where
+  | field (f : Name)
+  | listElem
+  | arrayElem
+  deriving BEq
+
+/-- What a place names with its indices left out: the variable it starts
+from, and the steps down from it. -/
+abbrev Shape := Name × List ShapeStep
+
+/-- The checker's state: the variables in scope, innermost first, whether
+the current point can be reached, the references bound with `ref` that are
+invalidated, and the places changed as a whole so far in the current
+statement, in order. After a
+`return`, the current point cannot be reached. -/
 structure State where
   vars : List VarState
   live : Bool
+  stale : List Name
+  changes : List Shape
   deriving BEq
 
 /-- The monad of the checker: it reads and updates the state, and may reject
@@ -161,12 +187,37 @@ where
   /-- Lifts a result of the program's tables into the checker. -/
   liftM {α : Type} (r : Except CheckError α) : CheckM α := StateT.lift r
 
-/-- The places that the place `p` may be, given the variables `vars`: the
-origins of a reference, or `p` itself. -/
+/-- The place `p` with the variable it starts from replaced by the place
+`o`. -/
+def rebase (o : Place) : Place → Place
+  | .var _ => o
+  | .field p f => .field (rebase o p) f
+  | .index p i => .index (rebase o p) i
+
+/-- The places that the place `p` may be, given the variables `vars`: for a
+place reached through a reference, the same place in each of its origins,
+or `p` itself. -/
 def resolvePlace (vars : List VarState) (p : Place) : List Place :=
   match vars.find? (·.name == (splitPlace p).1) with
-  | some ⟨_, _, .alias os _, _, _⟩ => os
+  | some ⟨_, _, .alias os _, _, _⟩ => os.map (rebase · p)
   | _ => [p]
+
+/-- The shape of the place `p`. -/
+def shapeOf (prog : Program) : Place → CheckM Shape
+  | .var x => pure (x, [])
+  | .field p f => do
+    let (x, steps) ← shapeOf prog p
+    pure (x, steps ++ [.field f])
+  | .index p _ => do
+    let (x, steps) ← shapeOf prog p
+    let step := if let .list _ := ← placeTy prog p then ShapeStep.listElem else .arrayElem
+    pure (x, steps ++ [step])
+
+/-- Whether changing the place of shape `m` as a whole invalidates a
+reference into the place of shape `o`: `o` is inside an element of a list
+that `m` holds. -/
+def invalidates (m o : Shape) : Bool :=
+  m.1 == o.1 && m.2.isPrefixOf o.2 && (o.2.drop m.2.length).contains .listElem
 
 /-- Rejects unless the place `p` of the variable `v` is initialized, with no
 field moved out at or below it: a field moved out and refilled one
@@ -178,12 +229,15 @@ def requireInit (v : VarState) (p : Place) : CheckM Unit := do
 
 /-- The type of a place that is initialized, so that its value may be read;
 it rejects a use of a part that is uninitialized. A place reached through a
-reference needs every place the reference may point into initialized. -/
+reference needs the reference still valid, and every place it may point
+into initialized. -/
 def readPlace (prog : Program) (p : Place) : CheckM Ty := do
   let t ← placeTy prog p
   let v ← lookup (splitPlace p).1
   match v.access with
-  | .alias os _ => for o in os do requireInit (← lookup (splitPlace o).1) o
+  | .alias os _ =>
+    if (← get).stale.contains v.name then throw (CheckError.invalidatedReference p)
+    for o in os do requireInit (← lookup (splitPlace o).1) o
   | _ => requireInit v p
   pure t
 

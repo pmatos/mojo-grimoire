@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3692257786948400776")
+:::moduleDocs (fingerprint := "2001545934654995553")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -71,15 +71,28 @@ also be a place the function may change; one passed `var` is copied
 implicitly. No argument may be passed `out` or `deinit`.
 :::
 
-:::readable MojoGrimoire.Check.recheckPlaces (fingerprint := "77372215329890455")
+:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "11143965386256382281")
+*Rule: changes.* A call changes as a whole each place it is passed `mut`,
+and each place it is passed `ref` that the function may change; `append`
+and `pop` change their list. The checker records the change once the
+call's operands are checked, and marks as invalidated every reference
+bound with `ref` whose origin the change invalidates. The mark of an
+operand is the number of changes recorded once it is checked.
+:::
+
+:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckPlaces (fingerprint := "11546196580176740118")
 *Rule: places read late.* Mojo reads a place operand only once every
 operand of its operation is evaluated, and a place passed by reference is
 used during the call. So once the operands are checked, every operand that
 is a place must still be initialized: `f(a.id, g(a^))` is a use of `a.id`
-after its move.
+after its move. It is also rejected as invalidated when a change recorded
+after its mark invalidates it: in `print(xs[0], xs.pop())`, `pop` changes
+the list that holds `xs[0]` before `xs[0]` is read. A place located once
+$`k` changes were recorded is invalidated when a change recorded since
+then invalidates it.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "10866291844482346932")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "8985691703414243278")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -97,8 +110,10 @@ type:
 * $`[e^*]_t`, with $`t` a list or an array of $`u`, passes each element as
   to a `var` parameter of type $`u`; an array must have as many elements
   as its type says;
-* an array has no methods, and on a list the only method is `append`, which needs a list the function
-  may change and takes its argument as `var`; `len(e)`, when the program
+* an array has no methods, and on a list the only methods are `append`
+  and `pop`, which need a list the function may change: `append` takes its
+  argument as `var` and has the type $`\mathsf{None}`, and `pop` takes
+  none and has the list's element type; `len(e)`, when the program
   declares no function `len`, takes a list or an array and gives an
   $`\mathsf{Int}`;
 * $`\mathsf{drops}(e; p^*; q^*)`, which only elaboration inserts, after
@@ -106,15 +121,17 @@ type:
 
 The place operands of a call, a method call, an operator other than
 `and` and `or`, and a list literal are checked again once every operand
-is, by `recheckPlaces`.
+is, by `recheckPlaces`; then the call records what it changes.
 Every index in a place is checked first, and must be an $`\mathsf{Int}`;
 a constant index may not be negative, nor, into an array of $`n`
-elements, $`n` or more.
+elements, $`n` or more. Mojo locates $`q` in $`q[i]` before it
+evaluates $`i`, so $`i` may not invalidate $`q`.
 A call of a function that returns a reference gives the value it points to,
 which must be implicitly copyable, unless the call is bound with `ref`.
 
 The arguments of a call are checked in order against the parameters, after
 the exclusivity rule: a place by `passPlace`, and any other expression by
 its type, which must be the parameter's; a `mut` parameter needs a place.
-The numbers of arguments and parameters must be equal.
+The numbers of arguments and parameters must be equal. Checking the
+arguments gives the mark of each.
 :::

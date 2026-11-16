@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Errors: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14076808025331945643")
+:::moduleDocs (fingerprint := "7423015564557601318")
 :::
 
-:::readable MojoGrimoire.Check.CheckError (fingerprint := "16379167617937173479")
+:::readable MojoGrimoire.Check.CheckError (fingerprint := "12285633989662432982")
 *Definition: the classes of error.* The checker rejects a program with one
 of these classes, each with the names or types it concerns:
 
@@ -47,15 +47,17 @@ of these classes, each with the names or types it concerns:
   (`transferFromBorrowed`) or out of an element of a list or an array
   (`transferFromElement`), a change to a place the function may not
   change (`immutablePlace`), a `mut` argument that is not a place
-  (`notAPlace`) or that aliases another argument
+  (`notAPlace`) or that aliases another argument, or a call that builds
+  its result into an element of a list it changes
   (`argumentExclusivity`), a `mut` parameter or the `self` of `__init__`
   not wholly initialized when the function returns
   (`uninitializedAtExit`), and a struct that ends or is overwritten with
   a field moved out and not assigned again, or with a part moved out below
   a destructor of its own (`partiallyDestroyed`);
 * references: a `ref` binding to something that is not a location
-  (`notAReference`), and a returned reference that may point outside the
-  function's origin (`escapingReference`).
+  (`notAReference`), a returned reference that may point outside the
+  function's origin (`escapingReference`), and a use of a reference into
+  an element of a list after the list changed (`invalidatedReference`).
 :::
 
 :::readable MojoGrimoire.Check.Rejection (fingerprint := "11806667538347354827")

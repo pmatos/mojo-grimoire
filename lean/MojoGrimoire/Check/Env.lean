@@ -26,6 +26,14 @@ def fieldTy (sd : StructDecl) (f : Name) : Option Ty :=
 def findMethod (sd : StructDecl) (m : Name) : Option FunDecl :=
   sd.methods.find? (·.name == m)
 
+/-- The parameters after `self`, and the result, of the method `m` of a list
+of elements of type `t`, which takes its `self` `mut`: `append` takes an
+element and gives nothing, and `pop` takes nothing and gives an element. -/
+def listMethod (t : Ty) : Name → Option (List Param × Ty)
+  | "append" => some ([⟨.owned, "value", t⟩], .noneType)
+  | "pop" => some ([], t)
+  | _ => none
+
 /-- How the values of the type `t` can be copied. `Int` and `Bool` are
 implicitly copyable, as in Mojo; a list or an array only explicitly, with
 `.copy()`, and only when its elements can be copied; string literals and

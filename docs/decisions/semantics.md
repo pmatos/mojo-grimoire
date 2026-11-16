@@ -107,8 +107,12 @@ Lists, `List[T]`, follow the same rules, with these choices (#17):
   argument exclusivity, whatever their indices.
 - A list is copied only explicitly, with `.copy()`, and only when its
   elements can be copied.
-- The only methods modelled are `append` and the built-in `len`, which a
-  function named `len` hides. An index must be an `Int`. An index made
+- The only methods modelled are `append`, `pop()` and the built-in `len`,
+  which a function named `len` hides (#40). `pop()` takes its list `mut`,
+  removes the last element and gives it back as an owned value of the
+  element type. On an empty list it fails at run time, as the compiler's
+  bounds check does. Mojo's `pop(i)` is outside the subset (#58), and the model
+  rejects it as an arity mismatch. An index must be an `Int`. An index made
   only of integer literals, negation, `+`, `-`, `*`, `//` and `%` is
   computed when the program is compiled, and is rejected when it is
   negative (`negativeIndex`). `//` and `%` round toward negative infinity
@@ -157,8 +161,32 @@ choices (#18):
 - An origin names only `read`, `mut` or `ref` parameters, and a returned
   reference must stay within the function's origin.
 - A reference overlaps what its origins overlap, for argument
-  exclusivity. Changing an origin while a reference to it is live is not
-  rejected.
+  exclusivity. A reference through another reference points into the same
+  place of each of the other's origins.
+- A reference into an element of a list is invalidated when the list, or a
+  place that holds it, changes as a whole. That means it is assigned,
+  passed `mut`, or passed `ref` from a place that may be changed, which
+  includes `append` and `pop`. Using the reference afterwards, on any path
+  or on a later iteration of a loop, is rejected (`invalidatedReference`),
+  as the compiler does (#55). Changing one element, reading the list,
+  or assigning a whole array does not invalidate it, since an array holds
+  its elements in place. Any other change to an origin while a reference to it
+  is live is not rejected.
+- A place operand that goes through a list element is located before the
+  operands after it are evaluated, and read once they all are. A later
+  operand that changes the list invalidates it, and the model rejects the
+  operation, as the compiler does: `print(xs[0], xs.pop())`.
+- An assignment through a reference into a list element is rejected
+  (`invalidatedReference`) when its own value invalidates the reference:
+  `ref e = xs[0]; e = grow(xs)`. The compiler accepts that and appears to
+  store into the list's old buffer. The model rejects it until the human
+  rules on #57, since running it could leave the interpreter stuck when the
+  call shrinks the list.
+- An assignment into a list element is rejected (`argumentExclusivity`)
+  when the value is a call that builds its result in place and is passed
+  `mut` the list, or a place that holds it: `xs[0] = xs.pop()`. A call
+  builds its result in place unless it returns an `Int`, a `Bool` or a
+  reference. `pop` always does, since its result has a generic type.
 - A call that returns a reference, used as a value, copies the value
   implicitly.
 - Elaboration counts each use of a reference as a use of its origins, so

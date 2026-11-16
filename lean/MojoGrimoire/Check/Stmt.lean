@@ -27,6 +27,12 @@ field. When a function returns, its `mut` parameters and the `self` of
 
 Returning a variable that the function owns moves it out, as Mojo does; any
 other place is copied, implicitly.
+
+An assignment changes its place as a whole. After an `if`, a reference is
+invalidated when either branch invalidates it. A loop whose body can reach
+its end and invalidates a reference is checked once more from the state
+where it is invalidated, since the next iteration uses it so. The changes
+recorded for operands start afresh with each statement.
 -/
 
 namespace MojoGrimoire.Check
@@ -72,22 +78,24 @@ def endScope (prog : Program) (n : Nat) : CheckM Unit := do
   let ended := s.vars.take (s.vars.length - n)
   if s.live then
     for v in ended do checkEnd prog v
-  set { s with vars := s.vars.drop (s.vars.length - n) }
+  set { s with vars := s.vars.drop (s.vars.length - n),
+               stale := s.stale.filter fun x => !ended.any (·.name == x) }
 
 /-- The uninitialized parts after two branches: those of either. -/
 def joinUninit (a b : List Path) : List Path :=
   b.foldl uninitialize a
 
 /-- The state after two branches that started from the same state: a part
-is uninitialized, or a field moved out, when either branch leaves it so. A
-branch that cannot reach its end does not count. -/
+is uninitialized, a field moved out, or a reference invalidated, when either
+branch leaves it so. A branch that cannot reach its end does not count. -/
 def joinStates (a b : State) : State :=
   if !a.live then b
   else if !b.live then a
-  else { vars := List.zipWith (fun v w =>
+  else { a with
+         vars := List.zipWith (fun v w =>
              { v with uninit := joinUninit v.uninit w.uninit, moved := union v.moved w.moved })
            a.vars b.vars,
-         live := true }
+         stale := union a.stale b.stale }
 
 /-- Rejects a loop whose body, from the state `before`, ends in the state
 `after` with a part uninitialized that was initialized before, or with a
@@ -107,6 +115,36 @@ def checkPrintArg (check : Expr → CheckM Ty) : Expr → CheckM Unit
   | e => do
     let t ← check e
     unless t == .int || t == .bool do throw (CheckError.notPrintable t)
+
+/-- Rejects the assignment of the value `e` to the place `p` inside an
+element of a list when `e` is a call that builds its result in `p` and is
+passed `mut` that list, or a place that holds it: Mojo reports the result
+as aliased with the argument. A call, an initializer included, builds its
+result in place unless the result is an `Int`, a `Bool` or a reference; a
+list method that gives an element always does, since its result has a
+generic type. -/
+def checkConstructed (prog : Program) (p : Place) (e : Expr) : CheckM Unit := do
+  let builds (fd : FunDecl) := fd.origin.isNone && !fd.result.byValue
+  let changed ← match e with
+    | .call f args => match findStruct prog f, findFun prog f with
+      | some sd, _ => match sd.init with
+        | some fd => changedArgs fd.params.tail args
+        | none => pure []
+      | none, some fd => if builds fd then changedArgs fd.params args else pure []
+      | none, none => pure []
+    | .method q m args => match ← placeTy prog q with
+      | .list et => pure (if (listMethod et m).any (·.2 != .noneType) then [q] else [])
+      | .struct s => match (findStruct prog s).bind (findMethod · m) with
+        | some fd => if builds fd then changedArgs fd.params (.place q :: args) else pure []
+        | none => pure []
+      | _ => pure []
+    | _ => pure []
+  let vars := (← get).vars
+  for q in changed do
+    for m in resolvePlace vars q do
+      let ms ← shapeOf prog m
+      for t in resolvePlace vars p do
+        if invalidates ms (← shapeOf prog t) then throw (CheckError.argumentExclusivity q)
 
 /-- The type of the value of `return e`: a variable that the function owns
 is moved out, and any other expression is checked as usual. -/
@@ -136,7 +174,9 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let t ← checkExpr prog e
     checkIndices prog p
     expect (← placeTy prog p) t
+    checkConstructed prog p e
     requireMutable p
+    changePlace prog p
     let (x, path) := splitPlace p
     let v ← lookup x
     if splitPlace.indexed p || v.access matches .alias .. then
@@ -147,8 +187,8 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     setVar { v with uninit := initPart prog v.uninit v.ty path, moved := v.moved.erase path }
   | .expr e => do let _ ← checkExpr prog e
   | .print args => do
-    args.attach.forM fun ⟨e, _⟩ => checkPrintArg (checkExpr prog) e
-    recheckPlaces prog args
+    let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg (checkExpr prog) e; mark
+    recheckPlaces prog args ks
   | .ifElse c thenBlock elseBlock => do
     expect .bool (← checkExpr prog c)
     let s0 ← get
@@ -161,8 +201,14 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     expect .bool (← checkExpr prog c)
     let s0 ← get
     checkScope prog sig body
-    checkLoop s0 (← get)
-    set s0
+    let s1 ← get
+    checkLoop s0 s1
+    let fresh := s1.stale.filter (!s0.stale.contains ·)
+    if s1.live && !fresh.isEmpty then
+      set { s0 with stale := s0.stale ++ fresh }
+      expect .bool (← checkExpr prog c)
+      checkScope prog sig body
+    set { s0 with stale := if s1.live then union s0.stale fresh else s0.stale }
   | .ret value => do
     match value, sig.origin with
     | none, _ => unless sig.result == .noneType do throw (CheckError.invalidReturn sig.name)
@@ -190,6 +236,7 @@ def checkScope (prog : Program) (sig : FunDecl) (b : List Stmt) :
 def checkBlock (prog : Program) (sig : FunDecl) : List Stmt → CheckM Unit
   | [] => pure ()
   | s :: rest => do
+    modify fun st => { st with changes := [] }
     checkStmt prog sig s
     checkBlock prog sig rest
 end
