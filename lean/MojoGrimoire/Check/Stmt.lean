@@ -17,7 +17,10 @@ returns, the parts it still holds are destroyed. The compiler destroys a
 struct whole, so a variable may not end with a field moved out and not
 assigned again, nor with a part uninitialized below a struct that has a
 `__deinit__` of its own. Assigning to a part destroys its old value, so
-the same holds for the part. The `self` of `__deinit__` is the exception:
+the same holds for the part. Assigning through a reference, or to an
+element, needs the old value initialized, with no field moved out. A loop
+body may not leave a field moved out that was not before the loop. The
+`self` of `__deinit__` is the exception:
 its own fields may stay moved out, since it is being destroyed field by
 field. When a function returns, its `mut` parameters and the `self` of
 `__init__` must be wholly initialized, since the caller holds them.
@@ -84,13 +87,16 @@ def joinStates (a b : State) : State :=
          live := true }
 
 /-- Rejects a loop whose body, from the state `before`, ends in the state
-`after` with a part uninitialized that was initialized before: the next
-iteration would use it uninitialized. -/
+`after` with a part uninitialized that was initialized before, or with a
+field moved out that was not moved out before: the next iteration would use
+it uninitialized. -/
 def checkLoop (before after : State) : CheckM Unit := do
   if after.live then
     for (v, w) in List.zip before.vars after.vars do
       if let some u := w.uninit.find? (fun u => !v.uninit.any (·.isPrefixOf u)) then
         throw (CheckError.uninitializedUse (u.foldl .field (.var v.name)))
+      if let some m := w.moved.find? (!v.moved.contains ·) then
+        throw (CheckError.uninitializedUse (m.foldl .field (.var v.name)))
 
 /-- Checks a value printed by `print`: a string literal, an `Int` or a
 `Bool`. -/
@@ -129,11 +135,11 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     checkIndices prog p
     expect (← placeTy prog p) t
     requireMutable p
-    if splitPlace.indexed p then
-      let _ ← readPlace prog p
-      return
     let (x, path) := splitPlace p
     let v ← lookup x
+    if splitPlace.indexed p || v.access matches .alias .. then
+      let _ ← readPlace prog p
+      return
     let below := (v.uninit.filter fun u => path.isPrefixOf u && u != path).map (·.drop path.length)
     if partlyMovedDeinit prog (partTy prog v.ty path) below 0 ||
         v.moved.any (fun u => path.isPrefixOf u && u != path) then

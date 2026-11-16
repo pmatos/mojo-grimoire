@@ -62,6 +62,11 @@ where the compiler and the manual disagree, the model follows the compiler.
   below a struct with a `__deinit__` of its own may not be uninitialized
   when the struct ends either. Inside `__deinit__`, `self`'s own fields may
   stay moved out, but not fields of its fields.
+- Until a field moved out is assigned again at its path, the compiler
+  reports a use of it, or of a part above it, as `uninitializedUse`, even
+  after each of its sub-fields was assigned. The same holds for a loop
+  body that leaves such a field moved out, and for overwriting the struct
+  through a reference.
 - `p^` of type `Int` or `Bool` is a copy: the compiler warns that the
   transfer has no effect, and `p` keeps its value. So it may be read again,
   it may be a `read` parameter, a field of one, or a reference, and a

@@ -103,6 +103,21 @@ private def moveOut (p : Place) : Stmt := .expr (.call "consume" [.transfer p])
   .assign (fld2 "b" "p" "a") (newRes 3), .assign (fld2 "b" "p" "b") (newRes 4)]) ==
   some (.partiallyDestroyed "b")
 
+-- `consume(p.a^); p.a.id = 3; show(p.a)`: a field refilled one sub-field at a
+-- time is not whole again, so it may not be read whole, nor moved out again.
+#guard verdict (prog [declPair "p", moveOut (fld "p" "a"), .assign (fld2 "p" "a" "id") (.int 3),
+  .expr (.call "show" [.place (fld "p" "a")]), .assign (fld "p" "a") (newRes 4)]) ==
+  some (.uninitializedUse (fld "p" "a"))
+#guard verdict (prog [declPair "p", moveOut (fld "p" "a"), .assign (fld2 "p" "a" "id") (.int 3),
+  moveOut (fld "p" "a"), .assign (fld "p" "a") (newRes 4)]) ==
+  some (.uninitializedUse (fld "p" "a"))
+
+-- `ref r = p; consume(p.a^); r = Pair(...)`: overwriting `p` through a
+-- reference needs it whole.
+#guard verdict (prog [declPair "p", .refDecl "r" (.place (v "p")), moveOut (fld "p" "a"),
+  .assign (v "r") (newPair 3 4), .assign (fld "p" "a") (newRes 5)]) ==
+  some (.uninitializedUse (v "p"))
+
 -- After an `if`, the field is moved out unless both branches assign it again.
 #guard verdict (prog [declPair "p", .decl "c" .bool (some (.bool true)), moveOut (fld "p" "a"),
   .ifElse (.place (v "c")) [.assign (fld "p" "a") (newRes 3)] []]) == some (.partiallyDestroyed "p")
@@ -117,6 +132,12 @@ private def moveOut (p : Place) : Stmt := .expr (.call "consume" [.transfer p])
 -- A loop that moves the field out and assigns it again.
 #guard verdict (prog [declPair "p", .decl "c" .bool (some (.bool false)),
   .whileLoop (.place (v "c")) [moveOut (fld "p" "a"), .assign (fld "p" "a") (newRes 3)]]) == none
+
+-- A loop body that refills the field one sub-field at a time leaves it moved
+-- out for the next iteration.
+#guard verdict (prog [declPair "p", .decl "c" .bool (some (.bool false)),
+  .whileLoop (.place (v "c")) [moveOut (fld "p" "a"), .assign (fld2 "p" "a" "id") (.int 3)],
+  .assign (fld "p" "a") (newRes 4)]) == some (.uninitializedUse (fld "p" "a"))
 
 -- `def f(var p: Pair): consume(p.a^)`: an owned parameter ends like a local.
 #guard verdict (prog [] [⟨"f", [⟨.owned, "p", pair⟩], .noneType, [moveOut (fld "p" "a")], none⟩]) ==

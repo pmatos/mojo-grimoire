@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4802219020432241139")
+:::moduleDocs (fingerprint := "4857728615782686939")
 :::
 
 :::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.checkEnd (fingerprint := "17538961837886157612")
@@ -44,11 +44,11 @@ leaves it so. A branch that cannot reach its end, because it
 returned, does not count.
 :::
 
-:::readable MojoGrimoire.Check.checkLoop (fingerprint := "18258324302713265945")
+:::readable MojoGrimoire.Check.checkLoop (fingerprint := "2654675785511278145")
 *Rule: loops.* A loop body must leave initialized every part that was
-initialized before the loop, or its next iteration would use a moved
-value. As Mojo does, the checker reports such a part as a use of an
-uninitialized value.
+initialized before the loop, and may not add a field to $`M`, or its next
+iteration would use a moved value. As Mojo does, the checker reports such
+a part as a use of an uninitialized value.
 :::
 
 :::readable MojoGrimoire.Check.checkPrintArg (fingerprint := "15869644014447858079")
@@ -75,7 +75,9 @@ an expression, so a place is copied implicitly.
   is initialized. The old value may not end with a field in $`M` below
   $`p`, nor with a part moved out below a struct with a destructor of its
   own, as at the end of a variable. Assigning exactly a field in $`M`
-  removes it from $`M`; assigning a part below that field does not;
+  removes it from $`M`; assigning a part below that field does not.
+  Through a reference or to an element, the old value is read first, so
+  it must be initialized;
 * an expression statement checks its expression;
 * `print` checks its arguments as above, then that its place arguments are
   still initialized;
