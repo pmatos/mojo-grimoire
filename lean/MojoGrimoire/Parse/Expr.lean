@@ -11,8 +11,11 @@ place while it reads fields and indices; `x^`, `x.copy()`, a method call
 stays a place, `transferred x`, whose fields and methods the chain goes on
 to read: the compiler reads `x^.f` as the field `f` of `x`, which it
 borrows, and `x^.m(…)` as a call on `x` that takes it only for a method
-whose `self` is `var`. The type of a literal
-`[…]` is left for inference, and `List[T](…)` is a list of `T`.
+whose `self` is `var`. The type of a literal `[…]` is left for
+inference, and `List[T]()` is an empty list of `T`. `List[T](e₁, …, eₙ)`
+with arguments is read as a call of `List`'s initializer, which the checker
+rejects (#46). The compiler rejects it too, but for one iterable argument,
+a form outside the subset.
 
 `^` is also binary XOR, which is outside the subset. As in the compiler,
 `^` after a term is XOR when the next token of the logical line can start
@@ -188,7 +191,7 @@ def trailers (fuel : Nat) (t : Term) : P Term :=
     else pure t
 
 /-- Reads a primary expression: a literal, a name, a parenthesized
-expression, a list literal, or `List[T](…)`. -/
+expression, a list literal, `List[T]()`, or `List[T](e₁, …, eₙ)`. -/
 def primary (fuel : Nat) : P Term :=
   match fuel with
   | 0 => fail "an expression too deeply nested"
@@ -204,7 +207,9 @@ def primary (fuel : Nat) : P Term :=
       let t ← ty n
       expectSym "]"
       expectSym "("
-      pure (.expr (.list (.list t) (← exprList n ")")))
+      match ← exprList n ")" with
+      | [] => pure (.expr (.list (.list t) []))
+      | args => pure (.expr (.listInit t args))
     | some (.sym "(") =>
       let _ ← next
       let e ← expr n

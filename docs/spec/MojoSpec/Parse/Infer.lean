@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8455550574986616351")
+:::moduleDocs (fingerprint := "14058701553021559856")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "7491183084080357663")
@@ -22,7 +22,7 @@ variables in scope, innermost first. An arithmetic operator gives an
 $`\mathsf{Int}`, and every other binary operator a $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "17223929135659761574")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "12339081305316815501")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
@@ -35,7 +35,11 @@ gives an $`\mathsf{Int}`. Any other call with no signature has no type. A litera
 it stands, a list type or an array type, and the checker compares an
 array's size with the literal's length. With no list or array expected, it is
 an array of its elements, of the type of the first: Mojo's
-$`\mathsf{Array}[t, n]`. The elements of a literal are expected to have its
+$`\mathsf{Array}[t, n]`. Inference gives that type to what holds the
+literal, and leaves the literal's own type `None`, so that the checker
+tells it from a literal that initializes an expected type (#46).
+$`\mathsf{List}[u](e^+)` is a list of $`u`, whose arguments are expected
+to have no type. The elements of a literal are expected to have its
 element type, and the arguments of a call the types of its parameters; the
 argument of `append` is expected to be an element of the list, and the
 index of `pop(i)` an $`\mathsf{Int}`. The drops

@@ -32,6 +32,7 @@ def Expr.beq : Expr → Expr → Bool
   | .unary o a, .unary p b => o == p && Expr.beq a b
   | .binary o a b, .binary p c d => o == p && Expr.beq a c && Expr.beq b d
   | .list t as, .list u bs => t == u && Expr.beqList as bs
+  | .listInit t as, .listInit u bs => t == u && Expr.beqList as bs
   | .withDrops a ps qs, .withDrops b rs ss =>
     Expr.beq a b && Place.beqList ps rs && Place.beqList qs ss
   | _, _ => false

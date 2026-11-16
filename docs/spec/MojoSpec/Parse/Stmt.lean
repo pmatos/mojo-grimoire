@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and declarations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4794196790456210671")
+:::moduleDocs (fingerprint := "10198029768467058689")
 :::
 
-:::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.exprStmt (fingerprint := "9483809680121531083")
+:::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.exprStmt (fingerprint := "16795075977046820149")
 *Definition: sugar.* `p += e`, `p -= e` and `p *= e` are `p = p + e`,
 `p = p - e` and `p = p * e`. A call of `print` on a line of its own is the
 $`\mathsf{print}` statement; any other expression there is evaluated and

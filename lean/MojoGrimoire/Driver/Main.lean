@@ -42,6 +42,7 @@ def CheckError.className : CheckError → String
   | .notPrintable .. => "notPrintable"
   | .stringOutsidePrint => "stringOutsidePrint"
   | .arityMismatch .. => "arityMismatch"
+  | .noMatchingInit .. => "noMatchingInit"
   | .invalidConvention .. => "invalidConvention"
   | .invalidSelf .. => "invalidSelf"
   | .noInitializer .. => "noInitializer"

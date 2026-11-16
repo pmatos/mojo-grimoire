@@ -78,6 +78,8 @@ compared with the compiler's diagnostics.
 
 {includeReadable "." MojoGrimoire.Check.Loc "Located operands" MojoSpec.Check.Loc (level := 2)}
 
+{includeReadable "." MojoGrimoire.Check.Fit "Arguments that do not fit" MojoSpec.Check.Fit (level := 2)}
+
 {includeReadable "." MojoGrimoire.Check.Expr "Expressions and arguments" MojoSpec.Check.Expr (level := 2)}
 
 {includeReadable "." MojoGrimoire.Check.Ref "References" MojoSpec.Check.Ref (level := 2)}
