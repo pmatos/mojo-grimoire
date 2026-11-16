@@ -69,12 +69,12 @@ where the compiler and the manual disagree, the model follows the compiler.
   through a reference.
 - `p^` of type `Int` or `Bool` is the place `p`: the compiler warns that
   the transfer has no effect, and uses `p` as if `^` were not there. So `p`
-  keeps its value, may be a `read` parameter, a field of one or a
-  reference, is read when other places are, and may be passed to a `mut`
-  parameter. Inference rewrites `p^` to `p`, so the core calculus's
-  transfer always moves (#50). An element of a list or an array, or a
-  field of one, stays a transfer and is rejected as `transferFromElement`
-  (#43).
+  keeps its value, may be a `read` parameter, a field of one, a
+  reference, an element of a list or an array, or a field of an element,
+  is read when other places are, and may be passed to a `mut` parameter.
+  Inference rewrites `p^` to `p`, so the core calculus's transfer always
+  moves (#50, #43). Any other element, or a field of one, is rejected as
+  `transferFromElement`, as the compiler does.
 - A field moved out of a struct that was built field by field, and never
   initialized whole, is rejected like any other. The compiler accepts that
   program when the struct's other fields stay uninitialized (#51).

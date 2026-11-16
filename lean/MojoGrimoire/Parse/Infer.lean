@@ -18,9 +18,9 @@ the type `t` of the first, as in Mojo. What inference cannot find stays
 
 Inference also gives `p^` its meaning when `p` is an `Int` or a `Bool`.
 Mojo does not move such a value: it warns that the transfer has no effect,
-and uses the place `p`, which is what inference puts in its stead. An
-element of a list or an array stays a transfer, which the checker rejects
-(#43).
+and uses the place `p`, which is what inference puts in its stead. That
+holds wherever `p` is, also an element of a list or an array, or a field of
+one, which keeps its value.
 -/
 
 namespace MojoGrimoire.Parse
@@ -79,8 +79,7 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
   | .place p => let (p', t) := inferPlace prog env p; (.place p', t)
   | .transfer p =>
     let (p', t) := inferPlace prog env p
-    if t.any Ty.byValue && !splitPlace.indexed p' then (.place p', t)
-    else (.transfer p', t)
+    if t.any Ty.byValue then (.place p', t) else (.transfer p', t)
   | .copy p => let (p', t) := inferPlace prog env p; (.copy p', t)
   | .call f args =>
     let sig := (callSig prog f).toOption
