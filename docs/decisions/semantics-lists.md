@@ -102,9 +102,49 @@ here (#27).
 - A literal that initializes a declared variable, a place or a result of
   a type that is neither a list nor an array, a struct or a `Bool`, is
   `noMatchingInit` too, since that type has no initializer from a list
-  literal. The compiler accepts one for an `Int`, through the
-  `__list_literal__` initializer of `SIMD` (`std/simd.mojo:943`): that is
-  outside the subset, and the model rejects it as `noMatchingInit`.
+  literal.
+- An `Int` has one. Mojo 1.2.0's `Int` is `SIMD[DType.int, 1]`
+  (`std/simd.mojo:120`), whose `__list_literal__` initializer
+  (`std/simd.mojo:941`) takes the elements as `Int`s. So a literal `[e]`
+  of one `Int` element, where an `Int` is expected, is the value of `e`.
+  The human ruled on 2026-11-18 that the model follows the compiler here
+  (#103). The probes of that day show where an `Int` is expected: the
+  declared type of a variable, the type of a place assigned to, a
+  function's result, a parameter of any convention but `mut`, which needs
+  a place, an initializer's or a method's parameter, `append` and
+  `pop(i)` on a `List[Int]`, an index, and the element type of an
+  enclosing literal, so `var xs: List[Int] = [[1], [2]]` is `[1, 2]` and
+  `var x: Int = [[1]]` is `1`. An operator other than `and` and `or` on
+  an `Int` expects one as its right operand, and an arithmetic operator,
+  through the `__radd__` family, as its left: `x + [2]` and `[2] - x` are
+  `Int`s, and `x < [2]` a `Bool`, but `[2] < x` and `[1] == x` compare an
+  array with an `Int`, a type mismatch, since `Array` has the comparison
+  methods. Where nothing is expected, such as the argument of
+  `List[Int](…)`, the operand of `-`, `and` or `or`, or `print`, the
+  literal stays an array.
+- The compiler reads `[e]` as it reads the operand `e`: a place in it is
+  read once every operand of the operation is evaluated, so
+  `[x] + bump(x)`, with `bump` changing `x`, reads the changed `x`, a
+  later operand that moves or invalidates the place is rejected, and a
+  value whose last use is the place is destroyed after the other
+  operands. Inference therefore puts `e` in the literal's stead. Passed
+  `mut` or `ref`, the literal is a temporary instead: `bump([x])` and
+  `bump([pick(x)])`, with `bump` taking `mut`, are rejected, and passed
+  `ref`, the temporary is filled from `e` when the call is made, after
+  its other arguments, so `both([x], bump(x))` sees the changed `x`, but
+  a reference that `pick([x])` returns does not see a later change. A literal returned by a
+  function that returns a reference is no place either. A literal
+  made only of literals and operators stays, typed `Int`: the compiler
+  does not compute an index that holds one when it compiles the program,
+  so `xs[[-1]]` and `arr[[2]]` fail only at run time.
+- An element that is not an `Int`, `[True]`, fits no initializer of `Int`
+  (`noMatchingInit`), and passed to a function, or as the right operand of
+  an operator other than `and` and `or`, it is a type mismatch. As the
+  left operand of an arithmetic operator, `[True] + x`, or an operand of
+  `and` and `or`, `x or [True]`, the compiler reports that the array has
+  no `__add__` or `__bool__`, a message the suite does not classify. A literal of another length is accepted by a default
+  build, which keeps its first element, and `[]` crashes; the model keeps
+  rejecting both, as above, until #122 is ruled.
 - A constant index into an array of `N` elements is rejected when it is `N`
   or more (`constantIndexOutOfBounds`); one known only at run time fails
   then, as on a list. A constant index into a list fails only at run time.

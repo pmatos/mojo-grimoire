@@ -44,7 +44,10 @@ else. These choices hold:
   implicit, since no variable of the subset has that type. Inference then
   gives `var x = e` the type of `e`, and a literal `[e1, …, en]` the type
   expected where it stands, or else `Array[T, n]` (see
-  [Arrays](semantics-lists.md#arrays)).
+  [Arrays](semantics-lists.md#arrays)). A literal `[e]` of one `Int`
+  element where an `Int` is expected is replaced by `e`, or, when `e` is
+  made only of literals and operators or the literal is passed `mut` or
+  `ref`, gets the type `Int` (#103).
   What it cannot find stays `None`, and the checker rejects it, after the
   initializer's own error, which comes first (#123). A literal
   with no expected type keeps `None` as its own type, which the checker

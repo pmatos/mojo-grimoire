@@ -6,7 +6,9 @@ The big-step evaluation of elaborated programs.
 
 Evaluation goes left to right, as in Mojo. The operands of an operation, the
 arguments of a call, the elements of a list literal or the values printed,
-are evaluated in order, but an operand that is a place passed by value, or
+are evaluated in order, and a literal of type `Int`, `[e]`, is the value
+of `e`; passed `ref`, it is read as `e` passed by value, into a temporary.
+An operand that is a place passed by value, or
 a call that returns a reference, is only located then: as in Mojo, it is
 read once every operand has been evaluated, so a call among the later
 operands may change it first. The operand of a unary operator, and those
@@ -175,6 +177,7 @@ def evalExpr (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Value 
       let x ← evalOperand prog n env a
       let y ← evalOperand prog n env b
       binary op (← x.load) (← y.load)
+    | .list .int [e] => evalExpr prog n env e
     | .list _ es => do
       let os ← es.mapM (evalOperand prog n env)
       pure (.list (← os.mapM Operand.load))
@@ -244,6 +247,7 @@ def evalArgs (prog : Program) (fuel : Nat) (env : Env) :
             if prm.ty.byValue then do pure (.load (← evalOperand prog n env (.place p)))
             else do pure (.arg (.place (← placeRef prog n env p)))
           | _, .place p => do pure (.arg (.place (← placeRef prog n env p)))
+          | _, .list .int [e] => do pure (.load (← evalOperand prog n env e))
           | _, a => do
             match ← evalResult prog n env a with
             | .ref r =>
