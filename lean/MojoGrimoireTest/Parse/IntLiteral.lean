@@ -34,6 +34,11 @@ private def lib : List String := [
   "def bump(mut x: Int):", "    x += 1",
   "def seven() -> Int:", "    return [7]",
   "def loud(n: Int) -> Int:", "    print(\"loud\", n)", "    return n",
+  "def inc(mut x: Int) -> Int:", "    x += 10", "    return 0",
+  "def two(a: Int, b: Int) -> Int:", "    return a * 100 + b",
+  "@fieldwise_init", "struct D(Movable):", "    var n: Int",
+  "    def __deinit__(deinit self):", "        print(\"del\", self.n)",
+  "def eat(var d: D) -> Int:", "    return 5",
   "@fieldwise_init", "struct S(Movable):", "    var a: Int", "    var b: Bool",
   "struct Q(Movable):", "    var a: Int",
   "    def __init__(out self, a: Int):", "        self.a = a",
@@ -59,6 +64,11 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
   some [.decl "y" .int (some (.list .int [.int 1]))]
 #guard mainBody ["def main():", "    var y: Int = [[1]]"] ==
   some [.decl "y" .int (some (.list .int [.list .int [.int 1]]))]
+
+-- A literal that reads a place or calls is replaced by its element, which
+-- Mojo reads as that operand.
+#guard mainBody ["def main():", "    var x = 1", "    var y: Int = [[x]]"] ==
+  some [.decl "x" .int (some (.int 1)), .decl "y" .int (some (.place (.var "x")))]
 
 -- Declared, assigned, returned, nested, and of any `Int` expression.
 #guard prints ["var y: Int = [1]", "print(y)"] ["1"]
@@ -88,6 +98,17 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard prints ["print([2] + x, [2] - x, [3] * x, [7] // x, [7] % x)"] ["3 1 3 7 0"]
 #guard prints ["x += [3]", "print(x)"] ["4"]
 #guard prints ["print(1 + [2], [5] - 2, len(xs) + [1])"] ["3 3 3"]
+
+-- A place in the literal is read, re-checked and destroyed once every operand
+-- of the operation is evaluated, as the place alone would be.
+#guard prints ["print([x] + inc(x))"] ["11"]
+#guard prints ["print(two([x], inc(x)))"] ["1100"]
+#guard prints ["var ys: List[Int] = [[x], inc(x)]", "print(ys)"] ["[11, 0]"]
+#guard prints ["print(xs[[x] + inc(x) - 10])"] ["6"]
+#guard rejects ["var d = D(1)", "print(two([d.n], eat(d^)))"] (.uninitializedUse (.field (.var "d") "n"))
+#guard rejects ["print([xs[0]] + xs.pop())"]
+  (.invalidatedReference (.index (.var "xs") (.int 0)))
+#guard prints ["var d = D(1)", "print([d.n] + loud(2))"] ["loud 2", "del 1", "3"]
 
 -- The compiler does not compute an index that holds such a literal when it
 -- compiles the program, so it fails only at run time.

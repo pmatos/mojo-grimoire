@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12038171787750083730")
+:::moduleDocs (fingerprint := "9272636782539760003")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "7491183084080357663")
@@ -22,7 +22,15 @@ variables in scope, innermost first. An arithmetic operator gives an
 $`\mathsf{Int}`, and every other binary operator a $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "2947278631493951504")
+:::readable MojoGrimoire.Parse.foldable (fingerprint := "2964211985334498850")
+*Definition: a literal that stays.* An expression made only of literals,
+negations, `not` and binary operators, or of a literal
+$`[e]_{\mathsf{Int}}` of one, reads no place and calls nothing. A literal
+$`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
+checker does not compute an index from it, as Mojo does not (#103).
+:::
+
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "10307815029898771892")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
@@ -39,12 +47,15 @@ $`\mathsf{Array}[t, n]`. Inference gives that type to what holds the
 literal, and leaves the literal's own type `None`, so that the checker
 tells it from a literal that initializes an expected type (#46).
 A literal $`[e]` left open where an $`\mathsf{Int}` is expected, whose one
-element has the type $`\mathsf{Int}` when it is expected to, is
-$`[e]_{\mathsf{Int}}`, an $`\mathsf{Int}` (#103). An index is expected to be
+element has the type $`\mathsf{Int}` when it is expected to, is an
+$`\mathsf{Int}` (#103): $`e` itself, which Mojo reads as that operand, or,
+when $`e` is `foldable`, $`[e]_{\mathsf{Int}}`. An index is expected to be
 an $`\mathsf{Int}`, and so is the right operand of an operator whose left
-operand is an $`\mathsf{Int}`, other than `and` and `or`, and the left
-operand of an arithmetic operator whose right operand is an
-$`\mathsf{Int}`, as Mojo reaches it through `__radd__` and its kin.
+operand is an $`\mathsf{Int}`, other than `and` and `or`, and a literal
+left operand of an arithmetic operator whose right operand is an
+$`\mathsf{Int}`, as Mojo reaches it through `__radd__` and its kin. Each
+operand is inferred once with no type expected, and a literal operand
+again with $`\mathsf{Int}` expected.
 $`\mathsf{List}[u](e^+)` is a list of $`u`, whose arguments are expected
 to have no type. Its one argument $`p\,\hat{}` becomes the place
 $`p\,\hat{}`, which Mojo borrows, since the initializer takes it by `ref`
@@ -73,7 +84,7 @@ with no signature has the type of a struct the program declares, `len`'s
 $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "10921922806685892226")
+:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "1891543679791847862")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 and `ref x = e` binds $`x` with the type of $`e`. An initial value is
 expected to have the declared type of its variable, an assigned value the

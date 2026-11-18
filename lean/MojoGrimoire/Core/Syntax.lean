@@ -42,8 +42,8 @@ type `t`, a list or an array, with the elements `es`: Mojo's
 `[e₁, …, eₙ]`, or `List[u]()` when it is empty. Mojo gives `[e₁, …, eₙ]`
 the type `Array[u, n]` unless a list is expected where it stands; the
 parser gives it the type `None`, which inference replaces only when a list
-or an array is expected, or an `Int` for a literal `[e]` of one `Int`,
-which is the value of `e` (#103). `listInit u es` is Mojo's `List[u](e₁, …, eₙ)`
+or an array is expected, or an `Int` for a literal `[e]` of one `Int`
+made of literals and operators, which is the value of `e` (#103). `listInit u es` is Mojo's `List[u](e₁, …, eₙ)`
 with at least one argument. With one, a list or an array of `u`, it is a
 new list of copies of its elements (#103); with more, Mojo 1.2.0 rejects
 it (#46): no initializer of `List` takes its elements as arguments.

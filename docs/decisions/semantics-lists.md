@@ -114,18 +114,28 @@ here (#27).
   a place, an initializer's or a method's parameter, `append` and
   `pop(i)` on a `List[Int]`, an index, and the element type of an
   enclosing literal, so `var xs: List[Int] = [[1], [2]]` is `[1, 2]` and
-  `var x: Int = [[1]]` is `1`. An operator on an `Int` expects one as its
-  right operand, and an arithmetic operator, through the `__radd__`
-  family, as its left: `x + [2]`, `x < [2]` and `[2] - x` are `Int`s, but
-  `[2] < x` and `[1] == x` compare an array with an `Int`, a type
-  mismatch, since `Array` has the comparison methods. Where nothing is
-  expected, such as the argument of `List[Int](…)`, the operand of `-`,
-  or `print`, the literal stays an array.
-- Such a literal is not computed when the program is compiled, so an
-  index that holds one, `xs[[-1]]` or `arr[[2]]`, fails only at run time.
-  An element that is not an `Int`, `[True]`, fits no initializer of `Int`
-  (`noMatchingInit`), or, as an operand or an argument of a function, is
-  a type mismatch. A literal of another length is accepted by a default
+  `var x: Int = [[1]]` is `1`. An operator other than `and` and `or` on
+  an `Int` expects one as its right operand, and an arithmetic operator,
+  through the `__radd__` family, as its left: `x + [2]` and `[2] - x` are
+  `Int`s, and `x < [2]` a `Bool`, but `[2] < x` and `[1] == x` compare an
+  array with an `Int`, a type mismatch, since `Array` has the comparison
+  methods. Where nothing is expected, such as the argument of
+  `List[Int](…)`, the operand of `-`, `and` or `or`, or `print`, the
+  literal stays an array.
+- The compiler reads `[e]` as it reads the operand `e`: a place in it is
+  read once every operand of the operation is evaluated, so
+  `[x] + bump(x)`, with `bump` changing `x`, reads the changed `x`, a
+  later operand that moves or invalidates the place is rejected, and a
+  value whose last use is the place is destroyed after the other
+  operands. Inference therefore puts `e` in the literal's stead. A literal
+  made only of literals and operators stays, typed `Int`: the compiler
+  does not compute an index that holds one when it compiles the program,
+  so `xs[[-1]]` and `arr[[2]]` fail only at run time.
+- An element that is not an `Int`, `[True]`, fits no initializer of `Int`
+  (`noMatchingInit`), and passed to a function, or as the right operand of
+  an operator, it is a type mismatch. As the left operand of an
+  arithmetic operator, `[True] + x`, the compiler reports that the array
+  has no `__add__`, a message the suite does not classify. A literal of another length is accepted by a default
   build, which keeps its first element, and `[]` crashes; the model keeps
   rejecting both, as above, until #122 is ruled.
 - A constant index into an array of `N` elements is rejected when it is `N`

@@ -14,10 +14,15 @@ assigned to, the function's result when it is returned, the parameter it
 is passed to, or the element type of the literal or list that holds it.
 A literal `[e]` of one `Int` element where an `Int` is expected is an
 `Int`, the value of `e`, as Mojo's `SIMD` initializer from a list literal
-makes it (#103). An `Int` is also expected by an index, by the right
-operand of an operator whose left one is an `Int`, and by the left operand
-of an arithmetic operator whose right one is an `Int`, which Mojo reaches
-through `__radd__` and its kin. Where none is expected, it is an `Array[t, n]` of its `n` elements, with
+makes it (#103). Mojo reads it as it reads the operand `e`: a place in it
+is read once every operand of the operation is evaluated, and destroyed
+then. So inference puts `e` in its stead, unless `e` is made only of
+literals and operators: that literal stays, typed `Int`, since Mojo does
+not compute an index that holds it when it compiles the program. An `Int`
+is also expected by an index, by the right operand of an operator other
+than `and` and `or` whose left one is an `Int`, and by a literal left
+operand of an arithmetic operator whose right one is an `Int`, which Mojo
+reaches through `__radd__` and its kin. Where none is expected, it is an `Array[t, n]` of its `n` elements, with
 the type `t` of the first, as in Mojo: inference gives that type to what
 holds the literal, and leaves the literal's own type `None`, so that the
 checker tells a literal that initializes an expected type from one that
@@ -70,6 +75,17 @@ def unsignedResult (prog : Program) (f : Name) : Option Ty :=
   else if f == "len" then some .int
   else none
 
+/-- Whether the expression `e` is made only of literals and operators, so
+that it reads no place and calls nothing: a literal `[e]` of type `Int`
+that holds one is kept, so that the checker does not compute an index
+from it, as Mojo does not; any other is replaced by `e`. -/
+def foldable : Expr → Bool
+  | .int _ | .bool _ => true
+  | .unary _ a => foldable a
+  | .binary _ a b => foldable a && foldable b
+  | .list .int [a] => foldable a
+  | _ => false
+
 mutual
 /-- Infers inside the place `p`, and gives its type, if it has one. -/
 def inferPlace (prog : Program) (env : TyEnv) : Place → Place × Option Ty
@@ -106,10 +122,12 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
     (.unary op (inferExpr prog env .noneType a).1, some (if op == .neg then .int else .bool))
   | .binary op a b =>
     let (a', ta) := inferExpr prog env .noneType a
-    let (_, tb) := inferExpr prog env .noneType b
-    let a' := if tb == some .int && op.arith.isSome then (inferExpr prog env .int a).1 else a'
-    let eb := if ta == some .int && op != .and && op != .or then Ty.int else .noneType
-    (.binary op a' (inferExpr prog env eb b).1, some (binaryResult op))
+    let (b', tb) := inferExpr prog env .noneType b
+    let a' := if tb == some .int && op.arith.isSome && a matches .list .. then
+      (inferExpr prog env .int a).1 else a'
+    let b' := if ta == some .int && op != .and && op != .or && b matches .list .. then
+      (inferExpr prog env .int b).1 else b'
+    (.binary op a' b', some (binaryResult op))
   | .list t es =>
     let scalar := match t, exp, es with
       | .noneType, .int, [e] => match inferExpr prog env .int e with
@@ -117,7 +135,7 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
         | _ => none
       | _, _, _ => none
     match scalar with
-    | some e' => (.list .int [e'], some .int)
+    | some e' => (if foldable e' then .list .int [e'] else e', some .int)
     | none =>
       let n := es.length
       let t := if t == .noneType then openLiteralTy exp else t

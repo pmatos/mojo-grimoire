@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6694320741580974210")
+:::moduleDocs (fingerprint := "54551499081341409")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -79,7 +79,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "6691803724432005313")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "7962035010205499190")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -102,10 +102,9 @@ type:
   `None`, no type is expected, and the literal is an array of the type of
   its first element, whose other elements must have that type;
 * $`[e]_{\mathsf{Int}}` has the type of $`e`, which must be an
-  $`\mathsf{Int}` (#103); a literal of type $`\mathsf{Int}` of any other
-  length, which inference never gives, is `noMatchingInit`
-  $`\mathsf{Int}`. Passed to a parameter, it is checked as a value, as a
-  literal with no type expected is;
+  $`\mathsf{Int}` (#103). Passed to a parameter, a literal whose type is
+  not a list or an array is checked as a value, as is any literal
+  passed to an initializer;
 * $`\mathsf{List}[u](e)` with one argument copies the elements of a list
   or an array (#103). Its argument is passed by `ref`, as `len` takes its
   list: a place is located, its type must fit by `iterableFits`, and then
