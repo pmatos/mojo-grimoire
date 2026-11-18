@@ -24,6 +24,7 @@ import MojoGrimoireTest.Parse.TransferField
 import MojoGrimoireTest.Parse.TransferRef
 import MojoGrimoireTest.Parse.Initializers
 import MojoGrimoireTest.Parse.ListFromIterable
+import MojoGrimoireTest.Parse.IntLiteral
 import MojoGrimoireTest.Parse.ReturnedRefArgs
 import MojoGrimoireTest.Parse.ReturnedRefLate
 import MojoGrimoireCli

@@ -42,7 +42,8 @@ literal
 passed to a function or a method is converted, and one that does not fit,
 also inside it, is a type mismatch. A literal with no expected type takes
 the type of its elements, and an element that differs from the first is a
-type mismatch too.
+type mismatch too. A literal of type `Int`, which inference gives only to
+`[e]` of one `Int` element, has the type of `e` (#103).
 -/
 
 namespace MojoGrimoire.Check
@@ -280,6 +281,8 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
         es.length es.length))
     pure t
+  | .list .int [e] => do expect .int (← checkExprAs prog false e); pure .int
+  | .list .int _ => throw (CheckError.noMatchingInit .int)
   | .list t es => do
     let u ← literalElem prog (.init t) t es.length
     recheckLocs prog (← checkArgs prog (.init t) (typeName t)
@@ -373,7 +376,7 @@ def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
     pure (([p], k) :: (← checkArgs prog fit callee prms args n m))
   | prm :: prms, (e@(.list t es)) :: args, n, m => do
     passValue fit callee prm.conv
-    let t' ← if t == .noneType || fit matches .init _ then checkExprAs prog false e
+    let t' ← if t == .noneType || t == .int || fit matches .init _ then checkExprAs prog false e
       else do
         let u ← literalElem prog .call t es.length
         recheckLocs prog (← checkArgs prog .call (typeName t)

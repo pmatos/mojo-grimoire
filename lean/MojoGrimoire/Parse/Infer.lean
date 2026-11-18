@@ -12,7 +12,12 @@ type of its initial value. A literal takes the type expected where it
 stands: the declared type of its variable, the type of the place it is
 assigned to, the function's result when it is returned, the parameter it
 is passed to, or the element type of the literal or list that holds it.
-Where none is expected, it is an `Array[t, n]` of its `n` elements, with
+A literal `[e]` of one `Int` element where an `Int` is expected is an
+`Int`, the value of `e`, as Mojo's `SIMD` initializer from a list literal
+makes it (#103). An `Int` is also expected by an index, by the right
+operand of an operator whose left one is an `Int`, and by the left operand
+of an arithmetic operator whose right one is an `Int`, which Mojo reaches
+through `__radd__` and its kin. Where none is expected, it is an `Array[t, n]` of its `n` elements, with
 the type `t` of the first, as in Mojo: inference gives that type to what
 holds the literal, and leaves the literal's own type `None`, so that the
 checker tells a literal that initializes an expected type from one that
@@ -74,7 +79,7 @@ def inferPlace (prog : Program) (env : TyEnv) : Place → Place × Option Ty
     (.field p' f, t.bind fun t => (fieldOf prog t f).toOption)
   | .index p i =>
     let (p', t) := inferPlace prog env p
-    (.index p' (inferExpr prog env .noneType i).1, t.bind fun t => (elemOf t).toOption)
+    (.index p' (inferExpr prog env .int i).1, t.bind fun t => (elemOf t).toOption)
   | .transferred p => let (p', t) := inferPlace prog env p; (.transferred p', t)
 
 /-- Infers inside the expression `e`, expected to have the type `exp`
@@ -100,16 +105,27 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
   | .unary op a =>
     (.unary op (inferExpr prog env .noneType a).1, some (if op == .neg then .int else .bool))
   | .binary op a b =>
-    (.binary op (inferExpr prog env .noneType a).1 (inferExpr prog env .noneType b).1,
-      some (binaryResult op))
+    let (a', ta) := inferExpr prog env .noneType a
+    let (_, tb) := inferExpr prog env .noneType b
+    let a' := if tb == some .int && op.arith.isSome then (inferExpr prog env .int a).1 else a'
+    let eb := if ta == some .int && op != .and && op != .or then Ty.int else .noneType
+    (.binary op a' (inferExpr prog env eb b).1, some (binaryResult op))
   | .list t es =>
-    let n := es.length
-    let t := if t == .noneType then openLiteralTy exp else t
-    let es' := inferList prog env (List.replicate n (elemExpected t)) es
-    let t' := match t, es'.head?.bind (·.2) with
-      | .noneType, some u => .array u n
-      | t, _ => t
-    (.list t (es'.map (·.1)), if t' == .noneType then none else some t')
+    let scalar := match t, exp, es with
+      | .noneType, .int, [e] => match inferExpr prog env .int e with
+        | (e', some .int) => some e'
+        | _ => none
+      | _, _, _ => none
+    match scalar with
+    | some e' => (.list .int [e'], some .int)
+    | none =>
+      let n := es.length
+      let t := if t == .noneType then openLiteralTy exp else t
+      let es' := inferList prog env (List.replicate n (elemExpected t)) es
+      let t' := match t, es'.head?.bind (·.2) with
+        | .noneType, some u => .array u n
+        | t, _ => t
+      (.list t (es'.map (·.1)), if t' == .noneType then none else some t')
   | .listInit u args =>
     let args' : List Expr := (inferList prog env [] args).map (·.1)
     (.listInit u (match args' with | [.transfer p] => [.place (.transferred p)] | as => as),

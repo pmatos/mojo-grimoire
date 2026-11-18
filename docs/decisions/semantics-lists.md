@@ -102,9 +102,32 @@ here (#27).
 - A literal that initializes a declared variable, a place or a result of
   a type that is neither a list nor an array, a struct or a `Bool`, is
   `noMatchingInit` too, since that type has no initializer from a list
-  literal. The compiler accepts one for an `Int`, through the
-  `__list_literal__` initializer of `SIMD` (`std/simd.mojo:943`): that is
-  outside the subset, and the model rejects it as `noMatchingInit`.
+  literal.
+- An `Int` has one. Mojo 1.2.0's `Int` is `SIMD[DType.int, 1]`
+  (`std/simd.mojo:120`), whose `__list_literal__` initializer
+  (`std/simd.mojo:941`) takes the elements as `Int`s. So a literal `[e]`
+  of one `Int` element, where an `Int` is expected, is the value of `e`.
+  The human ruled on 2026-11-18 that the model follows the compiler here
+  (#103). The probes of that day show where an `Int` is expected: the
+  declared type of a variable, the type of a place assigned to, a
+  function's result, a parameter of any convention but `mut`, which needs
+  a place, an initializer's or a method's parameter, `append` and
+  `pop(i)` on a `List[Int]`, an index, and the element type of an
+  enclosing literal, so `var xs: List[Int] = [[1], [2]]` is `[1, 2]` and
+  `var x: Int = [[1]]` is `1`. An operator on an `Int` expects one as its
+  right operand, and an arithmetic operator, through the `__radd__`
+  family, as its left: `x + [2]`, `x < [2]` and `[2] - x` are `Int`s, but
+  `[2] < x` and `[1] == x` compare an array with an `Int`, a type
+  mismatch, since `Array` has the comparison methods. Where nothing is
+  expected, such as the argument of `List[Int](…)`, the operand of `-`,
+  or `print`, the literal stays an array.
+- Such a literal is not computed when the program is compiled, so an
+  index that holds one, `xs[[-1]]` or `arr[[2]]`, fails only at run time.
+  An element that is not an `Int`, `[True]`, fits no initializer of `Int`
+  (`noMatchingInit`), or, as an operand or an argument of a function, is
+  a type mismatch. A literal of another length is accepted by a default
+  build, which keeps its first element, and `[]` crashes; the model keeps
+  rejecting both, as above, until #122 is ruled.
 - A constant index into an array of `N` elements is rejected when it is `N`
   or more (`constantIndexOutOfBounds`); one known only at run time fails
   then, as on a list. A constant index into a list fails only at run time.
