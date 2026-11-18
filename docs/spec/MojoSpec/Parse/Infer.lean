@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7871277702906336626")
+:::moduleDocs (fingerprint := "9500786569130996480")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "7491183084080357663")
@@ -30,13 +30,13 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.keepTemporaries (fingerprint := "14506363852403642860")
+:::readable MojoGrimoire.Parse.keepTemporaries (fingerprint := "15308231828986963166")
 *Definition: temporaries.* Among the arguments of a call, a literal
-$`[p]` that inference replaced by the place $`p` is $`[p]_{\mathsf{Int}}`
-again when its parameter is `mut` or `ref`: Mojo passes a temporary
-there, not the place $`p`, so `mut` rejects it, and `ref` gets a
-temporary filled from $`p` when the call is made, which a returned
-reference keeps, so it does not see a later change of $`p` (#103).
+$`[e]` that inference replaced by $`e` is $`[e]_{\mathsf{Int}}` again when
+its parameter is `mut` or `ref`: Mojo passes a temporary there, not the
+place or the reference $`e` names, so `mut` rejects it, and `ref` gets a
+temporary filled from $`e` when the call is made, which a returned
+reference keeps, so it does not see a later change (#103).
 :::
 
 :::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "11018487376887793400")

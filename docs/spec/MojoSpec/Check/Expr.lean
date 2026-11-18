@@ -150,8 +150,8 @@ $`\mathsf{transferFromBorrowed}`, as the compiler reports them.
 The numbers of arguments and parameters must be equal. A literal of an
 expected type passed to a function or a method is converted to the
 parameter's type, and one that does not fit, or holds such a literal, is a
-type mismatch, as the compiler reports it. A literal $`[p]_{\mathsf{Int}}`
-of a place, passed `mut` or `ref`, is a value, read late as the place $`p`
-would be, so $`p` is checked again with the other operands (#103).
+type mismatch, as the compiler reports it. A literal $`[e]_{\mathsf{Int}}`
+passed `mut` or `ref` is a value, read late as the operand $`e` would be,
+so what $`e` reads is checked again with the other operands (#103).
 Checking the arguments gives the mark of each.
 :::

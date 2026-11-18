@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1385089899528725255")
+:::moduleDocs (fingerprint := "8493691824464778794")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
@@ -95,13 +95,13 @@ the slots that the method calls in it consume, at any depth, also inside
 the argument of $`\mathsf{List}[u](e)`.
 :::
 
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "9171622852231965159")
+:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "13881815202788936626")
 *Definition: elaborating expressions.* Each call, method call, operator,
 list literal, $`\mathsf{List}[u](e)` and `.copy()` is wrapped with what it
 destroys, and its operands are elaborated in turn, each with the slots that the later
-operands use live after it. A place, and a literal
-$`[e]_{\mathsf{Int}}`, which holds a place or no value to destroy, are left
-as they are. The operation at the
+operands use live after it. A place is left as it is, and a literal
+$`[e]_{\mathsf{Int}}` has only its element elaborated: the operation that
+reads it destroys what its element uses. The operation at the
 top of a statement leaves what dies once it is done to the statement, as
 the compiler destroys a discarded result before those values. The right
 operand of `and` and `or` may not run, so it is not elaborated, and the

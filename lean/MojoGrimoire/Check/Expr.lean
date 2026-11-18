@@ -47,8 +47,8 @@ passed to a function or a method is converted, and one that does not fit,
 also inside it, is a type mismatch. A literal with no expected type takes
 the type of its elements, and an element that differs from the first is a
 type mismatch too. A literal of type `Int`, which inference keeps only for
-`[e]` of one `Int` element made of literals and operators, or of a place
-passed `mut` or `ref`, has the type of `e` (#103); passed so, its place is
+`[e]` of one `Int` element made of literals and operators, or passed `mut`
+or `ref`, has the type of `e` (#103); passed so, what `e` is read from is
 read late, as an operand.
 -/
 

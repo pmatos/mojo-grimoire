@@ -118,6 +118,10 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard prints ["print(pick([xs[0]]) + xs.pop())"] ["11"]
 -- The temporary is filled when the call is made, after its other arguments.
 #guard prints ["print(both([x], inc(x)))"] ["11"]
+-- So is a literal of a call that returns a reference.
+#guard rejects ["bump([pick(x)])"] (.notAPlace "bump")
+#guard prints ["print(pick([pick(x)]) + inc(x))"] ["1"]
+#guard prints ["print(both([pick(x)], inc(x)))"] ["11"]
 #guard rejects ["var d = D(1)", "print(both([d.n], eat(d^)))"]
   (.uninitializedUse (.field (.var "d") "n"))
 #guard rejects ["print(both([xs[0]], xs.pop()))"]
