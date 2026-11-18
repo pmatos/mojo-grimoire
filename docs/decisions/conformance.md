@@ -141,17 +141,11 @@ compiler and compare its first error with this list.
 
 | Program | Compiler's first error | Guard |
 |---|---|---|
-| `def f(read x: Int)` | 'read' was removed; use 'imm' | `Conventions.lean`: `withF "read xs: Array[Int, 2]"` |
+| `def f(read x: Int)` | 'read' was removed; use 'imm' | `Conventions.lean`: `withF "read x: Int"` |
 | `def f(imm: Int)` | expected argument name | `Conventions.lean`: `withF "imm: Int"` |
 | `def f(owned xs: Int)` | expected ')' in argument list | `Conventions.lean`: `withF "owned xs: Int"` |
 | `var y = x^ * 2` | can't use starred expression here | `XorCaret.lean`: `withX "var y = x^ * 2"` |
 | `var y = x^ == 3` | prefix '==' is only valid in a pattern | `XorCaret.lean`: `withX "var y = x^ == 3"` |
-
-No guard has the text `read x: Int`. The ones in `Conventions.lean` pin
-`read` at the start of a parameter whatever follows it: `read xs: Array[Int,
-2]`, `read: Int`, `read` alone, `read` before `self`, and `read y: Int`
-after another parameter. The compiler gives the same first error for
-`read xs: Array[Int, 2]` as for `read x: Int`.
 
 `x^ + 1` and `x^ 5`, which #54 also pins as syntax errors, are not on the
 list: the compiler builds them and prints `2` and `6`. They are outside the
