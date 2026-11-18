@@ -2,12 +2,6 @@
 struct S(Movable):
     var k: Int
 
-    def take(var self) -> Int:
-        return self.k
-
-    def get(self) -> Int:
-        return self.k
-
 
 def f(s: S):
     ref t = s

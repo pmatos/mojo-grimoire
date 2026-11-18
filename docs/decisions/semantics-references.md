@@ -20,7 +20,10 @@ choices (#18):
   `t^.m(…)` on a reference `t` are rejected as `transferFromElement`, as
   the compiler does ("expression does not designate a value with an
   origin"), whether `t` is bound to a place or to a call that returns a
-  reference, and whether it may be changed or not. A `ref` or a `read`
+  reference, whether it may be changed or not, even when its origins are
+  moved away or invalidated, and when `t^` is passed to a `mut` parameter,
+  of a function or an initializer: the compiler rejects the transfer
+  before it looks at the origins or matches the argument. A `ref` or a `read`
   parameter stays `transferFromBorrowed` (#85). `t^` of type `Int` or
   `Bool` is the place `t` (#50).
 - A reference may be changed when every origin allows it: a `mut`

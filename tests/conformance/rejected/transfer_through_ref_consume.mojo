@@ -5,9 +5,6 @@ struct S(Movable):
     def take(var self) -> Int:
         return self.k
 
-    def get(self) -> Int:
-        return self.k
-
 
 def main():
     var s = S(7)

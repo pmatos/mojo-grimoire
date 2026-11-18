@@ -6,8 +6,10 @@ Tests of a transfer through a reference bound with `ref` (#85). The compiler
 rejects `t^`, `t.f^`, `t^.f` and `t^.m(…)` on such a reference `t` as an
 expression that does not designate a value with an origin, the class
 `transferFromElement`, whether `t` is bound to a place or to a call that
-returns a reference, and whether it may be changed or not. A `ref` or a
-`read` parameter stays `transferFromBorrowed`. `t^` of type `Int` is the
+returns a reference, whether it may be changed or not, even when its
+origins are moved away or invalidated, and when `t^` is passed to a `mut`
+parameter. A `ref` or a `read` parameter stays
+`transferFromBorrowed`. `t^` of type `Int` is the
 place `t` (#50). Each expected outcome is the compiler's. The programs are
 parsed from text, one line per string, after the shared declarations.
 -/
@@ -31,7 +33,13 @@ private def decls : List String := [
   "def same(ref x: S) -> ref [x] S:",
   "    return x",
   "def samei(ref x: Int) -> ref [x] Int:",
-  "    return x"]
+  "    return x",
+  "def bump(mut x: S):",
+  "    x.k += 1",
+  "struct W(Movable):",
+  "    var k: Int",
+  "    def __init__(out self, mut x: S):",
+  "        self.k = x.k"]
 
 /-- Parses, checks and runs the program whose lines are `ls`, after the
 declarations. -/
@@ -42,53 +50,70 @@ private def go (ls : List String) : Option Outcome :=
 private def inMain (ls : List String) : Option Outcome := go ("def main():" :: ls)
 
 /-- The rejection of the function `f` with the error `e`. -/
-private def rejectsIn (f : Name) (e : CheckError) : Option Outcome :=
+private def rejects (e : CheckError) (f : Name := "main") : Option Outcome :=
   some (.rejected ⟨f, e⟩)
 
 private def t : Place := .var "t"
 
 -- `t^` and `t^.k` on a reference bound to a place.
 #guard inMain ["    var s = S(7)", "    ref t = s", "    var u = t^", "    print(u.k)"] ==
-  rejectsIn "main" (.transferFromElement t)
+  rejects (.transferFromElement t)
 #guard inMain ["    var s = S(7)", "    ref t = s", "    print(t^.k)"] ==
-  rejectsIn "main" (.transferFromElement t)
+  rejects (.transferFromElement t)
 
 -- A reference that may be changed is no different.
 #guard inMain ["    var s = S(7)", "    ref t = s", "    t = S(3)", "    var u = t^",
-    "    print(u.k)"] == rejectsIn "main" (.transferFromElement t)
+    "    print(u.k)"] == rejects (.transferFromElement t)
 
 -- Nor is one bound to a `read` parameter, which cannot be changed.
 #guard go ["def f(s: S):", "    ref t = s", "    var u = t^", "    print(u.k)",
-    "def main():", "    var s = S(7)", "    f(s)"] == rejectsIn "f" (.transferFromElement t)
+    "def main():", "    var s = S(7)", "    f(s)"] == rejects (.transferFromElement t) "f"
 #guard go ["def f(s: S):", "    ref t = s", "    print(t^.k)",
-    "def main():", "    var s = S(7)", "    f(s)"] == rejectsIn "f" (.transferFromElement t)
+    "def main():", "    var s = S(7)", "    f(s)"] == rejects (.transferFromElement t) "f"
 
 -- A reference bound to a call that returns a reference.
 #guard inMain ["    var s = S(7)", "    ref t = same(s)", "    var u = t^", "    print(u.k)"] ==
-  rejectsIn "main" (.transferFromElement t)
+  rejects (.transferFromElement t)
 #guard inMain ["    var s = S(7)", "    ref t = same(s)", "    print(t^.k)"] ==
-  rejectsIn "main" (.transferFromElement t)
+  rejects (.transferFromElement t)
 
 -- A field of a reference, and a method on `t^`, whatever its `self`.
 #guard inMain ["    var o = O(S(7))", "    ref t = o", "    var u = t.inner^", "    print(u.k)"] ==
-  rejectsIn "main" (.transferFromElement (.field t "inner"))
+  rejects (.transferFromElement (.field t "inner"))
 #guard inMain ["    var s = S(7)", "    ref t = s", "    print(t^.get())"] ==
-  rejectsIn "main" (.transferFromElement t)
+  rejects (.transferFromElement t)
 #guard inMain ["    var s = S(7)", "    ref t = s", "    print(t^.take())"] ==
-  rejectsIn "main" (.transferFromElement t)
+  rejects (.transferFromElement t)
 
--- `t^` of type `Int` is the place `t`, so it is not a transfer.
-#guard inMain ["    var i = 7", "    ref t = i", "    var u = t^", "    print(u)"] ==
-  some (.finished ["7"])
+-- The compiler rejects the transfer before it looks at the origins, so a
+-- reference whose origin is moved away or invalidated is no different.
+#guard go ["def consume(var s: S):", "    print(s.k)", "def main():", "    var s = S(7)",
+    "    ref t = s", "    consume(s^)", "    var u = t^", "    print(u.k)"] ==
+  rejects (.transferFromElement t)
+#guard go ["def consume(var s: S):", "    print(s.k)", "def main():", "    var s = S(7)",
+    "    ref t = s", "    consume(s^)", "    print(t^.k)"] ==
+  rejects (.transferFromElement t)
+#guard go ["def consume(var s: S):", "    print(s.k)", "def main():", "    var o = O(S(7))",
+    "    ref t = o", "    consume(o.inner^)", "    var u = t.inner^", "    print(u.k)"] ==
+  rejects (.transferFromElement (.field t "inner"))
+#guard inMain ["    var l: List[S] = [S(1)]", "    ref t = l[0]", "    l.append(S(2))",
+    "    var u = t^", "    print(u.k)"] == rejects (.transferFromElement t)
+
+-- Passed to a `mut` parameter, of a function or an initializer, `t^` is
+-- rejected so too; `s^` of a value it owns is not a place.
+#guard inMain ["    var s = S(7)", "    ref t = s", "    bump(t^)"] ==
+  rejects (.transferFromElement t)
+#guard inMain ["    var s = S(7)", "    ref t = s", "    var w = W(t^)", "    print(w.k)"] ==
+  rejects (.transferFromElement t)
+#guard inMain ["    var s = S(7)", "    bump(s^)"] == rejects (.notAPlace "bump")
+
+-- `t^` of type `Int` is the place `t`, so it is not a transfer, also through a
+-- returned reference.
 #guard inMain ["    var i = 7", "    ref t = samei(i)", "    var u = t^", "    print(u)"] ==
   some (.finished ["7"])
 
--- A `ref` or a `read` parameter cannot give its value away.
+-- A `ref` parameter cannot give its value away.
 #guard go ["def f(ref t: S):", "    var u = t^", "    print(u.k)",
-    "def main():", "    var s = S(7)", "    f(s)"] == rejectsIn "f" (.transferFromBorrowed t)
-#guard go ["def f(ref t: S):", "    print(t^.k)",
-    "def main():", "    var s = S(7)", "    f(s)"] == rejectsIn "f" (.transferFromBorrowed t)
-#guard go ["def f(t: S):", "    var u = t^", "    print(u.k)",
-    "def main():", "    var s = S(7)", "    f(s)"] == rejectsIn "f" (.transferFromBorrowed t)
+    "def main():", "    var s = S(7)", "    f(s)"] == rejects (.transferFromBorrowed t) "f"
 
 end MojoGrimoireTest.Parse.TransferThroughRef

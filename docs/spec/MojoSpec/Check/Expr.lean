@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16058993511338445794")
+:::moduleDocs (fingerprint := "11119879026155853391")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -29,7 +29,7 @@ cannot be changed. Passed `mut` to an initializer, such a place is
 reported as the initializer's misfit.
 :::
 
-:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "18274759157380161542")
+:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.requireNotThroughRef MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "3713637349590493988")
 *Rule: reading and moving a place.* Using a place $`p` as a value copies it
 implicitly: $`p` must be initialized, and its type implicitly copyable.
 Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable
@@ -38,7 +38,9 @@ parameter (`transferFromBorrowed`); afterwards $`p` is uninitialized, and
 a field $`p` is added to $`M`. An element of a list or an array, or a
 part of one, cannot be transferred out, nor can a value through a
 reference bound with `ref`, even one that may be changed: the compiler
-rejects both alike (`transferFromElement`). These conditions, without the move, are what
+rejects both alike (`transferFromElement`). A reference is rejected so
+once its place has a type, before its origins are checked, even when
+they are moved away or invalidated. These conditions, without the move, are what
 $`q\,\hat{}` before a field or a method needs of $`q`.
 :::
 
@@ -81,7 +83,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "1387918912435258342")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "3600406539648070645")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -136,7 +138,10 @@ reference and is a located operand, passed to a `read`, `mut` or `ref`
 parameter, as a location, which must be mutable for `mut`, or the call is
 $`\mathsf{immutablePlace}`, named by its first origin; and any other
 expression by its type, which must be the parameter's. A `mut` parameter
-needs a place or such a call.
+needs a place or such a call; passed $`q\,\hat{}`, it is
+$`\mathsf{notAPlace}`, unless $`q` is reached through a reference bound
+with `ref`, which is $`\mathsf{transferFromElement}` first, as the
+compiler reports it.
 The numbers of arguments and parameters must be equal. A literal of an
 expected type passed to a function or a method is converted to the
 parameter's type, and one that does not fit, or holds such a literal, is a

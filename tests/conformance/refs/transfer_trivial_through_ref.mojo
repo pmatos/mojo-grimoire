@@ -4,9 +4,6 @@ def samei(ref x: Int) -> ref [x] Int:
 
 def main():
     var i = 7
-    ref t = i
+    ref t = samei(i)
     var u = t^
-    print(u)
-    ref r = samei(i)
-    var v = r^
-    print(v + 1)
+    print(u + 1)

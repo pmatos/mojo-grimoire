@@ -88,7 +88,8 @@ where the compiler and the manual disagree, the model follows the compiler.
   whole (`uninitializedUse`) and a value that `p^` could transfer: not a
   `read` or `ref` parameter (`transferFromBorrowed`), nor an element
   (`transferFromElement`), nor a reference bound with `ref`
-  (`transferFromElement`, [semantics-references.md](semantics-references.md#references)).
+  (`transferFromElement`, reported before whether its origins are whole,
+  [semantics-references.md](semantics-references.md#references)).
   Nothing may change through it:
   assigning to `p^.f`, `p^.f += 1`, passing it `mut`, and a `mut self`
   method are `immutablePlace`. A method that takes `var self` consumes
