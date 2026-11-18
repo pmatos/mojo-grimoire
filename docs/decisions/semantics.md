@@ -57,14 +57,16 @@ where the compiler and the manual disagree, the model follows the compiler.
 - Initialization is tracked per part of a variable: a field may be moved
   out and initialized again. The compiler destroys a struct whole, so a
   field moved out with `^` must be assigned again, at exactly its path,
-  before the struct ends or a part above the field is assigned. Using the
+  before the struct ends or a part above the field is assigned, unless
+  nothing of the struct is left to destroy (see the bullet on structs
+  built field by field below). Using the
   struct's other fields in between is allowed. Otherwise the program is
   rejected as `partiallyDestroyed`, which covers both of the compiler's
   messages: "destroyed out of the middle of a value" and "cannot be
   consumed, because ... is used later". The checker cannot tell which one
   the compiler gives, since that depends on what follows (#39). A part
   below a struct with a `__deinit__` of its own may not be uninitialized
-  when the struct ends either. Inside `__deinit__`, `self`'s own fields may
+  when the struct ends either, while the struct may still hold a part. Inside `__deinit__`, `self`'s own fields may
   stay moved out, but not fields of its fields.
 - Until a field moved out is assigned again at its path, the compiler
   reports a use of it, or of a part above it, as `uninitializedUse`, even
@@ -110,9 +112,33 @@ where the compiler and the manual disagree, the model follows the compiler.
   of a `ref self` method, pass on an immutable reference, and the call
   changes nothing
   (#91, [semantics-references.md](semantics-references.md#references)).
-- A field moved out of a struct that was built field by field, and never
-  initialized whole, is rejected like any other. The compiler accepts that
-  program when the struct's other fields stay uninitialized (#51).
+- A struct variable declared without a value may be built field by field
+  (#51). Mojo never counts such a struct, or a part built so, as
+  initialized whole, even once every field is assigned: using it whole is
+  `uninitializedUse`, as the compiler reports "used with all fields
+  manually initialized". The `self` of `__init__` is the exception. A
+  variable that holds nothing may end with fields moved out, since
+  nothing of it is destroyed; one that still holds a part may not. A
+  field moved out of a part that was held whole, or whose inside was
+  assigned while it was held whole, must still be assigned again before
+  the variable ends, and so must a variable moved out whole and then
+  given some of its fields. A part moved out and then given some of its
+  fields may not be assigned whole. The checker tracks this with the
+  parts that may hold a value, the touched parts and the pieces of
+  `MojoGrimoire.Check.VarState`; each rule follows the compiler on the
+  probes recorded on #51, except three shapes that the model rejects and
+  the compiler accepts: a field moved out in one branch of an `if` while
+  the other builds another field (#137), a field moved out after another
+  field's last use, which the compiler destroys early (#144), and a part
+  moved out whole, refilled and emptied, then assigned whole (#145). Where the compiler destroys a field that was
+  never assigned, a compiler bug, the model does not
+  ([D-0003](../conformance/decision-log.md)), and it still rejects a
+  struct with a `__deinit__` of its own that may end with a field never
+  assigned, on some path: built in one branch of an `if` only, or in a
+  loop, included. At a return, a `mut` parameter or a part of the `self` of
+  `__init__` built field by field is not initialized; a `mut` parameter
+  that is itself built so is `uninitializedUse`, as the compiler reports
+  it.
 - A place operand, of a call, an operator, a list literal or `print`, must
   still be initialized once every operand is evaluated, since the
   compiler reads it then: `f(a.id, g(a^))` uses `a.id` after its move.
@@ -139,7 +165,10 @@ where the compiler and the manual disagree, the model follows the compiler.
 - After an `if`, a part counts as initialized only when both branches leave
   it initialized. A loop body must leave initialized every part that was
   initialized before the loop; as the compiler does, the checker reports
-  a body that does not as `uninitializedUse`.
+  a body that does not as `uninitializedUse`. A part uninitialized before
+  the loop may be assigned and moved out in each iteration. What the body
+  moves out still counts in the next iteration, which the checker checks
+  again from that state, and after the loop (#51).
 - Only a struct has fields, and only a struct or a list has methods. A
   field or a method that the type of its receiver lacks, whatever that
   type, is one class, `unknownAttribute`, named with the type's name: the
@@ -237,7 +266,12 @@ corrected against the compiler's recorded results (#25):
   `Bool` as `True` or `False`, and a list or an array as `[1, 2]`, its
   elements written so and separated by `, `, `[]` when it is empty (#41).
 - A struct without a `__deinit__` has its fields destroyed in declaration
-  order, and a list its elements in index order.
+  order, and a list its elements in index order. A variable of struct type
+  declared without a value holds the blank of its type, the struct with
+  no field assigned, and a value taken out of a place leaves its blank:
+  so its fields can be assigned one by one. A value that holds nothing, a
+  blank included, is not destroyed, so a struct built field by field has
+  only its assigned fields destroyed (#51, D-0003).
 - A temporary passed to a borrowing parameter is destroyed right after the
   call; the unused result of an expression statement is destroyed at once.
 - An assignment evaluates its value, then its place, and destroys the old

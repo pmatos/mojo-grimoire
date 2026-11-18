@@ -26,7 +26,11 @@ every value it still owns. A method whose `self` is `var`, called on
 `p^`, takes the value out of `p`. Destroying a
 struct runs its `__deinit__`, whose elaborated body destroys its fields; a
 struct without one has its fields destroyed in order, and a list its
-elements. A value that `print` writes is not destroyed after it: it holds
+elements. A value that holds nothing, a blank included, is not destroyed:
+a struct built field by field and never finished has only the fields that
+were assigned destroyed. A value taken out of a place leaves its blank
+there, and a variable declared without a value starts as the blank of its
+type, so that its fields can be assigned one by one. A value that `print` writes is not destroyed after it: it holds
 only `Int`s and `Bool`s, so destroying it would do nothing.
 -/
 
@@ -100,7 +104,7 @@ mutual
 def destroy (prog : Program) (fuel : Nat) (v : Value) : EvalM Unit :=
   match fuel with
   | 0 => fail .outOfFuel
-  | n + 1 => match v with
+  | n + 1 => if v.empty then pure () else match v with
     | .struct s fs => do
       let some sd := findStruct prog s | stuck s!"unknown struct {s}"
       match sd.deinit with
@@ -131,10 +135,7 @@ def destroyOwned (prog : Program) (fuel : Nat) (env : Env) : EvalM Unit :=
   match fuel with
   | 0 => fail .outOfFuel
   | n + 1 => env.reverse.forM fun (_, b) => do
-    if b.owned then
-      let v ← readRef b.ref
-      writeRef b.ref .uninit
-      destroy prog n v
+    if b.owned then destroy prog n (← take b.ref)
 
 /-- The reference that the place `p` names. An index is checked against the
 length of the list. -/
@@ -164,11 +165,7 @@ def evalExpr (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Value 
     | .bool b => pure (.bool b)
     | .str _ => stuck "a string outside print"
     | .place p | .copy p => do readRef (← placeRef prog n env p)
-    | .transfer p => do
-      let r ← placeRef prog n env p
-      let v ← readRef r
-      writeRef r .uninit
-      pure v
+    | .transfer p => do take (← placeRef prog n env p)
     | .unary op a => do unary op (← evalExpr prog n env a)
     | .binary .and a b => do
       if ← asBool (← evalExpr prog n env a) then evalExpr prog n env b else pure (.bool false)
@@ -210,11 +207,7 @@ def evalResult (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Resu
 def dropPlace (prog : Program) (fuel : Nat) (env : Env) (p : Place) : EvalM Unit :=
   match fuel with
   | 0 => fail .outOfFuel
-  | n + 1 => do
-    let r ← placeRef prog n env p
-    let v ← readRef r
-    writeRef r .uninit
-    destroy prog n v
+  | n + 1 => do destroy prog n (← take (← placeRef prog n env p))
 
 /-- Destroys the values in the places `ps`, in order. -/
 def dropAll (prog : Program) (fuel : Nat) (env : Env) (ps : List Place) : EvalM Unit :=
@@ -285,7 +278,7 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
       | some sd, _, _, _ => do
         match sd.init with
         | some fd => do
-          let self ← alloc (emptyStruct sd)
+          let self ← alloc (← emptyStruct prog n sd)
           let rest ← Pending.loadAll (← evalArgs prog n env fd.params.tail args)
           dropAll prog n env pre
           let _ ← callFun prog n fd (.place self :: rest)
@@ -336,7 +329,7 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
         let recv ← if self.conv == .owned then do pure (Arg.value (← readRef r))
           else pure (Arg.place r)
         let args ← Pending.loadAll rest
-        if (consumedReceiver self.conv p).isSome then writeRef r .uninit
+        if (consumedReceiver self.conv p).isSome then let _ ← take r
         dropAll prog n env pre
         callFun prog n fd (recv :: args)
       | _ => stuck "a method call on a value that is not a struct"
@@ -376,10 +369,10 @@ def execStmt (prog : Program) (fuel : Nat) (refs : Bool) (env : Env) (s : Stmt) 
   | 0 => fail .outOfFuel
   | n + 1 => match s with
     | .pass => pure env
-    | .decl x _ init => do
+    | .decl x t init => do
       let v ← match init with
         | some e => evalExpr prog n env e
-        | none => pure .uninit
+        | none => blankOf prog n t
       pure ((x, ⟨← alloc v, true⟩) :: env)
     | .refDecl x e => do pure ((x, ⟨← evalRef prog n env e, false⟩) :: env)
     | .assign p e => do
@@ -430,9 +423,7 @@ def evalReturn (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Resu
   | n + 1 => match e with
     | .place (.var x) => do
       let some b := env.lookup x | stuck s!"unknown variable {x}"
-      let v ← readRef b.ref
-      if b.owned then writeRef b.ref .uninit
-      pure (.value v)
+      pure (.value (← if b.owned then take b.ref else readRef b.ref))
     | e => do pure (.value (← evalExpr prog n env e))
 
 /-- Runs the statements of a block in order. -/

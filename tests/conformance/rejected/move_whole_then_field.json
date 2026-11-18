@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "partiallyDestroyed",
+  "diagnostic": "value 'p' cannot be consumed, because 'p.y' is used later"
+}

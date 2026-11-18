@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "320040718834550043")
+:::moduleDocs (fingerprint := "16438095033423621595")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -29,21 +29,23 @@ cannot be changed. Passed `mut` to an initializer, such a place is
 reported as the initializer's misfit.
 :::
 
-:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.noOwnOrigin MojoGrimoire.Check.CheckError.late MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "2045557727588418236")
+:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.noOwnOrigin MojoGrimoire.Check.CheckError.late MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "14982648558514621564")
 *Rule: reading and moving a place.* Using a place $`p` as a value copies it
 implicitly: $`p` must be initialized, and its type implicitly copyable.
 Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable
 that the function may change, owned or held `mut`, not a `read` or `ref`
-parameter (`transferFromBorrowed`); afterwards $`p` is uninitialized, and
-a field $`p` is added to $`M`. The value in $`p` must have an origin of
-its own: an element of a list or an array, or a part of one, cannot be
-transferred out, nor can a value through a reference bound with `ref`,
-even one that may be changed. The compiler rejects both alike
-(`transferFromElement`), once the place has a type and before anything
-else. Its later errors, which such a transfer comes before, are the use
-of an uninitialized or invalidated value and a constant index out of
-range. These conditions, without the move, are what $`q\,\hat{}` before
-a field or a method needs of $`q`.
+parameter (`transferFromBorrowed`); afterwards $`p` is uninitialized and
+holds nothing, its path is added to $`M`, the part of $`H` above it, if
+any, to $`T`, the parts of $`T` strictly below it and of $`P` at or below
+it are removed, and a variable moved out whole keeps nothing in $`T`. The
+value in $`p` must have an origin of its own: an element of a list or an
+array, or a part of one, cannot be transferred out, nor can a value
+through a reference bound with `ref`, even one that may be changed. The
+compiler rejects both alike (`transferFromElement`), once the place has a
+type and before anything else. Its later errors, which such a transfer
+comes before, are the use of an uninitialized or invalidated value and a
+constant index out of range. These conditions, without the move, are
+what $`q\,\hat{}` before a field or a method needs of $`q`.
 :::
 
 :::readable MojoGrimoire.Check.binaryTy MojoGrimoire.Check.unaryTy (fingerprint := "17580043234083190239")

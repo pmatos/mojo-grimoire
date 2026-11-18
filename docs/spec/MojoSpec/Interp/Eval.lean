@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14106489891274279044")
+:::moduleDocs (fingerprint := "7940239786515608681")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "14136961392570647166")
@@ -41,22 +41,24 @@ $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "8444517467269028061")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "8357258170032237644")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
-- *Destruction.* Destroying a struct with a `__deinit__` runs it on the
-  value; its elaborated body destroys the fields. A struct without one has
-  its fields destroyed in order, and a list its elements; other values
-  need nothing.
+- *Destruction.* A value that holds nothing, a blank included, needs
+  nothing, so a struct built field by field has only the fields that were
+  assigned destroyed (#51). Destroying a struct with a `__deinit__` runs
+  it on the value; its elaborated body destroys the fields. A struct
+  without one has its fields destroyed in order, and a list its elements;
+  other values need nothing.
 - *Bodies.* A body runs from its parameters until it returns or ends.
   Either way, every value the function still owns is destroyed, in order
   of declaration, after the returned value is computed.
 - *Places.* A place names a reference: a variable's, then a field or an
   element on the way, whose index is evaluated and checked against the
   list's length; $`p\,\hat{}` names the reference of $`p`.
-- *Expressions.* Literals are values; a place is read, a transfer reads it
-  and leaves $`\bot` behind, and `.copy()` reads it. `and` and `or`
+- *Expressions.* Literals are values; a place is read, a transfer takes
+  its value out, leaving its blank behind, and `.copy()` reads it. `and` and `or`
   evaluate their right operand only when the left does not decide.
   The operands of an operator, the elements of a list literal and the
   values printed are evaluated left to right, and those that are places,
@@ -72,7 +74,7 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   $`\mathsf{List}[u](e^+)` with more arguments, which the checker always
   rejects, gets stuck.
 - *Calls.* A struct with `__init__` is built in a location holding the
-  empty struct, passed as `out self`; a `@fieldwise_init` struct from its
+  struct with blank fields, passed as `out self`; a `@fieldwise_init` struct from its
   arguments. A function's arguments are evaluated left to right by their
   parameters' conventions, and those passed by value are read when the
   call is made; the reference that a call returns is passed by reference
@@ -88,17 +90,17 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   `len` gives the length of a list or an array, and destroys its argument
   when that is neither a place nor a reference that a call returns. A
   method gets its receiver by reference, or a copy for a `var self`; a
-  `var self` on $`q\,\hat{}` takes the value of $`q`, leaving $`\bot`
+  `var self` on $`q\,\hat{}` takes the value of $`q`, leaving its blank
   behind once the arguments are read.
 - *References.* A `ref` binding, and the `return` of a function with an
   origin, give a reference: to a place, or the one a call returns. Used as
   a value, such a call's result is read where a place would be. A call gives what it returns, a
   reference or a value, and any other expression its value.
-- *Statements.* A declaration puts its value at a new location the
-  function owns. An assignment evaluates its value, then its place, writes
+- *Statements.* A declaration puts its value, or the blank of its type
+  when it has none, at a new location the function owns. An assignment evaluates its value, then its place, writes
   it, and destroys the old value. An expression statement destroys its
   result. `print` writes its arguments separated by spaces. `if` and
   `while` run their blocks in scopes of their own. `return x` of an owned
-  variable moves it out. `drop p` takes the value out of $`p` and destroys
+  variable takes it out. `drop p` takes the value out of $`p` and destroys
   it, as $`\mathsf{drops}` does for each of its places.
 :::
