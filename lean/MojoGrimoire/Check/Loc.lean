@@ -17,6 +17,11 @@ it as a value that cannot be changed.
 A reference that a call returns and that is read late is re-checked
 through the origins of those of its origin arguments that are located
 operands, a temporary among them left out.
+
+A `mut` argument may not alias another argument that is passed as a location,
+Mojo's argument exclusivity. An `Int` or a `Bool` passed to a `read`
+parameter is not passed as a location: Mojo copies it. A `mut` argument of
+any type is.
 -/
 
 namespace MojoGrimoire.Check
@@ -112,5 +117,51 @@ located operand: a temporary would not outlive the call. -/
 def locatedOrigins (prog : Program) (e : Expr) : CheckM (List Place × Bool) := do
   let some l ← locOf prog e | throw (CheckError.notAPlace (calleeOf e))
   pure l
+
+/-- Whether two places may be the same location or overlap: one is the other
+or a field of it. -/
+def overlaps (p q : Place) : Bool :=
+  let (x, a) := splitPlace p
+  let (y, b) := splitPlace q
+  x == y && (a.isPrefixOf b || b.isPrefixOf a)
+
+/-- A location passed to a call: the convention it is passed by, the place
+reported when it is aliased, and the places it may be. -/
+structure PassedLoc where
+  conv : Conv
+  place : Place
+  places : List Place
+
+/-- The place `p` passed by the convention `c`. A reference counts as every
+place it may point into. -/
+def passedPlace (c : Conv) (p : Place) : CheckM PassedLoc := do
+  pure ⟨c, p, resolvePlace (← get).vars p⟩
+
+/-- The arguments among `args` that are passed as locations: every located
+operand whose parameter is `read`, `mut` or `ref`, except an `Int` or a
+`Bool` passed `read`, which is copied. A call that returns a reference is
+reported by its first origin. -/
+def locationArgs (prog : Program) : List Param → List Expr → CheckM (List PassedLoc)
+  | prm :: prms, a :: args => do
+    let rest ← locationArgs prog prms args
+    if passedByValue prm then return rest
+    match a, ← locOf prog a with
+    | .place p, some _ => pure ((← passedPlace prm.conv p) :: rest)
+    | _, some (o :: os, _) => pure (⟨prm.conv, o, o :: os⟩ :: rest)
+    | _, _ => pure rest
+  | _, _ => pure []
+
+/-- Rejects a `mut` location among `locs` that overlaps another one. -/
+def checkExclusive (locs : List PassedLoc) : CheckM Unit :=
+  go locs []
+where
+  /-- Checks each location against those before and after it. -/
+  go : List PassedLoc → List PassedLoc → CheckM Unit
+    | [], _ => pure ()
+    | l :: rest, seen => do
+      let clash (o : PassedLoc) := l.places.any fun a => o.places.any (overlaps a)
+      if l.conv == .mutable && (seen ++ rest).any clash then
+        throw (CheckError.argumentExclusivity l.place)
+      go rest (l :: seen)
 
 end MojoGrimoire.Check

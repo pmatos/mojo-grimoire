@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11785281318321433570")
+:::moduleDocs (fingerprint := "16397935298065602224")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -29,19 +29,21 @@ cannot be changed. Passed `mut` to an initializer, such a place is
 reported as the initializer's misfit.
 :::
 
-:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.requireNotThroughRef MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "3713637349590493988")
+:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.noOwnOrigin MojoGrimoire.Check.CheckError.late MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "2045557727588418236")
 *Rule: reading and moving a place.* Using a place $`p` as a value copies it
 implicitly: $`p` must be initialized, and its type implicitly copyable.
 Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable
 that the function may change, owned or held `mut`, not a `read` or `ref`
 parameter (`transferFromBorrowed`); afterwards $`p` is uninitialized, and
-a field $`p` is added to $`M`. An element of a list or an array, or a
-part of one, cannot be transferred out, nor can a value through a
-reference bound with `ref`, even one that may be changed: the compiler
-rejects both alike (`transferFromElement`). A reference is rejected so
-once its place has a type, before its origins are checked, even when
-they are moved away or invalidated. These conditions, without the move, are what
-$`q\,\hat{}` before a field or a method needs of $`q`.
+a field $`p` is added to $`M`. The value in $`p` must have an origin of
+its own: an element of a list or an array, or a part of one, cannot be
+transferred out, nor can a value through a reference bound with `ref`,
+even one that may be changed. The compiler rejects both alike
+(`transferFromElement`), once the place has a type and before anything
+else. Its later errors, which such a transfer comes before, are the use
+of an uninitialized or invalidated value and a constant index out of
+range. These conditions, without the move, are what $`q\,\hat{}` before
+a field or a method needs of $`q`.
 :::
 
 :::readable MojoGrimoire.Check.binaryTy MojoGrimoire.Check.unaryTy (fingerprint := "17580043234083190239")
@@ -61,20 +63,6 @@ computes when it compiles the program, with the same integer arithmetic
 as a run.
 :::
 
-:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.PassedLoc MojoGrimoire.Check.passedPlace MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "8186378624982211006")
-*Rule: argument exclusivity.* Two places overlap when they have the same
-variable and one path is a prefix of the other. The arguments of a call
-that are passed as locations are the located operands whose parameters
-are `read`, `mut` or `ref`, and the receiver of a method unless its
-`self` is `var`, except a receiver $`q\,\hat{}` that a `var self`
-consumes, which counts as $`q` passed `mut`; an $`\mathsf{Int}` or a $`\mathsf{Bool}` passed `read`
-is copied instead. A call is rejected when a location passed `mut`, of
-any type, overlaps another location of the same call. A reference, and a
-call that returns one, overlaps what its origins overlap: `n(first(xs),
-xs)` is rejected when `n` takes its second argument `mut`. The error names
-the place passed, or a call's first origin.
-:::
-
 :::readable MojoGrimoire.Check.passPlace (fingerprint := "2500036056060291548")
 *Rule: passing a place.* A place passed to a `read` or `ref` parameter
 must be initialized and of the parameter's type; one passed `mut` must
@@ -83,7 +71,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "8287997860808794504")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "10218489779562386103")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -141,6 +129,13 @@ elements, $`n` or more. Mojo locates $`q` in $`q[i]` before it
 evaluates $`i`, so $`i` may not invalidate $`q`. Each $`q\,\hat{}` in a
 place needs $`q` whole, as `p^` would, and a value that $`q\,\hat{}`
 could transfer, by the conditions above.
+Before that, $`p\,\hat{}` and each $`q\,\hat{}` in a place is rejected
+when the value has no origin of its own, as $`\mathsf{transferFromElement}`,
+once the place is typed as the compiler types it (#119): from its
+variable outward, each field, and each index as an $`\mathsf{Int}`,
+checked as an expression, whose own errors come first but for the later
+ones. So a moved list, an uninitialized or invalidated index, or a
+constant index out of range is not reported for an element's transfer.
 A call or a method call that returns a reference gives the value it
 points to, which must be implicitly copyable, unless the call is bound
 with `ref`, passed by reference, or read by `len` or `print`.
@@ -153,10 +148,9 @@ $`\mathsf{immutablePlace}`, named by its first origin; and any other
 expression by its type, which must be the parameter's. A `mut` parameter
 needs a place or such a call; passed $`q\,\hat{}`, it is
 $`\mathsf{notAPlace}`, where the compiler reports a value that cannot
-change (#81), with two exceptions once $`q` has a type, whatever its
-indices: a $`q` reached through a reference bound with `ref` is
-$`\mathsf{transferFromElement}`, and a $`q` whose
-variable is a `read` or `ref` parameter, other than an element (#119), is
+change (#81), with two exceptions: a $`q` with no origin of its own is
+$`\mathsf{transferFromElement}`, as above, and any other $`q`, once it
+has a type, whose variable is a `read` or `ref` parameter is
 $`\mathsf{transferFromBorrowed}`, as the compiler reports them.
 The numbers of arguments and parameters must be equal. A literal of an
 expected type passed to a function or a method is converted to the

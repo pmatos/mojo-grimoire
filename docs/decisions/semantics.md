@@ -80,7 +80,14 @@ where the compiler and the manual disagree, the model follows the compiler.
   moves (#50, #43). Any other element, or a field of one, is rejected as
   `transferFromElement`, as the compiler does, even an element of an
   implicitly copyable or copyable struct type, or one that is itself a
-  list (#105).
+  list (#105). The compiler rejects it once it has typed the place, its
+  variable, fields and indices, whose own type errors, implicit copies,
+  transfers and exclusivity come first: before it looks at what is
+  initialized or invalidated, the list or an index, at a constant index
+  out of range, and at the `mut` parameter it may be passed to, also
+  through a reference. The model does the same (#119). Its index check
+  leaves out only those later errors, so a type error that follows one
+  in the same index is not reported (#96).
 - `p^` followed by a field or a method, `p^.f` or `p^.m(…)`, is the place
   `transferred p` (#66). The compiler warns that the transfer has no
   effect, and borrows `p`: `p^.f` is the field `p.f`, read, copied or

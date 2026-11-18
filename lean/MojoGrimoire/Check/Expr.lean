@@ -16,19 +16,15 @@ not invalidated. A place passed as an argument is
 passed by its parameter's convention: `read`, `mut` and `ref` pass the
 location, which must be initialized, and `mut` also needs a place the
 function may change; `var` passes a value, which is copied implicitly unless
-the argument transfers it. A transfer through a reference bound with `ref`
-is rejected as soon as its place has a type, also when it is passed to a
-`mut` parameter, as is a transfer out of a `read` or `ref` parameter passed
-to one, as the compiler does (#85).
+the argument transfers it. A transfer of a value with no origin of its
+own, an element or one through a reference bound with `ref`, is rejected
+as soon as its place is typed, also when it is passed to a `mut`
+parameter, as is a transfer out of a `read` or `ref` parameter passed to
+one, as the compiler does (#85, #119).
 A call that returns a reference and is a located operand
 (`MojoGrimoire.Check.locOf`), passed to a `read`, `mut` or `ref` parameter
 or to `len`, is passed the same way: it is not copied, it stands for its
 origins, and for `mut` it must be mutable.
-
-A `mut` argument may not alias another argument that is passed as a location,
-Mojo's argument exclusivity. An `Int` or a `Bool` passed to a `read`
-parameter is not passed as a location: Mojo copies it. A `mut` argument of
-any type is.
 
 A call records as changed each place it is passed `mut`, or `ref` when the
 place may be changed, once its operands are checked, and the operands read
@@ -73,25 +69,29 @@ def copyPlace (prog : Program) (p : Place) : CheckM Ty := do
   unless copyingOf prog t == .implicit do throw (CheckError.implicitCopy t)
   pure t
 
-/-- Rejects `p^` when `p` is reached through a reference bound with `ref`,
-mutable or not. The compiler rejects it as soon as it has the place's type:
-before it looks at what is initialized or invalidated, and before it
-matches `p^` to a `mut` parameter (#85). -/
-def requireNotThroughRef (prog : Program) (p : Place) : CheckM Unit := do
-  let _ ← placeTy prog p
-  if let .alias _ _ := (← lookup (splitPlace p).1).access then
-    throw (CheckError.transferFromElement p)
+/-- Whether the value in the place `p` has no origin of its own, so that
+`p^` cannot transfer it out: `p` goes through an element of a list or an
+array, which would be left with a hole, or is reached through a reference
+bound with `ref`, mutable or not. -/
+def noOwnOrigin (p : Place) : CheckM Bool := do
+  pure (splitPlace.indexed p || (← lookup (splitPlace p).1).access matches .alias ..)
+
+/-- Whether the compiler reports the error `e` in a later pass than a
+transfer with no origin of its own: a use of an uninitialized or
+invalidated value, and a constant index out of range (#119). -/
+def CheckError.late : CheckError → Bool
+  | .uninitializedUse _ | .invalidatedReference _ | .negativeIndex _
+  | .constantIndexOutOfBounds _ => true
+  | _ => false
 
 /-- Rejects unless the value in the place `p` may be transferred out, and
-gives its type. It must be initialized, and the function must own it, or
-hold it `mut`: a `read` or `ref` parameter cannot give its value away. An
-element of a list or an array cannot be transferred out, since it would be
-left with a hole, nor can a value through a reference
-(`requireNotThroughRef`). -/
+gives its type. It must have an origin of its own (`noOwnOrigin`), checked
+before anything else, be initialized, and the function must own it, or
+hold it `mut`: a `read` or `ref` parameter cannot give its value away. -/
 def requireTransferable (prog : Program) (p : Place) : CheckM Ty := do
-  requireNotThroughRef prog p
+  let _ ← placeTy prog p
+  if ← noOwnOrigin p then throw (CheckError.transferFromElement p)
   let t ← readPlace prog p
-  if splitPlace.indexed p then throw (CheckError.transferFromElement p)
   unless (← lookup (splitPlace p).1).access.canChange do
     throw (CheckError.transferFromBorrowed p)
   pure t
@@ -145,52 +145,6 @@ def constInt : Expr → Option Int
     pure (f (← constInt a) (← constInt b))
   | _ => none
 
-/-- Whether two places may be the same location or overlap: one is the other
-or a field of it. -/
-def overlaps (p q : Place) : Bool :=
-  let (x, a) := splitPlace p
-  let (y, b) := splitPlace q
-  x == y && (a.isPrefixOf b || b.isPrefixOf a)
-
-/-- A location passed to a call: the convention it is passed by, the place
-reported when it is aliased, and the places it may be. -/
-structure PassedLoc where
-  conv : Conv
-  place : Place
-  places : List Place
-
-/-- The place `p` passed by the convention `c`. A reference counts as every
-place it may point into. -/
-def passedPlace (c : Conv) (p : Place) : CheckM PassedLoc := do
-  pure ⟨c, p, resolvePlace (← get).vars p⟩
-
-/-- The arguments among `args` that are passed as locations: every located
-operand whose parameter is `read`, `mut` or `ref`, except an `Int` or a
-`Bool` passed `read`, which is copied. A call that returns a reference is
-reported by its first origin. -/
-def locationArgs (prog : Program) : List Param → List Expr → CheckM (List PassedLoc)
-  | prm :: prms, a :: args => do
-    let rest ← locationArgs prog prms args
-    if passedByValue prm then return rest
-    match a, ← locOf prog a with
-    | .place p, some _ => pure ((← passedPlace prm.conv p) :: rest)
-    | _, some (o :: os, _) => pure (⟨prm.conv, o, o :: os⟩ :: rest)
-    | _, _ => pure rest
-  | _, _ => pure []
-
-/-- Rejects a `mut` location among `locs` that overlaps another one. -/
-def checkExclusive (locs : List PassedLoc) : CheckM Unit :=
-  go locs []
-where
-  /-- Checks each location against those before and after it. -/
-  go : List PassedLoc → List PassedLoc → CheckM Unit
-    | [], _ => pure ()
-    | l :: rest, seen => do
-      let clash (o : PassedLoc) := l.places.any fun a => o.places.any (overlaps a)
-      if l.conv == .mutable && (seen ++ rest).any clash then
-        throw (CheckError.argumentExclusivity l.place)
-      go rest (l :: seen)
-
 /-- Passes the place `p` to a parameter of convention `c` and type `t`, of
 a call of fit `fit`. -/
 def passPlace (prog : Program) (fit : Fit) (callee : Name) (c : Conv) (t : Ty) (p : Place) :
@@ -221,7 +175,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .bool _ => pure .bool
   | .str _ => throw CheckError.stringOutsidePrint
   | .place p => do checkIndices prog p; copyPlace prog p
-  | .transfer p => do checkIndices prog p; transferPlace prog p
+  | .transfer p => do requireOwnOrigin prog p; checkIndices prog p; transferPlace prog p
   | .copy p => do
     checkIndices prog p
     let t ← readPlace prog p
@@ -363,8 +317,30 @@ def checkIndices (prog : Program) : Place → CheckM Unit
       if let .array _ n := (← placeTy prog p) then
         if n ≤ k then throw (CheckError.constantIndexOutOfBounds (.index p i))
   | .transferred p => do
+    requireOwnOrigin prog p
     checkIndices prog p
     let _ ← requireTransferable prog p
+
+/-- Rejects `p^` when the value in `p` has no origin of its own
+(`noOwnOrigin`), as the compiler does once it has typed `p` (#85, #119):
+before it looks at what is initialized or invalidated, at a constant
+index, or at the parameter `p^` is passed to. -/
+def requireOwnOrigin (prog : Program) (p : Place) : CheckM Unit := do
+  typePlace prog p
+  if ← noOwnOrigin p then throw (CheckError.transferFromElement p)
+
+/-- Types the place `p` as the compiler does, from its variable outward,
+each index as an `Int`. An index's error that the compiler reports later
+(`CheckError.late`) is left out: only an element has an index, and its
+transfer is rejected first. -/
+def typePlace (prog : Program) : Place → CheckM Unit
+  | .var x => do let _ ← lookup x
+  | .field p f => do typePlace prog p; let _ ← placeTy prog (.field p f)
+  | .index p i => do
+    typePlace prog p
+    try expect .int (← checkExprAs prog false i) catch e => unless e.late do throw e
+    let _ ← placeTy prog (.index p i)
+  | .transferred p => typePlace prog p
 
 /-- Checks the arguments `args` of a call of `callee` against its parameters
 `params`, in order, and gives, for each, the places it is read from once
@@ -408,8 +384,8 @@ def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
     | none =>
       if prm.conv == .mutable then
         if let .transfer p := e then
-          requireNotThroughRef prog p
-          unless splitPlace.indexed p || (← placeMutable p) do
+          requireOwnOrigin prog p
+          unless ← placeMutable p do
             throw (CheckError.transferFromBorrowed p)
         throw (fit.misfit (CheckError.notAPlace callee))
       expectArg fit prm.ty (← checkExprAs prog false e)
