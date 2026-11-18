@@ -124,6 +124,45 @@ Rejected: leaving the message unclassified, which the suite counts as a
 disagreement, so that these programs could never be compared; and letting
 one message accept several classes, which loosens the comparison.
 
+### Rejections made while parsing
+
+A program that the compiler rejects while parsing, and that the model
+rejects with a syntax error, is pinned by a `#guard` test in
+`lean/MojoGrimoireTest/Parse/`, not by a suite program. The runner never
+matches a model syntax error, exit 3, with a compiler result, so no suite
+program can hold such a rejection. The human ruled this on 2026-11-18
+(#104).
+
+The rejections it covers are below, each with the compiler's first error,
+probed against Mojo 1.2.0 on 2026-11-18, and the guard that pins the
+model's side, named by its file and program. The guards run in every
+build. When the Mojo pin moves, build each program again with the new
+compiler and compare its first error with this list.
+
+| Program | Compiler's first error | Guard |
+|---|---|---|
+| `def f(read x: Int)` | 'read' was removed; use 'imm' | `Conventions.lean`: `withF "read xs: Array[Int, 2]"` |
+| `def f(imm: Int)` | expected argument name | `Conventions.lean`: `withF "imm: Int"` |
+| `def f(owned xs: Int)` | expected ')' in argument list | `Conventions.lean`: `withF "owned xs: Int"` |
+| `var y = x^ * 2` | can't use starred expression here | `XorCaret.lean`: `withX "var y = x^ * 2"` |
+| `var y = x^ == 3` | prefix '==' is only valid in a pattern | `XorCaret.lean`: `withX "var y = x^ == 3"` |
+
+No guard has the text `read x: Int`. The ones in `Conventions.lean` pin
+`read` at the start of a parameter whatever follows it: `read xs: Array[Int,
+2]`, `read: Int`, `read` alone, `read` before `self`, and `read y: Int`
+after another parameter. The compiler gives the same first error for
+`read xs: Array[Int, 2]` as for `read x: Int`.
+
+`x^ + 1` and `x^ 5`, which #54 also pins as syntax errors, are not on the
+list: the compiler builds them and prints `2` and `6`. They are outside the
+subset, not rejections.
+
+Rejected: changing `scripts/conformance.py` so that a model syntax error
+agrees with a compiler parse error, and holding these programs in
+`tests/conformance/rejected/` under a class of `diagnostics.json`. It
+changes the checking machinery for five programs that the guards already
+pin.
+
 ### Cycles of structs
 
 The compiler rejects a struct that holds itself by value, directly or
