@@ -26,6 +26,10 @@ is a default target, so every build links it. -/
 lean_exe «mojo-grimoire» where
   root := `MojoGrimoireCli
 
+/-- The executable's root module as a library, so that `MojoGrimoireTest`
+can import it and Lake builds it first. -/
+lean_lib MojoGrimoireCli
+
 /-- The Lean tests: building them runs their checks. -/
 @[default_target]
 lean_lib MojoGrimoireTest

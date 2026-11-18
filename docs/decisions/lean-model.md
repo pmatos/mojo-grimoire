@@ -6,7 +6,7 @@ organised.
 ## The package
 
 `lean/` is one Lake package with no dependencies, pinned to Lean 4.35.0 in
-`lean/lean-toolchain` (ADR-2026-11-15-1905). It has three libraries and an
+`lean/lean-toolchain` (ADR-2026-11-15-1905). It has four libraries and an
 executable:
 
 - `MojoGrimoire`, the model;
@@ -17,7 +17,12 @@ executable:
   `MojoGrimoire.Driver.main`. It is outside `MojoGrimoire` because the spec
   document imports that library and is an executable with its own `main`.
   The axiom check names `MojoGrimoireCli` as a root, so it is checked like
-  the rest, and every build links the executable.
+  the rest, and every build links the executable;
+- `MojoGrimoireCli`, the executable's root module declared as a library too
+  (#100). `MojoGrimoireTest` imports it for the axiom check, and Lake builds
+  an import first only when a library declares its module. Without this
+  target, building `MojoGrimoireTest` alone failed with "unknown module
+  prefix 'MojoGrimoireCli'".
 
 `scripts/build-lean.sh` is the one way to build it. It applies the build's
 guards and runs `lake build --wfail`. The roadmap's layers, the core calculus,
