@@ -109,7 +109,7 @@ step, the successors of the structs added by the last step that were not
 reached yet.
 :::
 
-:::readable MojoGrimoire.Check.rejectedCycle (pin := MojoGrimoire.Check.elemBase) (pin := MojoGrimoire.Check.throughList) (fingerprint := "12533693314962446183")
+:::readable MojoGrimoire.Check.rejectedCycle (pin := MojoGrimoire.Check.elemBase) (pin := MojoGrimoire.Check.throughList) (pin := MojoGrimoire.Check.successors) (pin := MojoGrimoire.Check.reach) (fingerprint := "12767551648373614766")
 *Definition: rejected cycles.* A field leads to the struct of its element
 type through a list when some list wraps it, directly when nothing does,
 and neither when only arrays do. The compiler rejects a cycle of fields
