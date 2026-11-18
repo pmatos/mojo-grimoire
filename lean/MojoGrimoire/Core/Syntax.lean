@@ -43,10 +43,9 @@ type `t`, a list or an array, with the elements `es`: Mojo's
 the type `Array[u, n]` unless a list is expected where it stands; the
 parser gives it the type `None`, which inference replaces only when a list
 or an array is expected. `listInit u es` is Mojo's `List[u](e₁, …, eₙ)`
-with at least one argument, which Mojo 1.2.0 rejects (#46): no initializer
-of `List` takes its elements as arguments. It accepts one argument that is
-a list or an array, as an iterable, but that is outside the subset, and
-the model rejects it too.
+with at least one argument. With one, a list or an array of `u`, it is a
+new list of copies of its elements (#103); with more, Mojo 1.2.0 rejects
+it (#46): no initializer of `List` takes its elements as arguments.
 `withDrops e pre post` performs the operation `e` and destroys the values
 in the places `pre` once its operands are read, before it is performed,
 and those in `post` once it is done; only elaboration inserts it. -/
