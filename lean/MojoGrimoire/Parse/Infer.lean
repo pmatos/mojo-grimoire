@@ -19,7 +19,7 @@ is read once every operand of the operation is evaluated, and destroyed
 then. So inference puts `e` in its stead, unless `e` is made only of
 literals and operators: that literal stays, typed `Int`, since Mojo does
 not compute an index that holds it when it compiles the program. Passed
-`mut` or `ref`, the literal is a temporary, so it stays too
+`mut` or `ref`, a literal of a place is a temporary, so it stays too
 (`keepTemporaries`), and a function that returns a reference expects no
 `Int` of what it returns, which must be a place. An `Int`
 is also expected by an index, by the right operand of an operator other
@@ -91,12 +91,12 @@ def foldable : Expr → Bool
   | _ => false
 
 /-- The arguments `args'` that inference gives for the arguments `args` of
-a call, passed to the parameters `params`. A literal `[e]` that inference
-replaced by `e` is a literal again when it is passed `mut` or `ref`: Mojo
-passes a temporary there, not the place `e`. -/
+a call, passed to the parameters `params`. A literal `[p]` that inference
+replaced by the place `p` is a literal again when it is passed `mut` or
+`ref`: Mojo passes a temporary there, not the place `p`. -/
 def keepTemporaries : List Param → List Expr → List Expr → List Expr
   | prm :: prms, a :: as, e :: es =>
-    let replaced := (a matches .list ..) && !(e matches .list ..)
+    let replaced := (a matches .list ..) && (e matches .place _)
     (if replaced && (prm.conv == .mutable || prm.conv == .ref) then .list .int [e] else e) ::
       keepTemporaries prms as es
   | _, _, es => es

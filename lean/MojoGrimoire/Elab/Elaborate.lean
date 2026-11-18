@@ -164,7 +164,8 @@ def consumedList (ctx : Ctx) : List Expr → List Place
 end
 
 /-- The slots that the operand `e` uses directly, with whether it is passed
-by value `m`: a place uses its slots and those of its indices; any other
+by value `m`. A literal `[e]` of type `Int` uses those of `e`, read by
+value: a place uses its slots and those of its indices; any other
 operand is an operation of its own, which destroys what it last uses. A
 call that returns a reference also uses the slots it points into: passed
 by reference, they live until the operation is done; passed by value, until
@@ -173,6 +174,7 @@ function owns die then in the order of `owned`. -/
 def directOf (ctx : Ctx) (e : Expr) (m : Bool) : List Place × Bool :=
   match e with
   | .place p => (union (ctx.sl.of p) (indexUses ctx.sl p), m)
+  | .list .int [x] => directOf ctx x true
   | e =>
     let ls := locSlots ctx.prog ctx.sl ctx.env e
     (if m then ctx.owned.filter (ls.contains ·) else ls, m)
@@ -233,6 +235,7 @@ def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Expr :=
     let d := opDrops ctx.owned [directOf ctx a true] after
     withDropsOf (.unary op (elabExpr ctx false a d.2.2)) d.1 (if top then [] else d.2.1)
   | .list t es =>
+    if t == .int then .list t es else
     let d := opDrops ctx.owned (directArgs ctx es (es.map fun _ => true)) after
     withDropsOf (.list t (elabOps ctx es d.2.2)) d.1 (if top then [] else d.2.1)
   | .listInit u es =>

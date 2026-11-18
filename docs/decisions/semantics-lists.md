@@ -128,9 +128,11 @@ here (#27).
   later operand that moves or invalidates the place is rejected, and a
   value whose last use is the place is destroyed after the other
   operands. Inference therefore puts `e` in the literal's stead. Passed
-  `mut` or `ref`, the literal is a temporary instead: `bump([x])`, with
-  `bump` taking `mut`, is rejected, and a reference that `pick([x])`
-  returns does not see a later change of `x`. A literal returned by a
+  `mut` or `ref`, a literal of a place is a temporary instead: `bump([x])`,
+  with `bump` taking `mut`, is rejected, and passed `ref`, the temporary
+  is filled from the place when the call is made, after its other
+  arguments, so `both([x], bump(x))` sees the changed `x`, but a
+  reference that `pick([x])` returns does not see a later change. A literal returned by a
   function that returns a reference is no place either. A literal
   made only of literals and operators stays, typed `Int`: the compiler
   does not compute an index that holds one when it compiles the program,

@@ -1,5 +1,6 @@
 import MojoGrimoire.Check.Fit
 import MojoGrimoire.Check.Change
+import MojoGrimoire.Check.Operators
 
 /-!
 The checking of expressions and of the arguments of calls.
@@ -46,8 +47,9 @@ passed to a function or a method is converted, and one that does not fit,
 also inside it, is a type mismatch. A literal with no expected type takes
 the type of its elements, and an element that differs from the first is a
 type mismatch too. A literal of type `Int`, which inference keeps only for
-`[e]` of one `Int` element made of literals and operators, has the type of
-`e` (#103).
+`[e]` of one `Int` element made of literals and operators, or of a place
+passed `mut` or `ref`, has the type of `e` (#103); passed so, its place is
+read late, as an operand.
 -/
 
 namespace MojoGrimoire.Check
@@ -108,44 +110,6 @@ def transferPlace (prog : Program) (p : Place) : CheckM Ty := do
   setVar { v with uninit := uninitialize v.uninit path,
                   moved := if path.isEmpty then v.moved else path :: v.moved }
   pure t
-
-/-- The type of the result of the operator `op` on operands of types `a` and
-`b`. -/
-def binaryTy (op : BinOp) (a b : Ty) : Except CheckError Ty :=
-  match op with
-  | .add | .sub | .mul | .floorDiv | .mod => do
-    unless a == .int do throw (.typeMismatch .int a)
-    unless b == .int do throw (.typeMismatch .int b)
-    pure .int
-  | .lt | .le | .gt | .ge => do
-    unless a == .int do throw (.typeMismatch .int a)
-    unless b == .int do throw (.typeMismatch .int b)
-    pure .bool
-  | .eq | .ne => do
-    unless a == .int || a == .bool do throw (.typeMismatch .int a)
-    unless b == a do throw (.typeMismatch a b)
-    pure .bool
-  | .and | .or => do
-    unless a == .bool do throw (.typeMismatch .bool a)
-    unless b == .bool do throw (.typeMismatch .bool b)
-    pure .bool
-
-/-- The type of the result of the operator `op` on an operand of type `a`. -/
-def unaryTy (op : UnOp) (a : Ty) : Except CheckError Ty :=
-  match op with
-  | .neg => if a == .int then pure .int else throw (.typeMismatch .int a)
-  | .not => if a == .bool then pure .bool else throw (.typeMismatch .bool a)
-
-/-- The value of an index made only of integer literals, negation, `+`, `-`,
-`*`, `//` and `%`: Mojo computes it when it compiles the program, with
-`BinOp.arith`, as the interpreter does at run time. -/
-def constInt : Expr → Option Int
-  | .int k => some k
-  | .unary .neg a => (constInt a).map (- ·)
-  | .binary op a b => do
-    let f ← op.arith
-    pure (f (← constInt a) (← constInt b))
-  | _ => none
 
 /-- Whether two places may be the same location or overlap: one is the other
 or a field of it. -/
@@ -398,7 +362,8 @@ def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
         pure t
     expectArg fit prm.ty t'
     let k ← mark
-    pure (([], k) :: (← checkArgs prog fit callee prms args n m))
+    let late ← if let [x] := es then if t == .int then lateLocs prog x else pure [] else pure []
+    pure ((late, k) :: (← checkArgs prog fit callee prms args n m))
   | prm :: prms, e :: args, n, m => do
     if prm.conv == .out || prm.conv == .deinit then
       throw (CheckError.invalidConvention callee)

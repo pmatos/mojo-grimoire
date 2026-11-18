@@ -40,6 +40,7 @@ private def lib : List String := [
   "    def __deinit__(deinit self):", "        print(\"del\", self.n)",
   "def eat(var d: D) -> Int:", "    return 5",
   "def pick(ref a: Int) -> ref [a] Int:", "    return a",
+  "def both(ref a: Int, b: Int) -> Int:", "    return a + b",
   "@fieldwise_init", "struct S(Movable):", "    var a: Int", "    var b: Bool",
   "struct Q(Movable):", "    var a: Int",
   "    def __init__(out self, a: Int):", "        self.a = a",
@@ -115,6 +116,12 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["bump([x])"] (.notAPlace "bump")
 #guard prints ["print(pick([x]) + inc(x))"] ["1"]
 #guard prints ["print(pick([xs[0]]) + xs.pop())"] ["11"]
+-- The temporary is filled when the call is made, after its other arguments.
+#guard prints ["print(both([x], inc(x)))"] ["11"]
+#guard rejects ["var d = D(1)", "print(both([d.n], eat(d^)))"]
+  (.uninitializedUse (.field (.var "d") "n"))
+#guard rejects ["print(both([xs[0]], xs.pop()))"]
+  (.invalidatedReference (.index (.var "xs") (.int 0)))
 
 -- The compiler does not compute an index that holds such a literal when it
 -- compiles the program, so it fails only at run time.

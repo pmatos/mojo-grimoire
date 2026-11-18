@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10800812994545232235")
+:::moduleDocs (fingerprint := "423828796988727027")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -44,23 +44,6 @@ they are moved away or invalidated. These conditions, without the move, are what
 $`q\,\hat{}` before a field or a method needs of $`q`.
 :::
 
-:::readable MojoGrimoire.Check.binaryTy MojoGrimoire.Check.unaryTy (fingerprint := "17580043234083190239")
-*Rule: operators.* Arithmetic takes two $`\mathsf{Int}` and gives an
-$`\mathsf{Int}`; $`<`, $`\le`, $`>` and $`\ge` take two
-$`\mathsf{Int}` and give a $`\mathsf{Bool}`; $`==` and $`!=` take
-two values of the same type, $`\mathsf{Int}` or $`\mathsf{Bool}`, and
-give a $`\mathsf{Bool}`; $`\mathsf{and}` and $`\mathsf{or}` take
-and give $`\mathsf{Bool}`. Negation takes an $`\mathsf{Int}`, and
-$`\mathsf{not}` a $`\mathsf{Bool}`.
-:::
-
-:::readable MojoGrimoire.Check.constInt (fingerprint := "18142347407676829893")
-*Definition: constant indices.* An index made only of integer literals,
-negation, $`+`, $`-`, $`\times`, `//` and `%` has a value that Mojo
-computes when it compiles the program, with the same integer arithmetic
-as a run.
-:::
-
 :::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.PassedLoc MojoGrimoire.Check.passedPlace MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "8186378624982211006")
 *Rule: argument exclusivity.* Two places overlap when they have the same
 variable and one path is a prefix of the other. The arguments of a call
@@ -83,7 +66,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "8390691729461900381")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "4563384215934295395")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -165,6 +148,8 @@ $`\mathsf{transferFromBorrowed}`, as the compiler reports them.
 The numbers of arguments and parameters must be equal. A literal of an
 expected type passed to a function or a method is converted to the
 parameter's type, and one that does not fit, or holds such a literal, is a
-type mismatch, as the compiler reports it. Checking the arguments gives the
-mark of each.
+type mismatch, as the compiler reports it. A literal $`[p]_{\mathsf{Int}}`
+of a place, passed `mut` or `ref`, is a value, read late as the place $`p`
+would be, so $`p` is checked again with the other operands (#103).
+Checking the arguments gives the mark of each.
 :::
