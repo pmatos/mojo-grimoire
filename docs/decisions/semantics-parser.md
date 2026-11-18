@@ -47,7 +47,8 @@ else. These choices hold:
   [Arrays](semantics-lists.md#arrays)). A literal `[e]` of one `Int`
   element where an `Int` is expected is replaced by `e`, or, when `e` is
   made only of literals and operators, gets the type `Int` (#103).
-  What it cannot find stays `None`, and the checker rejects it. A literal
+  What it cannot find stays `None`, and the checker rejects it, after the
+  initializer's own error, which comes first (#123). A literal
   with no expected type keeps `None` as its own type, which the checker
   replaces with its elements' type, so that the checker tells it from a
   literal that initializes an expected type (#46).
