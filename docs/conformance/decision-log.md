@@ -92,9 +92,9 @@ Each move of the Mojo pin gets an entry below.
 
 - Date: 2026-11-18
 - Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868)
-- Programs: `tests/conformance/structs/cycle_fieldwise_init.mojo`,
-  `cycle_fieldwise_init_holder_first.mojo` and
-  `cycle_fieldwise_init_both.mojo`
+- Program: `tests/conformance/structs/cycle_fieldwise_init.mojo`,
+  `tests/conformance/structs/cycle_fieldwise_init_holder_first.mojo` and
+  `tests/conformance/structs/cycle_fieldwise_init_both.mojo`
 - Compiler: accepts a cycle of structs with a list edge and a plain
   by-value edge, such as `A` holding a `List[B]` and `B` holding an `A`,
   when each initializer is written by hand, in either declaration order

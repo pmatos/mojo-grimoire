@@ -73,7 +73,7 @@
     },
     {
       "issue": 47,
-      "title": "@fieldwise_init fails inside a struct cycle through a List when the decorated struct is declared first, where the hand-written initializer compiles",
+      "title": "@fieldwise_init fails inside a struct cycle through a List, in either declaration order, where the hand-written initializer compiles",
       "ruled": "2026-11-18",
       "decision_log": "D-0004",
       "suite_programs": [

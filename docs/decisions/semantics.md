@@ -143,6 +143,14 @@ where the compiler and the manual disagree, the model follows the compiler.
   `Bool`; and `List[T](e1, …, en)`. The
   compiler reports each as "no matching function in initialization" (#46,
   [conformance.md](conformance.md#initializations-that-fit-no-initializer)).
+- A struct may not lie on a cycle of fields with no field that holds the
+  next struct through a list, or with no field that holds it directly:
+  the compiler rejects both, and so does the model (`recursiveStruct`).
+  A cycle with both, such as `A` holding a `List[B]` and `B` holding an
+  `A`, is accepted, through any number of structs and arrays, whether or
+  not `@fieldwise_init` builds the initializers. The compiler rejects some
+  `@fieldwise_init` forms, a compiler bug (D-0004, #47,
+  [conformance.md](conformance.md#cycles-of-structs)).
 - A declaration may not reuse the name of a variable in scope, a
   parameter included, so no variable hides another. Sibling blocks may
   reuse a name. ASAP elaboration relies on this, since it tracks

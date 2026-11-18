@@ -87,8 +87,7 @@ def checkStruct (prog : Program) (sd : StructDecl) : Except Rejection Unit := do
     checkDistinct (sd.fields.map (·.1) ++ sd.methods.map (·.name))
     for (_, t) in sd.fields do
       unless validTy prog t do throw (.invalidType t)
-      if rejectedCycle prog sd.name prog.structs.length false false t then
-        throw (.recursiveStruct sd.name)
+      if rejectedCycle prog sd.name t then throw (.recursiveStruct sd.name)
   if let some fd := sd.init then at_ (sd.name ++ ".__init__") (checkInit prog sd.name fd)
   if let some body := sd.deinit then
     at_ (sd.name ++ ".__deinit__")

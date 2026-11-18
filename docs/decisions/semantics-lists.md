@@ -81,12 +81,9 @@ here (#27).
   or more (`constantIndexOutOfBounds`); one known only at run time fails
   then, as on a list. A constant index into a list fails only at run time.
 - A struct may not hold an array, or a list, of itself: the compiler
-  rejects both, and so does the model (`recursiveStruct`). Nor may it lie
-  on a cycle of structs made only of list and array edges, or with no list
-  edge. A cycle with a list edge and a plain by-value edge, such as `A`
-  holding a `List[B]` and `B` holding an `A`, is accepted, whether or not
-  `@fieldwise_init` builds the initializers; the compiler's rejection of
-  some `@fieldwise_init` forms is a compiler bug (D-0004, #47).
+  rejects both, and so does the model (`recursiveStruct`). The rule for
+  cycles through several structs is in
+  [semantics.md](semantics.md#the-static-checker).
 
 Rejected: keeping every literal a `List`, which would accept programs that
 the compiler rejects, such as `append` to an unannotated literal.
