@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.Loc
+import MojoGrimoire.Check.Change
 
 /-!
 How a call reports an argument that does not fit its parameter (#46).
@@ -8,9 +8,10 @@ number of arguments, a value that is not a place, or a place that may not
 change, passed `mut`. An initializer reports every misfit as
 `noMatchingInit` of its type, since the compiler tries each initializer
 and reports only that none fits: a construction `S(…)`, and a literal that
-initializes the list or array expected where it stands. A literal passed
-to a function or a method is converted to its parameter's type, and the
-compiler reports one that does not fit as a type mismatch.
+initializes the list or array expected where it stands, and `List[u](e)`
+from a source that is not a list or an array of `u` that can be copied. A
+literal passed to a function or a method is converted to its parameter's
+type, and the compiler reports one that does not fit as a type mismatch.
 -/
 
 namespace MojoGrimoire.Check
@@ -51,5 +52,27 @@ def literalElem (prog : Program) (fit : Fit) (t : Ty) (n : Nat) : CheckM Ty := d
   if let .array _ k := t then
     unless k == n do throw (fit.misfit (CheckError.typeMismatch t (.array u n)))
   pure u
+
+/-- Rejects unless a value of the type `t` is a source that `List[u](e)`
+copies, through the initializer of `List` from any iterable: a list or an
+array of `u`, which can be copied (#103). Anything else fits no
+initializer of `List[u]`. -/
+def iterableFits (prog : Program) (u t : Ty) : CheckM Unit := do
+  unless (elemOf t).toOption == some u && copyingOf prog t != .none do
+    throw (CheckError.noMatchingInit (.list u))
+
+/-- The type of a literal `[e₁, …, eₙ]` with no type expected that is the
+argument of `List[u](…)`, given the type of each element, with the places
+it is read from and when it was checked: an array of the type of `e₁`. The
+compiler infers that type while it looks for an initializer, so a literal
+with no elements, or an element whose type differs from the first, also
+inside a nested literal, fits no initializer of `List[u]` (#103). -/
+def iterableLiteralTy (prog : Program) (u : Ty) (ts : List (Ty × List Place × Nat)) :
+    CheckM Ty := do
+  let some (t, _) := ts.head? | throw (CheckError.noMatchingInit (.list u))
+  unless validTy prog t do throw (CheckError.invalidType (.array t ts.length))
+  unless ts.all (·.1 == t) do throw (CheckError.noMatchingInit (.list u))
+  recheckLocs prog (ts.map (·.2))
+  pure (.array t ts.length)
 
 end MojoGrimoire.Check

@@ -32,7 +32,7 @@ Lists, `List[T]`, follow the rules of
   and give 0 for a zero divisor, as the compiler does.
 - `List[T]()` is an empty list. `List[T](e1, …, en)` with arguments is
   rejected (`noMatchingInit`), as the compiler rejects it, but for one
-  iterable argument (see below) (#46). The only
+  list or array argument (see below) (#46). The only
   initializer of `List` at the pin that takes the elements as arguments
   (`std/collections/list.mojo:463`) also needs the keyword argument
   `__list_literal__`, which only a list literal passes: since Mojo 25.4, a
@@ -41,11 +41,39 @@ Lists, `List[T]`, follow the rules of
   (`docs/site/releases/v0.25.4.md:117`). The same call explains why a
   literal that does not fit the list or array it initializes is
   `noMatchingInit` too.
-- The compiler also accepts `List[T](e)` with one iterable argument, a
-  literal `[e1, …, en]`, a list or an array, through its initializer from
-  any iterable, and `List[T](capacity=n)`. Both are outside the subset:
-  the model rejects the first as `noMatchingInit`, and the second is a
-  syntax error.
+- `List[T](e)` with one argument that is a list or an array of `T` is a
+  new list of copies of its elements, in order, as the compiler builds it
+  through the initializer of `List` from any iterable
+  (`std/collections/list.mojo:485`). The human ruled on 2026-11-18 that
+  the model follows the compiler here (#103). The argument may be a
+  literal, a variable, a place such as an element, or a call's result. A
+  literal there has no type expected, so it is an array, and `[[1], [2]]`
+  is an array of arrays, which fits no `List[Int]`. The initializer takes
+  the argument by `ref`: a place must be initialized, and is borrowed, so
+  `^` on it has no effect, and `xs^` needs a value that could be
+  transferred, as `xs^.f` does. A mutable place passed so may be changed,
+  which invalidates a reference into one of its elements; through `xs^`,
+  or from a `read` parameter, it is not. The new list is built in the
+  place it is assigned to, so `xss[0] = List[Int](pick(xss, ys))`, with
+  `pick` returning a mutable reference into `xss` or `ys`, is
+  `argumentExclusivity`, as for any call that builds its result in place.
+  A temporary argument is destroyed
+  once its elements are copied, and a variable whose last use is the
+  argument dies once the new list is built.
+- `T` must be the source's element type, and must be copyable,
+  explicitly or implicitly. A literal argument whose elements differ in
+  type, also inside a nested literal, fits no initializer, since the
+  compiler infers the literal's type while it looks for one. Any other
+  argument in the subset, an empty literal and a string among them, fits
+  no initializer either (`noMatchingInit`). The compiler also accepts
+  other iterables, such as `range(n)`, which are outside the subset until
+  #121 is ruled. The compiler
+  reports a `List[T]` source whose elements cannot be copied as "cannot
+  construct 'List[T]' with itself", which the suite also maps to
+  `noMatchingInit`
+  ([conformance.md](conformance.md#initializations-that-fit-no-initializer)).
+- `List[T](capacity=n)` stays a syntax error: the model does not read
+  keyword arguments.
 
 ## Arrays
 
