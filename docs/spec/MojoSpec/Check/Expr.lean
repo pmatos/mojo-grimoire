@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16397935298065602224")
+:::moduleDocs (fingerprint := "320040718834550043")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -71,7 +71,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "10218489779562386103")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "11839735280229061048")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -132,10 +132,13 @@ could transfer, by the conditions above.
 Before that, $`p\,\hat{}` and each $`q\,\hat{}` in a place is rejected
 when the value has no origin of its own, as $`\mathsf{transferFromElement}`,
 once the place is typed as the compiler types it (#119): from its
-variable outward, each field, and each index as an $`\mathsf{Int}`,
-checked as an expression, whose own errors come first but for the later
-ones. So a moved list, an uninitialized or invalidated index, or a
-constant index out of range is not reported for an element's transfer.
+variable outward, each field, each indexed place before its index, each
+index as an $`\mathsf{Int}`, checked as an expression, whose own errors
+come first but for the later ones, and each inner $`r\,\hat{}` as one
+that could transfer $`r`, initialized or not, by the same rule and the
+`read` or `ref` parameter rule above. So a moved list, an uninitialized
+or invalidated index, or a constant index out of range is not reported
+for an element's transfer.
 A call or a method call that returns a reference gives the value it
 points to, which must be implicitly copyable, unless the call is bound
 with `ref`, passed by reference, or read by `len` or `print`.

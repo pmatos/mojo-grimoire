@@ -86,8 +86,10 @@ where the compiler and the manual disagree, the model follows the compiler.
   initialized or invalidated, the list or an index, at a constant index
   out of range, and at the `mut` parameter it may be passed to, also
   through a reference. The model does the same (#119). Its index check
-  leaves out only those later errors, so a type error that follows one
-  in the same index is not reported (#96).
+  stops at the first of those later errors and leaves it out, so any
+  error that follows one in the same index, such as an unknown name, a
+  type error or an implicit copy, is not reported either (#96). A place
+  that is not transferred is still checked in the old order (#142).
 - `p^` followed by a field or a method, `p^.f` or `p^.m(…)`, is the place
   `transferred p` (#66). The compiler warns that the transfer has no
   effect, and borrows `p`: `p^.f` is the field `p.f`, read, copied or

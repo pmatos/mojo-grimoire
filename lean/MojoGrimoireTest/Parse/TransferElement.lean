@@ -9,10 +9,11 @@ variable, its fields, and each index, whose own type errors, implicit
 copies, transfers and exclusivity come first. It rejects it before it looks
 at what is initialized or invalidated, the list or an index, and at a
 constant index, negative or out of range, also through a reference bound
-with `ref`, and when `l[i]^` is passed to a `mut` parameter. Each expected
-outcome is the compiler's, but for the one marked as the model's (#88). The
-programs are parsed from text, one line per string, after the shared
-declarations.
+with `ref`, and when `l[i]^` is passed to a `mut` parameter. A `q^` inside
+the place is checked as it is typed. Each expected outcome is the
+compiler's, but for those whose message has no class, marked as the
+model's. The programs are parsed from text, one line per string, after
+the shared declarations.
 -/
 
 namespace MojoGrimoireTest.Parse.TransferElement
@@ -118,6 +119,21 @@ private def at_ (x : Name) (k : Int) : Place := .index (.var x) (.int k)
 #guard inMain ["    var s = S(0)", "    g(l[own(s)]^)"] == rejects (.implicitCopy (.struct "S"))
 #guard inMain ["    var s = S(0)", "    g(l[two(s, s)]^)"] ==
   rejects (.argumentExclusivity (.var "s"))
+
+-- A `q^` inside the place is checked as it is typed: an element or a
+-- reference cannot be transferred, nor a `read` parameter, before a field
+-- after it is looked up.
+#guard inMain ["    var u = l[0]^.nope^", "    print(u.k)"] ==
+  rejects (.transferFromElement (at_ "l" 0))
+#guard inMain ["    g(l[0]^.nope^)"] == rejects (.transferFromElement (at_ "l" 0))
+#guard go ["def main():", "    var o = O(S(1))", "    ref r = o", "    var u = r^.nope^",
+    "    print(u.k)"] == rejects (.transferFromElement (.var "r"))
+#guard go ["def f(x: O):", "    var u = x^.nope^", "    print(u.k)", "def main():",
+    "    f(O(S(1)))"] == rejects (.transferFromBorrowed (.var "x")) "f"
+
+-- A place that is not a list or an array is reported before its index;
+-- the compiler's "not subscriptable" has no class.
+#guard inMain ["    var s = S(0)", "    g(s[zz]^)"] == rejects (.notAList (.struct "S"))
 
 -- A `Bool` index: the compiler finds no `__getitem__`, a message with no
 -- class (#88); the model reports the index's type.
