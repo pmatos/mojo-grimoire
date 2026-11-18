@@ -21,11 +21,11 @@ parts are uninitialized on entry: the `self` of `__init__` is wholly
 uninitialized, and every other parameter wholly initialized. -/
 def paramState (prm : Param) : VarState :=
   match prm.conv with
-  | .read | .ref => ⟨prm.name, prm.ty, .readOnly, [], []⟩
-  | .mutable => ⟨prm.name, prm.ty, .mutable, [], []⟩
-  | .owned => ⟨prm.name, prm.ty, .owned, [], []⟩
-  | .out => ⟨prm.name, prm.ty, .constructing, [[]], []⟩
-  | .deinit => ⟨prm.name, prm.ty, .dying, [], []⟩
+  | .read | .ref => ⟨prm.name, prm.ty, .readOnly, [], [], [[]], [], []⟩
+  | .mutable => ⟨prm.name, prm.ty, .mutable, [], [], [[]], [], []⟩
+  | .owned => ⟨prm.name, prm.ty, .owned, [], [], [[]], [], []⟩
+  | .out => ⟨prm.name, prm.ty, .constructing, [[]], [], [], [], []⟩
+  | .deinit => ⟨prm.name, prm.ty, .dying, [], [], [[]], [], []⟩
 
 /-- Rejects a list of names that holds a name twice. -/
 def checkDistinct : List Name → Except CheckError Unit

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The machine: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13008170621965223899")
+:::moduleDocs (fingerprint := "3615762742804319230")
 :::
 
 :::readable MojoGrimoire.Interp.Ref MojoGrimoire.Interp.Binding MojoGrimoire.Interp.Env (fingerprint := "5146776138028628767")
@@ -38,6 +38,11 @@ and may stop with a signal; the machine is kept when it does, so a failed
 run still shows what it printed.
 :::
 
+:::readable MojoGrimoire.Interp.take (fingerprint := "7253996121591754848")
+*Definition: taking a value.* Taking the value out of a reference leaves
+its blank in its place.
+:::
+
 :::readable MojoGrimoire.Interp.alloc MojoGrimoire.Interp.readRef MojoGrimoire.Interp.writeRef MojoGrimoire.Interp.emit (fingerprint := "3528105872701788051")
 *Definition: the store.* A new location is added at the end of the store
 and never reused. Reading and writing a reference reads and replaces the
@@ -54,10 +59,13 @@ $`\mathsf{Bool}`s. Negation wraps too, and `not` negates a
 $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Interp.position MojoGrimoire.Interp.emptyStruct (fingerprint := "2926155158370350068")
-*Definition: indices and empty structs.* An index into a list of length
+:::readable MojoGrimoire.Interp.position MojoGrimoire.Interp.blankOf MojoGrimoire.Interp.emptyStruct (fingerprint := "13651110332402185810")
+*Definition: indices and blanks.* An index into a list of length
 $`l` names position $`i` when $`0 \le i < l`; any other index, a negative
 one included, stops the run, since Mojo's `List` does not count from the
-end. The `self`
-of `__init__` starts as the struct with every field $`\bot`.
+end. A variable declared without a value starts as the blank of its type:
+for a struct type with fields, the struct whose fields are the blanks of
+their types, and $`\bot` for any other type, so that its fields can be
+assigned one by one (#51). The `self` of `__init__` starts as the struct
+whose fields are the blanks of their types.
 :::
