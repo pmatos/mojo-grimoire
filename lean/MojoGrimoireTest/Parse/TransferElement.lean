@@ -11,7 +11,7 @@ at what is initialized or invalidated, the list or an index, and at a
 constant index, negative or out of range, also through a reference bound
 with `ref`, and when `l[i]^` is passed to a `mut` parameter. A `q^` inside
 the place is checked as it is typed. Each expected outcome is the
-compiler's, but for those whose message has no class, marked as the
+compiler's, but for the two whose message has no class, marked as the
 model's. The programs are parsed from text, one line per string, after
 the shared declarations.
 -/
@@ -131,9 +131,14 @@ private def at_ (x : Name) (k : Int) : Place := .index (.var x) (.int k)
 #guard go ["def f(x: O):", "    var u = x^.nope^", "    print(u.k)", "def main():",
     "    f(O(S(1)))"] == rejects (.transferFromBorrowed (.var "x")) "f"
 
--- A place that is not a list or an array is reported before its index;
--- the compiler's "not subscriptable" has no class.
-#guard inMain ["    var s = S(0)", "    g(s[zz]^)"] == rejects (.notAList (.struct "S"))
+-- An inner `q^` of an `Int` is the place `q`, and the compiler types an
+-- index into an `Int` before it finds no element (#127).
+#guard go ["def main():", "    var n: List[Int] = [1]", "    var u = n[0]^.nope^",
+    "    print(u)"] == rejects (.unknownAttribute "Int" "nope")
+#guard go ["def f(x: S):", "    var u = x.k^.nope^", "    print(u)", "def main():",
+    "    f(S(1))"] == rejects (.unknownAttribute "Int" "nope") "f"
+#guard go ["def main():", "    var n = 5", "    var u = n[zz]^", "    print(u)"] ==
+  rejects (.unknownVariable "zz")
 
 -- A `Bool` index: the compiler finds no `__getitem__`, a message with no
 -- class (#88); the model reports the index's type.

@@ -333,22 +333,24 @@ def requireOwnOrigin (prog : Program) (p : Place) : CheckM Unit := do
   typePlace prog p
   if ← noOwnOrigin p then throw (CheckError.transferFromElement p)
 
-/-- Types the place `p` as the compiler does, from its variable outward:
-each indexed place before its index, each index as an `Int`, and each `q^`
-in it as one that could transfer `q`, initialized or not. An index's error
-that the compiler reports later (`CheckError.late`) is left out: only an
-element has an index, and its transfer is rejected first. -/
+/-- Types the place `p` as the compiler does, from its variable outward,
+each index as an `Int`, and each `q^` in it, but of an `Int` or a `Bool`,
+which is the place `q`, as one that could transfer `q`, initialized or
+not. An index's error that the compiler reports later (`CheckError.late`)
+is left out: the transfer is rejected first. -/
 def typePlace (prog : Program) : Place → CheckM Unit
   | .var x => do let _ ← lookup x
   | .field p f => do typePlace prog p; let _ ← placeTy prog (.field p f)
   | .index p i => do
     typePlace prog p
-    let _ ← placeTy prog (.index p i)
     try expect .int (← checkExprAs prog false i) catch e => unless e.late do throw e
+    let _ ← placeTy prog (.index p i)
   | .transferred p => do
-    requireOwnOrigin prog p
-    unless (← lookup (splitPlace p).1).access.canChange do
-      throw (CheckError.transferFromBorrowed p)
+    typePlace prog p
+    unless (← placeTy prog p).byValue do
+      if ← noOwnOrigin p then throw (CheckError.transferFromElement p)
+      unless (← lookup (splitPlace p).1).access.canChange do
+        throw (CheckError.transferFromBorrowed p)
 
 /-- Checks the arguments `args` of a call of `callee` against its parameters
 `params`, in order, and gives, for each, the places it is read from once
