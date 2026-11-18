@@ -58,5 +58,8 @@ else. These choices hold:
   (`run-time error: NAME`), 3 a syntax error (`syntax error: line N:
   MESSAGE`), 4 a command line or file that cannot be used. The conformance
   suite compares 0 to 2, and the printed lines, with the compiler's. It
-  cannot compare a syntax error with the compiler's parse error, so those
-  (#54, #68) are pinned by `#guard` tests and have no suite program.
+  cannot compare a syntax error with the compiler's parse error, so the
+  rejections the compiler makes while parsing (#54, #68) are pinned by
+  `#guard` tests and have no suite program. Their list, with the
+  compiler's first errors, is on
+  [conformance.md](conformance.md#rejections-made-while-parsing).

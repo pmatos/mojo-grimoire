@@ -71,6 +71,7 @@ private def rejected : Ran → Bool
   "    return x", "def main():", "    print(read(), imm(4))"] == .ok (.finished ["3 4"])
 
 -- `read` at the start of a parameter is rejected, whatever follows it.
+#guard withF "read x: Int" "x" "1" == .error 1 removed
 #guard withF "read xs: Array[Int, 2]" "xs[1]" "[1, 2]" == .error 1 removed
 #guard withSelf "read" == .error 4 removed
 #guard withF "read: Int" "1" "x" == .error 1 removed
