@@ -45,7 +45,8 @@ else. These choices hold:
   gives `var x = e` the type of `e`, and a literal `[e1, …, en]` the type
   expected where it stands, or else `Array[T, n]` (see
   [Arrays](semantics-lists.md#arrays)).
-  What it cannot find stays `None`, and the checker rejects it. A literal
+  What it cannot find stays `None`, and the checker rejects it, after the
+  initializer's own error, which comes first (#123). A literal
   with no expected type keeps `None` as its own type, which the checker
   replaces with its elements' type, so that the checker tells it from a
   literal that initializes an expected type (#46).

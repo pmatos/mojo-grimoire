@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14101139455371984625")
+:::moduleDocs (fingerprint := "2476031845189118675")
 :::
 
 :::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9586730624127733473")
@@ -91,12 +91,15 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "12622686728784001093")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "3821413381543673203")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
   of type $`t`, by `checkInitValue`, as do an assignment and `return`, and declares $`x`, initialized when $`e` is given; $`x`
-  may not be the name of a variable in scope, so no variable hides another;
+  may not be the name of a variable in scope, so no variable hides another.
+  When inference left $`t` as $`\mathsf{None}`, $`e` is checked first, so
+  that its own error, such as an unknown field, is reported, as the
+  compiler does (#123);
 * $`\mathsf{ref}~x = e` binds $`x` to a reference, as the next section
   says; $`x` may not hide a variable in scope either;
 * $`p = e` checks $`e` first, then the indices of $`p`, then needs $`p`
