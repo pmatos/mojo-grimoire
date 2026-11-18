@@ -1,10 +1,11 @@
 {
   "about": [
-    "Compiler bugs that the human has ruled on, kept so that each can be confirmed later:",
-    "re-run on a newer compiler, and reported upstream to modular/modular once the human",
-    "approves the draft. Each reproducer was run on the pinned compiler when it was added.",
-    "The decision log (decision-log.md) holds the reasoning; this file lists the bugs and",
-    "their state. Status values: unfiled, filed, confirmed, fixed-upstream, not-a-bug."
+    "Compiler bugs that the human has ruled on, each with a reproducer that was run on the",
+    "pinned compiler when it was added. The decision log (decision-log.md) holds the reasoning.",
+    "A ruling is confirmed when the human has discussed the intended semantics with Modular's",
+    "developers; the outcome goes in `confirmation`. If a ruling turns out wrong, the human",
+    "revisits it. `confirmation.status`: pending, confirmed, not-a-bug.",
+    "`upstream.status`: unfiled, filed, fixed-upstream. Only the human files upstream reports."
   ],
   "bugs": [
     {
@@ -27,6 +28,10 @@
         "draft": "https://github.com/pmatos/mojo-grimoire/issues/57#issuecomment-6922291323",
         "tracking": 70,
         "report": null
+      },
+      "confirmation": {
+        "status": "pending",
+        "notes": null
       }
     },
     {
@@ -47,6 +52,10 @@
         "draft": null,
         "tracking": 51,
         "report": null
+      },
+      "confirmation": {
+        "status": "pending",
+        "notes": null
       }
     },
     {
@@ -67,6 +76,10 @@
         "draft": null,
         "tracking": 47,
         "report": null
+      },
+      "confirmation": {
+        "status": "pending",
+        "notes": null
       }
     }
   ]
