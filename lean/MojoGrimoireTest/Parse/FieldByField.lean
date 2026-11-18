@@ -128,6 +128,18 @@ private def fld (x f : Name) : Place := .field (.var x) f
 #guard destroyed "t" ["    var c = True", "    var t: Line", "    t.a = Pt(1, 2)", "    while c:",
     "        t.a.x = 3", "        c = False", "    var s = t.a^", "    print(s.x)"]
 
+-- What a loop body moves out counts after the loop, and in the next
+-- iteration: a field moved out while another part is held, a whole move
+-- followed by a field, and an overwrite of a part with a field moved out.
+#guard destroyed "t" ["    var i = 0", "    var t: Line", "    while i < 2:", "        t.a = Pt(i, i)",
+    "        t.b = Pt(i, 7)", "        var s = t.a^", "        print(s.x)", "        i = i + 1"]
+#guard destroyed "t" ["    var i = 0", "    var t: Line", "    while i < 2:",
+    "        t = Line(Pt(i, i), Pt(i, i))", "        var u = t^", "        t.a = Pt(5, i)",
+    "        print(u.a.x)", "        i = i + 1"]
+#guard destroyed "t" ["    var i = 0", "    var t: Two", "    while i < 2:",
+    "        t = Two(Res(i), Res(i + 10))", "        var s = t.a^", "        print(s.id)",
+    "        i = i + 1", "    t.a = Res(7)"]
+
 -- A variable moved out whole and given some of its fields, and a part moved
 -- out and given some of its fields then assigned whole, are rejected.
 #guard destroyed "p" ["    var p = Pt(1, 2)", "    var q = p^", "    p.x = 3", "    print(q.x, p.x)"]

@@ -154,7 +154,10 @@ where the compiler and the manual disagree, the model follows the compiler.
 - After an `if`, a part counts as initialized only when both branches leave
   it initialized. A loop body must leave initialized every part that was
   initialized before the loop; as the compiler does, the checker reports
-  a body that does not as `uninitializedUse`.
+  a body that does not as `uninitializedUse`. A part uninitialized before
+  the loop may be assigned and moved out in each iteration. What the body
+  moves out still counts in the next iteration, which the checker checks
+  again from that state, and after the loop (#51).
 - Only a struct has fields, and only a struct or a list has methods. A
   field or a method that the type of its receiver lacks, whatever that
   type, is one class, `unknownAttribute`, named with the type's name: the

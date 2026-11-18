@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15987060912412890466")
+:::moduleDocs (fingerprint := "11719028120359603411")
 :::
 
 :::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9992527159242234863")
@@ -51,12 +51,13 @@ each checked as above if the end of the block is reached, and leave the
 set of invalidated references.
 :::
 
-:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "4142665027204383251")
+:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "3993288572809658863")
 *Rule: joining branches.* After an `if`, a part is uninitialized when
 either branch leaves it so, and may hold a value when either branch may;
 $`M`, $`T` and $`P` are the unions of the branches' sets, and
 a reference is invalidated when either branch invalidates it. A branch
-that cannot reach its end, because it returned, does not count.
+that cannot reach its end, because it returned, does not count. A loop
+joins $`M`, $`H`, $`T` and $`P` the same way, as described below.
 :::
 
 :::readable MojoGrimoire.Check.checkLoop (fingerprint := "6169669695796580470")
@@ -108,7 +109,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "14240413517446215355")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "3797012120997196750")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
@@ -140,12 +141,13 @@ an expression, so a place is copied implicitly.
   still initialized and not invalidated;
 * `if` needs a $`\mathsf{Bool}` condition and joins its branches, each a
   scope of its own; `while` needs a $`\mathsf{Bool}` condition and a
-  body that keeps what was initialized. After the loop, which may have run
-  any number of times, the state is the one before it, with $`H`, $`T`
-  and $`P` joined with those the body leaves. When the body can reach its end
-  and invalidates a reference, the condition and the body are checked once
-  more with it invalidated, as the next iteration finds it, and it stays
-  invalidated after the loop;
+  body that keeps what was initialized. When the body can reach its end,
+  the next iteration starts from the state before the loop with $`M`,
+  $`H`, $`T`, $`P` and the invalidated references joined with those the
+  body leaves; when that adds anything, the condition and the body are
+  checked once more from it. After the loop, which may have run any number
+  of times, the state is that one, with $`M`, $`H`, $`T` and $`P` of the
+  second check joined in too;
 * `return` needs a value of the result type exactly when the result type
   is not $`\mathsf{None}`, checks the state at a return, and makes what
   follows unreachable; a function that returns a reference returns a

@@ -14,8 +14,9 @@ initialized only when both branches leave it initialized, and a branch that
 returns does not count. A loop body that can reach its end must leave
 initialized every part that was initialized before the loop, or its next
 iteration would use a moved value: like Mojo, the checker reports that as
-a use of an uninitialized value. What the body may leave holding a value,
-touched or built from its fields counts after the loop too.
+a use of an uninitialized value. What the body may leave moved out,
+holding a value, touched or built from its fields counts after the loop
+too.
 
 Where a variable ends, at the end of its block or when the function
 returns, the parts it still holds are destroyed. The compiler destroys a
@@ -27,7 +28,8 @@ Assigning to a part destroys its old value, so the same holds for the
 part, and a part moved out may not be assigned whole once some of its
 fields were assigned. Assigning through a reference, or to an
 element, needs the old value initialized, with no field moved out. A loop
-body may not leave a field moved out that was not before the loop. The
+body may not leave a field moved out that was initialized before the loop
+and not moved out. The
 `self` of `__deinit__` is the exception:
 its own fields may stay moved out, since it is being destroyed field by
 field. When a function returns, its `mut` parameters and the `self` of
@@ -41,9 +43,12 @@ returns a location within its own origin, as `withinOrigin` decides.
 
 An assignment changes its place as a whole. After an `if`, a reference is
 invalidated when either branch invalidates it. A loop whose body can reach
-its end and invalidates a reference is checked once more from the state
-where it is invalidated, since the next iteration uses it so. The changes
-recorded for operands start afresh with each statement.
+its end and leaves a part moved out, a part that may hold a value, a
+touched part, a piece or an invalidated reference that the state before
+the loop lacks is checked once more from the state before it with those
+added, since the next iteration starts so; the state after the loop has
+them too. The changes recorded for operands start afresh with each
+statement.
 -/
 
 namespace MojoGrimoire.Check
@@ -115,11 +120,12 @@ def endScope (prog : Program) (n : Nat) : CheckM Unit := do
 def joinUninit (a b : List Path) : List Path :=
   b.foldl uninitialize a
 
-/-- The variable `v` with the parts that may hold a value, the touched
-parts and the pieces of `w` added: what either of two paths may leave. -/
+/-- The variable `v` with the parts moved out, the parts that may hold a
+value, the touched parts and the pieces of `w` added: what either of two
+paths may leave. -/
 def joinMay (v w : VarState) : VarState :=
-  { v with held := joinUninit v.held w.held, touched := union v.touched w.touched,
-           pieces := union v.pieces w.pieces }
+  { v with moved := union v.moved w.moved, held := joinUninit v.held w.held,
+           touched := union v.touched w.touched, pieces := union v.pieces w.pieces }
 
 /-- The state after two branches that started from the same state: a part
 is uninitialized, a field moved out, or a reference invalidated, when either
@@ -129,8 +135,7 @@ def joinStates (a b : State) : State :=
   else if !b.live then a
   else { a with
          vars := List.zipWith (fun v w =>
-             { joinMay v w with uninit := joinUninit v.uninit w.uninit,
-                                moved := union v.moved w.moved })
+             { joinMay v w with uninit := joinUninit v.uninit w.uninit })
            a.vars b.vars,
          stale := union a.stale b.stale }
 
@@ -276,13 +281,15 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     checkScope prog sig body
     let s1 ← get
     checkLoop s0 s1
-    let fresh := s1.stale.filter (!s0.stale.contains ·)
-    if s1.live && !fresh.isEmpty then
-      set { s0 with stale := s0.stale ++ fresh }
+    let head := if s1.live then { s0 with vars := List.zipWith joinMay s0.vars s1.vars,
+                                          stale := union s0.stale s1.stale } else s0
+    if head != s0 then
+      set head
       expect .bool (← checkExpr prog c)
       checkScope prog sig body
-    let vars := if s1.live then List.zipWith joinMay s0.vars s1.vars else s0.vars
-    set { s0 with vars, stale := if s1.live then union s0.stale fresh else s0.stale }
+      let s2 ← get
+      set (if s2.live then { head with vars := List.zipWith joinMay head.vars s2.vars } else head)
+    else set head
   | .ret value => do
     match value, sig.origin with
     | none, _ => unless sig.result == .noneType do throw (CheckError.invalidReturn sig.name)
