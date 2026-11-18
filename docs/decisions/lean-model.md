@@ -22,7 +22,7 @@ executable:
   (#100). `MojoGrimoireTest` imports it for the axiom check, and Lake builds
   an import first only when a library declares its module. Without this
   target, building `MojoGrimoireTest` alone failed with "unknown module
-  prefix 'MojoGrimoireCli'".
+  prefix 'MojoGrimoireCli'". The human approved this target on 2026-11-18.
 
 `scripts/build-lean.sh` is the one way to build it. It applies the build's
 guards and runs `lake build --wfail`. The roadmap's layers, the core calculus,
