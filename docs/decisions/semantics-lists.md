@@ -127,15 +127,20 @@ here (#27).
   `[x] + bump(x)`, with `bump` changing `x`, reads the changed `x`, a
   later operand that moves or invalidates the place is rejected, and a
   value whose last use is the place is destroyed after the other
-  operands. Inference therefore puts `e` in the literal's stead. A literal
+  operands. Inference therefore puts `e` in the literal's stead. Passed
+  `mut` or `ref`, the literal is a temporary instead: `bump([x])`, with
+  `bump` taking `mut`, is rejected, and a reference that `pick([x])`
+  returns does not see a later change of `x`. A literal returned by a
+  function that returns a reference is no place either. A literal
   made only of literals and operators stays, typed `Int`: the compiler
   does not compute an index that holds one when it compiles the program,
   so `xs[[-1]]` and `arr[[2]]` fail only at run time.
 - An element that is not an `Int`, `[True]`, fits no initializer of `Int`
   (`noMatchingInit`), and passed to a function, or as the right operand of
-  an operator, it is a type mismatch. As the left operand of an
-  arithmetic operator, `[True] + x`, the compiler reports that the array
-  has no `__add__`, a message the suite does not classify. A literal of another length is accepted by a default
+  an operator other than `and` and `or`, it is a type mismatch. As the
+  left operand of an arithmetic operator, `[True] + x`, or an operand of
+  `and` and `or`, `x or [True]`, the compiler reports that the array has
+  no `__add__` or `__bool__`, a message the suite does not classify. A literal of another length is accepted by a default
   build, which keeps its first element, and `[]` crashes; the model keeps
   rejecting both, as above, until #122 is ruled.
 - A constant index into an array of `N` elements is rejected when it is `N`

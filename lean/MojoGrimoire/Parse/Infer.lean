@@ -18,7 +18,10 @@ makes it (#103). Mojo reads it as it reads the operand `e`: a place in it
 is read once every operand of the operation is evaluated, and destroyed
 then. So inference puts `e` in its stead, unless `e` is made only of
 literals and operators: that literal stays, typed `Int`, since Mojo does
-not compute an index that holds it when it compiles the program. An `Int`
+not compute an index that holds it when it compiles the program. Passed
+`mut` or `ref`, the literal is a temporary, so it stays too
+(`keepTemporaries`), and a function that returns a reference expects no
+`Int` of what it returns, which must be a place. An `Int`
 is also expected by an index, by the right operand of an operator other
 than `and` and `or` whose left one is an `Int`, and by a literal left
 operand of an arithmetic operator whose right one is an `Int`, which Mojo
@@ -87,6 +90,17 @@ def foldable : Expr → Bool
   | .list .int [a] => foldable a
   | _ => false
 
+/-- The arguments `args'` that inference gives for the arguments `args` of
+a call, passed to the parameters `params`. A literal `[e]` that inference
+replaced by `e` is a literal again when it is passed `mut` or `ref`: Mojo
+passes a temporary there, not the place `e`. -/
+def keepTemporaries : List Param → List Expr → List Expr → List Expr
+  | prm :: prms, a :: as, e :: es =>
+    let replaced := (a matches .list ..) && !(e matches .list ..)
+    (if replaced && (prm.conv == .mutable || prm.conv == .ref) then .list .int [e] else e) ::
+      keepTemporaries prms as es
+  | _, _, es => es
+
 mutual
 /-- Infers inside the place `p`, and gives its type, if it has one. -/
 def inferPlace (prog : Program) (env : TyEnv) : Place → Place × Option Ty
@@ -113,31 +127,33 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
   | .call f args =>
     let sig := (callSig prog f).toOption
     let args' := (inferList prog env (paramTys sig) args).map (·.1)
-    (.call f args', sig.elim (unsignedResult prog f) (some ·.result))
+    (.call f (keepTemporaries (sig.elim [] (·.params)) args args'),
+      sig.elim (unsignedResult prog f) (some ·.result))
   | .method p m args =>
     let (p', pt) := inferPlace prog env p
     let sig := pt.bind fun t => (methodSig prog t m args.length).toOption
     let args' := (inferList prog env (paramTys sig) args).map (·.1)
-    (.method p' m args', sig.map (·.result))
+    (.method p' m (keepTemporaries (sig.elim [] (·.params)) args args'), sig.map (·.result))
   | .unary op a =>
     (.unary op (inferExpr prog env .noneType a).1, some (if op == .neg then .int else .bool))
   | .binary op a b =>
-    let (a', ta) := inferExpr prog env .noneType a
-    let (b', tb) := inferExpr prog env .noneType b
-    let a' := if tb == some .int && op.arith.isSome && a matches .list .. then
-      (inferExpr prog env .int a).1 else a'
-    let b' := if ta == some .int && op != .and && op != .or && b matches .list .. then
-      (inferExpr prog env .int b).1 else b'
+    let (a₀, ta₀) := if a matches .list .. then (a, none) else inferExpr prog env .noneType a
+    let (b₀, tb₀) := if b matches .list .. then (b, none) else inferExpr prog env .noneType b
+    let (a', ta) := if a matches .list .. then
+        inferExpr prog env (if tb₀ == some .int && op.arith.isSome then .int else .noneType) a
+      else (a₀, ta₀)
+    let b' := if b matches .list .. then
+        (inferExpr prog env (if ta == some .int && op != .and && op != .or then .int
+          else .noneType) b).1
+      else b₀
     (.binary op a' b', some (binaryResult op))
   | .list t es =>
-    let scalar := match t, exp, es with
-      | .noneType, .int, [e] => match inferExpr prog env .int e with
-        | (e', some .int) => some e'
-        | _ => none
-      | _, _, _ => none
-    match scalar with
-    | some e' => (if foldable e' then .list .int [e'] else e', some .int)
-    | none =>
+    match t, exp, es with
+    | .noneType, .int, [e] =>
+      let (e', te) := inferExpr prog env .int e
+      if te == some .int then (if foldable e' then .list .int [e'] else e', some .int)
+      else (.list .noneType [e'], te.map (.array · 1))
+    | t, _, es =>
       let n := es.length
       let t := if t == .noneType then openLiteralTy exp else t
       let es' := inferList prog env (List.replicate n (elemExpected t)) es
@@ -194,9 +210,12 @@ def inferBlock (prog : Program) (result : Ty) (env : TyEnv) : List Stmt → List
     s' :: inferBlock prog result env' rest
 end
 
-/-- Infers inside a function, from its parameters. -/
+/-- Infers inside a function, from its parameters. A function that returns
+a reference expects no `Int` of the value it returns, which must be a
+place: a literal there is no place, as Mojo reports. -/
 def inferFun (prog : Program) (fd : FunDecl) : FunDecl :=
-  { fd with body := inferBlock prog fd.result (fd.params.map fun p => (p.name, p.ty)) fd.body }
+  let result := if fd.origin.isSome then Ty.noneType else fd.result
+  { fd with body := inferBlock prog result (fd.params.map fun p => (p.name, p.ty)) fd.body }
 
 /-- Infers inside a struct's initializer, destructor and methods. -/
 def inferStruct (prog : Program) (sd : StructDecl) : StructDecl :=

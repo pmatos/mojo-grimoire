@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9272636782539760003")
+:::moduleDocs (fingerprint := "9500786569130996480")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "7491183084080357663")
@@ -30,7 +30,15 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "10307815029898771892")
+:::readable MojoGrimoire.Parse.keepTemporaries (fingerprint := "15308231828986963166")
+*Definition: temporaries.* Among the arguments of a call, a literal
+$`[e]` that inference replaced by $`e` is $`[e]_{\mathsf{Int}}` again when
+its parameter is `mut` or `ref`: Mojo passes a temporary there, not the
+place $`e`, so `mut` rejects it and a returned reference does not see a
+later change of $`e` (#103).
+:::
+
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "11018487376887793400")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
@@ -49,13 +57,17 @@ tells it from a literal that initializes an expected type (#46).
 A literal $`[e]` left open where an $`\mathsf{Int}` is expected, whose one
 element has the type $`\mathsf{Int}` when it is expected to, is an
 $`\mathsf{Int}` (#103): $`e` itself, which Mojo reads as that operand, or,
-when $`e` is `foldable`, $`[e]_{\mathsf{Int}}`. An index is expected to be
+when $`e` is `foldable`, $`[e]_{\mathsf{Int}}`. The arguments of a call keep
+a literal passed `mut` or `ref` as $`[e]_{\mathsf{Int}}`, by
+`keepTemporaries`: Mojo passes a temporary there. A function that returns
+a reference expects no type of the values it returns. An index is expected to be
 an $`\mathsf{Int}`, and so is the right operand of an operator whose left
 operand is an $`\mathsf{Int}`, other than `and` and `or`, and a literal
 left operand of an arithmetic operator whose right operand is an
 $`\mathsf{Int}`, as Mojo reaches it through `__radd__` and its kin. Each
-operand is inferred once with no type expected, and a literal operand
-again with $`\mathsf{Int}` expected.
+operand that is not a literal is inferred first, with no type expected,
+and a literal operand once, with $`\mathsf{Int}` expected when the rule
+above says so.
 $`\mathsf{List}[u](e^+)` is a list of $`u`, whose arguments are expected
 to have no type. Its one argument $`p\,\hat{}` becomes the place
 $`p\,\hat{}`, which Mojo borrows, since the initializer takes it by `ref`
@@ -84,7 +96,7 @@ with no signature has the type of a struct the program declares, `len`'s
 $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "1891543679791847862")
+:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "10921922806685892226")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 and `ref x = e` binds $`x` with the type of $`e`. An initial value is
 expected to have the declared type of its variable, an assigned value the
@@ -94,8 +106,10 @@ inferred in order, each statement seeing the variables declared before it;
 the variables of an inner block do not leave it.
 :::
 
-:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.parse (fingerprint := "9524892158114152691")
+:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.parse (fingerprint := "10888379200063602025")
 *Definition: parsing a program.* Inference starts each function from its
-parameters, and each destructor from `self`. Parsing a program lexes and
+parameters, and each destructor from `self`. The values a function returns
+are expected to have its result type, unless it returns a reference: then
+none is expected, since a literal is no place. Parsing a program lexes and
 parses its text, and then infers inside every declaration.
 :::
