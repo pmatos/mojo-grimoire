@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14101139455371984625")
+:::moduleDocs (fingerprint := "2218815268578929290")
 :::
 
 :::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9586730624127733473")
@@ -63,7 +63,7 @@ value it points to, uncopied. Anything else, a struct or a list of
 structs, is $`\mathsf{notPrintable}`.
 :::
 
-:::readable MojoGrimoire.Check.checkConstructed (fingerprint := "13095619089498858650")
+:::readable MojoGrimoire.Check.checkConstructed (fingerprint := "5308049381047874511")
 *Rule: building into an element.* $`p = e` is rejected as
 $`\mathsf{argumentExclusivity}` when $`p` is inside an element of a list,
 and $`e` is a call that builds its result in place and is passed `mut`, or
@@ -72,7 +72,8 @@ that returns a reference to one: the change would invalidate $`p`. A call of a f
 in place unless it returns an $`\mathsf{Int}`, a $`\mathsf{Bool}` or a
 reference, and so does a struct's `__init__`; a call whose signature has
 a generic result, such as a list method that gives an element, always
-does.
+does. $`\mathsf{List}[u](e)` builds its result in place, and passes $`e`
+by `ref` (#103).
 :::
 
 :::readable MojoGrimoire.Check.checkInitValue (fingerprint := "16605841785613679210")
@@ -91,12 +92,15 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "12622686728784001093")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "11822077477507859587")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
   of type $`t`, by `checkInitValue`, as do an assignment and `return`, and declares $`x`, initialized when $`e` is given; $`x`
-  may not be the name of a variable in scope, so no variable hides another;
+  may not be the name of a variable in scope, so no variable hides another.
+  When inference left $`t` as $`\mathsf{None}`, $`e` is checked first, so
+  that its own error, such as an unknown field, is reported, as the
+  compiler does (#123);
 * $`\mathsf{ref}~x = e` binds $`x` to a reference, as the next section
   says; $`x` may not hide a variable in scope either;
 * $`p = e` checks $`e` first, then the indices of $`p`, then needs $`p`

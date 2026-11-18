@@ -99,10 +99,22 @@ one, or a value that is not a place, or cannot change, passed to a `mut`
 parameter, whether `S` is `@fieldwise_init` or has its own `__init__`; a
 literal whose length or elements do not fit the list or array it
 initializes, or that initializes a struct or a `Bool`; and
-`List[T](e1, …, en)` with arguments. The model reports
+`List[T](e1, …, en)` with arguments, but for one list or array of `T`
+that can be copied (#103). The model reports
 all of them as one class, `noMatchingInit`, and `diagnostics.json` maps
 that message, matched whole, to it alone. The human ruled this on
 2026-11-16 (#46), following the precedent of `unknownAttribute`.
+
+The compiler gives a second message for the same misfit when the one
+argument has the type it initializes: "cannot construct 'T' with itself,
+you can remove the constructor call". `List[T](xs)` from a `List[T]`
+whose elements cannot be copied gives it, where an array or a literal
+of them gives the first message. `diagnostics.json` maps the second
+message, matched whole too, to `noMatchingInit` (#103), so that the
+checker need not tell a list source from an array source. It is the first
+pattern tried, since it holds a type name that a later pattern could
+match, such as a struct named `immutable_box`. Each of the two messages still
+reaches only that class.
 
 Ordinary calls keep their classes, since the compiler names the misfit
 there: `typeMismatch` and `arityMismatch`. So does a literal passed to a

@@ -16,7 +16,10 @@ not invalidated. A place passed as an argument is
 passed by its parameter's convention: `read`, `mut` and `ref` pass the
 location, which must be initialized, and `mut` also needs a place the
 function may change; `var` passes a value, which is copied implicitly unless
-the argument transfers it.
+the argument transfers it. A transfer through a reference bound with `ref`
+is rejected as soon as its place has a type, also when it is passed to a
+`mut` parameter, as is a transfer out of a `read` or `ref` parameter passed
+to one, as the compiler does (#85).
 A call that returns a reference and is a located operand
 (`MojoGrimoire.Check.locOf`), passed to a `read`, `mut` or `ref` parameter
 or to `len`, is passed the same way: it is not copied, it stands for its
@@ -34,8 +37,11 @@ late are checked again then (`MojoGrimoire.Check.Change`).
 An initialization whose arguments fit no initializer is `noMatchingInit`,
 however they misfit (`MojoGrimoire.Check.Fit`, #46): a construction
 `S(…)`, a literal that initializes the list or array expected where it
-stands, and `List[u](e₁, …, eₙ)`, which no initializer of `List` takes,
-but for one iterable argument, which is outside the subset. A literal
+stands, and `List[u](e₁, …, eₙ)`, which no initializer of `List` takes.
+With one argument, `List[u](e)` copies the elements of a list or an
+array of `u`, which can be copied (#103): `e` is passed by `ref`, as
+`len` takes its list, and a mutable place passed so may be changed. A
+literal
 passed to a function or a method is converted, and one that does not fit,
 also inside it, is a type mismatch. A literal with no expected type takes
 the type of its elements, and an element that differs from the first is a
@@ -67,17 +73,27 @@ def copyPlace (prog : Program) (p : Place) : CheckM Ty := do
   unless copyingOf prog t == .implicit do throw (CheckError.implicitCopy t)
   pure t
 
+/-- Rejects `p^` when `p` is reached through a reference bound with `ref`,
+mutable or not. The compiler rejects it as soon as it has the place's type:
+before it looks at what is initialized or invalidated, and before it
+matches `p^` to a `mut` parameter (#85). -/
+def requireNotThroughRef (prog : Program) (p : Place) : CheckM Unit := do
+  let _ ← placeTy prog p
+  if let .alias _ _ := (← lookup (splitPlace p).1).access then
+    throw (CheckError.transferFromElement p)
+
 /-- Rejects unless the value in the place `p` may be transferred out, and
 gives its type. It must be initialized, and the function must own it, or
 hold it `mut`: a `read` or `ref` parameter cannot give its value away. An
 element of a list or an array cannot be transferred out, since it would be
-left with a hole. -/
+left with a hole, nor can a value through a reference
+(`requireNotThroughRef`). -/
 def requireTransferable (prog : Program) (p : Place) : CheckM Ty := do
+  requireNotThroughRef prog p
   let t ← readPlace prog p
   if splitPlace.indexed p then throw (CheckError.transferFromElement p)
-  let v ← lookup (splitPlace p).1
-  unless v.access.canChange do throw (CheckError.transferFromBorrowed p)
-  if let .alias _ _ := v.access then throw (CheckError.transferFromBorrowed p)
+  unless (← lookup (splitPlace p).1).access.canChange do
+    throw (CheckError.transferFromBorrowed p)
   pure t
 
 /-- Transfers the value out of the place `p`, Mojo's `p^`, which leaves `p`
@@ -282,10 +298,40 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     recheckLocs prog (← checkArgs prog (.init t) (typeName t)
       (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length)
     pure t
+  | .listInit u [e] => do
+    let t ← match e with
+      | .place p => do
+        checkIndices prog p
+        iterableFits prog u (← placeTy prog p)
+        readPlace prog p
+      | .str _ => throw (CheckError.noMatchingInit (.list u))
+      | e => do
+        let t ← match e with
+          | .list .noneType es => do iterableLiteralTy prog u (← checkIterableElems prog u es)
+          | e => do checkExprAs prog (← locOf prog e).isSome e
+        iterableFits prog u t
+        pure t
+    for q in ← changedArgs prog [⟨.ref, "iterable", t⟩] [e] do changePlace prog q
+    pure (.list u)
   | .listInit u args => do
     checkOperands prog args
     throw (CheckError.noMatchingInit (.list u))
   | .withDrops e _ _ => checkExprAs prog asRef e
+
+/-- Checks the elements `es` of a literal with no type expected that is
+the argument of `List[u](…)`, in order, each as passed to a `var`
+parameter, and gives the type of each, with the places it is read from
+once every element is evaluated and how many changes were recorded once
+it was checked; `iterableLiteralTy` gives the literal's type. -/
+def checkIterableElems (prog : Program) (u : Ty) : List Expr → CheckM (List (Ty × List Place × Nat))
+  | [] => pure []
+  | e :: es => do
+    let t ← match e with
+      | .place p => do checkIndices prog p; copyPlace prog p
+      | .list .noneType es' => do iterableLiteralTy prog u (← checkIterableElems prog u es')
+      | e => checkExprAs prog false e
+    let k ← mark
+    pure ((t, ← lateLocs prog e, k) :: (← checkIterableElems prog u es))
 
 /-- Checks each of the arguments `args` of `List[u](…)` on its own: a place
 is located, and any other expression checked, before the call is rejected. -/
@@ -360,7 +406,12 @@ def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
       let k ← mark
       pure ((os, k) :: (← checkArgs prog fit callee prms args n m))
     | none =>
-      if prm.conv == .mutable then throw (fit.misfit (CheckError.notAPlace callee))
+      if prm.conv == .mutable then
+        if let .transfer p := e then
+          requireNotThroughRef prog p
+          unless splitPlace.indexed p || (← placeMutable p) do
+            throw (CheckError.transferFromBorrowed p)
+        throw (fit.misfit (CheckError.notAPlace callee))
       expectArg fit prm.ty (← checkExprAs prog false e)
       let k ← mark
       pure ((← lateLocs prog e, k) :: (← checkArgs prog fit callee prms args n m))

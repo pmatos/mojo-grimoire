@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6462096020453492941")
+:::moduleDocs (fingerprint := "11785281318321433570")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -29,14 +29,18 @@ cannot be changed. Passed `mut` to an initializer, such a place is
 reported as the initializer's misfit.
 :::
 
-:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "6464575898280999177")
+:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.requireNotThroughRef MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "3713637349590493988")
 *Rule: reading and moving a place.* Using a place $`p` as a value copies it
 implicitly: $`p` must be initialized, and its type implicitly copyable.
 Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable
-that the function may change, owned or held `mut`; afterwards $`p` is
-uninitialized, and a field $`p` is added to $`M`. An element of a list or
-an array, or a part of one, cannot be transferred out, nor can a value
-through a reference. These conditions, without the move, are what
+that the function may change, owned or held `mut`, not a `read` or `ref`
+parameter (`transferFromBorrowed`); afterwards $`p` is uninitialized, and
+a field $`p` is added to $`M`. An element of a list or an array, or a
+part of one, cannot be transferred out, nor can a value through a
+reference bound with `ref`, even one that may be changed: the compiler
+rejects both alike (`transferFromElement`). A reference is rejected so
+once its place has a type, before its origins are checked, even when
+they are moved away or invalidated. These conditions, without the move, are what
 $`q\,\hat{}` before a field or a method needs of $`q`.
 :::
 
@@ -79,7 +83,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "1387918912435258342")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "8287997860808794504")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -101,10 +105,23 @@ type:
   type says, or the literal is `noMatchingInit` $`t`; with $`t` the type
   `None`, no type is expected, and the literal is an array of the type of
   its first element, whose other elements must have that type;
-* $`\mathsf{List}[u](e^+)` checks each argument on its own, locating a
-  place without reading it, and is then rejected as `noMatchingInit`
-  $`\mathsf{List}[u]`: no initializer of `List` takes its elements, and
-  the one that takes an iterable is outside the subset;
+* $`\mathsf{List}[u](e)` with one argument copies the elements of a list
+  or an array (#103). Its argument is passed by `ref`, as `len` takes its
+  list: a place is located, its type must fit by `iterableFits`, and then
+  it must be initialized; a call that returns a reference and is a
+  located operand is passed as a location, and any other expression is
+  checked as a value, whose type must fit. A string fits no initializer.
+  A literal with no type expected is checked by `checkIterableElems`, its
+  elements as passed to `var` parameters, and typed by
+  `iterableLiteralTy`: the compiler infers its type while it looks for an
+  initializer, so a literal with no elements, or elements of different
+  types, also inside a nested literal, fit none. A place passed so that
+  may be changed, by the rule of `changedArgs` for a `ref` parameter, is
+  recorded as changed. The expression is a $`\mathsf{List}[u]`;
+* $`\mathsf{List}[u](e^+)` with more than one argument checks each
+  argument on its own, locating a place without reading it, and is then
+  rejected as `noMatchingInit` $`\mathsf{List}[u]`: no initializer of
+  `List` takes its elements;
 * the methods of a list take it `mut`, so they need a list the function
   may change; `len(e)`, when the program declares no function or struct
   `len`, takes one list or array and gives an $`\mathsf{Int}`: a place
@@ -134,7 +151,13 @@ reference and is a located operand, passed to a `read`, `mut` or `ref`
 parameter, as a location, which must be mutable for `mut`, or the call is
 $`\mathsf{immutablePlace}`, named by its first origin; and any other
 expression by its type, which must be the parameter's. A `mut` parameter
-needs a place or such a call.
+needs a place or such a call; passed $`q\,\hat{}`, it is
+$`\mathsf{notAPlace}`, where the compiler reports a value that cannot
+change (#81), with two exceptions once $`q` has a type, whatever its
+indices: a $`q` reached through a reference bound with `ref` is
+$`\mathsf{transferFromElement}`, and a $`q` whose
+variable is a `read` or `ref` parameter, other than an element (#119), is
+$`\mathsf{transferFromBorrowed}`, as the compiler reports them.
 The numbers of arguments and parameters must be equal. A literal of an
 expected type passed to a function or a method is converted to the
 parameter's type, and one that does not fit, or holds such a literal, is a

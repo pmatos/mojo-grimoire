@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "noMatchingInit",
+  "diagnostic": "cannot construct 'List[Box]' with itself, you can remove the constructor call"
+}

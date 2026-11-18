@@ -51,9 +51,9 @@ of these classes, each with the names or types it concerns:
   body that moves a value from before the loop (`uninitializedUse`), an implicit copy of a value that is not implicitly
   copyable (`implicitCopy`), `.copy()` of a value that is not copyable
   (`notCopyable`), a transfer out of a value the function does not own
-  (`transferFromBorrowed`) or out of an element of a list or an array
-  (`transferFromElement`), a change to a place the function may not
-  change (`immutablePlace`), a `mut` argument that is not a place
+  (`transferFromBorrowed`) or out of an element of a list or an array,
+  or through a reference bound with `ref` (`transferFromElement`), a
+  change to a place the function may not change (`immutablePlace`), a `mut` argument that is not a place
   (`notAPlace`) or that aliases another argument, or a call that builds
   its result into an element of a list it changes
   (`argumentExclusivity`), a `mut` parameter or the `self` of `__init__`

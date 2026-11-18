@@ -20,7 +20,8 @@ A value is destroyed where elaboration put a `drop` or a `withDrops`, when
 it is replaced by an assignment, when a temporary passed to a borrowing
 parameter is no longer needed after its call, when a call's result is not
 used, when `len` has read the length of a list that is neither a place
-nor a reference that a call returns, and when a function returns, for
+nor a reference that a call returns, or `List[u](e)` has copied the
+elements of such a list or array, and when a function returns, for
 every value it still owns. A method whose `self` is `var`, called on
 `p^`, takes the value out of `p`. Destroying a
 struct runs its `__deinit__`, whose elaborated body destroys its fields; a
@@ -180,6 +181,7 @@ def evalExpr (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Value 
     | .list _ es => do
       let os ← es.mapM (evalOperand prog n env)
       pure (.list (← os.mapM Operand.load))
+    | .listInit _ [a] => evalListArg prog n env a
     | e => do
       match ← evalResult prog n env e with
       | .value v => pure v
@@ -340,9 +342,9 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
       | _ => stuck "a method call on a value that is not a struct"
     | _ => stuck "not a call"
 
-/-- The list that `len` reads: a place, or the reference that a call
-returns, read where it is, or any other expression, whose value is then
-destroyed. -/
+/-- The list that `len` reads, or that `List[u](e)` copies: a place, or the
+reference that a call returns, read where it is, or any other expression,
+whose value is then destroyed. -/
 def evalListArg (prog : Program) (fuel : Nat) (env : Env) (a : Expr) : EvalM Value :=
   match fuel with
   | 0 => fail .outOfFuel

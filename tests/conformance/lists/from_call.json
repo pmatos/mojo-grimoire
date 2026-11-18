@@ -1,0 +1,10 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "[3, 4]",
+    "[5, 6]",
+    "0"
+  ],
+  "class": null,
+  "diagnostic": null
+}

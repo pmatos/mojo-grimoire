@@ -87,9 +87,10 @@ where the compiler and the manual disagree, the model follows the compiler.
   passed as that place is, and `p^.m(…)` calls `m` on `p`. `p` must be
   whole (`uninitializedUse`) and a value that `p^` could transfer: not a
   `read` or `ref` parameter (`transferFromBorrowed`), nor an element
-  (`transferFromElement`). A reference is `transferFromBorrowed` too,
-  where the compiler reports `transferFromElement`, for `t^` as for
-  `t^.k` (#85). Nothing may change through it:
+  (`transferFromElement`), nor a reference bound with `ref`
+  (`transferFromElement`, reported before whether its origins are whole,
+  [semantics-references.md](semantics-references.md#references)).
+  Nothing may change through it:
   assigning to `p^.f`, `p^.f += 1`, passing it `mut`, and a `mut self`
   method are `immutablePlace`. A method that takes `var self` consumes
   `p`, once the arguments are read, and the receiver counts as passed
@@ -140,9 +141,12 @@ where the compiler and the manual disagree, the model follows the compiler.
   wrong number of arguments, a wrong one, or a value passed to a `mut`
   parameter that is not a place or cannot change; a literal that does not
   fit the list or array it initializes, or that initializes a struct or a
-  `Bool`; and `List[T](e1, …, en)`. The
+  `Bool`; and `List[T](e1, …, en)`, unless it has one argument that is a
+  list or an array of `T` that can be copied (#103). The
   compiler reports each as "no matching function in initialization" (#46,
-  [conformance.md](conformance.md#initializations-that-fit-no-initializer)).
+  [conformance.md](conformance.md#initializations-that-fit-no-initializer)),
+  or, when the one argument has the type it initializes, as "cannot
+  construct ... with itself".
 - A struct may not lie on a cycle of fields with no field that holds the
   next struct through a list, or with no field that holds it directly:
   the compiler rejects both, and so does the model (`recursiveStruct`).
