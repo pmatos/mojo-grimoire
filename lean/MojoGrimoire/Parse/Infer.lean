@@ -17,7 +17,8 @@ the type `t` of the first, as in Mojo: inference gives that type to what
 holds the literal, and leaves the literal's own type `None`, so that the
 checker tells a literal that initializes an expected type from one that
 takes the type of its elements (#46). What inference cannot find stays
-`None`, which the checker rejects as a type that may not be declared.
+`None`, which the checker rejects as a type that may not be declared, once
+it has checked the initializer, whose own error comes first (#123).
 `List[u](e₁, …, eₙ)` is a list of `u`; nothing is expected of its
 arguments. With one argument, `e`, Mojo takes it by `ref`, which borrows
 `p^`: inference gives it the place `transferred p` (#103).
