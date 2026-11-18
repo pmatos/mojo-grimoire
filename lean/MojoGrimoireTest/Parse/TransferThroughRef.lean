@@ -9,9 +9,10 @@ expression that does not designate a value with an origin, the class
 returns a reference, whether it may be changed or not, even when its
 origins are moved away or invalidated, and when `t^` is passed to a `mut`
 parameter. A `ref` or a `read` parameter stays
-`transferFromBorrowed`. `t^` of type `Int` is the
-place `t` (#50). Each expected outcome is the compiler's. The programs are
-parsed from text, one line per string, after the shared declarations.
+`transferFromBorrowed`, also passed to a `mut` parameter. `t^` of type `Int`
+is the place `t` (#50). Each expected outcome is the compiler's, but for the
+one marked as the model's departure (#81). The programs are parsed from
+text, one line per string, after the shared declarations.
 -/
 
 namespace MojoGrimoireTest.Parse.TransferThroughRef
@@ -100,12 +101,30 @@ private def t : Place := .var "t"
     "    var u = t^", "    print(u.k)"] == rejects (.transferFromElement t)
 
 -- Passed to a `mut` parameter, of a function or an initializer, `t^` is
--- rejected so too; `s^` of a value it owns is not a place.
+-- rejected so too. `s^` of a value it owns is not a place: the compiler
+-- reports it as a value that cannot change (`immutablePlace`), the model's
+-- departure (#81).
 #guard inMain ["    var s = S(7)", "    ref t = s", "    bump(t^)"] ==
   rejects (.transferFromElement t)
 #guard inMain ["    var s = S(7)", "    ref t = s", "    var w = W(t^)", "    print(w.k)"] ==
   rejects (.transferFromElement t)
 #guard inMain ["    var s = S(7)", "    bump(s^)"] == rejects (.notAPlace "bump")
+
+-- Passed to a `mut` parameter, an index of another type is reported first,
+-- and a constant index out of range only after the transfer.
+#guard inMain ["    var l: List[S] = [S(1)]", "    ref t = l", "    bump(t[True]^)"] ==
+  rejects (.typeMismatch .int .bool)
+#guard inMain ["    var l: List[S] = [S(1)]", "    ref t = l", "    bump(t[-1]^)"] ==
+  rejects (.transferFromElement (.index t (.int (-1))))
+
+-- A `read` or a `ref` parameter cannot give its value away to a `mut`
+-- parameter either, of a function or an initializer.
+#guard go ["def f(t: S):", "    bump(t^)", "def main():", "    var s = S(7)", "    f(s)"] ==
+  rejects (.transferFromBorrowed t) "f"
+#guard go ["def f(ref t: S):", "    var w = W(t^)", "    print(w.k)",
+    "def main():", "    var s = S(7)", "    f(s)"] == rejects (.transferFromBorrowed t) "f"
+#guard go ["def f(t: O):", "    bump(t.inner^)", "def main():", "    var o = O(S(7))", "    f(o)"] ==
+  rejects (.transferFromBorrowed (.field t "inner")) "f"
 
 -- `t^` of type `Int` is the place `t`, so it is not a transfer, also through a
 -- returned reference.
