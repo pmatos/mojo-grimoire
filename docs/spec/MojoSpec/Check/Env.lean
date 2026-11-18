@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14812453757622195558")
+:::moduleDocs (fingerprint := "15100920170882488316")
 :::
 
 :::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "4257948032270631622")
@@ -89,15 +89,33 @@ function's result, unless it is `None`, and the elements of a list
 literal.
 :::
 
-:::readable MojoGrimoire.Check.elemBase MojoGrimoire.Check.contains (fingerprint := "15804087117037256534")
-*Definition: containment.* A type $`t` contains the struct $`S` when it is
-$`S`, a struct with a field whose type contains $`S`, or a list or an
-array of a type that contains $`S`. The search looks through lists and
-arrays to the type of their elements, and is bounded by the number of
-structs of the program, since a longer chain of fields repeats a struct.
-A struct whose field contains the struct itself is rejected: held
-directly it would be infinite, and held in a list or an array the
-compiler rejects it too.
+:::readable MojoGrimoire.Check.elemBase (fingerprint := "16152550111862490354")
+*Definition: element types.* The element type of a type $`t` is that of
+its elements through any number of lists and arrays, or $`t` itself.
+:::
+
+:::readable MojoGrimoire.Check.throughList (fingerprint := "15034747893672114577")
+*Definition: list edges.* A field of type $`t` holds the struct it reaches
+through a list when some list wraps it, under any number of arrays and
+lists.
+:::
+
+:::readable MojoGrimoire.Check.rejectedCycle (fingerprint := "10316044887014008323")
+*Definition: rejected cycles.* A field of a struct is an edge to the
+struct of its element type: a list edge when it holds that struct through
+a list, a plain edge when it holds the struct itself, and neither when only
+arrays wrap it. The struct $`S` lies on a rejected cycle, searched from a
+field of type $`t`, when a chain of edges leads from $`t` back to $`S`
+that lacks a list edge or lacks a plain edge. So a struct that holds
+itself, through a list, an array or nothing, is rejected, and so is a cycle
+of lists and arrays alone, as the compiler rejects them. A cycle with both
+a list edge and a plain edge is accepted, as the compiler accepts it
+when each initializer is written by hand; its rejection of some such
+cycles whose initializers `@fieldwise_init` builds is a compiler bug
+(D-0004). The search stops at $`S`, and is bounded by the number of
+structs of the program, since a longer chain back to $`S` repeats a
+struct, and dropping the loop between the repeats leaves a shorter chain
+that lacks every kind of edge the longer one lacks.
 :::
 
 :::readable MojoGrimoire.Check.passedByValue (fingerprint := "8359022073465340314")

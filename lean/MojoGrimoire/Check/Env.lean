@@ -154,17 +154,35 @@ def elemBase : Ty → Ty
   | .list t | .array t _ => elemBase t
   | t => t
 
-/-- Whether the type `t` contains, through the fields of its structs and
-the elements of its lists and arrays, the struct `s`: the compiler rejects
-a struct with a field that holds the struct itself, or a list or an array
-of it. `fuel` bounds the depth of the search; the number of structs of the
-program is enough, since a deeper chain repeats a struct. -/
-def contains (prog : Program) (s : Name) : Nat → Ty → Bool
-  | 0, _ => false
-  | fuel + 1, t => match elemBase t with
+/-- Whether a field of type `t` holds the struct it reaches through a list:
+some list wraps it, under any number of arrays and lists. -/
+def throughList : Ty → Bool
+  | .list _ => true
+  | .array t _ => throughList t
+  | _ => false
+
+/-- Whether the struct `s` lies on a cycle of fields that the compiler
+rejects, searched from a field of type `t`: a chain of fields from `t` back
+to `s` that lacks a list edge, a field that holds the next struct through a
+list, or lacks a plain edge, a field that holds the next struct itself. An
+edge made only of arrays is neither. So a struct that holds itself, through
+a list or not, is rejected, and so is a cycle of lists and arrays alone; a
+cycle with both a list edge and a plain edge is accepted, as the compiler
+accepts it, whether or not `@fieldwise_init` builds its initializers
+(D-0004). `list` and `plain` record the edges seen so far. `fuel` bounds the
+length of the chain; the number of structs of the program is enough, since
+a longer chain back to `s` repeats a struct, and dropping the loop between
+the repeats leaves a shorter chain with no kind of edge that it lacked. -/
+def rejectedCycle (prog : Program) (s : Name) : Nat → Bool → Bool → Ty → Bool
+  | 0, _, _, _ => false
+  | fuel + 1, list, plain, t =>
+    let list := list || throughList t
+    let plain := plain || t matches .struct _
+    match elemBase t with
     | .struct u =>
-      u == s || (findStruct prog u).any fun sd =>
-        sd.fields.any fun (_, ft) => contains prog s fuel ft
+      if u == s then !(list && plain)
+      else (findStruct prog u).any fun sd =>
+        sd.fields.any fun (_, ft) => rejectedCycle prog s fuel list plain ft
     | _ => false
 
 /-- Whether a place passed to the parameter `prm` is passed by value: to a

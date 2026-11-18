@@ -25,8 +25,9 @@ of these classes, each with the names or types it concerns:
   reports both alike), and a name declared twice where it must be unique
   (`duplicate`);
 * types: a type that may not be declared, such as that of string literals
-  (`invalidType`), a struct that contains itself (`recursiveStruct`), a
-  type other than the one expected (`typeMismatch`), an index into a
+  (`invalidType`), a struct on a cycle of fields that the compiler rejects
+  (`recursiveStruct`), a type other than the one expected
+  (`typeMismatch`), an index into a
   value that is neither a list nor an array (`notAList`), an index that
   Mojo computes when it compiles the program and that is negative
   (`negativeIndex`) or, into an array, past its last element

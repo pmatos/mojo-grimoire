@@ -208,4 +208,38 @@ private def verdict (p : Program) : Option CheckError :=
   some (.recursiveStruct "Loop")
 #guard verdict ⟨[], []⟩ == some .noMain
 
+/-- `@fieldwise_init struct S: var f₁: t₁; …`, a struct of the fields `fs`. -/
+private def fw (n : Name) (fs : List (Name × Ty)) : StructDecl := ⟨n, fs, .none, true, none, none, []⟩
+
+private def sA : Ty := .struct "A"
+private def sB : Ty := .struct "B"
+private def sC : Ty := .struct "C"
+
+-- A cycle of structs with a list edge and a plain edge is accepted, in either
+-- order and through a third struct: `A` holds a `List[B]`, `B` holds an `A`.
+#guard verdict (prog [] [] [fw "A" [("bs", .list sB)], fw "B" [("a", sA)]]) == none
+#guard verdict (prog [] [] [fw "B" [("a", sA)], fw "A" [("bs", .list sB)]]) == none
+#guard verdict (prog [] [] [fw "A" [("bs", .list sB)], fw "B" [("c", sC)], fw "C" [("a", sA)]]) ==
+  none
+-- A list under an array, or an array under a list, is a list edge; an array
+-- edge in a cycle that has both kinds does not matter.
+#guard verdict (prog [] [] [fw "A" [("bs", .array (.list sB) 1)], fw "B" [("a", sA)]]) == none
+#guard verdict (prog [] [] [fw "A" [("bs", .list (.array sB 1))], fw "B" [("a", sA)]]) == none
+#guard verdict (prog [] [] [fw "A" [("bs", .list sB)], fw "B" [("c", sC)],
+  fw "C" [("as", .array sA 1)]]) == none
+-- A cycle without a plain edge, or without a list edge, is rejected.
+#guard verdict (prog [] [] [fw "A" [("bs", .list sB)], fw "B" [("as", .list sA)]]) ==
+  some (.recursiveStruct "A")
+#guard verdict (prog [] [] [fw "A" [("bs", .list sB)], fw "B" [("as", .array sA 1)]]) ==
+  some (.recursiveStruct "A")
+#guard verdict (prog [] [] [fw "A" [("b", sB)], fw "B" [("a", sA)]]) == some (.recursiveStruct "A")
+#guard verdict (prog [] [] [fw "A" [("bs", .array sB 1)], fw "B" [("a", sA)]]) ==
+  some (.recursiveStruct "A")
+-- One rejected cycle rejects the struct, though another cycle is accepted; a
+-- cycle that does not pass through a struct rejects the structs on it.
+#guard verdict (prog [] [] [fw "A" [("bs", .list sB), ("xs", .list sA)], fw "B" [("a", sA)]]) ==
+  some (.recursiveStruct "A")
+#guard verdict (prog [] [] [fw "A" [("bs", .list sB)], fw "B" [("c", sC)], fw "C" [("b", sB)]]) ==
+  some (.recursiveStruct "B")
+
 end MojoGrimoireTest.Check

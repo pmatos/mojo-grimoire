@@ -123,3 +123,25 @@ the model, which checks in program order, reports `uninitializedUse`
 Rejected: leaving the message unclassified, which the suite counts as a
 disagreement, so that these programs could never be compared; and letting
 one message accept several classes, which loosens the comparison.
+
+### Cycles of structs
+
+The compiler rejects a struct that holds itself by value, directly or
+through other structs, with "attempt to resolve a recursive reference to
+declaration", and a struct on a cycle made only of list and array edges
+with "field … has non-'Deinitable' type". `diagnostics.json` maps both to
+`recursiveStruct`. A cycle with a list edge and a plain by-value edge,
+such as `A` holding a `List[B]` and `B` holding an `A`, is accepted by
+both (#47).
+
+When the struct that holds the other by value is `@fieldwise_init`, the
+compiler rejects the cycle with messages that depend on the declaration
+order: "invalid implicit move: unexpected keyword argument 'move'",
+"invalid call to '__init__': no candidates found", or the non-'Deinitable'
+one. The human ruled this a compiler bug on 2026-11-18 (D-0004): the model
+accepts these programs, and `known.json` lists them. The first two
+messages have no pattern, since no error of the model corresponds to
+them, and only these programs give them in the suite.
+
+Rejected: mapping those two messages to `recursiveStruct`, which would
+class a compiler bug as a rejection that the model agrees with.

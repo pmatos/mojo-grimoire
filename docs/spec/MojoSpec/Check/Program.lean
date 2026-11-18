@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15714755724295187954")
+:::moduleDocs (fingerprint := "677485570902556398")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "18152870423580375475")
@@ -46,11 +46,11 @@ A method of the struct $`S` has a first parameter `self` of type $`S`,
 `out self` of type $`S`, and it returns nothing.
 :::
 
-:::readable MojoGrimoire.Check.checkStruct (fingerprint := "6948326983854275523")
+:::readable MojoGrimoire.Check.checkStruct (fingerprint := "15452719103737565319")
 *Rule: structs.* A struct's fields and methods have distinct names, its
-fields declarable types, and no field contains the struct. Its initializer,
-its destructor, checked with the single parameter `deinit self`, and its
-methods are checked.
+fields declarable types, and no field leads to a rejected cycle back to
+the struct. Its initializer, its destructor, checked with the single
+parameter `deinit self`, and its methods are checked.
 :::
 
 :::readable MojoGrimoire.Check.checkProgram (fingerprint := "12688032733967879011")

@@ -75,8 +75,12 @@
       "issue": 47,
       "title": "@fieldwise_init fails inside a struct cycle through a List when the decorated struct is declared first, where the hand-written initializer compiles",
       "ruled": "2026-11-18",
-      "decision_log": null,
-      "suite_programs": [],
+      "decision_log": "D-0004",
+      "suite_programs": [
+        "structs/cycle_fieldwise_init",
+        "structs/cycle_fieldwise_init_both",
+        "structs/cycle_fieldwise_init_holder_first"
+      ],
       "reference": {
         "release": "1.2.0",
         "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
@@ -86,7 +90,7 @@
       "model": "accepts it, as it accepts the hand-written form, and prints `1`",
       "upstream": {
         "status": "unfiled",
-        "draft": null,
+        "draft": "https://github.com/pmatos/mojo-grimoire/issues/47#issuecomment-6982008812",
         "tracking": 47,
         "report": null
       },
