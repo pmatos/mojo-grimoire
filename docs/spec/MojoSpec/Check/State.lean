@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12291177930195282920")
+:::moduleDocs (fingerprint := "16836555074484155384")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "4845031522016519524")
@@ -111,12 +111,12 @@ Sets are lists without repeats, kept in the order they are found:
 $`A \cup B` keeps $`A` and adds the elements of $`B` not in it.
 :::
 
-:::readable MojoGrimoire.Check.atOrBelow MojoGrimoire.Check.heldIn MojoGrimoire.Check.above MojoGrimoire.Check.piecesTo (fingerprint := "7551493476001580113")
+:::readable MojoGrimoire.Check.atOrBelow MojoGrimoire.Check.partsWithin MojoGrimoire.Check.above MojoGrimoire.Check.piecesTo (fingerprint := "7551493476001580113")
 *Definition: parts around a part.* The parts of $`U` at or below $`\rho`
 are the $`\sigma` with $`\rho\sigma \in U`, $`\epsilon` included. The
-parts of $`\rho` that may hold a value, given $`H`, are all of $`\rho`,
-$`\{\epsilon\}`, when a part of $`H` is $`\rho` or above it, and
-otherwise the parts of $`H` strictly below $`\rho`. The parts of $`H`
+parts of $`\rho` within a set of parts such as $`H` or $`U` are all of
+$`\rho`, $`\{\epsilon\}`, when a part of the set is $`\rho` or above
+it, and otherwise the parts of the set strictly below $`\rho`. The parts of $`H`
 strictly above $`\rho` are the $`\pi \in H` with $`\pi \preceq \rho`
 and $`\pi \neq \rho`. When $`\pi`, strictly above $`\rho`, is
 uninitialized, assigning $`\rho` builds from their fields the parts from

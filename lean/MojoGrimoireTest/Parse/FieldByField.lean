@@ -118,6 +118,13 @@ private def fld (x f : Name) : Place := .field (.var x) f
     "    print(s.x)"]
 #guard inMain ["    var t: Line", "    t.a = Pt(1, 2)", "    t.a.x = 3", "    var s = t.a^",
     "    t.a = Pt(5, 6)", "    print(s.x, t.a.x)"] == some (.finished ["3 5"])
+#guard destroyed "o" ["    var o = Outer(Wrap(Res(1), 2), 3)", "    var s = o.w.r^",
+    "    o.w = Wrap(Res(4), 5)", "    print(s.id, o.z)"]
+#guard inMain ["    var t = Line(Pt(1, 2), Pt(3, 4))", "    t.a.x = 9", "    var u = t^",
+    "    t.a = Pt(5, 6)", "    var s = t.a^", "    print(u.a.x, s.y)"] == some (.finished ["9 6"])
+#guard inMain ["    var i = 0", "    var t: Line", "    while i < 2:", "        t.a = Pt(i, i)",
+    "        var s = t.a^", "        print(s.x)", "        i = i + 1"] ==
+  some (.finished ["0", "1"])
 #guard destroyed "t" ["    var c = True", "    var t: Line", "    t.a = Pt(1, 2)", "    while c:",
     "        t.a.x = 3", "        c = False", "    var s = t.a^", "    print(s.x)"]
 
@@ -162,6 +169,22 @@ private def fld (x f : Name) : Place := .field (.var x) f
     "    l.a.x = q.y",
     "    l.a.y = q.x"] ==
   some (.rejected ⟨"flipA", .uninitializedAtExit "l"⟩)
+#guard inMain ["    var m = Pt(1, 2)", "    half(m)", "    print(m.x)"] [
+    "def half(mut p: Pt):",
+    "    var q = p^",
+    "    p.x = q.y"] ==
+  some (.rejected ⟨"half", .uninitializedAtExit "p"⟩)
+#guard inMain ["    var w = Redo(4)", "    print(w.a.x)"] [
+    "struct Redo(Movable):",
+    "    var a: Pt",
+    "    var b: Pt",
+    "    def __init__(out self, n: Int):",
+    "        self.a = Pt(n, n)",
+    "        self.b = Pt(n, n)",
+    "        var c = self^",
+    "        self.a = Pt(c.a.x + 1, 0)",
+    "        self.b = Pt(0, 0)"] ==
+  some (.rejected ⟨"Redo.__init__", .uninitializedUse (.var "self")⟩)
 #guard inMain ["    var w = Whole()", "    print(w.get())"] [
     "struct Whole(Movable):",
     "    var x: Int",

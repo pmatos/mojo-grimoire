@@ -90,8 +90,8 @@ def transferPlace (prog : Program) (p : Place) : CheckM Ty := do
   let v ← lookup x
   setVar { v with uninit := uninitialize v.uninit path, moved := path :: v.moved,
                   held := initPart prog v.held v.ty path,
-                  touched := union (v.touched.filter fun c => c == path || !path.isPrefixOf c)
-                    (above path v.held),
+                  touched := union (v.touched.filter fun c =>
+                      (c == path && !path.isEmpty) || !path.isPrefixOf c) (above path v.held),
                   pieces := v.pieces.filter (!path.isPrefixOf ·) }
   pure t
 

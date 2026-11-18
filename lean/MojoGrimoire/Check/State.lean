@@ -16,8 +16,10 @@ are initialized whenever the list or array is.
 
 A variable also records the fields moved out of it with `^` that it has not
 been given again. The compiler cannot destroy a struct with such a field
-missing, nor overwrite it, so the variable may not end, and no part above
-such a field may be assigned, until that same field is assigned again.
+missing, nor overwrite it, so while the variable still holds a part, or
+when the field was moved out of a part held whole, the variable may not
+end, and no part above such a field may be assigned, until that same field
+is assigned again.
 Assigning its sub-fields one by one does not count: until then, the field
 and the parts above it may not be read whole. A variable moved out whole is
 recorded as moved too, at the empty path.
@@ -33,7 +35,7 @@ a field moved out of such a part must be assigned again before it ends.
 The pieces are the parts built from their fields, which Mojo never counts
 as initialized whole, even once every field is assigned, so they may not
 be read whole. The `self` of `__init__` is the exception: once its fields
-are all assigned, it is whole.
+are all assigned, it is whole, unless it was moved out whole before.
 
 A reference into an element of a list is invalidated when the list, or a
 place that holds it, is changed as a whole: assigned, or passed `mut`, or
@@ -147,10 +149,10 @@ def below (q : Path) (us : List Path) : List Path :=
 def atOrBelow (q : Path) (us : List Path) : List Path :=
   (us.filter (q.isPrefixOf ·)).map (·.drop q.length)
 
-/-- The parts of the part `q` that may hold a value, as paths from `q`,
-given `hs`, the parts of the variable that may: the whole of `q` when a
-part of `hs` is `q` or above it. -/
-def heldIn (q : Path) (hs : List Path) : List Path :=
+/-- The parts of the part `q` among the parts `hs` of a variable, such as
+those that may hold a value or those uninitialized, as paths from `q`: the
+whole of `q` when a part of `hs` is `q` or above it. -/
+def partsWithin (q : Path) (hs : List Path) : List Path :=
   if hs.any (·.isPrefixOf q) then [[]] else below q hs
 
 /-- The parts among `hs` strictly above the part `q`. -/

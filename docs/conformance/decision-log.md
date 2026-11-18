@@ -92,10 +92,12 @@ Each move of the Mojo pin gets an entry below.
 
 - Date: 2026-11-18
 - Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868)
-- Programs: `tests/conformance/structs/field_by_field_unset_destroyed.mojo`,
-  `field_by_field_unset_nested.mojo`, `field_by_field_unset_overwritten.mojo`,
-  `field_by_field_unset_destructor.mojo` and
-  `field_by_field_unset_branch.mojo`, in the same directory.
+- Programs:
+  - `tests/conformance/structs/field_by_field_unset_destroyed.mojo`
+  - `tests/conformance/structs/field_by_field_unset_nested.mojo`
+  - `tests/conformance/structs/field_by_field_unset_overwritten.mojo`
+  - `tests/conformance/structs/field_by_field_unset_destructor.mojo`
+  - `tests/conformance/structs/field_by_field_unset_branch.mojo`
 - Compiler: a variable of struct type declared without a value, whose
   fields are then assigned one by one, is destroyed whole even when some
   fields were never assigned. The compiler runs the destructor of each

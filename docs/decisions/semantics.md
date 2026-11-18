@@ -57,14 +57,16 @@ where the compiler and the manual disagree, the model follows the compiler.
 - Initialization is tracked per part of a variable: a field may be moved
   out and initialized again. The compiler destroys a struct whole, so a
   field moved out with `^` must be assigned again, at exactly its path,
-  before the struct ends or a part above the field is assigned. Using the
+  before the struct ends or a part above the field is assigned, unless
+  nothing of the struct is left to destroy (see the bullet on structs
+  built field by field below). Using the
   struct's other fields in between is allowed. Otherwise the program is
   rejected as `partiallyDestroyed`, which covers both of the compiler's
   messages: "destroyed out of the middle of a value" and "cannot be
   consumed, because ... is used later". The checker cannot tell which one
   the compiler gives, since that depends on what follows (#39). A part
   below a struct with a `__deinit__` of its own may not be uninitialized
-  when the struct ends either. Inside `__deinit__`, `self`'s own fields may
+  when the struct ends either, while the struct may still hold a part. Inside `__deinit__`, `self`'s own fields may
   stay moved out, but not fields of its fields.
 - Until a field moved out is assigned again at its path, the compiler
   reports a use of it, or of a part above it, as `uninitializedUse`, even
@@ -114,7 +116,9 @@ where the compiler and the manual disagree, the model follows the compiler.
   fields may not be assigned whole. The checker tracks this with the
   parts that may hold a value, the touched parts and the pieces of
   `MojoGrimoire.Check.VarState`; each rule follows the compiler on the
-  probes recorded on #51. Where the compiler destroys a field that was
+  probes recorded on #51, except a field moved out in one branch of an
+  `if` while the other builds another field, which the model rejects and
+  the compiler accepts (#137). Where the compiler destroys a field that was
   never assigned, a compiler bug, the model does not
   ([D-0003](../conformance/decision-log.md)), and it still rejects a
   struct with a `__deinit__` of its own that may end with a field never

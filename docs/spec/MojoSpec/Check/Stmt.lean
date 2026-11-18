@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3578808387334158703")
+:::moduleDocs (fingerprint := "5771271983110150317")
 :::
 
 :::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9992527159242234863")
@@ -35,12 +35,13 @@ not count, since its destructor is the one running. Each error is
 $`\mathsf{partiallyDestroyed}`.
 :::
 
-:::readable MojoGrimoire.Check.checkExit (fingerprint := "15720368628365232594")
+:::readable MojoGrimoire.Check.checkExit (fingerprint := "14818459797278618962")
 *Rule: a return.* When a function returns, each `mut` parameter and the
 `self` of `__init__` must be wholly initialized, since the caller holds
 them, with no piece in $`P`: otherwise the error is
 $`\mathsf{uninitializedAtExit}`, or a use of the variable when it is
-itself a piece, as the compiler reports. Every variable must be allowed
+itself the only piece and nothing of it is uninitialized, as the compiler
+reports. Every variable must be allowed
 to end.
 :::
 
@@ -50,7 +51,7 @@ each checked as above if the end of the block is reached, and leave the
 set of invalidated references.
 :::
 
-:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinStates (fingerprint := "8803546111622442465")
+:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "4142665027204383251")
 *Rule: joining branches.* After an `if`, a part is uninitialized when
 either branch leaves it so, and may hold a value when either branch may;
 $`M`, $`T` and $`P` are the unions of the branches' sets, and
@@ -58,10 +59,12 @@ a reference is invalidated when either branch invalidates it. A branch
 that cannot reach its end, because it returned, does not count.
 :::
 
-:::readable MojoGrimoire.Check.checkLoop (fingerprint := "15906415396099670179")
+:::readable MojoGrimoire.Check.checkLoop (fingerprint := "6169669695796580470")
 *Rule: loops.* A loop body that can reach its end must leave initialized
-every part that was initialized before the loop, and may not add a field to
-$`M`, or its next iteration would use a moved value. As Mojo does, the
+every part that was initialized before the loop, and may not add to $`M` a
+part that was initialized before it, or its next iteration would use a
+moved value. A part uninitialized before the loop may be assigned and
+moved out in each iteration. As Mojo does, the
 checker reports such a part as a use of an uninitialized value.
 :::
 
@@ -104,7 +107,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "11972735219964973096")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "16620005956865148061")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
@@ -119,12 +122,13 @@ an expression, so a place is copied implicitly.
   not end, as at the end of a variable, with the parts of $`p` taken as
   the value's own, $`p` itself uninitialized when a part at or above it
   is; so a part in $`M` that was given some of its fields
-  may not be assigned whole. Assigning $`p` removes from $`M`, $`T` and
+  may not be assigned whole, and a field moved out of a part of $`T`
+  above $`p` counts as moved out of a touched part. Assigning $`p` removes from $`M`, $`T` and
   $`P` the parts at or below $`p`, adds $`p` to $`H`, and adds to $`T`
   the part of $`H` above $`p`, if any. When a part above $`p` is
   uninitialized, the parts from it down to the part above $`p` become
   pieces, except the `self` of `__init__` itself, which is whole once its
-  fields are. Assigning a part below a field in $`M` does not remove it.
+  fields are, unless it was moved out whole first. Assigning a part below a field in $`M` does not remove it.
   Through a reference or to an element, the old value is read first, so
   it must be initialized;
 * an expression statement checks its expression;

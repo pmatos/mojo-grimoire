@@ -91,7 +91,8 @@ field as a use of it. -/
 def checkExit (prog : Program) : CheckM Unit := do
   for v in (← get).vars do
     if v.access == .mutable || v.access == .constructing then
-      if v.pieces.contains [] then throw (CheckError.uninitializedUse (.var v.name))
+      if v.uninit.isEmpty && v.pieces == [[]] then
+        throw (CheckError.uninitializedUse (.var v.name))
       if !v.uninit.isEmpty || !v.pieces.isEmpty then
         throw (CheckError.uninitializedAtExit v.name)
     if v.access != .readOnly then checkEnd prog v
@@ -110,6 +111,12 @@ def endScope (prog : Program) (n : Nat) : CheckM Unit := do
 def joinUninit (a b : List Path) : List Path :=
   b.foldl uninitialize a
 
+/-- The variable `v` with the parts that may hold a value, the touched
+parts and the pieces of `w` added: what either of two paths may leave. -/
+def joinMay (v w : VarState) : VarState :=
+  { v with held := joinUninit v.held w.held, touched := union v.touched w.touched,
+           pieces := union v.pieces w.pieces }
+
 /-- The state after two branches that started from the same state: a part
 is uninitialized, a field moved out, or a reference invalidated, when either
 branch leaves it so. A branch that cannot reach its end does not count. -/
@@ -118,21 +125,21 @@ def joinStates (a b : State) : State :=
   else if !b.live then a
   else { a with
          vars := List.zipWith (fun v w =>
-             { v with uninit := joinUninit v.uninit w.uninit, moved := union v.moved w.moved,
-                      held := joinUninit v.held w.held, touched := union v.touched w.touched,
-                      pieces := union v.pieces w.pieces })
+             { joinMay v w with uninit := joinUninit v.uninit w.uninit,
+                                moved := union v.moved w.moved })
            a.vars b.vars,
          stale := union a.stale b.stale }
 
 /-- Rejects a loop whose body, from the state `before`, ends in the state
 `after` with a part uninitialized that was initialized before, or with a
-field moved out that was not moved out before: the next iteration would use
-it uninitialized. -/
+part moved out that was initialized and not moved out before: the next
+iteration would use it uninitialized. A part uninitialized before the loop
+may be assigned and moved out in each iteration. -/
 def checkLoop (before after : State) : CheckM Unit := do
   if after.live then
     for (v, w) in List.zip before.vars after.vars do
       let fresh := w.uninit.filter (fun u => !v.uninit.any (·.isPrefixOf u)) ++
-        w.moved.filter (!v.moved.contains ·)
+        w.moved.filter fun m => !v.moved.contains m && !v.uninit.any (·.isPrefixOf m)
       if let some u := fresh.head? then throw (CheckError.uninitializedUse (partPlace v.name u))
 
 /-- Whether `print` can write a value of type `t`: an `Int`, a `Bool`, or a
@@ -230,12 +237,13 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     if splitPlace.indexed p || v.access matches .alias .. then
       let _ ← readPlace prog p
       return
-    let us := (if v.uninit.any (·.isPrefixOf path) then [[]] else []) ++ below path v.uninit
-    if cannotEnd prog (partTy prog v.ty path) us (atOrBelow path v.moved)
-        (heldIn path v.held) (atOrBelow path v.touched) (atOrBelow path v.pieces) 0 then
+    let ts := (if (above path v.touched).isEmpty then [] else [[]]) ++ atOrBelow path v.touched
+    if cannotEnd prog (partTy prog v.ty path) (partsWithin path v.uninit) (atOrBelow path v.moved)
+        (partsWithin path v.held) ts (atOrBelow path v.pieces) 0 then
       throw (CheckError.partiallyDestroyed x)
-    let built := (v.uninit.filter fun u => u.isPrefixOf path && u != path).flatMap (piecesTo · path)
-    let built := if v.access == .constructing then built.filter (!·.isEmpty) else built
+    let built := (above path v.uninit).flatMap (piecesTo · path)
+    let built := if v.access == .constructing && !v.moved.contains [] then built.filter (!·.isEmpty)
+      else built
     let outside (us : List Path) := us.filter (!path.isPrefixOf ·)
     setVar { v with uninit := initPart prog v.uninit v.ty path, moved := outside v.moved,
                     held := uninitialize v.held path,
@@ -264,9 +272,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
       set { s0 with stale := s0.stale ++ fresh }
       expect .bool (← checkExpr prog c)
       checkScope prog sig body
-    let vars := if !s1.live then s0.vars else List.zipWith (fun v w =>
-        { v with held := joinUninit v.held w.held, touched := union v.touched w.touched,
-                 pieces := union v.pieces w.pieces }) s0.vars s1.vars
+    let vars := if s1.live then List.zipWith joinMay s0.vars s1.vars else s0.vars
     set { s0 with vars, stale := if s1.live then union s0.stale fresh else s0.stale }
   | .ret value => do
     match value, sig.origin with
