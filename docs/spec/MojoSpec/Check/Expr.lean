@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4463796475676943414")
+:::moduleDocs (fingerprint := "7370254596082955422")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -73,7 +73,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "17965746854144482729")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "2778771813745073833")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -134,8 +134,9 @@ could transfer, by the conditions above.
 Before that, $`p\,\hat{}` and each $`q\,\hat{}` in a place is rejected
 when the value has no origin of its own, as $`\mathsf{transferFromElement}`,
 once the place is typed as the compiler types it (#119): from its
-variable outward, each field, each index as an $`\mathsf{Int}`, checked
-as an expression, whose own errors come first but for the later ones, and
+variable outward, each field, each indexed place, but an
+$`\mathsf{Int}` (#127), before its index, each index as an
+$`\mathsf{Int}`, checked as an expression, whose own errors come first but for the later ones, and
 each inner $`r\,\hat{}` as one that could transfer $`r`, initialized or
 not, by the same rule and the `read` or `ref` parameter rule above,
 unless $`r` is an $`\mathsf{Int}` or a $`\mathsf{Bool}`, which
