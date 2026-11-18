@@ -117,9 +117,11 @@ where the compiler and the manual disagree, the model follows the compiler.
   fields may not be assigned whole. The checker tracks this with the
   parts that may hold a value, the touched parts and the pieces of
   `MojoGrimoire.Check.VarState`; each rule follows the compiler on the
-  probes recorded on #51, except a field moved out in one branch of an
-  `if` while the other builds another field, which the model rejects and
-  the compiler accepts (#137). Where the compiler destroys a field that was
+  probes recorded on #51, except three shapes that the model rejects and
+  the compiler accepts: a field moved out in one branch of an `if` while
+  the other builds another field (#137), a field moved out after another
+  field's last use, which the compiler destroys early (#144), and a part
+  moved out whole, refilled and emptied, then assigned whole (#145). Where the compiler destroys a field that was
   never assigned, a compiler bug, the model does not
   ([D-0003](../conformance/decision-log.md)), and it still rejects a
   struct with a `__deinit__` of its own that may end with a field never
