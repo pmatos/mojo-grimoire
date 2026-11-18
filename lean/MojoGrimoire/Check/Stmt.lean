@@ -10,13 +10,14 @@ initialized only when both branches leave it initialized, and a branch that
 returns does not count. A loop body that can reach its end must leave
 initialized every part that was initialized before the loop, or its next
 iteration would use a moved value: like Mojo, the checker reports that as
-a use of an uninitialized value.
+a use of an uninitialized value. What the body may leave holding a value,
+touched or built from its fields counts after the loop too.
 
 Where a variable ends, at the end of its block or when the function
 returns, the parts it still holds are destroyed. The compiler destroys a
 struct whole, so a variable may not end with a field moved out and not
-assigned again while it still holds a part, nor with a part uninitialized
-below a struct that has a `__deinit__` of its own. A variable that holds
+assigned again while it still holds a part, nor with a struct that has a
+`__deinit__` of its own partly built, on some path. A variable that holds
 nothing may end, unless a field was moved out of a part held whole (#51).
 Assigning to a part destroys its old value, so the same holds for the
 part, and a part moved out may not be assigned whole once some of its
@@ -45,13 +46,20 @@ namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
 
-/-- Whether a value of type `t` whose uninitialized parts are `us` has an
-uninitialized part below a part whose type has a `__deinit__` of its own.
-The parts from depth `start` down count: 1 for the `self` of `__deinit__`,
-whose own destructor is running, and 0 for any other value. -/
-def partlyMovedDeinit (prog : Program) (t : Ty) (us : List Path) (start : Nat) : Bool :=
-  us.any fun u => ((List.range u.length).filter (start ≤ ·)).any fun k =>
-    hasDeinit prog (partTy prog t (u.take k))
+/-- Whether a value of type `t`, whose uninitialized parts are `us` and
+whose parts that may hold a value are `hs`, has a part `s` whose type has a
+`__deinit__` of its own that may be destroyed partly built: a part below
+`s` may be uninitialized while `s` may hold a value, or `s` may be
+uninitialized while a part below it may hold one. The parts from depth
+`start` down count: 1 for the `self` of `__deinit__`, whose own destructor
+is running, and 0 for any other value. -/
+def partlyMovedDeinit (prog : Program) (t : Ty) (us hs : List Path) (start : Nat) : Bool :=
+  let deinitAbove (p : Path) : List Path :=
+    ((List.range p.length).filter (start ≤ ·)).map (p.take ·) |>.filter
+      (hasDeinit prog <| partTy prog t ·)
+  let near (ps : List Path) (s : Path) := ps.any fun p => p.isPrefixOf s || s.isPrefixOf p
+  us.any (fun u => (deinitAbove u).any (near hs)) ||
+    hs.any (fun h => (deinitAbove h).any (near us))
 
 /-- Whether a value of type `t` may not be destroyed, given its
 uninitialized parts `us`, its parts moved out `ms`, its parts that may
@@ -66,7 +74,7 @@ def cannotEnd (prog : Program) (t : Ty) (us ms hs ts ps : List Path) (start : Na
   let fields := ms.filter (!·.isEmpty)
   ((!fields.isEmpty || (ms.contains [] && ps.contains [])) && !hs.isEmpty) ||
     ts.any (fun c => fields.any (c.isPrefixOf ·)) ||
-    (!hs.isEmpty && partlyMovedDeinit prog t us start)
+    partlyMovedDeinit prog t us hs start
 
 /-- Rejects the variable `v` if it may not end as it is. For the `self` of
 `__deinit__`, only fields of its fields count. -/
@@ -222,7 +230,8 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     if splitPlace.indexed p || v.access matches .alias .. then
       let _ ← readPlace prog p
       return
-    if cannotEnd prog (partTy prog v.ty path) (below path v.uninit) (atOrBelow path v.moved)
+    let us := (if v.uninit.any (·.isPrefixOf path) then [[]] else []) ++ below path v.uninit
+    if cannotEnd prog (partTy prog v.ty path) us (atOrBelow path v.moved)
         (heldIn path v.held) (atOrBelow path v.touched) (atOrBelow path v.pieces) 0 then
       throw (CheckError.partiallyDestroyed x)
     let built := (v.uninit.filter fun u => u.isPrefixOf path && u != path).flatMap (piecesTo · path)
@@ -255,7 +264,10 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
       set { s0 with stale := s0.stale ++ fresh }
       expect .bool (← checkExpr prog c)
       checkScope prog sig body
-    set { s0 with stale := if s1.live then union s0.stale fresh else s0.stale }
+    let vars := if !s1.live then s0.vars else List.zipWith (fun v w =>
+        { v with held := joinUninit v.held w.held, touched := union v.touched w.touched,
+                 pieces := union v.pieces w.pieces }) s0.vars s1.vars
+    set { s0 with vars, stale := if s1.live then union s0.stale fresh else s0.stale }
   | .ret value => do
     match value, sig.origin with
     | none, _ => unless sig.result == .noneType do throw (CheckError.invalidReturn sig.name)

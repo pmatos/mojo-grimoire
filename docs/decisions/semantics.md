@@ -117,8 +117,9 @@ where the compiler and the manual disagree, the model follows the compiler.
   probes recorded on #51. Where the compiler destroys a field that was
   never assigned, a compiler bug, the model does not
   ([D-0003](../conformance/decision-log.md)), and it still rejects a
-  struct with a `__deinit__` of its own that ends with a field never
-  assigned. At a return, a `mut` parameter or a part of the `self` of
+  struct with a `__deinit__` of its own that may end with a field never
+  assigned, on some path: built in one branch of an `if` only, or in a
+  loop, included. At a return, a `mut` parameter or a part of the `self` of
   `__init__` built field by field is not initialized; a `mut` parameter
   that is itself built so is `uninitializedUse`, as the compiler reports
   it.

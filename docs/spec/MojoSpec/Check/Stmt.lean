@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15659504338854430283")
+:::moduleDocs (fingerprint := "3578808387334158703")
 :::
 
-:::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9797508852910816411")
+:::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9992527159242234863")
 *Rule: the end of a variable.* The compiler destroys a struct whole, so a
 variable may not end when it still holds a part, in $`H`, and a field is
 in $`M`, moved out and not assigned again, or $`\epsilon` is in both
@@ -24,9 +24,12 @@ $`M` and $`P`, so that it was moved out whole and then built from its
 fields. A variable that holds nothing may end with fields moved out, since
 nothing of it is destroyed (#51), unless a field in $`M` is at or below a
 touched part in $`T`: a field moved out of a part held whole, or out of
-one whose inside was assigned. Nor may a variable that holds a part end
-with an uninitialized part below a struct that has a destructor of its
-own, which needs the whole value. The `self` of `__deinit__` is destroyed
+one whose inside was assigned. Nor may a part whose struct has a
+destructor of its own, which needs the whole value, end partly built: with
+a part below it uninitialized while it may hold a value, or uninitialized
+itself while a part below it may hold one. Since $`U` and $`H` hold what
+may be so on some path, this also rejects a struct built in only one
+branch of an `if`, or in a loop. The `self` of `__deinit__` is destroyed
 field by field: its own fields may stay moved out, and its own type does
 not count, since its destructor is the one running. Each error is
 $`\mathsf{partiallyDestroyed}`.
@@ -101,7 +104,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "5828329945539253528")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "11972735219964973096")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
@@ -114,7 +117,8 @@ an expression, so a place is copied implicitly.
   while changing the list that holds it, then needs a place the function may change; $`p` is changed as a
   whole, its old value ends, and $`p` is initialized. The old value may
   not end, as at the end of a variable, with the parts of $`p` taken as
-  the value's own; so a part in $`M` that was given some of its fields
+  the value's own, $`p` itself uninitialized when a part at or above it
+  is; so a part in $`M` that was given some of its fields
   may not be assigned whole. Assigning $`p` removes from $`M`, $`T` and
   $`P` the parts at or below $`p`, adds $`p` to $`H`, and adds to $`T`
   the part of $`H` above $`p`, if any. When a part above $`p` is
@@ -128,7 +132,9 @@ an expression, so a place is copied implicitly.
   still initialized and not invalidated;
 * `if` needs a $`\mathsf{Bool}` condition and joins its branches, each a
   scope of its own; `while` needs a $`\mathsf{Bool}` condition and a
-  body that keeps what was initialized. When the body can reach its end
+  body that keeps what was initialized. After the loop, which may have run
+  any number of times, the state is the one before it, with $`H`, $`T`
+  and $`P` joined with those the body leaves. When the body can reach its end
   and invalidates a reference, the condition and the body are checked once
   more with it invalidated, as the next iteration finds it, and it stays
   invalidated after the loop;

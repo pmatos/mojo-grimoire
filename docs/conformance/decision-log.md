@@ -93,8 +93,9 @@ Each move of the Mojo pin gets an entry below.
 - Date: 2026-11-18
 - Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868)
 - Programs: `tests/conformance/structs/field_by_field_unset_destroyed.mojo`,
-  `field_by_field_unset_nested.mojo`, `field_by_field_unset_overwritten.mojo`
-  and `field_by_field_unset_destructor.mojo`, in the same directory.
+  `field_by_field_unset_nested.mojo`, `field_by_field_unset_overwritten.mojo`,
+  `field_by_field_unset_destructor.mojo` and
+  `field_by_field_unset_branch.mojo`, in the same directory.
 - Compiler: a variable of struct type declared without a value, whose
   fields are then assigned one by one, is destroyed whole even when some
   fields were never assigned. The compiler runs the destructor of each
@@ -113,17 +114,23 @@ Each move of the Mojo pin gets an entry below.
   - when the struct has a `__deinit__` of its own: `var b: Box;
     b.a = Token(1)`, where `Box` holds two `Token`s and prints `box` in
     its `__deinit__`, prints `1`, `drop 1`, `drop 0`, `box`: it runs
-    `Box`'s destructor on a value whose field `b` was never assigned.
+    `Box`'s destructor on a value whose field `b` was never assigned;
+  - when such a struct is built in only one branch of an `if`, or in a
+    loop: `var b: Bin; if c: b.a = Mark(1)`, where `Bin` and `Mark` print
+    a fixed line when destroyed, prints three `Mark` lines and the `Bin`
+    one. When the destructors print a field, the lines show whatever
+    memory the fields hold, which changes from run to run.
   The compiler is not consistent: once a field assigned this way is moved
   out, as in `d.left = Token(1); var t = d.left^`, it destroys nothing of
   `d`, and prints no `drop 0`.
 - Model: destroys only the fields that hold a value. A variable declared
   without a value holds the blank of its type, the struct with no field
   assigned, and destroying a blank does nothing. The first three programs
-  print the compiler's lines without the `drop 0`. `Box`, whose own
-  destructor needs the whole value, is rejected as `partiallyDestroyed`,
-  as before: running its `__deinit__` would read a field never assigned,
-  and skipping it would destroy a value without its destructor.
+  print the compiler's lines without the `drop 0`. `Box` and `Bin`, whose
+  own destructors need the whole value, are rejected as
+  `partiallyDestroyed`, as the straight-line `Box` was before: running its
+  `__deinit__` would read a field never assigned, and skipping it would
+  destroy a value without its destructor.
 - Classification: compiler bug, ruled by the human on 2026-11-17 (#51).
   The human revisits the ruling if upstream shows that it is not a bug.
 - Decision and rationale: the model destroys only what was assigned. A

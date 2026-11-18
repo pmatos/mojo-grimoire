@@ -87,6 +87,10 @@ private def fld (x f : Name) : Place := .field (.var x) f
 #guard inMain ["    var b: Box", "    b.a = Res(1)", "    b.b = Res(2)", "    print(b.a.id)"] ==
   some (.finished ["1", "drop 1", "drop 2", "box"])
 #guard destroyed "b" ["    var b: Box", "    b.a = Res(1)", "    print(b.a.id)"]
+#guard destroyed "b" ["    var c = True", "    var b: Box", "    if c:", "        b.a = Res(1)",
+    "    print(c)"]
+#guard destroyed "b" ["    var c = True", "    var b: Box", "    while c:", "        b.a = Res(1)",
+    "        c = False", "    print(c)"]
 
 -- A field moved out of a struct that holds nothing else does not stop it
 -- from ending; nothing of it is destroyed, its destructor included.
@@ -114,6 +118,8 @@ private def fld (x f : Name) : Place := .field (.var x) f
     "    print(s.x)"]
 #guard inMain ["    var t: Line", "    t.a = Pt(1, 2)", "    t.a.x = 3", "    var s = t.a^",
     "    t.a = Pt(5, 6)", "    print(s.x, t.a.x)"] == some (.finished ["3 5"])
+#guard destroyed "t" ["    var c = True", "    var t: Line", "    t.a = Pt(1, 2)", "    while c:",
+    "        t.a.x = 3", "        c = False", "    var s = t.a^", "    print(s.x)"]
 
 -- A variable moved out whole and given some of its fields, and a part moved
 -- out and given some of its fields then assigned whole, are rejected.

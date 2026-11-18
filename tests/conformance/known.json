@@ -2,6 +2,7 @@
   "note": "Programs whose result disagrees with the compiler's by a decision-log entry, docs/conformance/decision-log.md, with the entry's id.",
   "known": {
     "lists/store_after_grow": "D-0002",
+    "structs/field_by_field_unset_branch": "D-0003",
     "structs/field_by_field_unset_destroyed": "D-0003",
     "structs/field_by_field_unset_destructor": "D-0003",
     "structs/field_by_field_unset_nested": "D-0003",
