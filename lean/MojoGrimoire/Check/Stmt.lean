@@ -5,7 +5,11 @@ The checking of statements and blocks.
 
 A block is a scope: the variables it declares end with it. A declaration
 may not reuse the name of a variable in scope, so no variable hides
-another, though sibling blocks may reuse a name. After an `if`, a part of a variable is
+another, though sibling blocks may reuse a name. When inference could not
+find a declaration's type, the checker checks its initializer before it
+rejects the declaration, so that the initializer's own error is reported,
+as the compiler does (#123).
+After an `if`, a part of a variable is
 initialized only when both branches leave it initialized, and a branch that
 returns does not count. A loop body that can reach its end must leave
 initialized every part that was initialized before the loop, or its next
@@ -166,7 +170,9 @@ element of a list when `e` is a call that builds its result in `p` and is
 passed `mut` that list, or a place that holds it: Mojo reports the result
 as aliased with the argument. A call, an initializer included, builds its
 result in place unless the result is an `Int`, a `Bool` or a reference; a
-generic result, such as the element that a list method gives, always is. -/
+generic result, such as the element that a list method gives, always is.
+`List[u](e)` builds its result in place too, and passes `e` by `ref`
+(#103). -/
 def checkConstructed (prog : Program) (p : Place) (e : Expr) : CheckM Unit := do
   let builds (sig : Signature) := sig.origin.isNone && (sig.generic || !sig.result.byValue)
   let changed ← match e with
@@ -176,6 +182,7 @@ def checkConstructed (prog : Program) (p : Place) (e : Expr) : CheckM Unit := do
     | .method q m args => match methodSig prog (← placeTy prog q) m args.length with
       | .ok sig => if builds sig then changedArgs prog sig.allParams (.place q :: args) else pure []
       | .error _ => pure []
+    | .listInit u [a] => changedArgs prog [⟨.ref, "iterable", .list u⟩] [a]
     | _ => pure []
   let vars := (← get).vars
   for q in changed do
@@ -210,7 +217,9 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
   | .pass => pure ()
   | .decl x t init => do
     if (← get).vars.any (·.name == x) then throw (CheckError.duplicate x)
-    unless validTy prog t do throw (CheckError.invalidType t)
+    unless validTy prog t do
+      if let (.noneType, some e) := (t, init) then let _ ← checkExpr prog e
+      throw (CheckError.invalidType t)
     let us ← match init with
       | some e => do checkInitValue prog t e (checkExpr prog e); pure []
       | none => pure [[]]

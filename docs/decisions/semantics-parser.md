@@ -45,13 +45,16 @@ else. These choices hold:
   gives `var x = e` the type of `e`, and a literal `[e1, …, en]` the type
   expected where it stands, or else `Array[T, n]` (see
   [Arrays](semantics-lists.md#arrays)).
-  What it cannot find stays `None`, and the checker rejects it. A literal
+  What it cannot find stays `None`, and the checker rejects it, after the
+  initializer's own error, which comes first (#123). A literal
   with no expected type keeps `None` as its own type, which the checker
   replaces with its elements' type, so that the checker tells it from a
   literal that initializes an expected type (#46).
 - `List[T]()` is an empty list. `List[T](e1, …, en)` with arguments is
-  read as its own expression, which the checker always rejects (see
-  [Lists](semantics-lists.md#lists)). `List[T](capacity=n)` is outside the
+  read as its own expression, which the checker accepts only for one
+  argument that is a list or an array of `T` (see
+  [Lists](semantics-lists.md#lists)). Its one argument `p^` is read as the
+  place `p^`, which the compiler borrows (#103). `List[T](capacity=n)` is outside the
   subset and a syntax error.
 - The exit code says how a run ended: 0 finished, 1 rejected
   (`rejected: CLASS in DECL` on standard error), 2 a run-time error

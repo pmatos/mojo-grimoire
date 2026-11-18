@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "transferFromBorrowed",
+  "diagnostic": "cannot transfer out of immutable reference"
+}
