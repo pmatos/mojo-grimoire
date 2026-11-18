@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8693500459104373732")
+:::moduleDocs (fingerprint := "15659504338854430283")
 :::
 
 :::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9797508852910816411")
@@ -32,10 +32,13 @@ not count, since its destructor is the one running. Each error is
 $`\mathsf{partiallyDestroyed}`.
 :::
 
-:::readable MojoGrimoire.Check.checkExit (fingerprint := "10417562916258413233")
+:::readable MojoGrimoire.Check.checkExit (fingerprint := "15720368628365232594")
 *Rule: a return.* When a function returns, each `mut` parameter and the
 `self` of `__init__` must be wholly initialized, since the caller holds
-them, and every variable must be allowed to end.
+them, with no piece in $`P`: otherwise the error is
+$`\mathsf{uninitializedAtExit}`, or a use of the variable when it is
+itself a piece, as the compiler reports. Every variable must be allowed
+to end.
 :::
 
 :::readable MojoGrimoire.Check.endScope (fingerprint := "5094446271499096283")

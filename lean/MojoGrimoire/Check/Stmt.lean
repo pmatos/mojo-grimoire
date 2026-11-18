@@ -76,12 +76,16 @@ def checkEnd (prog : Program) (v : VarState) : CheckM Unit := do
     throw (CheckError.partiallyDestroyed v.name)
 
 /-- Rejects the state at a return: every `mut` parameter and the `self` of
-`__init__` must be wholly initialized, and every variable must be allowed
-to end. -/
+`__init__` must be wholly initialized, with no part built from its fields,
+and every variable must be allowed to end. The caller uses a `mut`
+parameter whole, so the compiler reports one that is itself built field by
+field as a use of it. -/
 def checkExit (prog : Program) : CheckM Unit := do
   for v in (← get).vars do
-    if (v.access == .mutable || v.access == .constructing) && !v.uninit.isEmpty then
-      throw (CheckError.uninitializedAtExit v.name)
+    if v.access == .mutable || v.access == .constructing then
+      if v.pieces.contains [] then throw (CheckError.uninitializedUse (.var v.name))
+      if !v.uninit.isEmpty || !v.pieces.isEmpty then
+        throw (CheckError.uninitializedAtExit v.name)
     if v.access != .readOnly then checkEnd prog v
 
 /-- Ends the variables declared since the scope had `n` variables: checks

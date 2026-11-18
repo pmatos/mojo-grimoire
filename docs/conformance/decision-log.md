@@ -87,3 +87,49 @@ Each move of the Mojo pin gets an entry below.
   list's buffer.
 - Upstream report: not filed yet. A draft on #57 awaits the human's
   approval; its link goes here once it is filed.
+
+### D-0003: a struct built field by field destroys a field never assigned
+
+- Date: 2026-11-18
+- Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868)
+- Programs: `tests/conformance/structs/field_by_field_unset_destroyed.mojo`,
+  `field_by_field_unset_nested.mojo`, `field_by_field_unset_overwritten.mojo`
+  and `field_by_field_unset_destructor.mojo`, in the same directory.
+- Compiler: a variable of struct type declared without a value, whose
+  fields are then assigned one by one, is destroyed whole even when some
+  fields were never assigned. The compiler runs the destructor of each
+  field that was never assigned, on whatever memory it holds. Each shape
+  seen so far prints `drop 0` for such a field. With `Duo` holding two
+  `Token`s that print `drop <n>` when destroyed:
+  - at the end of the variable: `var d: Duo; d.left = Token(1);
+    print(d.left.n)` prints `1`, `drop 1`, `drop 0`;
+  - for a field assigned below a nested struct: `var r: Rack; r.z = 3`,
+    where `Rack` holds a `Slot` that holds a `Token`, prints `drop 0` at
+    the end, and so does `q.s.k = 4`;
+  - when the part is assigned whole: `r.s.k = 1; r.s = Slot(Token(5), 2)`
+    prints `drop 0` before the new value is stored, and
+    `d.left = Token(6); d = Duo(Token(7), Token(8))` prints `drop 6`,
+    `drop 0`;
+  - when the struct has a `__deinit__` of its own: `var b: Box;
+    b.a = Token(1)`, where `Box` holds two `Token`s and prints `box` in
+    its `__deinit__`, prints `1`, `drop 1`, `drop 0`, `box`: it runs
+    `Box`'s destructor on a value whose field `b` was never assigned.
+  The compiler is not consistent: once a field assigned this way is moved
+  out, as in `d.left = Token(1); var t = d.left^`, it destroys nothing of
+  `d`, and prints no `drop 0`.
+- Model: destroys only the fields that hold a value. A variable declared
+  without a value holds the blank of its type, the struct with no field
+  assigned, and destroying a blank does nothing. The first three programs
+  print the compiler's lines without the `drop 0`. `Box`, whose own
+  destructor needs the whole value, is rejected as `partiallyDestroyed`,
+  as before: running its `__deinit__` would read a field never assigned,
+  and skipping it would destroy a value without its destructor.
+- Classification: compiler bug, ruled by the human on 2026-11-17 (#51).
+  The human revisits the ruling if upstream shows that it is not a bug.
+- Decision and rationale: the model destroys only what was assigned. A
+  destructor run on memory that was never initialized reads garbage. The
+  first shape, at the end of the variable, was checked again on the
+  nightly 1.3.0.dev2026111705 on 2026-11-18, where it still prints
+  `drop 0`.
+- Upstream report: not filed yet. A draft on #51 awaits the human's
+  approval; its link goes here once it is filed.
