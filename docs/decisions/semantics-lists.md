@@ -109,7 +109,9 @@ here (#27).
   or more (`constantIndexOutOfBounds`); one known only at run time fails
   then, as on a list. A constant index into a list fails only at run time.
 - A struct may not hold an array, or a list, of itself: the compiler
-  rejects both, and so does the model (`recursiveStruct`).
+  rejects both, and so does the model (`recursiveStruct`). The rule for
+  cycles through several structs is in
+  [semantics.md](semantics.md#the-static-checker).
 
 Rejected: keeping every literal a `List`, which would accept programs that
 the compiler rejects, such as `append` to an unannotated literal.

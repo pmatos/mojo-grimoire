@@ -142,3 +142,40 @@ Each move of the Mojo pin gets an entry below.
   `drop 0`.
 - Upstream report: not filed yet. A draft on #51 awaits the human's
   approval; its link goes here once it is filed.
+
+### D-0004: `@fieldwise_init` inside a cycle of structs through a list
+
+- Date: 2026-11-18
+- Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868)
+- Program: `tests/conformance/structs/cycle_fieldwise_init.mojo`,
+  `tests/conformance/structs/cycle_fieldwise_init_holder_first.mojo` and
+  `tests/conformance/structs/cycle_fieldwise_init_both.mojo`
+- Compiler: accepts a cycle of structs with a list edge and a plain
+  by-value edge, such as `A` holding a `List[B]` and `B` holding an `A`,
+  when each initializer is written by hand, in either declaration order
+  (`structs/cycle_through_list` and `cycle_through_list_holder_first`).
+  With `@fieldwise_init` on `B`, the struct that holds the other by value,
+  it rejects the same program, with a message that depends on the order of
+  the declarations. With `A` declared first, it fails with "invalid
+  implicit move: unexpected keyword argument 'move'": the synthesized
+  initializer of `B` calls `A.__init__(move=...)`, which is not synthesized
+  yet inside the cycle, and the call resolves against `A`'s own
+  `__init__`. With `B` declared first, it fails with "field 'bs' has
+  non-'Deinitable' type 'List[B]'". With both structs `@fieldwise_init`
+  and `A` first, it fails with "invalid call to '__init__': no candidates
+  found". With `@fieldwise_init` on `A` alone it compiles
+  (`cycle_fieldwise_init_list_holder`).
+- Model: accepts all of them, as it accepts the hand-written forms, and
+  each prints `1`. It still rejects a struct on a cycle made only of list
+  and array edges, or with no list edge (`recursiveStruct`), as the
+  compiler does.
+- Classification: compiler bug, ruled by the human on 2026-11-18 (#47).
+- Decision and rationale: the decorator is documented to produce the
+  initializer that is written by hand, which compiles; the
+  order-dependent, unrelated messages come from the synthesis inside the
+  cycle, not from the layout, which a list edge keeps finite. The nightly
+  1.3.0.dev2026111705, checked on 2026-11-18, accepts the forms with `A`
+  declared first, and still rejects `cycle_fieldwise_init_holder_first`
+  with the same non-'Deinitable' error.
+- Upstream report: not filed yet. A draft on #47 awaits the human's
+  approval; its link goes here once it is filed.

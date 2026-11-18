@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14812453757622195558")
+:::moduleDocs (fingerprint := "1487112832430675558")
 :::
 
 :::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "4257948032270631622")
@@ -89,15 +89,38 @@ function's result, unless it is `None`, and the elements of a list
 literal.
 :::
 
-:::readable MojoGrimoire.Check.elemBase MojoGrimoire.Check.contains (fingerprint := "15804087117037256534")
-*Definition: containment.* A type $`t` contains the struct $`S` when it is
-$`S`, a struct with a field whose type contains $`S`, or a list or an
-array of a type that contains $`S`. The search looks through lists and
-arrays to the type of their elements, and is bounded by the number of
-structs of the program, since a longer chain of fields repeats a struct.
-A struct whose field contains the struct itself is rejected: held
-directly it would be infinite, and held in a list or an array the
-compiler rejects it too.
+:::readable MojoGrimoire.Check.elemBase (fingerprint := "16152550111862490354")
+*Definition: element types.* The element type of a type $`t` is that of
+its elements through any number of lists and arrays, or $`t` itself.
+:::
+
+:::readable MojoGrimoire.Check.throughList (fingerprint := "15034747893672114577")
+*Definition: list edges.* A field of type $`t` holds the struct it reaches
+through a list when some list wraps it, under any number of arrays and
+lists.
+:::
+
+:::readable MojoGrimoire.Check.successors MojoGrimoire.Check.reach (fingerprint := "7569000885113384078")
+*Definition: reachable structs.* A field leads to the struct of its
+element type. The successors of a struct, through the fields whose type
+satisfies a predicate, are the structs that those fields lead to. The
+structs reached from a set within $`n` steps are the set and, step by
+step, the successors of the structs added by the last step that were not
+reached yet.
+:::
+
+:::readable MojoGrimoire.Check.rejectedCycle (pin := MojoGrimoire.Check.elemBase) (pin := MojoGrimoire.Check.throughList) (pin := MojoGrimoire.Check.successors) (pin := MojoGrimoire.Check.reach) (fingerprint := "12767551648373614766")
+*Definition: rejected cycles.* A field leads to the struct of its element
+type through a list when some list wraps it, directly when nothing does,
+and neither when only arrays do. The compiler rejects a cycle of fields
+with no field through a list, and one with no direct field; it accepts a
+cycle with both, which the list keeps finite. A field of the struct $`S`
+is rejected when it leads back to $`S` along fields none of which is
+through a list, or along fields none of which is direct. So a struct that
+holds itself, through a list, an array or nothing, is rejected, and so is
+a cycle of lists and arrays alone. The search reaches every struct within
+as many steps as the program has structs, enough for any chain with no
+struct repeated.
 :::
 
 :::readable MojoGrimoire.Check.passedByValue (fingerprint := "8359022073465340314")
