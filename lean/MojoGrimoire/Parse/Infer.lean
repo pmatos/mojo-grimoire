@@ -19,7 +19,8 @@ checker tells a literal that initializes an expected type from one that
 takes the type of its elements (#46). What inference cannot find stays
 `None`, which the checker rejects as a type that may not be declared.
 `List[u](e₁, …, eₙ)` is a list of `u`; nothing is expected of its
-arguments, which the checker rejects.
+arguments. With one argument, `e`, Mojo takes it by `ref`, which borrows
+`p^`: inference gives it the place `transferred p` (#103).
 
 Inference also gives `p^` its meaning when `p` is an `Int` or a `Bool`.
 Mojo does not move such a value: it warns that the transfer has no effect,
@@ -110,7 +111,9 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
       | t, _ => t
     (.list t (es'.map (·.1)), if t' == .noneType then none else some t')
   | .listInit u args =>
-    (.listInit u ((inferList prog env [] args).map (·.1)), some (.list u))
+    let args' : List Expr := (inferList prog env [] args).map (·.1)
+    (.listInit u (match args' with | [.transfer p] => [.place (.transferred p)] | as => as),
+      some (.list u))
   | .withDrops e pre post =>
     let (e', t) := inferExpr prog env exp e
     (.withDrops e' pre post, t)

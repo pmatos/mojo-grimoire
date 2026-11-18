@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14058701553021559856")
+:::moduleDocs (fingerprint := "7513205540333326935")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "7491183084080357663")
@@ -22,7 +22,7 @@ variables in scope, innermost first. An arithmetic operator gives an
 $`\mathsf{Int}`, and every other binary operator a $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "12339081305316815501")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "8184451265612923985")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
@@ -39,7 +39,9 @@ $`\mathsf{Array}[t, n]`. Inference gives that type to what holds the
 literal, and leaves the literal's own type `None`, so that the checker
 tells it from a literal that initializes an expected type (#46).
 $`\mathsf{List}[u](e^+)` is a list of $`u`, whose arguments are expected
-to have no type. The elements of a literal are expected to have its
+to have no type. Its one argument $`p\,\hat{}` becomes the place
+$`p\,\hat{}`, which Mojo borrows, since the initializer takes it by `ref`
+(#103). The elements of a literal are expected to have its
 element type, and the arguments of a call the types of its parameters; the
 argument of `append` is expected to be an element of the list, and the
 index of `pop(i)` an $`\mathsf{Int}`. The drops
@@ -64,7 +66,7 @@ with no signature has the type of a struct the program declares, `len`'s
 $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "9908368116585406001")
+:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "17131408258183810418")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 and `ref x = e` binds $`x` with the type of $`e`. An initial value is
 expected to have the declared type of its variable, an assigned value the

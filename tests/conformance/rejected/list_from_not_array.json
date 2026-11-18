@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "cannot implicitly convert 'List[Int]' value to 'Array[Int, Int(2)]'"
+}

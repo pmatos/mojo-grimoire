@@ -141,9 +141,12 @@ where the compiler and the manual disagree, the model follows the compiler.
   wrong number of arguments, a wrong one, or a value passed to a `mut`
   parameter that is not a place or cannot change; a literal that does not
   fit the list or array it initializes, or that initializes a struct or a
-  `Bool`; and `List[T](e1, …, en)`. The
+  `Bool`; and `List[T](e1, …, en)`, unless it has one argument that is a
+  list or an array of `T` that can be copied (#103). The
   compiler reports each as "no matching function in initialization" (#46,
-  [conformance.md](conformance.md#initializations-that-fit-no-initializer)).
+  [conformance.md](conformance.md#initializations-that-fit-no-initializer)),
+  or, when the one argument has the type it initializes, as "cannot
+  construct ... with itself".
 - A declaration may not reuse the name of a variable in scope, a
   parameter included, so no variable hides another. Sibling blocks may
   reuse a name. ASAP elaboration relies on this, since it tracks

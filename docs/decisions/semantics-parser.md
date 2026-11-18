@@ -50,8 +50,10 @@ else. These choices hold:
   replaces with its elements' type, so that the checker tells it from a
   literal that initializes an expected type (#46).
 - `List[T]()` is an empty list. `List[T](e1, …, en)` with arguments is
-  read as its own expression, which the checker always rejects (see
-  [Lists](semantics-lists.md#lists)). `List[T](capacity=n)` is outside the
+  read as its own expression, which the checker accepts only for one
+  argument that is a list or an array of `T` (see
+  [Lists](semantics-lists.md#lists)). Its one argument `p^` is read as the
+  place `p^`, which the compiler borrows (#103). `List[T](capacity=n)` is outside the
   subset and a syntax error.
 - The exit code says how a run ended: 0 finished, 1 rejected
   (`rejected: CLASS in DECL` on standard error), 2 a run-time error

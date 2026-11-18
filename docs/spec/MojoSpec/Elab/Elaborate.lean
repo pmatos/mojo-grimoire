@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13154031412906826621")
+:::moduleDocs (fingerprint := "4496674874397372456")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
@@ -86,27 +86,31 @@ evaluated with those slots, and the ones it reads, live after them. An
 operation that destroys nothing is left unwrapped.
 :::
 
-:::readable MojoGrimoire.Elab.consumedSlot MojoGrimoire.Elab.consumedIn MojoGrimoire.Elab.consumedList (fingerprint := "3815886912729584611")
+:::readable MojoGrimoire.Elab.consumedSlot MojoGrimoire.Elab.consumedIn MojoGrimoire.Elab.consumedList (fingerprint := "1304641025228155356")
 *Definition: consumed receivers.* A method call on $`q\,\hat{}`, where
 $`q` is a whole slot and the method takes `var self`, consumes $`q`: it
 moves the value away, and the method destroys it. An expression consumes
-the slots that the method calls in it consume, at any depth.
+the slots that the method calls in it consume, at any depth, also inside
+the argument of $`\mathsf{List}[u](e)`.
 :::
 
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "5768670919634702339")
+:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "7274864320464075640")
 *Definition: elaborating expressions.* Each call, method call, operator,
-list literal and `.copy()` is wrapped with what it destroys, and its
-operands are elaborated in turn, each with the slots that the later
+list literal, $`\mathsf{List}[u](e)` and `.copy()` is wrapped with what it
+destroys, and its operands are elaborated in turn, each with the slots that the later
 operands use live after it. A place is left as it is. The operation at the
 top of a statement leaves what dies once it is done to the statement, as
 the compiler destroys a discarded result before those values. The right
 operand of `and` and `or` may not run, so it is not elaborated, and the
 operation destroys what it uses. A method call never destroys the slot it
-consumes, though it uses it.
+consumes, though it uses it. The argument of $`\mathsf{List}[u](e)` is
+used by reference, as that of `len`, so a value whose last use it is dies
+once the new list is built.
 :::
 
-:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.envAfter (fingerprint := "12429544128701169200")
-*Definition: helpers.* The slots that an elaborated expression destroys;
+:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.envAfter (fingerprint := "12467781390826100905")
+*Definition: helpers.* The slots that an elaborated expression destroys,
+also inside the argument of $`\mathsf{List}[u](e)`;
 the slots that a list of operands read by reference uses directly; and the types of
 the variables after a statement, which a declaration or a `ref` binding
 extends.

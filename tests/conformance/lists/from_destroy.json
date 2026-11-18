@@ -1,0 +1,16 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "gone 1",
+    "gone 2",
+    "gone 1",
+    "gone 2",
+    "built 2",
+    "gone 3",
+    "copied",
+    "3",
+    "gone 3"
+  ],
+  "class": null,
+  "diagnostic": null
+}
