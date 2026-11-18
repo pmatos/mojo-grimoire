@@ -54,7 +54,9 @@ private def bare : List String := ["struct Bare:", "    var xs: List[Int]", ""]
 
 -- A method with no signature has no type, so a literal of its result has
 -- none either. The checker reports the method, in the initializer, before
--- the variable that has no type (#123).
+-- the variable that has no type (#123). The compiler has `insert` and
+-- reports its missing argument; the model, which has only `append` and
+-- `pop`, reports a method the list does not have.
 #guard rejects ["def main():", "    var xs: List[Int] = [1]", "    var zs = [xs.insert(0)]"]
   (.unknownAttribute "List" "insert")
 

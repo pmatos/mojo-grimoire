@@ -5,9 +5,10 @@ The checking of statements and blocks.
 
 A block is a scope: the variables it declares end with it. A declaration
 may not reuse the name of a variable in scope, so no variable hides
-another, though sibling blocks may reuse a name. A declaration whose type
-inference could not find checks its initializer before it is rejected, so
-that the initializer's own error is reported, as the compiler does (#123).
+another, though sibling blocks may reuse a name. When inference could not
+find a declaration's type, the checker checks its initializer before it
+rejects the declaration, so that the initializer's own error is reported,
+as the compiler does (#123).
 After an `if`, a part of a variable is
 initialized only when both branches leave it initialized, and a branch that
 returns does not count. A loop body that can reach its end must leave
@@ -183,7 +184,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
   | .decl x t init => do
     if (← get).vars.any (·.name == x) then throw (CheckError.duplicate x)
     unless validTy prog t do
-      if t == .noneType then if let some e := init then let _ ← checkExpr prog e
+      if let (.noneType, some e) := (t, init) then let _ ← checkExpr prog e
       throw (CheckError.invalidType t)
     let us ← match init with
       | some e => do checkInitValue prog t e (checkExpr prog e); pure []
