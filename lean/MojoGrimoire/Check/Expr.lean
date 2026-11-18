@@ -34,8 +34,11 @@ late are checked again then (`MojoGrimoire.Check.Change`).
 An initialization whose arguments fit no initializer is `noMatchingInit`,
 however they misfit (`MojoGrimoire.Check.Fit`, #46): a construction
 `S(…)`, a literal that initializes the list or array expected where it
-stands, and `List[u](e₁, …, eₙ)`, which no initializer of `List` takes,
-but for one iterable argument, which is outside the subset. A literal
+stands, and `List[u](e₁, …, eₙ)`, which no initializer of `List` takes.
+With one argument, `List[u](e)` copies the elements of a list or an
+array of `u`, which can be copied (#103): `e` is passed by `ref`, as
+`len` takes its list, and a mutable place passed so may be changed. A
+literal
 passed to a function or a method is converted, and one that does not fit,
 also inside it, is a type mismatch. A literal with no expected type takes
 the type of its elements, and an element that differs from the first is a
@@ -282,6 +285,19 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     recheckLocs prog (← checkArgs prog (.init t) (typeName t)
       (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length)
     pure t
+  | .listInit u [e] => do
+    let t ← match e with
+      | .place p => do
+        checkIndices prog p
+        iterableFits prog u (← placeTy prog p)
+        readPlace prog p
+      | .str _ | .list .noneType [] => throw (CheckError.noMatchingInit (.list u))
+      | e => do
+        let t ← checkExprAs prog (← locOf prog e).isSome e
+        iterableFits prog u t
+        pure t
+    for q in ← changedArgs prog [⟨.ref, "iterable", t⟩] [e] do changePlace prog q
+    pure (.list u)
   | .listInit u args => do
     checkOperands prog args
     throw (CheckError.noMatchingInit (.list u))

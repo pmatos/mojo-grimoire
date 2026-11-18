@@ -70,7 +70,7 @@ expression, unless `.` follows it: then it is the place $`p\,\hat{}`,
 whose fields and methods the chain goes on to read, as the compiler does
 for `p^.f` and `p^.m(…)` (#66).
 A literal $`[e^*]` is left for inference to type, and $`\mathsf{List}[\mathit{type}]()` is an empty list literal.
-With arguments, $`\mathsf{List}[\mathit{type}](e^+)` is its own expression, which the checker rejects, since Mojo
-1.2.0 accepts it only with no elements or with one iterable argument, a form outside the subset (#46). Each function takes fuel and spends it on
+With arguments, $`\mathsf{List}[\mathit{type}](e^+)` is its own expression, which the checker accepts only for one
+argument, a list or an array that it copies (#103), and rejects otherwise, as Mojo 1.2.0 does (#46). Each function takes fuel and spends it on
 each call, so parsing ends.
 :::

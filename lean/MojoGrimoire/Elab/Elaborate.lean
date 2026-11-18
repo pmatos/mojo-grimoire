@@ -152,7 +152,7 @@ mutual
 /-- The slots that the method calls in `e` consume. -/
 def consumedIn (ctx : Ctx) : Expr → List Place
   | .method p m args => union (consumedSlot ctx p m args.length) (consumedList ctx args)
-  | .call _ args | .list _ args => consumedList ctx args
+  | .call _ args | .list _ args | .listInit _ args => consumedList ctx args
   | .binary _ a b => union (consumedIn ctx a) (consumedIn ctx b)
   | .unary _ a | .withDrops a _ _ => consumedIn ctx a
   | _ => []
@@ -235,6 +235,9 @@ def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Expr :=
   | .list t es =>
     let d := opDrops ctx.owned (directArgs ctx es (es.map fun _ => true)) after
     withDropsOf (.list t (elabOps ctx es d.2.2)) d.1 (if top then [] else d.2.1)
+  | .listInit u es =>
+    let d := opDrops ctx.owned (directArgs ctx es (es.map fun _ => false)) after
+    withDropsOf (.listInit u (elabOps ctx es d.2.2)) d.1 (if top then [] else d.2.1)
   | .copy p =>
     let d := opDrops ctx.owned [directOf ctx (.place p) false] after
     withDropsOf (.copy p) d.1 (if top then [] else d.2.1)
@@ -252,7 +255,7 @@ mutual
 /-- The slots that the elaborated expression `e` destroys. -/
 def droppedIn : Expr → List Place
   | .withDrops e pre post => pre ++ post ++ droppedIn e
-  | .call _ args | .method _ _ args | .list _ args => droppedList args
+  | .call _ args | .method _ _ args | .list _ args | .listInit _ args => droppedList args
   | .binary _ a b => droppedIn a ++ droppedIn b
   | .unary _ a => droppedIn a
   | _ => []

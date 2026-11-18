@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "946094915744811142")
+:::moduleDocs (fingerprint := "4410575708631120963")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "13691362365005740179")
@@ -29,6 +29,14 @@ argument whose type is not its parameter's is such a misfit.
 :::readable MojoGrimoire.Check.passValue (fingerprint := "184049633496572427")
 *Rule: passing a value.* A value that is not a place may not be passed
 `out` or `deinit`, nor `mut`, which is a misfit of the call.
+:::
+
+:::readable MojoGrimoire.Check.iterableFits (fingerprint := "8966902570167571758")
+*Rule: a source of $`\mathsf{List}[u](e)`.* The one argument of
+$`\mathsf{List}[u](e)` fits the initializer of `List` from any iterable
+when its type is a list or an array of $`u`, and $`u` can be copied,
+explicitly or implicitly (#103). Any other type fits no initializer, and
+is `noMatchingInit` $`\mathsf{List}[u]`.
 :::
 
 :::readable MojoGrimoire.Check.literalElem (fingerprint := "11550179997732153358")

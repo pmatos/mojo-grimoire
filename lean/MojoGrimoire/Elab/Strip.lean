@@ -108,8 +108,9 @@ theorem stripExpr_elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Pla
     split <;> simp [stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
   | .unary op a => simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
   | .list t es => simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
+  | .listInit u es => simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
   | .copy p => simp [elabExpr, stripExpr_withDropsOf]
-  | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .listInit .. | .withDrops .. =>
+  | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .withDrops .. =>
     simp [elabExpr]
 
 /-- Elaborating operands only inserts drops. -/

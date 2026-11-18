@@ -8,9 +8,10 @@ number of arguments, a value that is not a place, or a place that may not
 change, passed `mut`. An initializer reports every misfit as
 `noMatchingInit` of its type, since the compiler tries each initializer
 and reports only that none fits: a construction `S(…)`, and a literal that
-initializes the list or array expected where it stands. A literal passed
-to a function or a method is converted to its parameter's type, and the
-compiler reports one that does not fit as a type mismatch.
+initializes the list or array expected where it stands, and `List[u](e)`
+from a source that is not a list or an array of `u` that can be copied. A
+literal passed to a function or a method is converted to its parameter's
+type, and the compiler reports one that does not fit as a type mismatch.
 -/
 
 namespace MojoGrimoire.Check
@@ -51,5 +52,15 @@ def literalElem (prog : Program) (fit : Fit) (t : Ty) (n : Nat) : CheckM Ty := d
   if let .array _ k := t then
     unless k == n do throw (fit.misfit (CheckError.typeMismatch t (.array u n)))
   pure u
+
+/-- Rejects unless a value of the type `t` is a source that `List[u](e)`
+copies, through the initializer of `List` from any iterable: a list or an
+array of `u`, which can be copied (#103). Anything else fits no
+initializer of `List[u]`. -/
+def iterableFits (prog : Program) (u t : Ty) : CheckM Unit := do
+  let fits : Bool := match t with
+    | .list v | .array v _ => v == u && copyingOf prog u != .none
+    | _ => false
+  unless fits do throw (CheckError.noMatchingInit (.list u))
 
 end MojoGrimoire.Check

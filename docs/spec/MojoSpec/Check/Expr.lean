@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6462096020453492941")
+:::moduleDocs (fingerprint := "15591155270457968107")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -79,7 +79,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "1387918912435258342")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "7001181921778696684")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -101,10 +101,19 @@ type:
   type says, or the literal is `noMatchingInit` $`t`; with $`t` the type
   `None`, no type is expected, and the literal is an array of the type of
   its first element, whose other elements must have that type;
-* $`\mathsf{List}[u](e^+)` checks each argument on its own, locating a
-  place without reading it, and is then rejected as `noMatchingInit`
-  $`\mathsf{List}[u]`: no initializer of `List` takes its elements, and
-  the one that takes an iterable is outside the subset;
+* $`\mathsf{List}[u](e)` with one argument copies the elements of a list
+  or an array (#103). Its argument is passed by `ref`, as `len` takes its
+  list: a place is located, its type must fit by `iterableFits`, and then
+  it must be initialized; a call that returns a reference and is a
+  located operand is passed as a location, and any other expression is
+  checked as a value, whose type must fit. A string, and an empty literal
+  with no type expected, fit no initializer. A place passed so that may
+  be changed, by the rule of `changedArgs` for a `ref` parameter, is
+  recorded as changed. The expression is a $`\mathsf{List}[u]`;
+* $`\mathsf{List}[u](e^+)` with more than one argument checks each
+  argument on its own, locating a place without reading it, and is then
+  rejected as `noMatchingInit` $`\mathsf{List}[u]`: no initializer of
+  `List` takes its elements;
 * the methods of a list take it `mut`, so they need a list the function
   may change; `len(e)`, when the program declares no function or struct
   `len`, takes one list or array and gives an $`\mathsf{Int}`: a place
