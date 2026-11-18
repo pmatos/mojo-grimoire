@@ -19,7 +19,21 @@ been given again. The compiler cannot destroy a struct with such a field
 missing, nor overwrite it, so the variable may not end, and no part above
 such a field may be assigned, until that same field is assigned again.
 Assigning its sub-fields one by one does not count: until then, the field
-and the parts above it may not be read whole.
+and the parts above it may not be read whole. A variable moved out whole is
+recorded as moved too, at the empty path.
+
+Mojo builds a struct field by field when its fields are assigned while it
+is uninitialized, and treats it otherwise than one initialized whole (#51).
+The state records three more lists of parts for it. The parts that may
+hold a value, on some path through the function, are what destroying the
+variable destroys: a variable that holds nothing may end even with fields
+moved out, since nothing of it is destroyed. The touched parts are those
+held whole whose inside changed, by a part of them moved out or assigned:
+a field moved out of such a part must be assigned again before it ends.
+The pieces are the parts built from their fields, which Mojo never counts
+as initialized whole, even once every field is assigned, so they may not
+be read whole. The `self` of `__init__` is the exception: once its fields
+are all assigned, it is whole.
 
 A reference into an element of a list is invalidated when the list, or a
 place that holds it, is changed as a whole: assigned, or passed `mut`, or
@@ -55,14 +69,18 @@ inductive Access where
 abbrev Path := List Name
 
 /-- A variable in scope: its name, type, how it is held, its
-uninitialized parts, and the fields moved out of it that it has not been
-given again. -/
+uninitialized parts, the parts moved out of it that it has not been given
+again, the parts that may hold a value, the touched parts, and the pieces,
+the parts built from their fields. -/
 structure VarState where
   name : Name
   ty : Ty
   access : Access
   uninit : List Path
   moved : List Path
+  held : List Path
+  touched : List Path
+  pieces : List Path
   deriving BEq
 
 /-- A step from a place down to a part of it, with indices left out: a
@@ -124,6 +142,25 @@ def partPlace (x : Name) (path : Path) : Place := path.foldl .field (.var x)
 /-- The parts among `us` strictly below the part `q`, as paths from `q`. -/
 def below (q : Path) (us : List Path) : List Path :=
   (us.filter fun u => q.isPrefixOf u && u != q).map (·.drop q.length)
+
+/-- The parts among `us` at or below the part `q`, as paths from `q`. -/
+def atOrBelow (q : Path) (us : List Path) : List Path :=
+  (us.filter (q.isPrefixOf ·)).map (·.drop q.length)
+
+/-- The parts of the part `q` that may hold a value, as paths from `q`,
+given `hs`, the parts of the variable that may: the whole of `q` when a
+part of `hs` is `q` or above it. -/
+def heldIn (q : Path) (hs : List Path) : List Path :=
+  if hs.any (·.isPrefixOf q) then [[]] else below q hs
+
+/-- The parts among `hs` strictly above the part `q`. -/
+def above (q : Path) (hs : List Path) : List Path :=
+  hs.filter fun h => h.isPrefixOf q && h != q
+
+/-- The parts from `u` down to the part above `q`, which assigning `q`
+builds from their fields when `u`, above `q`, is uninitialized. -/
+def piecesTo (u q : Path) : List Path :=
+  (List.range (q.length - u.length)).map fun k => q.take (u.length + k)
 
 /-- The union of two lists, as sets. -/
 def union {α : Type} [BEq α] (a b : List α) : List α := a ++ b.filter (!a.contains ·)
@@ -211,7 +248,7 @@ place reached through a reference, the same place in each of its origins,
 or `p` itself. -/
 def resolvePlace (vars : List VarState) (p : Place) : List Place :=
   match vars.find? (·.name == (splitPlace p).1) with
-  | some ⟨_, _, .alias os _, _, _⟩ => os.map (rebase · p)
+  | some ⟨_, _, .alias os _, _, _, _, _, _⟩ => os.map (rebase · p)
   | _ => [p]
 
 /-- The shape of the place `p`. -/
@@ -233,11 +270,12 @@ def invalidates (m o : Shape) : Bool :=
   m.1 == o.1 && m.2.isPrefixOf o.2 && (o.2.drop m.2.length).contains .listElem
 
 /-- Rejects unless the place `p` of the variable `v` is initialized, with no
-field moved out at or below it: a field moved out and refilled one
-sub-field at a time is still not whole. -/
+part moved out or built from its fields at or below it: a part moved out
+and refilled one sub-field at a time is still not whole, nor is one built
+field by field. -/
 def requireInit (v : VarState) (p : Place) : CheckM Unit := do
   let q := (splitPlace p).2
-  unless initialized v.uninit q && !v.moved.any (q.isPrefixOf ·) do
+  unless initialized v.uninit q && !(v.moved ++ v.pieces).any (q.isPrefixOf ·) do
     throw (CheckError.uninitializedUse p)
 
 /-- The type of a place that is initialized, so that its value may be read;

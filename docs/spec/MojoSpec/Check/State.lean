@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5809354481053193351")
+:::moduleDocs (fingerprint := "12291177930195282920")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "4845031522016519524")
@@ -52,13 +52,18 @@ arrayElem  [\cdot]_{\mathsf{array}}
 Two places that differ only in their indices have the same shape.
 :::
 
-:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.State MojoGrimoire.Check.CheckM (fingerprint := "16624616066391890561")
+:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.State MojoGrimoire.Check.CheckM (fingerprint := "862987152442379284")
 *Definition: the checker's state.* A path $`\pi = f_1 \dots f_n` names a
 part of a variable: the empty path $`\epsilon` is the variable itself, and
 $`f_1 \dots f_n` its field $`f_1.\dots.f_n`. For each variable in scope,
 innermost first, the state holds its name, type and access, the set
-$`U` of its uninitialized parts, and the set $`M` of its fields moved out
-with `^` and not assigned again. The state also says whether the current
+$`U` of its uninitialized parts, the set $`M` of its parts moved out
+with `^` and not assigned again, $`\epsilon` for the variable moved out
+whole, and three sets for a struct built field by field (#51): the set
+$`H` of its parts that may hold a value, on some path through the
+function; the set $`T` of its touched parts, held whole when a part
+inside them was moved out or assigned; and the set $`P` of its pieces,
+the parts built from their fields, which Mojo never counts as whole. The state also says whether the current
 point can be reached; after a `return` it cannot. It holds the set of
 references bound with `ref` that are invalidated, and the shapes of the
 places changed as a whole so far in the current statement, in order. The checker runs in a monad
@@ -106,19 +111,33 @@ Sets are lists without repeats, kept in the order they are found:
 $`A \cup B` keeps $`A` and adds the elements of $`B` not in it.
 :::
 
+:::readable MojoGrimoire.Check.atOrBelow MojoGrimoire.Check.heldIn MojoGrimoire.Check.above MojoGrimoire.Check.piecesTo (fingerprint := "7551493476001580113")
+*Definition: parts around a part.* The parts of $`U` at or below $`\rho`
+are the $`\sigma` with $`\rho\sigma \in U`, $`\epsilon` included. The
+parts of $`\rho` that may hold a value, given $`H`, are all of $`\rho`,
+$`\{\epsilon\}`, when a part of $`H` is $`\rho` or above it, and
+otherwise the parts of $`H` strictly below $`\rho`. The parts of $`H`
+strictly above $`\rho` are the $`\pi \in H` with $`\pi \preceq \rho`
+and $`\pi \neq \rho`. When $`\pi`, strictly above $`\rho`, is
+uninitialized, assigning $`\rho` builds from their fields the parts from
+$`\pi` down to the part just above $`\rho`.
+:::
+
 :::readable MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "778544696017225873")
 *Definition: variables in scope.* A name refers to the innermost variable in
 scope with that name, and updating a variable replaces the innermost
 variable with its name. An unknown name is rejected.
 :::
 
-:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "5600170809980915703")
+:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "5276229274653351199")
 *Definition: reading a place.* The type of a place is the type of its
 variable, then of each field or element on the way; only a list or an
 array has elements, and $`p\,\hat{}` has the type of $`p`. Reading a place's value needs the
-part it names to be initialized, with no field in $`M` at or below it, and
-is otherwise rejected as a use of an uninitialized value: a field moved out
-and refilled one sub-field at a time is still not whole. Through a
+part it names to be initialized, with no part in $`M` or $`P` at or
+below it, and is otherwise rejected as a use of an uninitialized value: a
+field moved out and refilled one sub-field at a time is still not whole,
+and nor is a struct built field by field, even once every field is
+assigned, as the compiler reports. Through a
 reference, the reference must not be invalidated, and every origin must be
 initialized: a value moved away cannot be used through a reference to it.
 A place reached through a reference resolves to the same place in each of
