@@ -16,7 +16,10 @@ not invalidated. A place passed as an argument is
 passed by its parameter's convention: `read`, `mut` and `ref` pass the
 location, which must be initialized, and `mut` also needs a place the
 function may change; `var` passes a value, which is copied implicitly unless
-the argument transfers it.
+the argument transfers it. A transfer through a reference bound with `ref`
+is rejected as soon as its place has a type, also when it is passed to a
+`mut` parameter, as is a transfer out of a `read` or `ref` parameter passed
+to one, as the compiler does (#85).
 A call that returns a reference and is a located operand
 (`MojoGrimoire.Check.locOf`), passed to a `read`, `mut` or `ref` parameter
 or to `len`, is passed the same way: it is not copied, it stands for its
@@ -70,17 +73,27 @@ def copyPlace (prog : Program) (p : Place) : CheckM Ty := do
   unless copyingOf prog t == .implicit do throw (CheckError.implicitCopy t)
   pure t
 
+/-- Rejects `p^` when `p` is reached through a reference bound with `ref`,
+mutable or not. The compiler rejects it as soon as it has the place's type:
+before it looks at what is initialized or invalidated, and before it
+matches `p^` to a `mut` parameter (#85). -/
+def requireNotThroughRef (prog : Program) (p : Place) : CheckM Unit := do
+  let _ ← placeTy prog p
+  if let .alias _ _ := (← lookup (splitPlace p).1).access then
+    throw (CheckError.transferFromElement p)
+
 /-- Rejects unless the value in the place `p` may be transferred out, and
 gives its type. It must be initialized, and the function must own it, or
 hold it `mut`: a `read` or `ref` parameter cannot give its value away. An
 element of a list or an array cannot be transferred out, since it would be
-left with a hole. -/
+left with a hole, nor can a value through a reference
+(`requireNotThroughRef`). -/
 def requireTransferable (prog : Program) (p : Place) : CheckM Ty := do
+  requireNotThroughRef prog p
   let t ← readPlace prog p
   if splitPlace.indexed p then throw (CheckError.transferFromElement p)
-  let v ← lookup (splitPlace p).1
-  unless v.access.canChange do throw (CheckError.transferFromBorrowed p)
-  if let .alias _ _ := v.access then throw (CheckError.transferFromBorrowed p)
+  unless (← lookup (splitPlace p).1).access.canChange do
+    throw (CheckError.transferFromBorrowed p)
   pure t
 
 /-- Transfers the value out of the place `p`, Mojo's `p^`, which leaves `p`
@@ -397,7 +410,12 @@ def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
       let k ← mark
       pure ((os, k) :: (← checkArgs prog fit callee prms args n m))
     | none =>
-      if prm.conv == .mutable then throw (fit.misfit (CheckError.notAPlace callee))
+      if prm.conv == .mutable then
+        if let .transfer p := e then
+          requireNotThroughRef prog p
+          unless splitPlace.indexed p || (← placeMutable p) do
+            throw (CheckError.transferFromBorrowed p)
+        throw (fit.misfit (CheckError.notAPlace callee))
       expectArg fit prm.ty (← checkExprAs prog false e)
       let k ← mark
       pure ((← lateLocs prog e, k) :: (← checkArgs prog fit callee prms args n m))

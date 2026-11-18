@@ -91,9 +91,9 @@ private def pickAB : Expr := .call "pick" [use "a", use "b", .bool true]
 #guard verdict (prog (ab ++ [.refDecl "r" (use "a"), call "consume" [.transfer (v "a")],
   call "show" [use "r"]])) == some (.uninitializedUse (v "a"))
 
--- `ref r = a; consume(r^)`: a value cannot be moved out through a reference.
+-- `ref r = a; consume(r^)`: a value cannot be moved out through a reference (#85).
 #guard verdict (prog (ab ++ [.refDecl "r" (use "a"), call "consume" [.transfer (v "r")]])) ==
-  some (.transferFromBorrowed (v "r"))
+  some (.transferFromElement (v "r"))
 
 -- `ref r = a; swapRes(r, a)`: `r` and `a` are the same location.
 #guard verdict (prog (ab ++ [.refDecl "r" (use "a"), call "swapRes" [use "r", use "a"]])) ==
