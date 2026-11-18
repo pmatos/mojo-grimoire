@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.Loc
+import MojoGrimoire.Check.Change
 
 /-!
 How a call reports an argument that does not fit its parameter (#46).
@@ -58,9 +58,21 @@ copies, through the initializer of `List` from any iterable: a list or an
 array of `u`, which can be copied (#103). Anything else fits no
 initializer of `List[u]`. -/
 def iterableFits (prog : Program) (u t : Ty) : CheckM Unit := do
-  let fits : Bool := match t with
-    | .list v | .array v _ => v == u && copyingOf prog u != .none
-    | _ => false
-  unless fits do throw (CheckError.noMatchingInit (.list u))
+  unless (elemOf t).toOption == some u && copyingOf prog t != .none do
+    throw (CheckError.noMatchingInit (.list u))
+
+/-- The type of a literal `[e₁, …, eₙ]` with no type expected that is the
+argument of `List[u](…)`, given the type of each element, with the places
+it is read from and when it was checked: an array of the type of `e₁`. The
+compiler infers that type while it looks for an initializer, so a literal
+with no elements, or an element whose type differs from the first, also
+inside a nested literal, fits no initializer of `List[u]` (#103). -/
+def iterableLiteralTy (prog : Program) (u : Ty) (ts : List (Ty × List Place × Nat)) :
+    CheckM Ty := do
+  let some (t, _) := ts.head? | throw (CheckError.noMatchingInit (.list u))
+  unless validTy prog t do throw (CheckError.invalidType (.array t ts.length))
+  unless ts.all (·.1 == t) do throw (CheckError.noMatchingInit (.list u))
+  recheckLocs prog (ts.map (·.2))
+  pure (.array t ts.length)
 
 end MojoGrimoire.Check

@@ -342,9 +342,9 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
       | _ => stuck "a method call on a value that is not a struct"
     | _ => stuck "not a call"
 
-/-- The list that `len` reads: a place, or the reference that a call
-returns, read where it is, or any other expression, whose value is then
-destroyed. -/
+/-- The list that `len` reads, or that `List[u](e)` copies: a place, or the
+reference that a call returns, read where it is, or any other expression,
+whose value is then destroyed. -/
 def evalListArg (prog : Program) (fuel : Nat) (env : Env) (a : Expr) : EvalM Value :=
   match fuel with
   | 0 => fail .outOfFuel

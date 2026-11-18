@@ -236,7 +236,7 @@ def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Expr :=
     let d := opDrops ctx.owned (directArgs ctx es (es.map fun _ => true)) after
     withDropsOf (.list t (elabOps ctx es d.2.2)) d.1 (if top then [] else d.2.1)
   | .listInit u es =>
-    let d := opDrops ctx.owned (directArgs ctx es (es.map fun _ => false)) after
+    let d := opDrops ctx.owned (directArgs ctx es []) after
     withDropsOf (.listInit u (elabOps ctx es d.2.2)) d.1 (if top then [] else d.2.1)
   | .copy p =>
     let d := opDrops ctx.owned [directOf ctx (.place p) false] after

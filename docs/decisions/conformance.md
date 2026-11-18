@@ -111,8 +111,10 @@ you can remove the constructor call". `List[T](xs)` from a `List[T]`
 whose elements cannot be copied gives it, where an array or a literal
 of them gives the first message. `diagnostics.json` maps the second
 message, matched whole too, to `noMatchingInit` (#103), so that the
-checker need not tell a list source from an array source. Each of the
-two messages still reaches only that class.
+checker need not tell a list source from an array source. It is the first
+pattern tried, since it holds a type name that a later pattern could
+match, such as a struct named `Immutable`. Each of the two messages still
+reaches only that class.
 
 Ordinary calls keep their classes, since the compiler names the misfit
 there: `typeMismatch` and `arityMismatch`. So does a literal passed to a

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6022275616050527830")
+:::moduleDocs (fingerprint := "4496674874397372456")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
@@ -94,7 +94,7 @@ the slots that the method calls in it consume, at any depth, also inside
 the argument of $`\mathsf{List}[u](e)`.
 :::
 
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "9598552766505244314")
+:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "7274864320464075640")
 *Definition: elaborating expressions.* Each call, method call, operator,
 list literal, $`\mathsf{List}[u](e)` and `.copy()` is wrapped with what it
 destroys, and its operands are elaborated in turn, each with the slots that the later

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4410575708631120963")
+:::moduleDocs (fingerprint := "15935143691181390635")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "13691362365005740179")
@@ -31,7 +31,7 @@ argument whose type is not its parameter's is such a misfit.
 `out` or `deinit`, nor `mut`, which is a misfit of the call.
 :::
 
-:::readable MojoGrimoire.Check.iterableFits (fingerprint := "8966902570167571758")
+:::readable MojoGrimoire.Check.iterableFits (fingerprint := "13744519018623115126")
 *Rule: a source of $`\mathsf{List}[u](e)`.* The one argument of
 $`\mathsf{List}[u](e)` fits the initializer of `List` from any iterable
 when its type is a list or an array of $`u`, and $`u` can be copied,
@@ -46,4 +46,15 @@ type of a valid element type $`u`, and an array type must have the size
 $`n`. A size that differs does not fit: an initialization of $`t` reports
 it as `noMatchingInit` $`t`, and a conversion for a function's parameter
 as a type mismatch.
+:::
+
+:::readable MojoGrimoire.Check.iterableLiteralTy (fingerprint := "14437912108218426291")
+*Definition: the type of a literal argument of $`\mathsf{List}[u](e)`.*
+Given the type of each element of a literal with no type expected, the
+literal is an array of the type of its first element, which must be a
+type a variable may have. The compiler infers that type while it looks
+for an initializer, so a literal with no elements, or an element of
+another type, fits no initializer: `noMatchingInit`
+$`\mathsf{List}[u]` (#103). The places that the elements are read from
+are checked again once every element is evaluated.
 :::

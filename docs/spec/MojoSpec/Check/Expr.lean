@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15591155270457968107")
+:::moduleDocs (fingerprint := "17279780003842444617")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -79,7 +79,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "7001181921778696684")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "10672172617292352210")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -106,9 +106,13 @@ type:
   list: a place is located, its type must fit by `iterableFits`, and then
   it must be initialized; a call that returns a reference and is a
   located operand is passed as a location, and any other expression is
-  checked as a value, whose type must fit. A string, and an empty literal
-  with no type expected, fit no initializer. A place passed so that may
-  be changed, by the rule of `changedArgs` for a `ref` parameter, is
+  checked as a value, whose type must fit. A string fits no initializer.
+  A literal with no type expected is checked by `checkIterableElems`, its
+  elements as passed to `var` parameters, and typed by
+  `iterableLiteralTy`: the compiler infers its type while it looks for an
+  initializer, so a literal with no elements, or elements of different
+  types, also inside a nested literal, fit none. A place passed so that
+  may be changed, by the rule of `changedArgs` for a `ref` parameter, is
   recorded as changed. The expression is a $`\mathsf{List}[u]`;
 * $`\mathsf{List}[u](e^+)` with more than one argument checks each
   argument on its own, locating a place without reading it, and is then

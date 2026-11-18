@@ -32,6 +32,9 @@ private def lib : List String := [
   "@fieldwise_init", "struct P(Movable):", "    var x: Int",
   "def mk() -> List[Int]:", "    return [1, 2, 3]",
   "def mkp() -> List[P]:", "    return [P(1)]",
+  "def same(x: Int) -> Int:", "    return x",
+  "def pick(ref a: List[List[Int]], ref b: List[Int]) -> ref [a, b] List[Int]:",
+  "    return b",
   ""]
 
 /-- The program of `lib` whose `main` runs `body`. -/
@@ -92,6 +95,15 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["var xs = List[P](mkp())"] (.noMatchingInit (.list (.struct "P")))
 #guard rejects ["var ys: List[List[P]] = [[P(1)]]", "var xs = List[List[P]](ys)"]
   (.noMatchingInit (.list (.list (.struct "P"))))
+-- A literal argument has no type expected, so the compiler infers its type
+-- while it looks for an initializer: elements that differ in type, also in
+-- a nested literal, fit none. An element's own error keeps its class.
+#guard rejects ["var xs = List[Int]([1, True])"] (.noMatchingInit (.list .int))
+#guard rejects ["var xs = List[List[Int]]([[1], [2, True]])"]
+  (.noMatchingInit (.list (.list .int)))
+#guard rejects ["var xs = List[Int]([same(True)])"] (.typeMismatch .int .bool)
+#guard rejects ["var c = C(1)", "var xs = List[C]([c])"] (.implicitCopy (.struct "C"))
+#guard prints ["var x = 2", "var xs = List[Int]([x, 3])", "print(xs)"] ["[2, 3]"]
 -- A value that is neither a list nor an array fits no initializer.
 #guard rejects ["var xs = List[Int]([])"] (.noMatchingInit (.list .int))
 #guard rejects ["var xs = List[Int](\"ab\")"] (.noMatchingInit (.list .int))
@@ -123,6 +135,13 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard runLines (lib ++ ["def f(ys: List[Int]):", "    ref e = ys[0]",
     "    var xs = List[Int](ys)", "    print(e, xs)", "def main():",
     "    var ys: List[Int] = [1, 2]", "    f(ys)"]) == some (.finished ["1 [1, 2]"])
+
+-- The new list is built in the place it is assigned to, which a mutable
+-- reference passed as its argument may not alias.
+#guard rejects ["var xss: List[List[Int]] = [[1], [2]]", "var ys: List[Int] = [5]",
+  "xss[0] = List[Int](pick(xss, ys))"] (.argumentExclusivity (.var "xss"))
+#guard prints ["var xss: List[List[Int]] = [[1], [2]]", "xss[0] = List[Int](xss[1])",
+  "print(xss)"] ["[[2], [2]]"]
 
 -- With more than one argument, no initializer fits.
 #guard rejects ["var ys: List[Int] = [1]", "var xs = List[Int](ys, ys)"]

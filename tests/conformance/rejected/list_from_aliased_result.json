@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "argumentExclusivity",
+  "diagnostic": "aliasing values passed mutably to 'iterable' argument and constructed as a result in 'List[Int]' initializer call"
+}

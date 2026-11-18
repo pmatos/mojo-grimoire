@@ -53,12 +53,21 @@ Lists, `List[T]`, follow the rules of
   `^` on it has no effect, and `xs^` needs a value that could be
   transferred, as `xs^.f` does. A mutable place passed so may be changed,
   which invalidates a reference into one of its elements; through `xs^`,
-  or from a `read` parameter, it is not. A temporary argument is destroyed
+  or from a `read` parameter, it is not. The new list is built in the
+  place it is assigned to, so `xss[0] = List[Int](pick(xss, ys))`, with
+  `pick` returning a mutable reference into `xss` or `ys`, is
+  `argumentExclusivity`, as for any call that builds its result in place.
+  A temporary argument is destroyed
   once its elements are copied, and a variable whose last use is the
   argument dies once the new list is built.
 - `T` must be the source's element type, and must be copyable,
-  explicitly or implicitly. Any other argument, an empty literal and a
-  string among them, fits no initializer (`noMatchingInit`). The compiler
+  explicitly or implicitly. A literal argument whose elements differ in
+  type, also inside a nested literal, fits no initializer, since the
+  compiler infers the literal's type while it looks for one. Any other
+  argument in the subset, an empty literal and a string among them, fits
+  no initializer either (`noMatchingInit`). The compiler also accepts
+  other iterables, such as `range(n)`, which are outside the subset until
+  #121 is ruled. The compiler
   reports a `List[T]` source whose elements cannot be copied as "cannot
   construct 'List[T]' with itself", which the suite also maps to
   `noMatchingInit`
