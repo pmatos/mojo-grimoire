@@ -1,6 +1,9 @@
 {
   "note": "Programs whose result disagrees with the compiler's by a decision-log entry, docs/conformance/decision-log.md, with the entry's id.",
   "known": {
-    "lists/store_after_grow": "D-0002"
+    "lists/store_after_grow": "D-0002",
+    "structs/cycle_fieldwise_init": "D-0004",
+    "structs/cycle_fieldwise_init_both": "D-0004",
+    "structs/cycle_fieldwise_init_holder_first": "D-0004"
   }
 }

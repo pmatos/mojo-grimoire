@@ -5,10 +5,11 @@ The checking of whole programs: their declarations, and the body of every
 function, method, initializer and destructor.
 
 A program is accepted when its names are declared once, its types are
-those it declares, no struct contains itself, every function and method
-has parameters of the conventions its kind allows, every body is accepted,
-and it has a `main` that takes nothing and returns nothing. A rejection
-names the first error found, and where.
+those it declares, no struct lies on a cycle of fields that the compiler
+rejects, every function and method has parameters of the conventions its
+kind allows, every body is accepted, and it has a `main` that takes
+nothing and returns nothing. A rejection names the first error found, and
+where.
 -/
 
 namespace MojoGrimoire.Check
@@ -86,7 +87,7 @@ def checkStruct (prog : Program) (sd : StructDecl) : Except Rejection Unit := do
     checkDistinct (sd.fields.map (·.1) ++ sd.methods.map (·.name))
     for (_, t) in sd.fields do
       unless validTy prog t do throw (.invalidType t)
-      if contains prog sd.name prog.structs.length t then throw (.recursiveStruct sd.name)
+      if rejectedCycle prog sd.name t then throw (.recursiveStruct sd.name)
   if let some fd := sd.init then at_ (sd.name ++ ".__init__") (checkInit prog sd.name fd)
   if let some body := sd.deinit then
     at_ (sd.name ++ ".__deinit__")

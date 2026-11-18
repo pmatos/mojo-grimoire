@@ -168,3 +168,20 @@ agrees with a compiler parse error, and holding these programs in
 `tests/conformance/rejected/` under a class of `diagnostics.json`. It
 changes the checking machinery for five programs that the guards already
 pin.
+
+### Cycles of structs
+
+The compiler rejects a struct that holds itself by value, directly or
+through other structs, with "attempt to resolve a recursive reference to
+declaration", and a struct on a cycle made only of list and array edges
+with "field … has non-'Deinitable' type". `diagnostics.json` maps both to
+`recursiveStruct`; the rule is in
+[semantics.md](semantics.md#the-static-checker) (#47).
+
+The compiler bug D-0004 gives two more messages, for cycles with
+`@fieldwise_init` that the model accepts. They have no pattern, since no
+error of the model corresponds to them, and only the programs that
+`known.json` lists under D-0004 give them in the suite.
+
+Rejected: mapping those two messages to `recursiveStruct`, which would
+class a compiler bug as a rejection that the model agrees with.
