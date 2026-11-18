@@ -113,7 +113,7 @@ of them gives the first message. `diagnostics.json` maps the second
 message, matched whole too, to `noMatchingInit` (#103), so that the
 checker need not tell a list source from an array source. It is the first
 pattern tried, since it holds a type name that a later pattern could
-match, such as a struct named `Immutable`. Each of the two messages still
+match, such as a struct named `immutable_box`. Each of the two messages still
 reaches only that class.
 
 Ordinary calls keep their classes, since the compiler names the misfit
