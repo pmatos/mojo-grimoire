@@ -333,17 +333,6 @@ def checkIndices (prog : Program) : Place → CheckM Unit
     checkIndices prog p
     let _ ← requireTransferable prog p
 
-/-- Checks that each index of the place `p` is an `Int`, and nothing else
-that `checkIndices` checks: of `q^` passed to a `mut` parameter, the
-compiler reports an index of another type first, and a constant index out
-of range only after the transfer (#85). -/
-def checkIndexTypes (prog : Program) : Place → CheckM Unit
-  | .var _ => pure ()
-  | .field p _ | .transferred p => checkIndexTypes prog p
-  | .index p i => do
-    checkIndexTypes prog p
-    expect .int (← checkExprAs prog false i)
-
 /-- Checks the arguments `args` of a call of `callee` against its parameters
 `params`, in order, and gives, for each, the places it is read from once
 every argument is evaluated, with how many changes were recorded once it
@@ -386,7 +375,6 @@ def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
     | none =>
       if prm.conv == .mutable then
         if let .transfer p := e then
-          checkIndexTypes prog p
           requireNotThroughRef prog p
           unless splitPlace.indexed p || (← placeMutable p) do
             throw (CheckError.transferFromBorrowed p)

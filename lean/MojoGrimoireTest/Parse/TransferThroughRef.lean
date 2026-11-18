@@ -110,10 +110,14 @@ private def t : Place := .var "t"
   rejects (.transferFromElement t)
 #guard inMain ["    var s = S(7)", "    bump(s^)"] == rejects (.notAPlace "bump")
 
--- Passed to a `mut` parameter, an index of another type is reported first,
--- and a constant index out of range only after the transfer.
-#guard inMain ["    var l: List[S] = [S(1)]", "    ref t = l", "    bump(t[True]^)"] ==
-  rejects (.typeMismatch .int .bool)
+-- Passed to a `mut` parameter, a place with no type is reported first, and
+-- an uninitialized index or a constant one out of range only after the
+-- transfer.
+#guard inMain ["    bump(zz[True]^)"] == rejects (.unknownVariable "zz")
+#guard inMain ["    var s = S(7)", "    bump(s.nope[True]^)"] ==
+  rejects (.unknownAttribute "S" "nope")
+#guard inMain ["    var l: List[S] = [S(1)]", "    ref t = l", "    var i: Int",
+    "    bump(t[i]^)"] == rejects (.transferFromElement (.index t (.place (.var "i"))))
 #guard inMain ["    var l: List[S] = [S(1)]", "    ref t = l", "    bump(t[-1]^)"] ==
   rejects (.transferFromElement (.index t (.int (-1))))
 

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6090608991513174009")
+:::moduleDocs (fingerprint := "45141631967187751")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -83,7 +83,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndexTypes MojoGrimoire.Check.checkExpr (fingerprint := "12550170347046044327")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkExpr (fingerprint := "5596590508908116041")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -140,9 +140,9 @@ $`\mathsf{immutablePlace}`, named by its first origin; and any other
 expression by its type, which must be the parameter's. A `mut` parameter
 needs a place or such a call; passed $`q\,\hat{}`, it is
 $`\mathsf{notAPlace}`, where the compiler reports a value that cannot
-change (#81), with two exceptions once the indices of $`q` are
-$`\mathsf{Int}`s (`checkIndexTypes`): a $`q` reached through a reference
-bound with `ref` is $`\mathsf{transferFromElement}`, and a $`q` whose
+change (#81), with two exceptions once $`q` has a type, whatever its
+indices: a $`q` reached through a reference bound with `ref` is
+$`\mathsf{transferFromElement}`, and a $`q` whose
 variable is a `read` or `ref` parameter, other than an element (#119), is
 $`\mathsf{transferFromBorrowed}`, as the compiler reports them.
 The numbers of arguments and parameters must be equal. A literal of an
