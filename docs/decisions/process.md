@@ -103,6 +103,24 @@ The format is `type(scope)!: summary`, with the types `feat`, `fix`, `perf`,
 Rejected: commitlint, which jsse uses. It is a second implementation, in
 Node, that could disagree with the local hook.
 
+### Review depth
+
+`REVIEW.md` at the root lists the high-stakes paths. Any PR that touches one
+rates at least `high` for merge risk, and so gets the deep, multi-agent
+review. The human chose the list on 2026-11-18 (#63): the core syntax, the
+checker, the elaborator, the interpreter and the parser, plus the files that
+decide what a pass means: the conformance runner, `known.json`,
+`diagnostics.json`, the trusted-declaration and axiom checks, the lakefile,
+the rulesets and the pre-commit configuration. Before the list existed, every
+PR rated low, and the quick reviews missed soundness regressions that the
+deep reviews later found (#91, #92, #94).
+
+Rejected: only the four semantic directories, which would have given parser
+changes and changes to what counts as agreement a quick review. Also rejected:
+every model, build, toolchain and conformance file, which would have sent
+docs-only PRs and recorded results to the deep review. `Driver/` and the build
+scripts are left out.
+
 ## File-size budget
 
 Every text file is at most 20,000 bytes, so any agent can read any file whole
