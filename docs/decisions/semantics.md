@@ -87,9 +87,9 @@ where the compiler and the manual disagree, the model follows the compiler.
   passed as that place is, and `p^.m(…)` calls `m` on `p`. `p` must be
   whole (`uninitializedUse`) and a value that `p^` could transfer: not a
   `read` or `ref` parameter (`transferFromBorrowed`), nor an element
-  (`transferFromElement`). A reference is `transferFromBorrowed` too,
-  where the compiler reports `transferFromElement`, for `t^` as for
-  `t^.k` (#85). Nothing may change through it:
+  (`transferFromElement`), nor a reference bound with `ref`
+  (`transferFromElement`, [semantics-references.md](semantics-references.md#references)).
+  Nothing may change through it:
   assigning to `p^.f`, `p^.f += 1`, passing it `mut`, and a `mut self`
   method are `immutablePlace`. A method that takes `var self` consumes
   `p`, once the arguments are read, and the receiver counts as passed

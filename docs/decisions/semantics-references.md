@@ -16,7 +16,13 @@ choices (#18):
   rejected (`notAPlace`), where the compiler accepts it (#80).
 - A use of a reference needs every origin initialized, so a value moved
   away cannot be used through a reference to it. A value cannot be
-  transferred out through a reference.
+  transferred out through a reference: `t^`, `t.f^`, `t^.f` and
+  `t^.m(…)` on a reference `t` are rejected as `transferFromElement`, as
+  the compiler does ("expression does not designate a value with an
+  origin"), whether `t` is bound to a place or to a call that returns a
+  reference, and whether it may be changed or not. A `ref` or a `read`
+  parameter stays `transferFromBorrowed` (#85). `t^` of type `Int` or
+  `Bool` is the place `t` (#50).
 - A reference may be changed when every origin allows it: a `mut`
   parameter does, a `ref` parameter as its argument does, a `read`
   parameter does not. A place reached through `p^` passed to a `ref`

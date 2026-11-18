@@ -71,13 +71,14 @@ def copyPlace (prog : Program) (p : Place) : CheckM Ty := do
 gives its type. It must be initialized, and the function must own it, or
 hold it `mut`: a `read` or `ref` parameter cannot give its value away. An
 element of a list or an array cannot be transferred out, since it would be
-left with a hole. -/
+left with a hole, nor can a value through a reference bound with `ref`,
+mutable or not: the compiler rejects both alike (#85). -/
 def requireTransferable (prog : Program) (p : Place) : CheckM Ty := do
   let t ← readPlace prog p
   if splitPlace.indexed p then throw (CheckError.transferFromElement p)
   let v ← lookup (splitPlace p).1
+  if let .alias _ _ := v.access then throw (CheckError.transferFromElement p)
   unless v.access.canChange do throw (CheckError.transferFromBorrowed p)
-  if let .alias _ _ := v.access then throw (CheckError.transferFromBorrowed p)
   pure t
 
 /-- Transfers the value out of the place `p`, Mojo's `p^`, which leaves `p`
