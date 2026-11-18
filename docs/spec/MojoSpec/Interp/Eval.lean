@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7940239786515608681")
+:::moduleDocs (fingerprint := "11373010912542378750")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "14136961392570647166")
@@ -41,7 +41,7 @@ $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "8357258170032237644")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "15154847196654648651")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -57,8 +57,9 @@ unit at each step; with none left, the run stops with `outOfFuel`.
 - *Places.* A place names a reference: a variable's, then a field or an
   element on the way, whose index is evaluated and checked against the
   list's length; $`p\,\hat{}` names the reference of $`p`.
-- *Expressions.* Literals are values; a place is read, a transfer takes
-  its value out, leaving its blank behind, and `.copy()` reads it. `and` and `or`
+- *Expressions.* Literals are values, and $`[e]_{\mathsf{Int}}` is the value
+  of $`e`; a place is read, a transfer takes its value out, leaving its
+  blank behind, and `.copy()` reads it. `and` and `or`
   evaluate their right operand only when the left does not decide.
   The operands of an operator, the elements of a list literal and the
   values printed are evaluated left to right, and those that are places,
@@ -80,7 +81,9 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   call is made; the reference that a call returns is passed by reference
   to a `read`, `mut` or `ref` parameter, except an $`\mathsf{Int}` or a
   $`\mathsf{Bool}` passed `read`, which is read when the call is made, as
-  it is for a `var` parameter; temporaries are
+  it is for a `var` parameter, and a literal $`[e]_{\mathsf{Int}}` passed
+  to any other parameter is $`e` passed by value, read when the call is
+  made, into a temporary (#103); temporaries are
   destroyed after the call. `append` adds a
   value at the end of a list, `pop()` removes the last element and gives
   it back, failing with $`\mathsf{indexOutOfBounds}` on an empty list,
