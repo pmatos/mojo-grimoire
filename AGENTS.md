@@ -25,6 +25,12 @@ so that the next agent, starting cold, can continue from the repository alone.
 
 ADR-2026-11-15-1904 records these rules.
 
+Never file an issue on a Modular or Mojo repository, such as
+`modular/modular`. Draft the report on this project's issue; the human
+reviews it and files it. Modular's `AI_TOOL_POLICY.md` requires a human in
+the loop and an `Assisted-by: AI` label on AI-assisted issues. The human
+ruled this on 2026-11-18.
+
 ## Ambition without shortcuts
 
 - Finish everything the ticket asks for. File additional work separately and
