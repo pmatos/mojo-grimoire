@@ -1,0 +1,73 @@
+{
+  "about": [
+    "Compiler bugs that the human has ruled on, kept so that each can be confirmed later:",
+    "re-run on a newer compiler, and reported upstream to modular/modular once the human",
+    "approves the draft. Each reproducer was run on the pinned compiler when it was added.",
+    "The decision log (decision-log.md) holds the reasoning; this file lists the bugs and",
+    "their state. Status values: unfiled, filed, confirmed, fixed-upstream, not-a-bug."
+  ],
+  "bugs": [
+    {
+      "issue": 57,
+      "title": "xs[i] = f(xs) stores into a stale element when f grows or shrinks xs",
+      "ruled": "2026-11-16",
+      "decision_log": "D-0002",
+      "suite_programs": [
+        "lists/store_after_grow"
+      ],
+      "reference": {
+        "release": "1.2.0",
+        "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
+      },
+      "reproducer": "def bump(mut xs: List[Int]) -> Int:\n    xs.append(7)\n    return 5\n\n\ndef main():\n    var xs: List[Int] = [1, 2]\n    xs[0] = bump(xs)\n    print(xs[0], len(xs))\n",
+      "compiler": "accepts and prints `1 3`: it locates xs[0] before the call, the append reallocates, and the store of 5 is lost",
+      "model": "prints `5 3`",
+      "upstream": {
+        "status": "unfiled",
+        "draft": "https://github.com/pmatos/mojo-grimoire/issues/57#issuecomment-6922291323",
+        "tracking": 70,
+        "report": null
+      }
+    },
+    {
+      "issue": 51,
+      "title": "a struct initialized field by field destroys a field that was never set",
+      "ruled": "2026-11-17",
+      "decision_log": null,
+      "suite_programs": [],
+      "reference": {
+        "release": "1.2.0",
+        "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
+      },
+      "reproducer": "struct Res(Movable):\n    var id: Int\n\n    def __init__(out self, id: Int):\n        self.id = id\n\n    def __del__(deinit self):\n        print(\"drop\", self.id)\n\n\nstruct Two(Movable):\n    var a: Res\n    var b: Res\n\n    def __init__(out self):\n        self.a = Res(1)\n        self.b = Res(2)\n\n\ndef main():\n    var t: Two\n    t.a = Res(1)\n    print(t.a.id)\n",
+      "compiler": "prints `1`, `drop 1`, `drop 0`: it runs the destructor of t.b, which was never initialized",
+      "model": "destroys only the fields that were initialized: prints `1`, `drop 1`",
+      "upstream": {
+        "status": "unfiled",
+        "draft": null,
+        "tracking": 51,
+        "report": null
+      }
+    },
+    {
+      "issue": 47,
+      "title": "@fieldwise_init fails inside a struct cycle through a List, where the hand-written initializer compiles",
+      "ruled": "2026-11-18",
+      "decision_log": null,
+      "suite_programs": [],
+      "reference": {
+        "release": "1.2.0",
+        "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
+      },
+      "reproducer": "struct A(Movable):\n    var bs: List[B]\n\n    def __init__(out self):\n        self.bs = List[B]()\n\n\n@fieldwise_init\nstruct B(Movable):\n    var a: A\n\n\ndef main():\n    var a = A()\n    a.bs.append(B(A()))\n    print(len(a.bs))\n",
+      "compiler": "rejects: \"invalid implicit move: unexpected keyword argument 'move'\". With B's initializer written by hand as `def __init__(out self, var a: A): self.a = a^`, it compiles and prints `1`",
+      "model": "accepts it, as it accepts the hand-written form, and prints `1`",
+      "upstream": {
+        "status": "unfiled",
+        "draft": null,
+        "tracking": 47,
+        "report": null
+      }
+    }
+  ]
+}
