@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11785281318321433570")
+:::moduleDocs (fingerprint := "10575766077155487266")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -29,13 +29,15 @@ cannot be changed. Passed `mut` to an initializer, such a place is
 reported as the initializer's misfit.
 :::
 
-:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.requireNotThroughRef MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "3713637349590493988")
+:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.requireNotThroughRef MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "8248050559420429668")
 *Rule: reading and moving a place.* Using a place $`p` as a value copies it
 implicitly: $`p` must be initialized, and its type implicitly copyable.
 Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable
 that the function may change, owned or held `mut`, not a `read` or `ref`
-parameter (`transferFromBorrowed`); afterwards $`p` is uninitialized, and
-a field $`p` is added to $`M`. An element of a list or an array, or a
+parameter (`transferFromBorrowed`); afterwards $`p` is uninitialized and
+holds nothing, its path is added to $`M`, the part of $`H` above it, if
+any, to $`T`, the parts of $`T` strictly below it and of $`P` at or below
+it are removed, and a variable moved out whole keeps nothing in $`T`. An element of a list or an array, or a
 part of one, cannot be transferred out, nor can a value through a
 reference bound with `ref`, even one that may be changed: the compiler
 rejects both alike (`transferFromElement`). A reference is rejected so

@@ -1,4 +1,5 @@
 import MojoGrimoire.Interp.Value
+import MojoGrimoire.Check.Env
 
 /-!
 The machine that runs a program: a store of locations, the lines printed so
@@ -16,7 +17,7 @@ Both give 0 for a zero divisor, as Mojo's standard library defines them.
 
 namespace MojoGrimoire.Interp
 
-open MojoGrimoire.Core
+open MojoGrimoire.Core MojoGrimoire.Check
 
 /-- A reference: a location, and the path to a part of its value. -/
 structure Ref where
@@ -88,6 +89,13 @@ def writeRef (r : Ref) (w : Value) : EvalM Unit := do
   let some v' := v.set r.path w | stuck "no such part"
   set { m with store := m.store.set! r.loc v' }
 
+/-- Takes the value out of the reference `r`, and leaves what is left of
+it, `Value.blank`, in its place. -/
+def take (r : Ref) : EvalM Value := do
+  let v ← readRef r
+  writeRef r v.blank
+  pure v
+
 /-- Prints a line. -/
 def emit (line : String) : EvalM Unit :=
   modify fun m => { m with output := m.output.push line }
@@ -123,9 +131,20 @@ def unary (op : UnOp) (a : Value) : EvalM Value :=
 def position (len : Nat) (i : Int) : EvalM Nat :=
   if 0 ≤ i && i < len then pure i.toNat else fail .indexOutOfBounds
 
-/-- The value of a struct `S` whose fields are all uninitialized, as `out
-self` starts in `__init__`. -/
-def emptyStruct (sd : StructDecl) : Value :=
-  .struct sd.name (sd.fields.map fun (f, _) => (f, .uninit))
+/-- What a variable of type `t` declared without a value holds: the blank
+of a struct with fields, whose fields can then be assigned one by one, and
+`uninit` for any other type. -/
+def blankOf (prog : Program) : Nat → Ty → EvalM Value
+  | 0, _ => fail .outOfFuel
+  | n + 1, .struct s => do
+    let some sd := findStruct prog s | stuck s!"unknown struct {s}"
+    if sd.fields.isEmpty then pure .uninit
+    else pure (.struct s (← sd.fields.mapM fun (f, t) => do pure (f, ← blankOf prog n t)))
+  | _ + 1, _ => pure .uninit
+
+/-- The value of the struct `sd` with no field initialized, as `out self`
+starts in `__init__`: each field is the blank of its type. -/
+def emptyStruct (prog : Program) (fuel : Nat) (sd : StructDecl) : EvalM Value := do
+  pure (.struct sd.name (← sd.fields.mapM fun (f, t) => do pure (f, ← blankOf prog fuel t)))
 
 end MojoGrimoire.Interp

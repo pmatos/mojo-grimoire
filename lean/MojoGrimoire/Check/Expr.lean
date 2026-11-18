@@ -97,14 +97,18 @@ def requireTransferable (prog : Program) (p : Place) : CheckM Ty := do
   pure t
 
 /-- Transfers the value out of the place `p`, Mojo's `p^`, which leaves `p`
-uninitialized. A field moved out is recorded as moved. In Mojo, `p^` of an
-`Int` or a `Bool` is the place `p`, which inference puts in its stead. -/
+uninitialized and holding nothing, with no pieces. It is recorded as moved,
+and a part held whole above it as touched. In Mojo, `p^` of an `Int` or a
+`Bool` is the place `p`, which inference puts in its stead. -/
 def transferPlace (prog : Program) (p : Place) : CheckM Ty := do
   let t ← requireTransferable prog p
   let (x, path) := splitPlace p
   let v ← lookup x
-  setVar { v with uninit := uninitialize v.uninit path,
-                  moved := if path.isEmpty then v.moved else path :: v.moved }
+  setVar { v with uninit := uninitialize v.uninit path, moved := path :: v.moved,
+                  held := initPart prog v.held v.ty path,
+                  touched := union (v.touched.filter fun c =>
+                      (c == path && !path.isEmpty) || !path.isPrefixOf c) (above path v.held),
+                  pieces := v.pieces.filter (!path.isPrefixOf ·) }
   pure t
 
 /-- The type of the result of the operator `op` on operands of types `a` and

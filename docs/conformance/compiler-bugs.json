@@ -45,18 +45,24 @@
       "issue": 51,
       "title": "a struct initialized field by field destroys a field that was never set",
       "ruled": "2026-11-17",
-      "decision_log": null,
-      "suite_programs": [],
+      "decision_log": "D-0003",
+      "suite_programs": [
+        "structs/field_by_field_unset_branch",
+        "structs/field_by_field_unset_destroyed",
+        "structs/field_by_field_unset_destructor",
+        "structs/field_by_field_unset_nested",
+        "structs/field_by_field_unset_overwritten"
+      ],
       "reference": {
         "release": "1.2.0",
         "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
       },
       "reproducer": "struct Res(Movable):\n    var id: Int\n\n    def __init__(out self, id: Int):\n        self.id = id\n\n    def __del__(deinit self):\n        print(\"drop\", self.id)\n\n\nstruct Two(Movable):\n    var a: Res\n    var b: Res\n\n    def __init__(out self):\n        self.a = Res(1)\n        self.b = Res(2)\n\n\ndef main():\n    var t: Two\n    t.a = Res(1)\n    print(t.a.id)\n",
       "compiler": "prints `1`, `drop 1`, `drop 0`: it runs the destructor of t.b, which was never initialized",
-      "model": "destroys only the fields that were initialized: prints `1`, `drop 1`",
+      "model": "destroys only the fields that were initialized. The model does not read the deprecated `__del__`, which it rejects as invalidSelf; with `__del__` spelled `__deinit__`, it prints `1`, `drop 1`",
       "upstream": {
         "status": "unfiled",
-        "draft": null,
+        "draft": "https://github.com/pmatos/mojo-grimoire/issues/51#issuecomment-6982426260",
         "tracking": 51,
         "report": null
       },

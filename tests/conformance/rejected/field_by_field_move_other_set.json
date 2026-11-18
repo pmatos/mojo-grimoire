@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "partiallyDestroyed",
+  "diagnostic": "value 's.lo' cannot be consumed, because it is used later"
+}

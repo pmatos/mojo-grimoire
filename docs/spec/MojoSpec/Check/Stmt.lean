@@ -13,23 +13,36 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2218815268578929290")
+:::moduleDocs (fingerprint := "11719028120359603411")
 :::
 
-:::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9586730624127733473")
+:::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9992527159242234863")
 *Rule: the end of a variable.* The compiler destroys a struct whole, so a
-variable may not end with a field in $`M`, moved out and not assigned
-again. Nor may it end with an uninitialized part below a struct that has a
-destructor of its own, which needs the whole value. The `self` of
-`__deinit__` is destroyed field by field: its own fields may stay moved
-out, and its own type does not count, since its destructor is the one
-running. Both errors are $`\mathsf{partiallyDestroyed}`.
+variable may not end when it still holds a part, in $`H`, and a field is
+in $`M`, moved out and not assigned again, or $`\epsilon` is in both
+$`M` and $`P`, so that it was moved out whole and then built from its
+fields. A variable that holds nothing may end with fields moved out, since
+nothing of it is destroyed (#51), unless a field in $`M` is at or below a
+touched part in $`T`: a field moved out of a part held whole, or out of
+one whose inside was assigned. Nor may a part whose struct has a
+destructor of its own, which needs the whole value, end partly built: with
+a part below it uninitialized while it may hold a value, or uninitialized
+itself while a part below it may hold one. Since $`U` and $`H` hold what
+may be so on some path, this also rejects a struct built in only one
+branch of an `if`, or in a loop. The `self` of `__deinit__` is destroyed
+field by field: its own fields may stay moved out, and its own type does
+not count, since its destructor is the one running. Each error is
+$`\mathsf{partiallyDestroyed}`.
 :::
 
-:::readable MojoGrimoire.Check.checkExit (fingerprint := "10417562916258413233")
+:::readable MojoGrimoire.Check.checkExit (fingerprint := "14818459797278618962")
 *Rule: a return.* When a function returns, each `mut` parameter and the
 `self` of `__init__` must be wholly initialized, since the caller holds
-them, and every variable must be allowed to end.
+them, with no piece in $`P`: otherwise the error is
+$`\mathsf{uninitializedAtExit}`, or a use of the variable when it is
+itself the only piece and nothing of it is uninitialized, as the compiler
+reports. Every variable must be allowed
+to end.
 :::
 
 :::readable MojoGrimoire.Check.endScope (fingerprint := "5094446271499096283")
@@ -38,17 +51,21 @@ each checked as above if the end of the block is reached, and leave the
 set of invalidated references.
 :::
 
-:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinStates (fingerprint := "345539795275892427")
+:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "3993288572809658863")
 *Rule: joining branches.* After an `if`, a part is uninitialized when
-either branch leaves it so, $`M` is the union of the branches' sets, and
+either branch leaves it so, and may hold a value when either branch may;
+$`M`, $`T` and $`P` are the unions of the branches' sets, and
 a reference is invalidated when either branch invalidates it. A branch
-that cannot reach its end, because it returned, does not count.
+that cannot reach its end, because it returned, does not count. A loop
+joins $`M`, $`H`, $`T` and $`P` the same way, as described below.
 :::
 
-:::readable MojoGrimoire.Check.checkLoop (fingerprint := "15906415396099670179")
+:::readable MojoGrimoire.Check.checkLoop (fingerprint := "6169669695796580470")
 *Rule: loops.* A loop body that can reach its end must leave initialized
-every part that was initialized before the loop, and may not add a field to
-$`M`, or its next iteration would use a moved value. As Mojo does, the
+every part that was initialized before the loop, and may not add to $`M` a
+part that was initialized before it, or its next iteration would use a
+moved value. A part uninitialized before the loop may be assigned and
+moved out in each iteration. As Mojo does, the
 checker reports such a part as a use of an uninitialized value.
 :::
 
@@ -92,7 +109,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "11822077477507859587")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "3797012120997196750")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
@@ -106,10 +123,17 @@ an expression, so a place is copied implicitly.
 * $`p = e` checks $`e` first, then the indices of $`p`, then needs $`p`
   of $`e`'s type, then that $`e` does not build its result into $`p`
   while changing the list that holds it, then needs a place the function may change; $`p` is changed as a
-  whole, its old value ends, and $`p` is initialized. The old value may not end with a field in $`M` below
-  $`p`, nor with an uninitialized part below a struct with a destructor of its
-  own, as at the end of a variable. Assigning exactly a field in $`M`
-  removes it from $`M`; assigning a part below that field does not.
+  whole, its old value ends, and $`p` is initialized. The old value may
+  not end, as at the end of a variable, with the parts of $`p` taken as
+  the value's own, $`p` itself uninitialized when a part at or above it
+  is; so a part in $`M` that was given some of its fields
+  may not be assigned whole, and a field moved out of a part of $`T`
+  above $`p` counts as moved out of a touched part. Assigning $`p` removes from $`M`, $`T` and
+  $`P` the parts at or below $`p`, adds $`p` to $`H`, and adds to $`T`
+  the part of $`H` above $`p`, if any. When a part above $`p` is
+  uninitialized, the parts from it down to the part above $`p` become
+  pieces, except the `self` of `__init__` itself, which is whole once its
+  fields are, unless it was moved out whole first. Assigning a part below a field in $`M` does not remove it.
   Through a reference or to an element, the old value is read first, so
   it must be initialized;
 * an expression statement checks its expression;
@@ -117,10 +141,13 @@ an expression, so a place is copied implicitly.
   still initialized and not invalidated;
 * `if` needs a $`\mathsf{Bool}` condition and joins its branches, each a
   scope of its own; `while` needs a $`\mathsf{Bool}` condition and a
-  body that keeps what was initialized. When the body can reach its end
-  and invalidates a reference, the condition and the body are checked once
-  more with it invalidated, as the next iteration finds it, and it stays
-  invalidated after the loop;
+  body that keeps what was initialized. When the body can reach its end,
+  the next iteration starts from the state before the loop with $`M`,
+  $`H`, $`T`, $`P` and the invalidated references joined with those the
+  body leaves; when that adds anything, the condition and the body are
+  checked once more from it. After the loop, which may have run any number
+  of times, the state is that one, with $`M`, $`H`, $`T` and $`P` of the
+  second check joined in too;
 * `return` needs a value of the result type exactly when the result type
   is not $`\mathsf{None}`, checks the state at a return, and makes what
   follows unreachable; a function that returns a reference returns a

@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "uninitializedAtExit",
+  "diagnostic": "'self.lo' is uninitialized at the implicit return from this function"
+}

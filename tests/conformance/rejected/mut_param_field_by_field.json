@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "uninitializedUse",
+  "diagnostic": "'p' used with all fields manually initialized but without calling an '__init__' method"
+}

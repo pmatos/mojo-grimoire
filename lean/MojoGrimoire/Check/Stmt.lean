@@ -14,16 +14,22 @@ initialized only when both branches leave it initialized, and a branch that
 returns does not count. A loop body that can reach its end must leave
 initialized every part that was initialized before the loop, or its next
 iteration would use a moved value: like Mojo, the checker reports that as
-a use of an uninitialized value.
+a use of an uninitialized value. What the body may leave moved out,
+holding a value, touched or built from its fields counts after the loop
+too.
 
 Where a variable ends, at the end of its block or when the function
 returns, the parts it still holds are destroyed. The compiler destroys a
 struct whole, so a variable may not end with a field moved out and not
-assigned again, nor with a part uninitialized below a struct that has a
-`__deinit__` of its own. Assigning to a part destroys its old value, so
-the same holds for the part. Assigning through a reference, or to an
+assigned again while it still holds a part, nor with a struct that has a
+`__deinit__` of its own partly built, on some path. A variable that holds
+nothing may end, unless a field was moved out of a part held whole (#51).
+Assigning to a part destroys its old value, so the same holds for the
+part, and a part moved out may not be assigned whole once some of its
+fields were assigned. Assigning through a reference, or to an
 element, needs the old value initialized, with no field moved out. A loop
-body may not leave a field moved out that was not before the loop. The
+body may not leave a field moved out that was initialized before the loop
+and not moved out. The
 `self` of `__deinit__` is the exception:
 its own fields may stay moved out, since it is being destroyed field by
 field. When a function returns, its `mut` parameters and the `self` of
@@ -37,45 +43,67 @@ returns a location within its own origin, as `withinOrigin` decides.
 
 An assignment changes its place as a whole. After an `if`, a reference is
 invalidated when either branch invalidates it. A loop whose body can reach
-its end and invalidates a reference is checked once more from the state
-where it is invalidated, since the next iteration uses it so. The changes
-recorded for operands start afresh with each statement.
+its end and leaves a part moved out, a part that may hold a value, a
+touched part, a piece or an invalidated reference that the state before
+the loop lacks is checked once more from the state before it with those
+added, since the next iteration starts so; the state after the loop has
+them too. The changes recorded for operands start afresh with each
+statement.
 -/
 
 namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
 
-/-- Whether a value of type `t` whose uninitialized parts are `us` has an
-uninitialized part below a part whose type has a `__deinit__` of its own.
-The parts from depth `start` down count: 1 for the `self` of `__deinit__`,
-whose own destructor is running, and 0 for any other value. -/
-def partlyMovedDeinit (prog : Program) (t : Ty) (us : List Path) (start : Nat) : Bool :=
-  us.any fun u => ((List.range u.length).filter (start ≤ ·)).any fun k =>
-    hasDeinit prog (partTy prog t (u.take k))
-
 /-- Whether a value of type `t`, whose uninitialized parts are `us` and
-whose moved fields are `ms`, may not be destroyed: it has a field moved out
-and not assigned again, or an uninitialized part that a destructor of its
-own needs whole. Parts from depth `start` down count, as in
-`partlyMovedDeinit`. -/
-def cannotEnd (prog : Program) (t : Ty) (us ms : List Path) (start : Nat) : Bool :=
-  ms.any (start < ·.length) || partlyMovedDeinit prog t us start
+whose parts that may hold a value are `hs`, has a part `s` whose type has a
+`__deinit__` of its own that may be destroyed partly built: a part below
+`s` may be uninitialized while `s` may hold a value, or `s` may be
+uninitialized while a part below it may hold one. The parts from depth
+`start` down count: 1 for the `self` of `__deinit__`, whose own destructor
+is running, and 0 for any other value. -/
+def partlyMovedDeinit (prog : Program) (t : Ty) (us hs : List Path) (start : Nat) : Bool :=
+  let deinitAbove (p : Path) : List Path :=
+    ((List.range p.length).filter (start ≤ ·)).map (p.take ·) |>.filter
+      (hasDeinit prog <| partTy prog t ·)
+  let near (ps : List Path) (s : Path) := ps.any fun p => p.isPrefixOf s || s.isPrefixOf p
+  us.any (fun u => (deinitAbove u).any (near hs)) ||
+    hs.any (fun h => (deinitAbove h).any (near us))
+
+/-- Whether a value of type `t` may not be destroyed, given its
+uninitialized parts `us`, its parts moved out `ms`, its parts that may
+hold a value `hs`, its touched parts `ts` and its pieces `ps`. It may not
+when it still holds a part and a field was moved out of it, or it was
+moved out whole and then built from its fields; when a field was moved out
+of a touched part; or when it holds a part and has an uninitialized part
+that a destructor of its own needs whole. Parts from depth `start` down
+count, as in `partlyMovedDeinit`. -/
+def cannotEnd (prog : Program) (t : Ty) (us ms hs ts ps : List Path) (start : Nat) : Bool :=
+  let ms := ms.filter fun m => start == 0 || start < m.length
+  let fields := ms.filter (!·.isEmpty)
+  ((!fields.isEmpty || (ms.contains [] && ps.contains [])) && !hs.isEmpty) ||
+    ts.any (fun c => fields.any (c.isPrefixOf ·)) ||
+    partlyMovedDeinit prog t us hs start
 
 /-- Rejects the variable `v` if it may not end as it is. For the `self` of
 `__deinit__`, only fields of its fields count. -/
 def checkEnd (prog : Program) (v : VarState) : CheckM Unit := do
   let start := if v.access == .dying then 1 else 0
-  if cannotEnd prog v.ty v.uninit v.moved start then
+  if cannotEnd prog v.ty v.uninit v.moved v.held v.touched v.pieces start then
     throw (CheckError.partiallyDestroyed v.name)
 
 /-- Rejects the state at a return: every `mut` parameter and the `self` of
-`__init__` must be wholly initialized, and every variable must be allowed
-to end. -/
+`__init__` must be wholly initialized, with no part built from its fields,
+and every variable must be allowed to end. The caller uses a `mut`
+parameter whole, so the compiler reports one that is itself built field by
+field as a use of it. -/
 def checkExit (prog : Program) : CheckM Unit := do
   for v in (← get).vars do
-    if (v.access == .mutable || v.access == .constructing) && !v.uninit.isEmpty then
-      throw (CheckError.uninitializedAtExit v.name)
+    if v.access == .mutable || v.access == .constructing then
+      if v.uninit.isEmpty && v.pieces == [[]] then
+        throw (CheckError.uninitializedUse (.var v.name))
+      if !v.uninit.isEmpty || !v.pieces.isEmpty then
+        throw (CheckError.uninitializedAtExit v.name)
     if v.access != .readOnly then checkEnd prog v
 
 /-- Ends the variables declared since the scope had `n` variables: checks
@@ -92,6 +120,13 @@ def endScope (prog : Program) (n : Nat) : CheckM Unit := do
 def joinUninit (a b : List Path) : List Path :=
   b.foldl uninitialize a
 
+/-- The variable `v` with the parts moved out, the parts that may hold a
+value, the touched parts and the pieces of `w` added: what either of two
+paths may leave. -/
+def joinMay (v w : VarState) : VarState :=
+  { v with moved := union v.moved w.moved, held := joinUninit v.held w.held,
+           touched := union v.touched w.touched, pieces := union v.pieces w.pieces }
+
 /-- The state after two branches that started from the same state: a part
 is uninitialized, a field moved out, or a reference invalidated, when either
 branch leaves it so. A branch that cannot reach its end does not count. -/
@@ -100,19 +135,20 @@ def joinStates (a b : State) : State :=
   else if !b.live then a
   else { a with
          vars := List.zipWith (fun v w =>
-             { v with uninit := joinUninit v.uninit w.uninit, moved := union v.moved w.moved })
+             { joinMay v w with uninit := joinUninit v.uninit w.uninit })
            a.vars b.vars,
          stale := union a.stale b.stale }
 
 /-- Rejects a loop whose body, from the state `before`, ends in the state
 `after` with a part uninitialized that was initialized before, or with a
-field moved out that was not moved out before: the next iteration would use
-it uninitialized. -/
+part moved out that was initialized and not moved out before: the next
+iteration would use it uninitialized. A part uninitialized before the loop
+may be assigned and moved out in each iteration. -/
 def checkLoop (before after : State) : CheckM Unit := do
   if after.live then
     for (v, w) in List.zip before.vars after.vars do
       let fresh := w.uninit.filter (fun u => !v.uninit.any (·.isPrefixOf u)) ++
-        w.moved.filter (!v.moved.contains ·)
+        w.moved.filter fun m => !v.moved.contains m && !v.uninit.any (·.isPrefixOf m)
       if let some u := fresh.head? then throw (CheckError.uninitializedUse (partPlace v.name u))
 
 /-- Whether `print` can write a value of type `t`: an `Int`, a `Bool`, or a
@@ -192,11 +228,12 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let us ← match init with
       | some e => do checkInitValue prog t e (checkExpr prog e); pure []
       | none => pure [[]]
-    modify fun s => { s with vars := ⟨x, t, .owned, us, []⟩ :: s.vars }
+    let hs := if us.isEmpty then [[]] else []
+    modify fun s => { s with vars := ⟨x, t, .owned, us, [], hs, [], []⟩ :: s.vars }
   | .refDecl x e => do
     if (← get).vars.any (·.name == x) then throw (CheckError.duplicate x)
     let (t, origins, m) ← refTarget prog e
-    modify fun s => { s with vars := ⟨x, t, .alias origins m, [], []⟩ :: s.vars }
+    modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
     let t ← match e with
       | .list .noneType _ => do
@@ -214,9 +251,18 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     if splitPlace.indexed p || v.access matches .alias .. then
       let _ ← readPlace prog p
       return
-    if cannotEnd prog (partTy prog v.ty path) (below path v.uninit) (below path v.moved) 0 then
+    let ts := (if (above path v.touched).isEmpty then [] else [[]]) ++ atOrBelow path v.touched
+    if cannotEnd prog (partTy prog v.ty path) (partsWithin path v.uninit) (atOrBelow path v.moved)
+        (partsWithin path v.held) ts (atOrBelow path v.pieces) 0 then
       throw (CheckError.partiallyDestroyed x)
-    setVar { v with uninit := initPart prog v.uninit v.ty path, moved := v.moved.erase path }
+    let built := (above path v.uninit).flatMap (piecesTo · path)
+    let built := if v.access == .constructing && !v.moved.contains [] then built.filter (!·.isEmpty)
+      else built
+    let outside (us : List Path) := us.filter (!path.isPrefixOf ·)
+    setVar { v with uninit := initPart prog v.uninit v.ty path, moved := outside v.moved,
+                    held := uninitialize v.held path,
+                    touched := union (outside v.touched) (above path v.held),
+                    pieces := union (outside v.pieces) built }
   | .expr e => do let _ ← checkExpr prog e
   | .print args => do
     let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark
@@ -235,12 +281,15 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     checkScope prog sig body
     let s1 ← get
     checkLoop s0 s1
-    let fresh := s1.stale.filter (!s0.stale.contains ·)
-    if s1.live && !fresh.isEmpty then
-      set { s0 with stale := s0.stale ++ fresh }
+    let head := if s1.live then { s0 with vars := List.zipWith joinMay s0.vars s1.vars,
+                                          stale := union s0.stale s1.stale } else s0
+    if head != s0 then
+      set head
       expect .bool (← checkExpr prog c)
       checkScope prog sig body
-    set { s0 with stale := if s1.live then union s0.stale fresh else s0.stale }
+      let s2 ← get
+      set (if s2.live then { head with vars := List.zipWith joinMay head.vars s2.vars } else head)
+    else set head
   | .ret value => do
     match value, sig.origin with
     | none, _ => unless sig.result == .noneType do throw (CheckError.invalidReturn sig.name)
