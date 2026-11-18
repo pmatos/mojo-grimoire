@@ -5,7 +5,8 @@
     "A ruling is confirmed when the human has discussed the intended semantics with Modular's",
     "developers; the outcome goes in `confirmation`. If a ruling turns out wrong, the human",
     "revisits it. `confirmation.status`: pending, confirmed, not-a-bug.",
-    "`upstream.status`: unfiled, filed, fixed-upstream. Only the human files upstream reports."
+    "`upstream.status`: unfiled, filed, fixed-upstream. Only the human files upstream reports.",
+    "`nightly` records the last check of the reproducer on a Mojo nightly, before the human meets Modular."
   ],
   "bugs": [
     {
@@ -32,6 +33,12 @@
       "confirmation": {
         "status": "pending",
         "notes": null
+      },
+      "nightly": {
+        "version": "1.3.0.dev2026111705",
+        "checked": "2026-11-18",
+        "reproduces": true,
+        "result": "accepts and prints `1 3`; AddressSanitizer reports heap-use-after-free, as on 1.2.0"
       }
     },
     {
@@ -56,11 +63,17 @@
       "confirmation": {
         "status": "pending",
         "notes": null
+      },
+      "nightly": {
+        "version": "1.3.0.dev2026111705",
+        "checked": "2026-11-18",
+        "reproduces": true,
+        "result": "prints `1`, `drop 1`, `drop 0`, as on 1.2.0"
       }
     },
     {
       "issue": 47,
-      "title": "@fieldwise_init fails inside a struct cycle through a List, where the hand-written initializer compiles",
+      "title": "@fieldwise_init fails inside a struct cycle through a List when the decorated struct is declared first, where the hand-written initializer compiles",
       "ruled": "2026-11-18",
       "decision_log": null,
       "suite_programs": [],
@@ -68,8 +81,8 @@
         "release": "1.2.0",
         "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
       },
-      "reproducer": "struct A(Movable):\n    var bs: List[B]\n\n    def __init__(out self):\n        self.bs = List[B]()\n\n\n@fieldwise_init\nstruct B(Movable):\n    var a: A\n\n\ndef main():\n    var a = A()\n    a.bs.append(B(A()))\n    print(len(a.bs))\n",
-      "compiler": "rejects: \"invalid implicit move: unexpected keyword argument 'move'\". With B's initializer written by hand as `def __init__(out self, var a: A): self.a = a^`, it compiles and prints `1`",
+      "reproducer": "@fieldwise_init\nstruct B(Movable):\n    var a: A\n\nstruct A(Movable):\n    var bs: List[B]\n    def __init__(out self): self.bs = List[B]()\n\ndef main():\n    var a = A()\n    a.bs.append(B(A()))\n    print(len(a.bs))\n",
+      "compiler": "rejects: \"field 'bs' has non-'Deinitable' type 'List[B]'\". With B's initializer written by hand as `def __init__(out self, var a: A): self.a = a^`, it compiles and prints `1`. With A declared first, 1.2.0 rejects the decorated form with \"invalid implicit move: unexpected keyword argument 'move'\"",
       "model": "accepts it, as it accepts the hand-written form, and prints `1`",
       "upstream": {
         "status": "unfiled",
@@ -80,6 +93,12 @@
       "confirmation": {
         "status": "pending",
         "notes": null
+      },
+      "nightly": {
+        "version": "1.3.0.dev2026111705",
+        "checked": "2026-11-18",
+        "reproduces": true,
+        "result": "partly fixed. The A-first form now compiles and prints `1`, and so does the form where both structs are @fieldwise_init with A first. The reproducer above, with B declared first, is still rejected with the same non-'Deinitable' error; its hand-written form compiles"
       }
     }
   ]
