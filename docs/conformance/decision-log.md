@@ -15,6 +15,11 @@ Each entry is classified as one of:
 - **spec decision**: the behaviour is incidental or ambiguous. The entry says
   what the model does and why.
 
+Every compiler bug that the human rules on is also listed in
+[compiler-bugs.json](compiler-bugs.json), with a minimal reproducer and the
+state of its upstream report, so that it can be confirmed later on a newer
+compiler. Upstream reports are filed only with the human's approval.
+
 ## Pinned reference
 
 | Component | Version | Commit | Where it is pinned |
