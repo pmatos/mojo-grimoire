@@ -154,18 +154,47 @@ def elemBase : Ty → Ty
   | .list t | .array t _ => elemBase t
   | t => t
 
-/-- Whether the type `t` contains, through the fields of its structs and
-the elements of its lists and arrays, the struct `s`: the compiler rejects
-a struct with a field that holds the struct itself, or a list or an array
-of it. `fuel` bounds the depth of the search; the number of structs of the
-program is enough, since a deeper chain repeats a struct. -/
-def contains (prog : Program) (s : Name) : Nat → Ty → Bool
-  | 0, _ => false
-  | fuel + 1, t => match elemBase t with
-    | .struct u =>
-      u == s || (findStruct prog u).any fun sd =>
-        sd.fields.any fun (_, ft) => contains prog s fuel ft
-    | _ => false
+/-- Whether a field of type `t` holds the struct it reaches through a list:
+some list wraps it, under any number of arrays and lists. -/
+def throughList : Ty → Bool
+  | .list _ => true
+  | .array t _ => throughList t
+  | _ => false
+
+/-- The structs that the fields of the struct `u` lead to, each the struct
+of a field's element type, through the fields of a type `t` for which
+`edge t` holds. -/
+def successors (prog : Program) (edge : Ty → Bool) (u : Name) : List Name :=
+  (findStruct prog u).elim [] fun sd => sd.fields.filterMap fun (_, t) =>
+    match elemBase t with
+    | .struct v => if edge t then some v else none
+    | _ => none
+
+/-- The structs reached from `seen` through the fields for which `edge`
+holds, in at most `fuel` more steps: each step adds the successors of
+`frontier`, the structs that the last step added, not seen yet. -/
+def reach (prog : Program) (edge : Ty → Bool) : Nat → List Name → List Name → List Name
+  | 0, seen, _ => seen
+  | fuel + 1, seen, frontier =>
+    let next := (frontier.flatMap (successors prog edge)).eraseDups.filter (!seen.contains ·)
+    reach prog edge fuel (seen ++ next) next
+
+/-- Whether the struct `s` lies on a cycle of fields that the compiler
+rejects, through a field of type `t`. A field leads to the struct of its
+element type: through a list when some list wraps it, directly when nothing
+does, and neither when only arrays do. The compiler rejects a cycle with
+no field through a list, and a cycle with no direct field; it accepts a
+cycle with both, which the list keeps finite. So the field is rejected when
+it leads back to `s` along fields none of which is through a list, or
+along fields none of which is direct. The search runs for as many steps as
+the program has structs, enough for any chain with no struct repeated. -/
+def rejectedCycle (prog : Program) (s : Name) (t : Ty) : Bool :=
+  match elemBase t with
+  | .struct v =>
+    let back (edge : Ty → Bool) : Bool :=
+      edge t && (reach prog edge prog.structs.length [v] [v]).contains s
+    back (!throughList ·) || back fun u => !(u matches .struct _)
+  | _ => false
 
 /-- Whether a place passed to the parameter `prm` is passed by value: to a
 `var` parameter, or an `Int` or a `Bool` to a `read` one, which Mojo copies.

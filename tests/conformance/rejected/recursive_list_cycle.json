@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "recursiveStruct",
+  "diagnostic": "field 'others' has non-'Deinitable' type 'List[A]'"
+}
