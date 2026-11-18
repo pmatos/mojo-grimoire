@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Located operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9763875266898242485")
+:::moduleDocs (fingerprint := "7984238877512883390")
 :::
 
 :::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable MojoGrimoire.Check.passedMutable (fingerprint := "13335214914752779514")
@@ -56,4 +56,18 @@ operand: an argument passed to a parameter its origin names that is not
 one is rejected with $`\mathsf{notAPlace}`, since a temporary would not
 outlive the call. Passed to `len` or by reference, such a call is a
 location only when it is a located operand, and a value otherwise.
+:::
+
+:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.PassedLoc MojoGrimoire.Check.passedPlace MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "2643588735197285784")
+*Rule: argument exclusivity.* Two places overlap when they have the same
+variable and one path is a prefix of the other. The arguments of a call
+that are passed as locations are the located operands whose parameters
+are `read`, `mut` or `ref`, and the receiver of a method unless its
+`self` is `var`, except a receiver $`q\,\hat{}` that a `var self`
+consumes, which counts as $`q` passed `mut`; an $`\mathsf{Int}` or a $`\mathsf{Bool}` passed `read`
+is copied instead. A call is rejected when a location passed `mut`, of
+any type, overlaps another location of the same call. A reference, and a
+call that returns one, overlaps what its origins overlap: `n(first(xs),
+xs)` is rejected when `n` takes its second argument `mut`. The error names
+the place passed, or a call's first origin.
 :::
