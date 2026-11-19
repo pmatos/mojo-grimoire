@@ -35,7 +35,9 @@ for the human. Phase 0 drops the roadmap's step of contacting the Isabelle
 model's author, by the human's ruling of 2026-11-15. The roadmap puts every
 disagreement with the compiler in the decision log; by the human's ruling of
 2026-11-16, the log records only where the model departs from the compiler
-([conformance.md](conformance.md#the-decision-log)).
+([conformance.md](conformance.md#the-decision-log)). The roadmap also
+classifies a mismatch as a spec decision; by the human's ruling of
+2026-11-19, the only departure is a compiler bug.
 
 Phase 0 is done: gate G0 holds at the pin, as
 [phase0-baseline.md](../conformance/phase0-baseline.md) records.

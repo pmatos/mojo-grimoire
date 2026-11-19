@@ -63,8 +63,13 @@ ruled this on 2026-11-18.
   open-source compiler at the pinned release (1.2.x today) is the reference,
   and the model follows it. When they disagree, fix the model; the PR that
   fixes it says what changed. The model departs from the compiler only where
-  the compiler is broken, a compiler bug, or its behaviour is incidental, a
-  spec decision. Each departure has an entry in the decision log
+  the compiler has a bug, and then it does exactly what the fixed compiler
+  would do. There is no third option: the model never invents a behaviour
+  that no fixed compiler would have, and a ruling never offers one. Back the
+  fixed behaviour with evidence, such as the Mojo docs, the compiler's own
+  rule for a related case or a nightly. Each departure has an entry in the
+  decision log. A ruling is provisional until the human has discussed it
+  with Modular; if that changes the semantics, the model follows
   (ADR-2026-11-15-1907).
 - **The project is independent.** The Isabelle formalisation
   `utting/mojo-semantics` is a reference point only. Never import, vendor,
