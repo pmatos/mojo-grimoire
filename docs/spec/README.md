@@ -24,7 +24,7 @@ further definition its prose restates, and pins their fingerprint:
 
 ```
 :::readable MojoGrimoire.referenceMojo (pin := MojoGrimoire.MojoVersion) (fingerprint := "…")
-*Definition: the reference release.* ...
+*Definition: the reference version.* ...
 :::
 ```
 

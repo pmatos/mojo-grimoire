@@ -206,7 +206,9 @@ Each move of the Mojo pin gets an entry below.
   one of D-0006, modular/modular#7398, which probably has the same cause.
 - Fixed by the nightly: Mojo 1.2.0 also rejected the decorated forms with
   `A` declared first, `cycle_fieldwise_init` with "invalid implicit move:
-  unexpected keyword argument 'move'", and `cycle_fieldwise_init_both`,
+  unexpected keyword argument 'move'": the synthesized initializer of `B`
+  called `A.__init__(move=...)`, not synthesized yet inside the cycle,
+  which resolved against `A`'s own `__init__`; and `cycle_fieldwise_init_both`,
   with both structs decorated, with "invalid call to '__init__': no
   candidates found". The nightly 1.3.0.dev2026111905 compiles both, and
   each prints `1`, as the model does; `known.json` no longer lists them.
@@ -224,9 +226,13 @@ Each move of the Mojo pin gets an entry below.
   documents that the number of elements must equal the vector's size, 1,
   but 1.2.0 checked it only with an `assert`, which a default build leaves
   out. So it accepted `var x: Int = [e1, …, en]` for every n, in every
-  position: for n ≥ 2 it evaluated every element and kept `e1`, so
-  `[1, 2]` printed `1`; for n = 0 the program crashed with a segmentation
-  fault.
+  position probed on 2026-11-19: an assignment, a `return`, a function
+  argument, a field of `@fieldwise_init`, `append` on a `List[Int]`, an
+  operand `x + [2, 3]`, and an element of a literal of `Int`s. For n ≥ 2
+  it evaluated every element and kept `e1`, so `[1, 2]` printed `1`; for
+  n = 0 the program crashed with a segmentation fault. With
+  `-D ASSERT=all` the program built, then trapped at run time: "mismatch
+  in the number of elements in the SIMD variadic constructor".
 - Model: rejects a literal of `Int`s of every length but 1, n = 0
   included: `noMatchingInit` where the literal initializes the `Int`, in a
   declaration, an assignment, a `return`, a construction or an enclosing
