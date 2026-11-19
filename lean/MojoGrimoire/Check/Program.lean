@@ -5,7 +5,7 @@ The checking of whole programs: their declarations, and the body of every
 function, method, initializer and destructor.
 
 A program is accepted when its names are declared once, its types are
-those it declares, no struct lies on a cycle of fields that the compiler
+those it declares, no struct lies on a cycle of fields that the fixed compiler
 rejects, every function and method has parameters of the conventions its
 kind allows, every body is accepted, and it has a `main` that takes
 nothing and returns nothing. A rejection names the first error found, and

@@ -186,13 +186,17 @@ where the compiler and the manual disagree, the model follows the compiler.
   or, when the one argument has the type it initializes, as "cannot
   construct ... with itself".
 - A struct may not lie on a cycle of fields with no field that holds the
-  next struct through a list, or with no field that holds it directly:
-  the compiler rejects both, and so does the model (`recursiveStruct`).
-  A cycle with both, such as `A` holding a `List[B]` and `B` holding an
-  `A`, is accepted, through any number of structs and arrays, whether or
-  not `@fieldwise_init` builds the initializers. The compiler rejects some
-  `@fieldwise_init` forms, a compiler bug (D-0004, #47,
-  [conformance.md](conformance.md#cycles-of-structs)).
+  next struct through a list, such as a struct that holds itself directly
+  or through arrays: the compiler rejects it, and so does the model
+  (`recursiveStruct`). A cycle with a field through a list is accepted,
+  through any number of structs and arrays, whatever its other fields,
+  whether or not its structs have a `__deinit__`, and whether or not
+  `@fieldwise_init` builds the initializers. The compiler rejects some
+  of these cycles, depending on which of their structs have a `__deinit__`
+  (D-0006, #136), and some `@fieldwise_init` forms (D-0004, #47), both
+  compiler bugs ([conformance.md](conformance.md#cycles-of-structs)). The
+  ruling on #136 is provisional until the human has discussed it with
+  Modular.
 - A declaration may not reuse the name of a variable in scope, a
   parameter included, so no variable hides another. Sibling blocks may
   reuse a name. ASAP elaboration relies on this, since it tracks
