@@ -183,7 +183,7 @@ def reach (prog : Program) (edge : Ty → Bool) : Nat → List Name → List Nam
     let next := (frontier.flatMap (successors prog edge)).eraseDups.filter (!seen.contains ·)
     reach prog edge fuel (seen ++ next) next
 
-/-- Whether the struct `s` lies on a cycle of fields that the compiler
+/-- Whether the struct `s` lies on a cycle of fields that the fixed compiler
 rejects, through a field of type `t`. A field leads to the struct of its
 element type, and through a list when some list wraps it. A cycle with no
 field through a list is rejected: a struct that holds itself directly, or

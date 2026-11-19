@@ -191,8 +191,8 @@ where the compiler and the manual disagree, the model follows the compiler.
   (`recursiveStruct`). A cycle with a field through a list is accepted,
   through any number of structs and arrays, whatever its other fields,
   whether or not its structs have a `__deinit__`, and whether or not
-  `@fieldwise_init` builds the initializers. The compiler rejects a cycle
-  of lists and arrays when too few of its structs have a `__deinit__`
+  `@fieldwise_init` builds the initializers. The compiler rejects some
+  of these cycles, depending on which of their structs have a `__deinit__`
   (D-0006, #136), and some `@fieldwise_init` forms (D-0004, #47), both
   compiler bugs ([conformance.md](conformance.md#cycles-of-structs)). The
   ruling on #136 is provisional until the human has discussed it with

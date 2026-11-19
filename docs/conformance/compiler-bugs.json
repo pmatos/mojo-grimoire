@@ -151,7 +151,7 @@
     },
     {
       "issue": 136,
-      "title": "a struct on a cycle through a List is rejected as non-'Deinitable' unless some structs have a __deinit__ of their own",
+      "title": "a struct on a cycle through a List is rejected as non-'Deinitable', depending on which structs have a __deinit__ of their own",
       "ruled": "2026-11-19",
       "decision_log": "D-0006",
       "suite_programs": [

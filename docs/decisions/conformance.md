@@ -177,9 +177,11 @@ pin.
 
 The compiler rejects a struct that holds itself by value, directly or
 through other structs, with "attempt to resolve a recursive reference to
-declaration", and a struct on a cycle made only of list and array edges
-with "field … has non-'Deinitable' type". `diagnostics.json` maps both to
-`recursiveStruct`; the rule is in
+declaration", as it does a struct on a cycle of arrays alone whose structs
+have a `__deinit__`. It rejects a struct on a cycle made only of list and
+array edges with "field … has non-'Deinitable' type", except in the cases
+above and some of those whose structs have a `__deinit__` (D-0006).
+`diagnostics.json` maps both to `recursiveStruct`; the rule is in
 [semantics.md](semantics.md#the-static-checker) (#47). On a cycle with no
 list edge, such as a struct that holds an array of itself, the model
 agrees. On a cycle with a list edge, the second message is a compiler bug,
