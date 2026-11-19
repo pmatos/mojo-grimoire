@@ -132,8 +132,15 @@ private def minS : String := "-9223372036854775808"
 #guard rejects ["var xs = List[Int](range(range(3)))"] (.noMatchingInit (.list .int))
 #guard rejects ["var xs = List[Int](range([1, 2]))"] (.noMatchingInit (.list .int))
 
--- An error inside an argument keeps its class.
+-- An error inside an argument keeps its class, a string or a `range`
+-- nested deeper among them.
 #guard rejects ["var xs = List[Int](range(nope))"] (.unknownVariable "nope")
+#guard rejects ["var xs = List[Int](range(f(\"a\")))"] .stringOutsidePrint
+#guard rejects ["var xs = List[Int](range(len(range(3))))"] (.unknownFunction "range")
+#guard rejects ["var xs = List[Int](range(f(\"a\"), \"b\"))"] .stringOutsidePrint
+#guard rejects ["var xs = List[Int](range(len(range(3)), range(2)))"] (.unknownFunction "range")
+#guard rejects ["var xs = List[Int](range(1, \"b\"))"] (.noMatchingInit (.list .int))
+#guard rejects ["var xs = List[Int](range(0, 9, 2, \"b\"))"] (.noMatchingInit (.list .int))
 
 -- Anywhere else, `range` is an unknown function: a range is not a value.
 #guard rejects ["var r = range(3)"] (.unknownFunction "range")

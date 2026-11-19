@@ -107,10 +107,11 @@ def methodSig (prog : Program) (t : Ty) (m : Name) (n : Nat) : Except CheckError
     pure (funSig fd true)
   | t => throw (.unknownAttribute (typeName t) m)
 
-/-- Whether a call of `range` is the standard library's: the program
-declares no struct and no function named `range` (#121). -/
-def builtinRange (prog : Program) : Bool :=
-  (findStruct prog "range").isNone && (findFun prog "range").isNone
+/-- Whether a call of `f` is one of the standard library's `range`: `f` is
+`range`, and the program declares no struct and no function of that name
+(#121). -/
+def builtinRange (prog : Program) (f : Name) : Bool :=
+  f == "range" && (findStruct prog f).isNone && (findFun prog f).isNone
 
 /-- The parameters of the standard library's `range` called with `n`
 arguments, each an `Int` taken `read`: `end`; `start` and `end`; or

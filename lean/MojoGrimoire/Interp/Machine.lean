@@ -156,13 +156,19 @@ def rangeLength (start stop step : Int) : Nat :=
   else if step < 0 then ((start - stop - step - 1) / -step).toNat
   else 0
 
-/-- The list `range(start, stop, step)` built with the fuel `fuel`. A list
-needs one unit of fuel per element, so a range with more elements than
-`fuel` runs out of it, which is checked before the list is built, so that
-no list too long for any machine is started. -/
+/-- The elements `start + k * step` of a range, for `k` from 0 below `n`,
+put in front of `acc`. -/
+def rangeElems (start step : Int) : Nat → List Value → List Value
+  | 0, acc => acc
+  | k + 1, acc => rangeElems start step k (.int (start + (k : Int) * step) :: acc)
+
+/-- The list `range(start, stop, step)` built with the fuel `fuel`. The fuel
+bounds the list's length, as it bounds the depth of evaluation: a range
+with more elements than `fuel` runs out of it before the list is built, so
+that no list too long for any machine is started. -/
 def rangeList (fuel : Nat) (start stop step : Int) : EvalM Value := do
   let k := rangeLength start stop step
   if fuel < k then fail .outOfFuel
-  pure (.list ((List.range k).map fun (i : Nat) => .int (start + (i : Int) * step)))
+  pure (.list (rangeElems start step k []))
 
 end MojoGrimoire.Interp

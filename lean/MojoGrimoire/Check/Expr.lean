@@ -238,13 +238,12 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         let t ← match e with
           | .list .noneType es => do iterableLiteralTy prog u (← checkIterableElems prog u es)
           | .call f args =>
-            if f == "range" && builtinRange prog then do
-              let params := rangeParams args.length
-              checkExclusive (← locationArgs prog params args)
-              recheckLocs prog (← tryCatch
-                (checkArgs prog (.init (.list u)) f params args params.length args.length)
-                fun err => throw (if err matches .stringOutsidePrint | .unknownFunction "range"
-                  then .noMatchingInit (.list u) else err))
+            if builtinRange prog f then do
+              let k := (args.findIdx? (· matches .str _ | .call "range" _)).getD args.length
+              let params := if k < args.length then (rangeParams args.length).take k
+                else rangeParams args.length
+              recheckLocs prog
+                (← checkArgs prog (.init (.list u)) f params args params.length args.length)
               pure (.list .int)
             else do checkExprAs prog (← locOf prog (.call f args)).isSome (.call f args)
           | e => do checkExprAs prog (← locOf prog e).isSome e

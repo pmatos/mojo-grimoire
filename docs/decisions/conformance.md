@@ -117,7 +117,7 @@ parameter, whether `S` is `@fieldwise_init` or has its own `__init__`; a
 literal whose length or elements do not fit the list or array it
 initializes, or that initializes a struct or a `Bool`; and
 `List[T](e1, …, en)` with arguments, but for one list or array of `T`
-that can be copied (#103). The model reports
+that can be copied (#103) and for `range(…)` with `T` an `Int` (#121). The model reports
 all of them as one class, `noMatchingInit`, and `diagnostics.json` maps
 that message, matched whole, to it alone. The human ruled this on
 2026-11-16 (#46), following the precedent of `unknownAttribute`.

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15148187555517722430")
+:::moduleDocs (fingerprint := "15823403029666353533")
 :::
 
 :::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "1921251147877829779")
@@ -68,10 +68,10 @@ type's name. Inference, the checker and
 elaboration all read the signatures of calls here.
 :::
 
-:::readable MojoGrimoire.Check.builtinRange MojoGrimoire.Check.rangeParams (fingerprint := "17888495253466327325")
-*Definition: the standard library's range.* A call of `range` is the
-standard library's when the program declares no struct and no function
-named `range` (#121). It then takes one, two or three $`\mathsf{Int}`s,
+:::readable MojoGrimoire.Check.builtinRange MojoGrimoire.Check.rangeParams (fingerprint := "10555727433073696386")
+*Definition: the standard library's range.* A call of $`f` is the
+standard library's `range` when $`f` is `range` and the program declares
+no struct and no function of that name (#121). It then takes one, two or three $`\mathsf{Int}`s,
 each `read`: the end; the start and the end; or the start, the end and
 the step. Called with no argument it is given one parameter, and with more
 than three, three, so that the call has a wrong number of arguments.

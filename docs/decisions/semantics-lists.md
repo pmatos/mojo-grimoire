@@ -79,7 +79,8 @@ Lists, `List[T]`, follow the rules of
   `len(range(3))`, is `unknownFunction`, the class the model gives a call
   of a function the program does not declare, though the compiler accepts
   both. A function or a struct of the program named `range` is called
-  instead. The arguments are evaluated from left to right, as `read`
+  instead. Any other iterable that the compiler accepts as the one
+  argument of `List[T](…)` stays outside the subset. The arguments are evaluated from left to right, as `read`
   arguments of type `Int`, so a place among them is read once all are
   evaluated, and a literal `[e]` is the `Int` `e`. `T` must be `Int`. Any
   misfit, a wrong number of arguments, an argument that is not an `Int`,

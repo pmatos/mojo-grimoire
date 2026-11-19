@@ -127,7 +127,8 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
   | .copy p => let (p', t) := inferPlace prog env p; (.copy p', t)
   | .call f args =>
     let sig := (callSig prog f).toOption
-    let params := sig.elim (if f == "range" then rangeParams args.length else []) (·.params)
+    let params := sig.elim
+      (if builtinRange prog f then rangeParams args.length else []) (·.params)
     let args' := (inferList prog env (params.map (·.ty)) args).map (·.1)
     (.call f (keepTemporaries params args args'),
       sig.elim (unsignedResult prog f) (some ·.result))
