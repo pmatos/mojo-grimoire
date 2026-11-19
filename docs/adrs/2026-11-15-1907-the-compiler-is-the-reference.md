@@ -7,8 +7,8 @@ Tier: direction; area: semantics
 
 - Mojo has no written specification. The open-source Mojo compiler at a
   pinned version is the reference that the Lean model is tested against.
-  The pin is a nightly build, installed from Modular's wheel and checked
-  by sha256, and it moves forward to newer nightlies as needed.
+  The pin is a nightly wheel, checked by sha256, and moves forward as
+  needed.
 - `MojoGrimoire.referenceMojo` in `lean/MojoGrimoire/Reference.lean` names
   the pinned nightly, `scripts/install-mojo.sh` pins its wheels by sha256,
   and the decision log records the nearest public commit of its source. A
@@ -41,9 +41,7 @@ the model. That's the rule. We cannot have a third option here."
 
 With no specification, fidelity has to be measured, not assumed. A pinned
 reference makes recorded results reproducible; following new versions keeps
-the model relevant, and a nightly already holds fixes of compiler bugs that
-the model would otherwise log as departures. The wheel is the build that
-Modular ships, checked by its hash, and installs in seconds. The log keeps every choice of what counts as specification
+the model relevant. The log keeps every choice of what counts as specification
 visible, so that the proofs are about Mojo and not about compiler accidents.
 Logging only departures keeps the log short enough to read and to share with
 Modular.
@@ -61,6 +59,5 @@ Modular.
   what the fixing PR and the suite record, and hid the departures.
 - **Test against the compiler's tip.** Expected results would go stale
   without any change on our side.
-- **Build from source at a public commit**, as the pin on 1.2.0 did. A
-  nightly's own commit is not public, so a source build is a different
-  compiler from the one Modular ships, and a build took about 25 minutes.
+- **Build from source at a public commit**, as the pin on 1.2.0 did. It
+  is not the compiler Modular ships, and took about 25 minutes.

@@ -166,10 +166,14 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["print(rd([]))"] (.invalidType .noneType)
 #guard rejects ["xs.append([])"] (.invalidType .noneType)
 #guard rejects ["print(x + [])"] (.invalidType .noneType)
+-- A literal whose element is not an `Int` stays an array where an `Int` is
+-- expected of it, as the left operand of a comparison with an `Int`.
+#guard rejects ["print([True] < x)"] (.typeMismatch .int (.array .bool 1))
 -- A literal with no type expected is still an array: as an operand of an
 -- operator whose other operand is not an `Int`, negated, as the argument of
--- `List[Int](…)`, or bound to a variable.
-#guard rejects ["print([True] < x)"] (.typeMismatch .int (.array .bool 1))
+-- `List[Int](…)`, or bound to a variable. With a `Bool` on the right of a
+-- comparison, the pinned nightly gives another class (#165).
+#guard rejects ["print([2] + True)"] (.typeMismatch .int (.array .int 1))
 #guard rejects ["print(-[1])"] (.typeMismatch .int (.array .int 1))
 #guard rejects ["var ys = List[Int]([[1]])"] (.noMatchingInit (.list .int))
 #guard rejects ["var a = [1]", "var y: Int = a.copy()"] (.typeMismatch .int (.array .int 1))

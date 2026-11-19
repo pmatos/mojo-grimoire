@@ -63,7 +63,8 @@ Each move of the Mojo pin gets an entry below.
 ### D-0002: a store into a list element after a call that grows the list
 
 - Date: 2026-11-16
-- Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868)
+- Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868);
+  reproduces unchanged on the pinned nightly 1.3.0.dev2026111905 (D-0007)
 - Program: `tests/conformance/lists/store_after_grow.mojo`
 - Compiler: accepts `xs[0] = bump(xs)`, where `bump` appends to `xs` and
   returns 5, and prints `1 3`. It locates `xs[0]` before it evaluates the
@@ -92,7 +93,8 @@ Each move of the Mojo pin gets an entry below.
 ### D-0003: a variable that ends partly built is rejected (R, provisional)
 
 - Date: 2026-11-18, revised 2026-11-19
-- Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868)
+- Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868);
+  reproduces unchanged on the pinned nightly 1.3.0.dev2026111905 (D-0007)
 - Programs, all in `tests/conformance/structs/`:
   - `field_by_field_unset_destroyed.mojo`, `field_by_field_unset_nested.mojo`,
     `field_by_field_unset_overwritten.mojo`,
@@ -261,7 +263,8 @@ Each move of the Mojo pin gets an entry below.
 ### D-0006: a struct cycle through a list, rejected as non-'Deinitable'
 
 - Date: 2026-11-19
-- Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868)
+- Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868);
+  reproduces unchanged on the pinned nightly 1.3.0.dev2026111905 (D-0007)
 - Programs, under `tests/conformance/rejected/`:
   `recursive_list_field`, `recursive_list_cycle`,
   `recursive_list_array_cycle`, `recursive_list_cycle_beside_mixed`,
@@ -279,8 +282,8 @@ Each move of the Mojo pin gets an entry below.
   from `list_of_self_deinit` to `array_of_lists_cycle_both_deinit`. A
   cycle with a by-value edge and a list edge is accepted (D-0004 aside),
   and a cycle with no list edge, of by-value or array fields, is rejected,
-  with or without `__deinit__`. The nightly 1.3.0.dev2026111705, checked on
-  2026-11-19, gives the same results.
+  with or without `__deinit__`. The nightlies 1.3.0.dev2026111705 and
+  1.3.0.dev2026111905, checked on 2026-11-19, give the same results.
 - Model: accepts every struct cycle with a list edge, with or without
   `__deinit__`, and rejects every cycle with no list edge
   (`recursiveStruct`). Each of the nine programs runs. Given an empty

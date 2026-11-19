@@ -32,6 +32,11 @@ if [[ "$(uname -s)/$(uname -m)" != "Linux/x86_64" ]]; then
     echo "The pinned wheel is for $platform; this host is $(uname -s)/$(uname -m)." >&2
     exit 1
 fi
+glibc=$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}')
+if [[ -z "$glibc" ]] || ! printf '2.34\n%s\n' "$glibc" | sort -C -V; then
+    echo "The pinned wheel is for $platform; this host has glibc ${glibc:-unknown}." >&2
+    exit 1
+fi
 for tool in curl sha256sum uv; do
     if ! command -v "$tool" >/dev/null; then
         echo "$tool is required." >&2
@@ -74,7 +79,11 @@ for entry in "${wheels[@]}"; do
             echo "Modular's index has no $file." >&2
             exit 1
         fi
-        curl -fsSL -o "$path.part" "$url"
+        if ! curl -fsSL -o "$path.part" "$url"; then
+            rm -f "$path.part"
+            echo "Could not download $url." >&2
+            exit 1
+        fi
         mv "$path.part" "$path"
     fi
     if ! sha256sum --quiet -c <<<"$sha  $path" >&2; then
@@ -93,22 +102,26 @@ uv pip install --quiet --python "$venv/bin/python" \
     --index "$modular_index" --default-index "$pypi_index" \
     "${local_wheels[@]}" >&2
 
-mapfile -t dists < <(uv pip list --python "$venv/bin/python" --format freeze 2>/dev/null |
-    grep -E '^mojo(-[a-z-]+)?==')
-for dist in "${dists[@]}"; do
+installed=$(uv pip list --python "$venv/bin/python" --format freeze 2>/dev/null)
+while read -r dist; do
     if [[ "$dist" != *"==$version" ]]; then
         echo "The environment holds $dist, not version $version." >&2
         exit 1
     fi
+done < <(grep -E '^mojo(-[a-z-]+)?==' <<<"$installed")
+for entry in "${wheels[@]}"; do
+    read -r project _ <<<"$entry"
+    if ! grep -qx "$project==$version" <<<"$installed"; then
+        echo "The environment lacks $project==$version." >&2
+        exit 1
+    fi
 done
-if [[ ${#dists[@]} -lt ${#wheels[@]} ]]; then
-    echo "The environment lacks a pinned wheel: ${dists[*]}" >&2
-    exit 1
-fi
 
 # The wheel's `mojo` takes its package root and import path from inherited
 # MODULAR_* variables when they are set, and the driver reads the first
-# modular.cfg it finds. The wrapper removes every inherited MODULAR_*
+# modular.cfg it finds. It is a Python script, which an inherited PYTHON*
+# variable, such as PYTHONPATH, can point at another install's `mojo`
+# package. The wrapper removes every inherited MODULAR_* and PYTHON*
 # variable and gives the driver a home whose modular.cfg is empty.
 echo "# Written by mojo-grimoire's scripts/install-mojo.sh; intentionally empty." \
     >"$root/home/modular.cfg"
@@ -118,7 +131,7 @@ wrapper="$root/mojo"
     echo "# Written by mojo-grimoire's scripts/install-mojo.sh for Mojo $version."
     echo 'set -euo pipefail'
     # shellcheck disable=SC2016 # the wrapper expands it, not this script
-    echo 'for var in $(compgen -e); do [[ $var != MODULAR_* ]] || unset "$var"; done'
+    echo 'for var in $(compgen -e); do [[ $var != MODULAR_* && $var != PYTHON* ]] || unset "$var"; done'
     printf 'export MODULAR_HOME=%q\n' "$root/home"
     printf 'exec %q "$@"\n' "$venv/bin/mojo"
 } >"$wrapper"
@@ -130,12 +143,14 @@ if [[ "$("$wrapper" --version)" != "$version_line" ]]; then
 fi
 
 # Check the isolation against a hostile environment: a home whose modular.cfg
-# names another install, and inherited MODULAR_* variables that point
-# elsewhere. The test program must build, run, and load every non-system
+# names another install, and inherited MODULAR_* and PYTHON* variables that
+# point elsewhere; the `mojo` package planted there would fail. The test program must build, run, and load every non-system
 # library from the installed wheels.
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
-mkdir -p "$scratch/home/.config/modular" "$scratch/elsewhere/lib"
+mkdir -p "$scratch/home/.config/modular" "$scratch/elsewhere/lib" "$scratch/elsewhere/python/mojo"
+printf 'raise SystemExit("the planted mojo package was imported")\n' \
+    >"$scratch/elsewhere/python/mojo/__init__.py"
 printf '[mojo-max]\npackage_root = %s\nimport_path = %s\n' \
     "$scratch/elsewhere" "$scratch/elsewhere/lib/mojo" \
     >"$scratch/home/.config/modular/modular.cfg"
@@ -143,6 +158,7 @@ printf 'def main():\n    var xs = [1, 2, 3]\n    print("isolated", len(xs))\n' >
 (
     cd "$scratch"
     env HOME="$scratch/home" \
+        PYTHONPATH="$scratch/elsewhere/python" \
         MODULAR_MOJO_MAX_DRIVER_PATH="$scratch/elsewhere/mojo" \
         MODULAR_MOJO_MAX_IMPORT_PATH="$scratch/elsewhere/lib/mojo" \
         MODULAR_MOJO_MAX_SHARED_LIBS="-Xlinker,-rpath,-Xlinker,$scratch/elsewhere/lib" \
