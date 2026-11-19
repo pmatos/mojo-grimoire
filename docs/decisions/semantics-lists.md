@@ -148,10 +148,11 @@ here (#27).
 - A constant index into an array of `N` elements is rejected when it is `N`
   or more (`constantIndexOutOfBounds`); one known only at run time fails
   then, as on a list. A constant index into a list fails only at run time.
-- A struct may not hold an array, or a list, of itself: the compiler
-  rejects both, and so does the model (`recursiveStruct`). The rule for
-  cycles through several structs is in
-  [semantics.md](semantics.md#the-static-checker).
+- A struct may not hold an array of itself: the compiler rejects it, and
+  so does the model (`recursiveStruct`). A struct may hold a list of
+  itself, which the compiler rejects unless the struct has a `__deinit__`
+  of its own, a compiler bug (D-0006, #136). The rule for cycles through
+  several structs is in [semantics.md](semantics.md#the-static-checker).
 
 Rejected: keeping every literal a `List`, which would accept programs that
 the compiler rejects, such as `append` to an unannotated literal.

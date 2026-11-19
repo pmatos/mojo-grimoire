@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1487112832430675558")
+:::moduleDocs (fingerprint := "12847369634894333029")
 :::
 
 :::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "4257948032270631622")
@@ -100,27 +100,31 @@ through a list when some list wraps it, under any number of arrays and
 lists.
 :::
 
-:::readable MojoGrimoire.Check.successors MojoGrimoire.Check.reach (fingerprint := "7569000885113384078")
+:::readable MojoGrimoire.Check.successors MojoGrimoire.Check.reach (fingerprint := "4205337989175697884")
 *Definition: reachable structs.* A field leads to the struct of its
 element type. The successors of a struct, through the fields whose type
 satisfies a predicate, are the structs that those fields lead to. The
 structs reached from a set within $`n` steps are the set and, step by
 step, the successors of the structs added by the last step that were not
-reached yet.
+reached yet, until a step adds none. When the $`n` steps run out before
+that, the search gives nothing, rather than the structs it has reached so
+far.
 :::
 
-:::readable MojoGrimoire.Check.rejectedCycle (pin := MojoGrimoire.Check.elemBase) (pin := MojoGrimoire.Check.throughList) (pin := MojoGrimoire.Check.successors) (pin := MojoGrimoire.Check.reach) (fingerprint := "12767551648373614766")
+:::readable MojoGrimoire.Check.rejectedCycle (pin := MojoGrimoire.Check.elemBase) (pin := MojoGrimoire.Check.throughList) (pin := MojoGrimoire.Check.successors) (pin := MojoGrimoire.Check.reach) (fingerprint := "17617289590823502105")
 *Definition: rejected cycles.* A field leads to the struct of its element
-type through a list when some list wraps it, directly when nothing does,
-and neither when only arrays do. The compiler rejects a cycle of fields
-with no field through a list, and one with no direct field; it accepts a
-cycle with both, which the list keeps finite. A field of the struct $`S`
-is rejected when it leads back to $`S` along fields none of which is
-through a list, or along fields none of which is direct. So a struct that
-holds itself, through a list, an array or nothing, is rejected, and so is
-a cycle of lists and arrays alone. The search reaches every struct within
-as many steps as the program has structs, enough for any chain with no
-struct repeated.
+type, through a list when some list wraps it. A cycle of fields none of
+which is through a list is rejected: a struct that holds itself, directly
+or through arrays, has no finite layout. A cycle with a field through a
+list is accepted, whatever its other fields, since the list keeps it
+finite; the compiler rejects some of these, a compiler bug (D-0006). A
+field of the struct $`S` that is not through a list is rejected when it
+leads back to $`S` along fields none of which is through a list. Each
+step of the search adds a struct of the program not reached yet, except
+perhaps the last, which adds only names that the program does not
+declare, so the search ends within one step more than the program has
+structs. A search that runs out of steps rejects the field, so the check
+never accepts a field it has not searched to the end.
 :::
 
 :::readable MojoGrimoire.Check.passedByValue (fingerprint := "8359022073465340314")

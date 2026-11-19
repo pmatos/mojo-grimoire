@@ -199,11 +199,12 @@ private def verdict (p : Program) : Option CheckError :=
 #guard verdict (prog [.ifElse (.bool true) [.decl "x" .int (some (.int 1))]
   [.decl "x" .bool (some (.bool true))]]) == none
 
--- A struct that contains itself, and a program without `main`.
+-- A struct that contains itself directly or through an array, and a program
+-- without `main`. Through a list it is accepted (D-0006).
 #guard verdict (prog [] [] [⟨"Loop", [("next", .struct "Loop")], .none, true, none, none, []⟩]) ==
   some (.recursiveStruct "Loop")
 #guard verdict (prog [] [] [⟨"Loop", [("next", .list (.struct "Loop"))], .none, true, none, none, []⟩]) ==
-  some (.recursiveStruct "Loop")
+  none
 #guard verdict (prog [] [] [⟨"Loop", [("next", .array (.struct "Loop") 2)], .none, true, none, none, []⟩]) ==
   some (.recursiveStruct "Loop")
 #guard verdict ⟨[], []⟩ == some .noMain
@@ -228,18 +229,47 @@ private def cyc (ss : List StructDecl) : Option CheckError := verdict (prog [] [
 #guard cyc [fw "A" [("bs", .array (.list sB) 1)], fw "B" [("a", sA)]] == none
 #guard cyc [fw "A" [("bs", .list (.array sB 1))], fw "B" [("a", sA)]] == none
 #guard cyc [fw "A" [("bs", .list sB)], fw "B" [("c", sC)], fw "C" [("as", .array sA 1)]] == none
--- A cycle without a plain edge, or without a list edge, is rejected.
-#guard cyc [fw "A" [("bs", .list sB)], fw "B" [("as", .list sA)]] == some (.recursiveStruct "A")
-#guard cyc [fw "A" [("bs", .list sB)], fw "B" [("as", .array sA 1)]] == some (.recursiveStruct "A")
+-- A cycle with no plain edge is accepted when it has a list edge, as the
+-- fixed compiler accepts it (D-0006): lists alone, a list and an array, and
+-- a ring of three lists.
+#guard cyc [fw "A" [("bs", .list sB)], fw "B" [("as", .list sA)]] == none
+#guard cyc [fw "A" [("bs", .list sB)], fw "B" [("as", .array sA 1)]] == none
+#guard cyc [fw "A" [("bs", .list sB)], fw "B" [("cs", .list sC)], fw "C" [("as", .list sA)]] == none
+-- A cycle with no list edge is rejected: plain edges, an array and a plain
+-- edge, or arrays alone.
 #guard cyc [fw "A" [("b", sB)], fw "B" [("a", sA)]] == some (.recursiveStruct "A")
 #guard cyc [fw "A" [("bs", .array sB 1)], fw "B" [("a", sA)]] == some (.recursiveStruct "A")
+#guard cyc [fw "A" [("bs", .array sB 1)], fw "B" [("as", .array sA 1)]] ==
+  some (.recursiveStruct "A")
+-- A struct on several cycles, each with a list edge, is accepted.
+#guard cyc [fw "A" [("bs", .list sB), ("xs", .list sA)], fw "B" [("a", sA)]] == none
+#guard cyc [fw "A" [("bs", .list sB)], fw "B" [("a", sA), ("xs", .list sA)]] == none
 -- One rejected cycle rejects the struct, though another cycle is accepted; a
 -- cycle that does not pass through a struct rejects the structs on it.
-#guard cyc [fw "A" [("bs", .list sB), ("xs", .list sA)], fw "B" [("a", sA)]] ==
-  some (.recursiveStruct "A")
-#guard cyc [fw "A" [("bs", .list sB)], fw "B" [("a", sA), ("xs", .list sA)]] ==
+#guard cyc [fw "A" [("bs", .list sB), ("a", sA)], fw "B" [("as", .list sA)]] ==
   some (.recursiveStruct "A")
 #guard cyc [fw "A" [("bs", .list sB)], fw "B" [("c", sC)], fw "C" [("b", sB)]] ==
   some (.recursiveStruct "B")
+
+/-- The structs `S0`, …, `S(n-1)`, each holding the next in a field of type
+`wrap (S(i+1))`, the last holding `last`. -/
+private def chain (n : Nat) (wrap : Ty → Ty) (last : Ty) : List StructDecl :=
+  (List.range n).map fun i =>
+    fw s!"S{i}" [("next", if i + 1 == n then last else wrap (.struct s!"S{i + 1}"))]
+
+-- The search runs to the end of the longest chain: a ring of plain edges
+-- through eight structs is rejected, a ring of lists accepted, and so is a
+-- chain of plain edges through all of them that ends in an `Int`. A chain
+-- that ends in a struct the program lacks is an invalid type.
+#guard cyc (chain 8 id (.struct "S0")) == some (.recursiveStruct "S0")
+#guard cyc (chain 8 .list (.list (.struct "S0"))) == none
+#guard cyc (chain 8 id .int) == none
+#guard cyc (chain 8 id (.struct "U")) == some (.invalidType (.struct "U"))
+
+-- A search that runs out of fuel before it has reached every struct gives
+-- nothing, which rejects the field, rather than accepting it.
+#guard reach (prog [] [] (chain 4 id .int)) (fun _ => true) 2 ["S0"] ["S0"] == none
+#guard reach (prog [] [] (chain 4 id .int)) (fun _ => true) 4 ["S0"] ["S0"] ==
+  some ["S0", "S1", "S2", "S3"]
 
 end MojoGrimoireTest.Check
