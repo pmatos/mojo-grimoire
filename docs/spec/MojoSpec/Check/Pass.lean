@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12609668123975707695")
+:::moduleDocs (fingerprint := "6343786735662056620")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -29,10 +29,11 @@ cannot be changed. Passed `mut` to an initializer, such a place is
 reported as the initializer's misfit.
 :::
 
-:::readable MojoGrimoire.Check.lateErrors (fingerprint := "2068864695038659814")
+:::readable MojoGrimoire.Check.lateErrors (fingerprint := "5024084900289480669")
 *Definition: recording a later error.* In an argument of `range`, an error
 of a later pass than typing, a use of an uninitialized or invalidated
-value or a constant index out of range (`CheckError.late`), is recorded
+value or a constant index out of range (`CheckError.late`), or a nested
+literal's failed SIMD constraint, `noMatchingInit` of $`\mathsf{Int}`, is recorded
 instead of thrown, so that the errors of all the arguments can be reported
 in the compiler's order of passes (#121).
 :::

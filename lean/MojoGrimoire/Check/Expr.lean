@@ -125,14 +125,14 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
           | .call f args =>
             if builtinRange prog f && !(← get).vars.any (·.name == f) then do
               let s ← get
-              let (misfit, literal) ← typeRangeArgs prog args
+              let (misfit, literal) ← typeRangeArgs prog true args
               set s
               if misfit || args.isEmpty || 3 < args.length || u != .int then
                 throw (CheckError.noMatchingInit (.list u))
               let r ← readRangeArgs prog args
               if let some err := r.owned then throw err
               recheckLocs prog r.locs
-              if literal then throw (CheckError.noMatchingInit (.list u))
+              if literal || r.literal then throw (CheckError.noMatchingInit (.list u))
               if let some err := r.index then throw err
               pure (.list .int)
             else do checkExprAs prog (← locOf prog (.call f args)).isSome (.call f args)
@@ -168,17 +168,19 @@ of `List[u](…)`, each in `State.typing`, and gives whether one fits no form
 of `range`, and whether one is an open literal of `Int`s, which the
 compiler takes for an `Int` and rejects only when it instantiates the call
 (#121). An error of typing is thrown, in any argument; a literal is typed
-by `typeLiteral`, and any other argument by `typeArg`. -/
-def typeRangeArgs (prog : Program) : List Expr → CheckM (Bool × Bool)
+by `typeLiteral`, and any other argument by `typeArg`. A literal whose first
+element, at any depth, is an empty literal fits no form as the `first`
+argument, and is such a literal of `Int`s after it. -/
+def typeRangeArgs (prog : Program) (first : Bool) : List Expr → CheckM (Bool × Bool)
   | [] => pure (false, false)
   | a :: as => do
     modify State.typing
     let (misfit, literal) ← match a with
       | .list .noneType es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => do
         let (ints, empty) ← typeLiteral prog es
-        pure (if es.isEmpty || (ints && !empty) then (false, true) else (true, false))
+        pure (if ints && !(first && empty) then (false, true) else (true, false))
       | a => do pure ((← typeArg prog a) != .int, false)
-    let (misfit', literal') ← typeRangeArgs prog as
+    let (misfit', literal') ← typeRangeArgs prog false as
     pure (misfit || misfit', literal || literal')
   termination_by as => (sizeOf as, 2)
 
@@ -201,7 +203,8 @@ the compiler types it before it finds the form of `range` that fits. One
 that holds a string or a call of `range` (`holdsStrOrRange`) fits none: it
 is typed only in its other parts, and has no type here, `None`. So has a
 literal in it. A place is typed by `typePlace`. One whose check gives an
-error that the compiler reports after its types has its `lateElemTy`. -/
+error that the compiler reports after its types, or after the misfit, an
+implicit copy, has its `lateElemTy`. -/
 def typeArg (prog : Program) (e : Expr) : CheckM Ty :=
   if holdsStrOrRange e then do
     match e with
@@ -213,11 +216,13 @@ def typeArg (prog : Program) (e : Expr) : CheckM Ty :=
   else
     match e with
     | .place p => do
-      try typePlace prog p catch err => unless err.late do throw err
+      try typePlace prog p catch err => unless err.late || err == .noMatchingInit .int do throw err
       placeTy prog p
     | .list .noneType es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => do typeArgs prog es; pure .noneType
     | e => try checkExprAs prog false e catch err =>
-        if err.late || err == .noMatchingInit .int then lateElemTy prog e else throw err
+        if err.late || err == .noMatchingInit .int || err matches .implicitCopy _ then
+          lateElemTy prog e
+        else throw err
   termination_by (sizeOf e, 1)
 
 /-- Types each of the expressions `es` (`typeArg`). -/
@@ -228,18 +233,18 @@ def typeArgs (prog : Program) : List Expr → CheckM Unit
 
 /-- Reads the arguments `args` of `range`, typed by `typeRangeArgs`, in
 order, as `Int`s passed to `read` parameters, and an open literal's
-elements by `readIntElems`. An error of a later pass than typing is
-recorded (`lateErrors`), and the arguments after it still read. -/
+elements in turn. An error of a later pass than typing is recorded
+(`lateErrors`), and the arguments and elements after it still read. -/
 def readRangeArgs (prog : Program) : List Expr → CheckM RangeArgs
   | [] => pure {}
   | a :: as => do
-    let r ← lateErrors (match a with
-      | .place p => do
+    let r ← match a with
+      | .list .noneType es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => readRangeArgs prog es
+      | .place p => lateErrors (do
         checkIndices prog p
         let _ ← readPlace prog p
-        pure { locs := [([p], ← mark)] }
-      | .list .noneType es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => do pure { locs := ← readIntElems prog es }
-      | a => do
+        pure { locs := [([p], ← mark)] })
+      | a => lateErrors (do
         let _ ← checkExprAs prog false a
         pure { locs := [(← lateLocs prog a, ← mark)] })
     pure (r.append (← readRangeArgs prog as))

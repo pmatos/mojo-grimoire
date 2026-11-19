@@ -32,9 +32,11 @@ def requireMutable (p : Place) (fit : Fit := .call) : CheckM Unit := do
     throw (fit.misfit (CheckError.immutablePlace p))
 
 /-- Runs `x`, and records an error of a later pass than typing that it
-throws (`CheckError.late`) instead of throwing it. -/
+throws (`CheckError.late`), or a nested literal's failed SIMD constraint,
+`noMatchingInit` of `Int`, instead of throwing it. -/
 def lateErrors (x : CheckM RangeArgs) : CheckM RangeArgs :=
-  tryCatch x fun err => if err.late then pure (RangeArgs.ofLate err) else throw err
+  tryCatch x fun err =>
+    if err.late || err == .noMatchingInit .int then pure (RangeArgs.ofLate err) else throw err
 
 /-- The type of a call of signature `sig`. A call that returns a reference,
 used as a value, copies the value it points to implicitly, unless `asRef`

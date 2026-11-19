@@ -32,8 +32,9 @@ one to three `Int`s, read as `read` arguments, and needs `u` to be `Int`;
 any misfit is `noMatchingInit` (#121). Its errors come in the compiler's
 order of passes: typing errors in any argument first, then the misfits of
 `range`, then uses of uninitialized or invalidated values, then a literal
-of `Int`s of the wrong length, then a constant index out of range.
-Anywhere else `range` is an unknown function.
+of `Int`s of the wrong length, then a constant index out of range. The
+compiler's order is tiered more finely, which is left to #96. Anywhere
+else `range` is an unknown function.
 -/
 
 namespace MojoGrimoire.Check
@@ -117,22 +118,26 @@ end
 
 /-- What reading the arguments of the standard library's `range` finds, of
 the compiler's passes after typing, which report in this order (#121):
-`owned`, the first use of an uninitialized or invalidated value; `index`,
-the first constant index out of range. `locs` holds the places that the
+`owned`, the first use of an uninitialized or invalidated value;
+`literal`, a nested literal of `Int`s of the wrong length, which fails when
+the call is instantiated; `index`, the first constant index out of range. `locs` holds the places that the
 arguments read late, each with its mark, of those read without an error. -/
 structure RangeArgs where
   owned : Option CheckError := none
+  literal : Bool := false
   index : Option CheckError := none
   locs : List (List Place × Nat) := []
 
 /-- What the arguments `r` and then `s` find. -/
 def RangeArgs.append (r s : RangeArgs) : RangeArgs :=
-  ⟨r.owned <|> s.owned, r.index <|> s.index, r.locs ++ s.locs⟩
+  ⟨r.owned <|> s.owned, r.literal || s.literal, r.index <|> s.index, r.locs ++ s.locs⟩
 
 /-- The error `err` of a later pass than typing, found in an argument of
-`range`: a constant index out of range, or else a use of a value. -/
+`range`: a constant index out of range, a nested literal's failed
+constraint, or else a use of a value. -/
 def RangeArgs.ofLate (err : CheckError) : RangeArgs :=
   if err matches .negativeIndex _ | .constantIndexOutOfBounds _ then { index := some err }
+  else if err == .noMatchingInit .int then { literal := true }
   else { owned := some err }
 
 /-- The elements of a literal `[e₁, …, eₙ]`, `n ≠ 1`, typed `Int`, as
@@ -147,8 +152,8 @@ def State.typing (s : State) : State :=
   { s with vars := s.vars.map fun v => { v with uninit := [], moved := [], pieces := [] },
            stale := [] }
 
-/-- The type of an element `e` of a literal where an `Int` is expected, when
-checking it gives an error that the compiler reports after its types: one
+/-- The type of an element `e` of a literal where an `Int` is expected, or
+of an argument of `range` (#121), when checking it gives an error that the compiler reports after its types: one
 of a later pass (`CheckError.late`), or a nested literal's failed SIMD
 constraint. It is the type of its operator's or its call's result, of
 the place it reads, the list that `List[u](e)` builds, an array of its

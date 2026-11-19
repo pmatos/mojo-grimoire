@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12058885147365312873")
+:::moduleDocs (fingerprint := "17256344518639174098")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "7657055534434236357")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "7031900361640489430")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -70,17 +70,20 @@ type:
   misfit of a call inside any argument at once. An argument that holds a
   string or a call of `range` (`holdsStrOrRange`) is typed only in its
   other parts, by `typeArg`; an open literal's elements by `typeLiteral`;
-  and an argument whose check gives an error of a later pass has its
-  `lateElemTy`. Then the call is `noMatchingInit` $`\mathsf{List}[u]`:
+  and an argument whose check gives an error that the compiler reports
+  after its types, or after the misfit, an implicit copy of the value a
+  call returns a reference to, has its `lateElemTy`. Then the call is `noMatchingInit` $`\mathsf{List}[u]`:
   when an argument is not an $`\mathsf{Int}`, holds a string or a
-  `range`, or is an open literal other than one of $`\mathsf{Int}`s, at
-  any depth, whose first element is not an empty literal; when there are
-  not one to three arguments; or when $`u` is not $`\mathsf{Int}`. In the
-  state before the typing, `readRangeArgs` then reads the arguments in
-  order, a literal's elements by `readIntElems`, and records the errors
-  of later passes. The first use of an uninitialized or invalidated value
-  comes first, also among the places read late; then such a literal of
-  $`\mathsf{Int}`s, or an empty one, is `noMatchingInit`, as the compiler
+  `range`, or is an open literal other than one of $`\mathsf{Int}`s at
+  any depth; when the first argument is an empty literal, or one whose
+  first element, at any depth, is an empty literal; when there are not one
+  to three arguments; or when $`u` is not $`\mathsf{Int}`. In the state
+  before the typing, `readRangeArgs` then reads the arguments in order, a
+  literal's elements each in turn, and records the errors of later
+  passes. The first use of an uninitialized or invalidated value comes
+  first, also among the places read late; then such a literal of
+  $`\mathsf{Int}`s, or an empty one, or one of the wrong length nested in
+  an argument, is `noMatchingInit`, as the compiler
   fails only when it instantiates the call; then a constant index out of
   range. `range` anywhere else is an unknown function: a range is not a
   value of its own;
