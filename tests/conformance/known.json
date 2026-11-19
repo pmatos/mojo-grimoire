@@ -1,6 +1,9 @@
 {
   "note": "Programs whose result disagrees with the compiler's by a decision-log entry, docs/conformance/decision-log.md, with the entry's id.",
   "known": {
+    "basics/int_literal_length_evaluated": "D-0005",
+    "basics/int_literal_length_three": "D-0005",
+    "basics/int_literal_length_two": "D-0005",
     "lists/store_after_grow": "D-0002",
     "structs/cycle_fieldwise_init": "D-0004",
     "structs/cycle_fieldwise_init_both": "D-0004",

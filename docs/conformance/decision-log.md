@@ -179,3 +179,45 @@ Each move of the Mojo pin gets an entry below.
   with the same non-'Deinitable' error.
 - Upstream report: not filed yet. A draft on #47 awaits the human's
   approval; its link goes here once it is filed.
+
+### D-0005: a list literal of any length but 1 that initializes an `Int`
+
+- Date: 2026-11-19
+- Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868)
+- Programs:
+  - `tests/conformance/basics/int_literal_length_two.mojo`
+  - `tests/conformance/basics/int_literal_length_three.mojo`
+  - `tests/conformance/basics/int_literal_length_evaluated.mojo`
+- Compiler: `Int` is `SIMD[DType.int, 1]`, and a literal where an `Int`
+  is expected calls SIMD's `__list_literal__` initializer
+  (`std/simd.mojo:941`). The stdlib documents that the number of elements
+  must equal the vector's size, 1, but 1.2.0 checks it only with an
+  `assert`, which a default build leaves out. So a default build accepts
+  `var x: Int = [e1, …, en]` for every n. For n ≥ 2 it evaluates every
+  element and keeps `e1`: `[1, 2]` and `[1, 2, 3]` print `1`, and
+  `[f(1), f(2)]`, where `f` prints its argument, prints `f 1`, `f 2`,
+  `1`. For n = 0, `var x: Int = []` builds a program that crashes with a
+  segmentation fault (exit 139), so the suite leaves it out. Every
+  position probed on 2026-11-19 behaves the same: an assignment, a
+  `return`, a function argument, a field of `@fieldwise_init`, `append`
+  on a `List[Int]`, an operand `x + [2, 3]`, and an element of a literal
+  of `Int`s, where `var xs: List[Int] = [[1, 2], [3]]` prints `[1, 3]`.
+  With `-D ASSERT=all` the build traps instead: "mismatch in the number
+  of elements in the SIMD variadic constructor".
+- Model: rejects every length but 1, n = 0 included. Where the literal
+  initializes the `Int`, in a declaration, an assignment, a `return`, a
+  construction or an enclosing literal, it is `noMatchingInit`. Passed to
+  a function or a method, `append` among them, or as an operand, it is a
+  `typeMismatch`, as for `[True]` there.
+- Classification: compiler bug, ruled by the human on 2026-11-19 (#122).
+  The ruling is provisional, until the human has discussed it with
+  Modular.
+- Decision and rationale: the model keeps rejecting these literals. The
+  stdlib documents the constraint, and leaving it unchecked keeps
+  elements the program wrote, or reads an `Int` that was never written.
+  The nightly 1.3.0.dev2026111705, checked on 2026-11-18 and 2026-11-19,
+  fixes it: it rejects every length but 1, in every position above, with
+  "function instantiation failed" and the note "constraint failed:
+  expected 1 elements in the SIMD list literal, found N"
+  (`std/simd.mojo:1056`).
+- Upstream report: none needed, since the nightly fixes it.

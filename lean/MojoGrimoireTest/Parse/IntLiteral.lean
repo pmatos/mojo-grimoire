@@ -5,7 +5,8 @@ import MojoGrimoire.Interp.Run
 Tests of a literal `[e]` of one `Int` element where an `Int` is expected
 (#103). Mojo 1.2.0's `Int` is `SIMD[DType.int, 1]`, whose `__list_literal__`
 initializer takes the elements, so such a literal is the value of `e`.
-Literals of other lengths wait on a ruling (#122) and keep their errors.
+A literal of any other length is rejected: Mojo 1.2.0 accepts it, a compiler
+bug that the nightly fixes (#122, D-0005).
 -/
 
 namespace MojoGrimoireTest.Parse.IntLiteral
@@ -133,12 +134,26 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard runLines (inMain ["print(arr[[2]])"]) == some (.failed .indexOutOfBounds [])
 #guard runLines (inMain ["print(xs[[1] - 2])"]) == some (.failed .indexOutOfBounds [])
 
--- An element that is not an `Int` fits no initializer of `Int`, and other
--- lengths keep their errors until #122 is ruled.
+-- An element that is not an `Int` fits no initializer of `Int`.
 #guard rejects ["var y: Int = [True]"] (.noMatchingInit .int)
-#guard rejects ["var y: Int = [1, 2]"] (.noMatchingInit .int)
-#guard rejects ["var y: Int = []"] (.noMatchingInit .int)
 #guard rejects ["print(x + [True])"] (.typeMismatch .int (.array .bool 1))
+-- Nor does a literal of any length but 1, a compiler bug of Mojo 1.2.0 that
+-- the nightly fixes (D-0005). Where it initializes the `Int`, it is
+-- `noMatchingInit`.
+#guard rejects ["var y: Int = []"] (.noMatchingInit .int)
+#guard rejects ["var y: Int = [1, 2]"] (.noMatchingInit .int)
+#guard rejects ["var y: Int = [1, 2, 3]"] (.noMatchingInit .int)
+#guard rejects ["var y: Int = [loud(1), loud(2)]"] (.noMatchingInit .int)
+#guard rejects ["x = [5, 6]"] (.noMatchingInit .int)
+#guard rejects ["x = []"] (.noMatchingInit .int)
+#guard rejects ["var s = S([4, 5], True)"] (.noMatchingInit (.struct "S"))
+#guard rejects ["var ys: List[Int] = [[1, 2], [3]]"] (.noMatchingInit (.list .int))
+#guard runLines (lib ++ ["def ret() -> Int:", "    return [3, 4]", "def main():",
+  "    print(ret())"]) == some (.rejected ⟨"ret", .noMatchingInit .int⟩)
+-- Passed to a function or a method, or as an operand, it is a type mismatch.
+#guard rejects ["print(rd([7, 8]))"] (.typeMismatch .int (.array .int 2))
+#guard rejects ["xs.append([2, 3])"] (.typeMismatch .int (.array .int 2))
+#guard rejects ["print(x + [2, 3])"] (.typeMismatch .int (.array .int 2))
 -- A literal with no type expected is still an array: as the left operand of
 -- a comparison, negated, as the argument of `List[Int](…)`, or bound to a
 -- variable.
