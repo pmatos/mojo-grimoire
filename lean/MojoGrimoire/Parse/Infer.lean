@@ -1,5 +1,6 @@
 import MojoGrimoire.Parse.Stmt
 import MojoGrimoire.Check.State
+import MojoGrimoire.Check.Operators
 
 /-!
 Type inference for what the parser leaves open: the type of a variable
@@ -21,7 +22,10 @@ literals and operators: that literal stays, typed `Int`, since Mojo does
 not compute an index that holds it when it compiles the program. Passed
 `mut` or `ref`, the literal is a temporary, so it stays too
 (`keepTemporaries`), and a function that returns a reference expects no
-`Int` of what it returns, which must be a place. An `Int`
+`Int` of what it returns, which must be a place. A literal of any other
+length where an `Int` is expected is typed `Int` too, and so is each of
+its elements, as SIMD's initializer takes them; the checker rejects it
+(#153, #154). An `Int`
 is also expected by an index, and by either operand of an operator other
 than `and` and `or` whose other operand is an `Int`, as Mojo reads it
 (#160). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
@@ -48,11 +52,6 @@ open MojoGrimoire.Core MojoGrimoire.Check
 
 /-- The types of the variables in scope, innermost first. -/
 abbrev TyEnv := List (Name × Ty)
-
-/-- The type of the result of the binary operator `op`. -/
-def binaryResult : BinOp → Ty
-  | .add | .sub | .mul | .floorDiv | .mod => .int
-  | _ => .bool
 
 /-- The type of an open literal that is expected to have the type `t`: `t`
 itself when it is a list or an array, whose size the checker compares with
@@ -153,6 +152,8 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
       let (e', te) := inferExpr prog env .int e
       if te == some .int then (if foldable e' then .list .int [e'] else e', some .int)
       else (.list .noneType [e'], te.map (.array · 1))
+    | .noneType, .int, es =>
+      (.list .int ((inferList prog env (List.replicate es.length .int) es).map (·.1)), some .int)
     | t, _, es =>
       let n := es.length
       let t := if t == .noneType then openLiteralTy exp else t

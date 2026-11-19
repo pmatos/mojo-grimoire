@@ -1,4 +1,5 @@
 import MojoGrimoire.Check.Change
+import MojoGrimoire.Check.Operators
 
 /-!
 How a call reports an argument that does not fit its parameter (#46).
@@ -12,6 +13,8 @@ initializes the list or array expected where it stands, and `List[u](e)`
 from a source that is not a list or an array of `u` that can be copied. A
 literal passed to a function or a method is converted to its parameter's
 type, and the compiler reports one that does not fit as a type mismatch.
+A literal of any length but 1 where an `Int` is expected fits nowhere
+(`rejectIntLiteral`, #153, #154).
 -/
 
 namespace MojoGrimoire.Check
@@ -74,5 +77,48 @@ def iterableLiteralTy (prog : Program) (u : Ty) (ts : List (Ty × List Place × 
   unless ts.all (·.1 == t) do throw (CheckError.noMatchingInit (.list u))
   recheckLocs prog (ts.map (·.2))
   pure (.array t ts.length)
+
+/-- The elements of a literal `[e₁, …, eₙ]`, `n ≠ 1`, typed `Int`, as
+inference types one where an `Int` is expected (#153, #154). -/
+def wrongIntLiteral : Expr → Option (List Expr)
+  | .list .int es => if es.length == 1 then none else some es
+  | _ => none
+
+/-- The state `s` with every variable whole and no reference invalidated,
+in which an expression is typed without its reads failing. -/
+def State.typing (s : State) : State :=
+  { s with vars := s.vars.map fun v => { v with uninit := [], moved := [], pieces := [] },
+           stale := [] }
+
+/-- The type of an element `e` of a literal where an `Int` is expected, when
+checking it gives an error that the compiler reports after its types: one
+of a later pass (`CheckError.late`), or a nested literal's failed SIMD
+constraint. It is the type of its operator's or its call's result, of
+the place it reads, the list that `List[u](e)` builds, an array of its
+first element, or else `Int`. -/
+def lateElemTy (prog : Program) : Expr → CheckM Ty
+  | .unary .not _ => pure .bool
+  | .binary op _ _ => pure (binaryResult op)
+  | .call f _ => pure (((callSig prog f).toOption.map (·.result)).getD .int)
+  | .method p m args => do
+    pure (((methodSig prog (← placeTy prog p) m args.length).toOption.map (·.result)).getD .int)
+  | .place p | .copy p | .transfer p => placeTy prog p
+  | .listInit u [_] => pure (.list u)
+  | .list .noneType (e :: es) => do pure (.array (← lateElemTy prog e) (es.length + 1))
+  | _ => pure .int
+
+/-- Rejects a `wrongIntLiteral` as a call of fit `fit` reports it. The
+compiler types its elements before it reads any: `misfit` types each in
+`State.typing`, and gives the type of the first that is no `Int`, nor
+such a literal of `Int`s, a type mismatch. Otherwise, in the state it
+started from, `reads` reads them, and the compiler then fails SIMD's
+constraint of one element, `noMatchingInit`. -/
+def rejectIntLiteral {α : Type} (prog : Program) (fit : Fit) (misfit : CheckM (Option Ty))
+    (reads : CheckM (List (List Place × Nat))) : CheckM α := do
+  let s ← get
+  if let some u ← misfit then throw (fit.misfit (CheckError.typeMismatch .int u))
+  set s
+  recheckLocs prog (← reads)
+  throw (fit.misfit (CheckError.noMatchingInit .int))
 
 end MojoGrimoire.Check

@@ -3,7 +3,8 @@ import MojoGrimoire.Check.Errors
 /-!
 The types and constant values of operators, which the checker gives the
 operands of a unary or a binary operator, and the indices that Mojo
-computes when it compiles the program.
+computes when it compiles the program. The type of a binary operator's
+result, whatever its operands, is also what inference gives it.
 -/
 
 namespace MojoGrimoire.Check
@@ -30,6 +31,12 @@ def binaryTy (op : BinOp) (a b : Ty) : Except CheckError Ty :=
     unless a == .bool do throw (.typeMismatch .bool a)
     unless b == .bool do throw (.typeMismatch .bool b)
     pure .bool
+
+/-- The type of the result of the binary operator `op`, whatever its
+operands: an `Int` for arithmetic, and a `Bool` for any other. -/
+def binaryResult : BinOp → Ty
+  | .add | .sub | .mul | .floorDiv | .mod => .int
+  | _ => .bool
 
 /-- The type of the result of the operator `op` on an operand of type `a`. -/
 def unaryTy (op : UnOp) (a : Ty) : Except CheckError Ty :=

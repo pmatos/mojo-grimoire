@@ -138,7 +138,12 @@ with the note "constraint failed: expected N elements in the SIMD list
 literal, found M" (D-0005). `diagnostics.json` maps it, matched whole with
 its note, to `noMatchingInit` (#160); a failed instantiation with any other
 note does not match it. Each of the three messages still reaches only that
-class.
+class. The nightly gives it in every position, a converted argument or
+operand too, so the model reports `noMatchingInit` there as well (#154);
+a literal whose elements are not all `Int`s gives the first message where
+it initializes the `Int`, and "cannot be converted from list literal"
+where it is converted (#153). The table of positions is on
+[semantics-lists.md](semantics-lists.md).
 
 Ordinary calls keep their classes, since the compiler names the misfit
 there: `typeMismatch` and `arityMismatch`. So does a literal passed to a
