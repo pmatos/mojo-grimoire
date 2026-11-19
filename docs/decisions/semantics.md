@@ -9,20 +9,27 @@ the driver.
 
 ## The reference
 
-The open-source Mojo compiler at a pinned release is the reference
-(ADR-2026-11-15-1907). The pin is the 1.2 release line,
-`MojoGrimoire.referenceMojo`, and within it the commit of the tag
-`mojo/v1.2.0` of `modular/modular`. `scripts/build-mojo.sh` builds the
-compiler from a checkout at that commit and refuses any other. The pin moves
-forward with new releases as needed; each move updates the conformance
-suite's recorded results, the script, the decision log and this page in the
-same PR. The human chose this on 2026-11-15. The model follows the compiler,
+The open-source Mojo compiler at a pinned version is the reference
+(ADR-2026-11-15-1907). The pin is the nightly `1.3.0.dev2026111905`,
+`MojoGrimoire.referenceMojo`, which reports
+`Mojo 1.3.0.dev2026111905 (a549e6a6)`. `scripts/install-mojo.sh` installs
+its wheel from Modular's nightly index and refuses it unless the wheels of
+the driver, the compiler and the standard library have their pinned sha256.
+That build's own commit is not public; the source is read at the nearest
+public commit of `modular/modular`, `10c54f6f5b`, "[Release] Pin lockfiles
+to Mojo 1.3.0.dev2026111905". The pin moves forward to newer nightlies as
+needed; each move updates the conformance suite's recorded results, the
+script, the decision log and this page in the same PR. The human chose the
+1.2 release line on 2026-11-15, and on 2026-11-19 moved the pin to the
+latest nightly, as a wheel (#160). The model follows the compiler,
 and [the decision log](../conformance/decision-log.md) records each place
 where it departs, each a compiler bug
 ([conformance.md](conformance.md#the-decision-log)).
 
 Rejected: testing against the compiler's tip, where expected results would go
-stale with no change on our side.
+stale with no change on our side. Also rejected: building the nightly from
+source at a public commit, as the pin on 1.2.0 did, which gives a compiler
+other than the one Modular ships, in about 25 minutes.
 
 ## Independence
 

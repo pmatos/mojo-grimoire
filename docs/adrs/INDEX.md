@@ -21,7 +21,7 @@ The last column is what holds now: the ADR and every ADR that its
 | [ADR-2026-11-15-1904](2026-11-15-1904-agents-wait-for-human-direction.md) | [process](../decisions/process.md) | Agents wait for human rulings before changing agreed direction | this ADR |
 | [ADR-2026-11-15-1905](2026-11-15-1905-lean-is-pinned-and-has-no-dependencies.md) | [lean-model](../decisions/lean-model.md) | The Lean model is pinned to a stable Lean release, has no dependencies, and is built by one script | this ADR |
 | [ADR-2026-11-15-1906](2026-11-15-1906-the-lean-build-fails-on-untrusted-axioms.md) | [lean-model](../decisions/lean-model.md) | The Lean build fails on sorry, untrusted axioms, unsafe code and any warning | this ADR |
-| [ADR-2026-11-15-1907](2026-11-15-1907-the-compiler-is-the-reference.md) | [semantics](../decisions/semantics.md) | The open-source Mojo compiler at a pinned release is the reference, and the model departs from it only by a logged decision | this ADR |
+| [ADR-2026-11-15-1907](2026-11-15-1907-the-compiler-is-the-reference.md) | [semantics](../decisions/semantics.md) | The open-source Mojo compiler at a pinned version is the reference, and the model departs from it only by a logged decision | this ADR |
 | [ADR-2026-11-15-1908](2026-11-15-1908-the-model-is-independent-of-the-isabelle-formalisation.md) | [semantics](../decisions/semantics.md) | The model is independent of the Isabelle formalisation of Mojo | this ADR |
 | [ADR-2026-11-15-2030](2026-11-15-2030-the-spec-is-lean-rendered-with-verso-as-readable-blocks.md) | [spec](../decisions/spec.md) | The spec is Lean rendered with Verso, shown as readable blocks checked against the Lean, from the first module on | this ADR |
 

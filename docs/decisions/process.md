@@ -37,9 +37,12 @@ disagreement with the compiler in the decision log; by the human's ruling of
 2026-11-16, the log records only where the model departs from the compiler
 ([conformance.md](conformance.md#the-decision-log)). The roadmap also
 classifies a mismatch as a spec decision; by the human's ruling of
-2026-11-19, the only departure is a compiler bug.
+2026-11-19, the only departure is a compiler bug. The roadmap builds Mojo
+1.2.x from source at a pinned commit; by the human's ruling of 2026-11-19,
+the reference is the latest nightly, pinned as a wheel checked by sha256
+([semantics.md](semantics.md#the-reference), #160).
 
-Phase 0 is done: gate G0 holds at the pin, as
+Phase 0 is done: gate G0 holds at the pin of the time, Mojo 1.2.0, as
 [phase0-baseline.md](../conformance/phase0-baseline.md) records.
 
 ### Phase 1: the core calculus in Lean

@@ -1,6 +1,8 @@
 {
-  "outcome": "rejected",
-  "stdout": [],
+  "outcome": "finished",
+  "stdout": [
+    "1"
+  ],
   "class": null,
-  "diagnostic": "invalid call to '__init__': no candidates found"
+  "diagnostic": null
 }

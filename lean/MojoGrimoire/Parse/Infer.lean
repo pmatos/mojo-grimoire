@@ -22,10 +22,9 @@ not compute an index that holds it when it compiles the program. Passed
 `mut` or `ref`, the literal is a temporary, so it stays too
 (`keepTemporaries`), and a function that returns a reference expects no
 `Int` of what it returns, which must be a place. An `Int`
-is also expected by an index, by the right operand of an operator other
-than `and` and `or` whose left one is an `Int`, and by a literal left
-operand of an arithmetic operator whose right one is an `Int`, which Mojo
-reaches through `__radd__` and its kin. Where none is expected, it is an `Array[t, n]` of its `n` elements, with
+is also expected by an index, and by either operand of an operator other
+than `and` and `or` whose other operand is an `Int`, as Mojo reads it
+(#160). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
 the type `t` of the first, as in Mojo: inference gives that type to what
 holds the literal, and leaves the literal's own type `None`, so that the
 checker tells a literal that initializes an expected type from one that
@@ -140,7 +139,8 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
     let (a₀, ta₀) := if a matches .list .. then (a, none) else inferExpr prog env .noneType a
     let (b₀, tb₀) := if b matches .list .. then (b, none) else inferExpr prog env .noneType b
     let (a', ta) := if a matches .list .. then
-        inferExpr prog env (if tb₀ == some .int && op.arith.isSome then .int else .noneType) a
+        inferExpr prog env (if tb₀ == some .int && op != .and && op != .or then .int
+          else .noneType) a
       else (a₀, ta₀)
     let b' := if b matches .list .. then
         (inferExpr prog env (if ta == some .int && op != .and && op != .or then .int

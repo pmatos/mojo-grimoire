@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9500786569130996480")
+:::moduleDocs (fingerprint := "13187047474795161891")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "7491183084080357663")
@@ -39,7 +39,7 @@ temporary filled from $`e` when the call is made, which a returned
 reference keeps, so it does not see a later change (#103).
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "11018487376887793400")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "10527975560567780387")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
@@ -62,10 +62,9 @@ when $`e` is `foldable`, $`[e]_{\mathsf{Int}}`. The arguments of a call keep
 a literal passed `mut` or `ref` as $`[e]_{\mathsf{Int}}`, by
 `keepTemporaries`: Mojo passes a temporary there. A function that returns
 a reference expects no type of the values it returns. An index is expected to be
-an $`\mathsf{Int}`, and so is the right operand of an operator whose left
-operand is an $`\mathsf{Int}`, other than `and` and `or`, and a literal
-left operand of an arithmetic operator whose right operand is an
-$`\mathsf{Int}`, as Mojo reaches it through `__radd__` and its kin. Each
+an $`\mathsf{Int}`, and so is either operand of an operator other than
+`and` and `or` whose other operand is an $`\mathsf{Int}`, as Mojo reads it
+(#160). Each
 operand that is not a literal is inferred first, with no type expected,
 and a literal operand once, with $`\mathsf{Int}` expected when the rule
 above says so.

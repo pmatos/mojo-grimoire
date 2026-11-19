@@ -20,7 +20,7 @@ which failed is added to it, since that note says why.
 Usage:
   scripts/conformance.py record --mojo WRAPPER [PROGRAM...]
       Runs each program with the compiler, through the wrapper that
-      scripts/build-mojo.sh prints, and writes its expected result: a
+      scripts/install-mojo.sh prints, and writes its expected result: a
       program the compiler cannot build is rejected; one it builds is run,
       and finishes or fails by its exit status.
   scripts/conformance.py check [--allow-unrecorded] [--no-build]

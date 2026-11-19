@@ -46,7 +46,7 @@ links to the ADR in the appendix, which holds every ADR.
 The model is tested against one release line of the Mojo compiler, and the
 model, the conformance suite and the decision log name the same one.
 
-{includeReadable "." MojoGrimoire.Reference "The reference release" MojoSpec.Reference (level := 2)}
+{includeReadable "." MojoGrimoire.Reference "The reference version" MojoSpec.Reference (level := 2)}
 
 # The core calculus
 

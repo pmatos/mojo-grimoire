@@ -23,26 +23,39 @@ hid the departures that matter. The reference is set on
 
 ## The Phase 0 baseline
 
-[phase0-baseline.md](../conformance/phase0-baseline.md) records gate G0. The
-compiler built from the pinned commit by `scripts/build-mojo.sh`, and the
+[phase0-baseline.md](../conformance/phase0-baseline.md) records gate G0, at
+the pin of the time, Mojo 1.2.0 built from source. That compiler, and the
 Isabelle formalisation, both reproduce that formalisation's recorded results.
 Only our counts and summaries are kept here.
 
 ## Running the reference compiler
 
 The reference compiler runs only through the wrapper that
-`scripts/build-mojo.sh` prints. A source-built `mojo` otherwise reads an
-installed Mojo's `modular.cfg` and `MODULAR_*` variables, and links the
-programs it builds against that install's runtime, with no error. The script
-fails unless a test program built through the wrapper loads only libraries
-built from the pinned commit.
+`scripts/install-mojo.sh DIR` prints. The script installs the pinned nightly
+wheel into a virtual environment under `DIR`, outside the repository, made
+afresh on every run. It refuses the install unless the wheels of the
+driver, the compiler and the standard library have their pinned sha256; the
+human ruled the first two on 2026-11-19 (#160), and the third holds the
+standard library, `std.mojoc`. Each other `mojo*` package must have the
+pinned version, which the wheels' metadata pins exactly, and the wrapper
+must report `Mojo 1.3.0.dev2026111905 (a549e6a6)`. Modular's nightly index
+is searched before PyPI, so no package it holds comes from PyPI.
+
+The wheel's `mojo` otherwise takes its package root and import path from
+inherited `MODULAR_*` variables, and the driver reads the first
+`modular.cfg` it finds, so that it links the programs it builds against
+another install's runtime, with no error. The wrapper removes every
+inherited `MODULAR_*` variable and gives the driver a home with an empty
+`modular.cfg`. The script fails unless a test program built through the
+wrapper, under a hostile config and environment, loads only libraries from
+the installed wheels.
 
 Rejected: printing the environment for callers to set. A caller that forgets
 one variable gets results from the wrong runtime.
 
-`scripts/build-mojo.sh` runs by hand. No hook or CI job runs it until the
-conformance suite needs the compiler in CI, by the human's ruling of
-2026-11-15. A full build takes about 25 minutes.
+`scripts/install-mojo.sh` runs by hand, in about 15 seconds. No hook or CI
+job runs it until the conformance suite needs the compiler in CI, by the
+human's ruling of 2026-11-15.
 
 ## The suite
 
@@ -55,7 +68,7 @@ project's own terms, independently of the Isabelle formalisation's suite
 
 Each program's expected result is recorded from the pinned compiler, beside
 it as `NAME.json`, by `scripts/conformance.py record --mojo WRAPPER`, run
-where the compiler is built. The compiler builds the program with
+where the compiler is installed. The compiler builds the program with
 `mojo build`: a program it cannot build is rejected, and one it builds is
 run, and finishes or fails by its exit status. A rejection's class is the
 class of the model's `CheckError` that the compiler's first error matches in
@@ -117,8 +130,15 @@ of them gives the first message. `diagnostics.json` maps the second
 message, matched whole too, to `noMatchingInit` (#103), so that the
 checker need not tell a list source from an array source. It is the first
 pattern tried, since it holds a type name that a later pattern could
-match, such as a struct named `immutable_box`. Each of the two messages still
-reaches only that class.
+match, such as a struct named `immutable_box`.
+
+The pinned nightly gives a third message for a literal of `Int`s of any
+length but 1 where an `Int` is expected: "function instantiation failed",
+with the note "constraint failed: expected N elements in the SIMD list
+literal, found M" (D-0005). `diagnostics.json` maps it, matched whole with
+its note, to `noMatchingInit` (#160); a failed instantiation with any other
+note does not match it. Each of the three messages still reaches only that
+class.
 
 Ordinary calls keep their classes, since the compiler names the misfit
 there: `typeMismatch` and `arityMismatch`. So does a literal passed to a
@@ -150,7 +170,9 @@ program can hold such a rejection. The human ruled this on 2026-11-18
 (#104).
 
 The rejections it covers are below, each with the compiler's first error,
-probed against Mojo 1.2.0 on 2026-11-18, and the guard that pins the
+probed against Mojo 1.2.0 on 2026-11-18 and again against the nightly
+1.3.0.dev2026111905 on 2026-11-19, which gives the same first errors, and
+the guard that pins the
 model's side, named by its file and program. The guards run in every
 build. When the Mojo pin moves, build each program again with the new
 compiler and compare its first error with this list.
@@ -189,10 +211,12 @@ modular/modular#7398, and the model accepts the program (D-0006, #136);
 `known.json` lists those programs under D-0006, or under D-0004 for its
 `@fieldwise_init` form.
 
-The compiler bug D-0004 gives two more messages, for cycles with
-`@fieldwise_init` that the model accepts. They have no pattern, since no
-error of the model corresponds to them, and only the programs that
-`known.json` lists under D-0004 give them in the suite.
+Mojo 1.2.0 gave two more messages for cycles with `@fieldwise_init` that
+the model accepts, the compiler bug D-0004: "invalid implicit move" and
+"invalid call to '__init__': no candidates found". The pinned nightly
+compiles those forms, and rejects only the one with the holder declared
+first, with the non-'Deinitable' message. The two messages have no
+pattern, since no error of the model corresponds to them.
 
 Rejected: mapping those two messages to `recursiveStruct`, which would
 class a compiler bug as a rejection that the model agrees with.
