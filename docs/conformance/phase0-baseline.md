@@ -3,7 +3,10 @@
 Gate G0 of the roadmap asks for evidence that both the Mojo compiler at the
 pinned commit and the Isabelle formalisation `utting/mojo-semantics`
 reproduce the results recorded in that repository. This page records the run
-of 2026-11-15. It names the formalisation's test programs by file name only.
+of 2026-11-15, at the pin of that day, Mojo 1.2.0 built from source by
+`scripts/build-mojo.sh`, which has since been removed. The pin has since moved
+to the nightly wheel 1.3.0.dev2026111905 (D-0007). It names the
+formalisation's test programs by file name only.
 Their text and expected outputs stay in that repository
 (ADR-2026-11-15-1908), and nothing in this repository reads them.
 

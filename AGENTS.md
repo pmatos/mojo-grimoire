@@ -60,8 +60,9 @@ ruled this on 2026-11-18.
 ## The two rules of the model
 
 - **The compiler is the reference.** Mojo has no written specification. The
-  open-source compiler at the pinned release (1.2.x today) is the reference,
-  and the model follows it. When they disagree, fix the model; the PR that
+  open-source compiler at the pinned version (the nightly
+  1.3.0.dev2026111905 today, installed by `scripts/install-mojo.sh`) is the
+  reference, and the model follows it. When they disagree, fix the model; the PR that
   fixes it says what changed. The model departs from the compiler only where
   the compiler has a bug, and then it does exactly what the fixed compiler
   would do. There is no third option: the model never invents a behaviour

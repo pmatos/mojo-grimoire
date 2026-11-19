@@ -1,10 +1,6 @@
 {
-  "outcome": "finished",
-  "stdout": [
-    "f 1",
-    "f 2",
-    "1"
-  ],
-  "class": null,
-  "diagnostic": null
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "noMatchingInit",
+  "diagnostic": "function instantiation failed: constraint failed: expected 1 elements in the SIMD list literal, found 2"
 }

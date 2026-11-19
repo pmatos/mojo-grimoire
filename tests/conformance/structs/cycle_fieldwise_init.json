@@ -1,6 +1,8 @@
 {
-  "outcome": "rejected",
-  "stdout": [],
+  "outcome": "finished",
+  "stdout": [
+    "1"
+  ],
   "class": null,
-  "diagnostic": "invalid implicit move: unexpected keyword argument 'move'"
+  "diagnostic": null
 }

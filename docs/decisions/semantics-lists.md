@@ -103,9 +103,10 @@ here (#27).
   a type that is neither a list nor an array, a struct or a `Bool`, is
   `noMatchingInit` too, since that type has no initializer from a list
   literal.
-- An `Int` has one. Mojo 1.2.0's `Int` is `SIMD[DType.int, 1]`
-  (`std/simd.mojo:120`), whose `__list_literal__` initializer
-  (`std/simd.mojo:941`) takes the elements as `Int`s. So a literal `[e]`
+- An `Int` has one. Mojo's `Int` is `SIMD[DType.int, 1]`
+  (`std/simd.mojo:111` at the nearest public commit of the pinned
+  nightly), whose `__list_literal__` initializer (`std/simd.mojo:1066`)
+  takes the elements as `Int`s. So a literal `[e]`
   of one `Int` element, where an `Int` is expected, is the value of `e`.
   The human ruled on 2026-11-18 that the model follows the compiler here
   (#103). The probes of that day show where an `Int` is expected: the
@@ -114,12 +115,13 @@ here (#27).
   a place, an initializer's or a method's parameter, `append` and
   `pop(i)` on a `List[Int]`, an index, and the element type of an
   enclosing literal, so `var xs: List[Int] = [[1], [2]]` is `[1, 2]` and
-  `var x: Int = [[1]]` is `1`. An operator other than `and` and `or` on
-  an `Int` expects one as its right operand, and an arithmetic operator,
-  through the `__radd__` family, as its left: `x + [2]` and `[2] - x` are
-  `Int`s, and `x < [2]` a `Bool`, but `[2] < x` and `[1] == x` compare an
-  array with an `Int`, a type mismatch, since `Array` has the comparison
-  methods. Where nothing is expected, such as the argument of
+  `var x: Int = [[1]]` is `1`. An operator other than `and` and `or`
+  expects an `Int` of either operand when the other is an `Int`: `x + [2]`
+  and `[2] - x` are `Int`s, and `x < [2]`, `[2] < x` and `[1] == x`
+  `Bool`s. Mojo 1.2.0 read a literal on the left as an `Int` for the
+  arithmetic operators only, and rejected `[2] < x` and `[1] == x` as a
+  comparison of an array with an `Int`; the nightly pinned on 2026-11-19
+  reads them as `Int`s (#160). Where nothing is expected, such as the argument of
   `List[Int](…)`, the operand of `-`, `and` or `or`, or `print`, the
   literal stays an array.
 - The compiler reads `[e]` as it reads the operand `e`: a place in it is
@@ -148,9 +150,12 @@ here (#27).
   the position, as for `[True]`. `[]` is `noMatchingInit` in a
   declaration, an assignment and a `return`; anywhere else, a
   construction and an enclosing literal included, it has no element
-  type, and is `invalidType`, as `var xs = []` is. Mojo 1.2.0 accepts every such literal, a compiler bug
-  by a provisional ruling, which the nightly fixes (#122,
-  [D-0005](../conformance/decision-log.md)). Whether the class should be
+  type, and is `invalidType`, as `var xs = []` is. Mojo 1.2.0 accepted every such literal, a compiler bug
+  by a provisional ruling (#122,
+  [D-0005](../conformance/decision-log.md)). The pinned nightly rejects
+  it in every position, with "function instantiation failed" and the note
+  "constraint failed: expected 1 elements in the SIMD list literal, found
+  N", which `diagnostics.json` classes as `noMatchingInit`. Whether the class should be
   `noMatchingInit` in every position waits on #154, and a literal whose
   elements differ in type, `P([1, True])`, on #153.
 - A constant index into an array of `N` elements is rejected when it is `N`

@@ -21,11 +21,11 @@ expected output from the Isabelle formalisation's suite
 
 ```sh
 scripts/conformance.py check            # the model against the recorded results
-scripts/conformance.py record --mojo "$(scripts/build-mojo.sh ../modular)" [PROGRAM...]
+scripts/conformance.py record --mojo "$(scripts/install-mojo.sh ../mojo-reference)" [PROGRAM...]
 ```
 
-`record` needs the compiler, built from a checkout of `modular/modular` at the
-pinned commit by `scripts/build-mojo.sh`. It writes one `NAME.json` per
+`record` needs the compiler: the pinned nightly wheel, installed outside this
+repository by `scripts/install-mojo.sh`. It writes one `NAME.json` per
 program and lists every diagnostic that no pattern of `diagnostics.json`
 classifies. A new program is recorded before it is committed, so that `check`
 compares it.

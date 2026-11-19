@@ -3,10 +3,10 @@ import MojoGrimoire.Interp.Run
 
 /-!
 Tests of a literal `[e]` of one `Int` element where an `Int` is expected
-(#103). Mojo 1.2.0's `Int` is `SIMD[DType.int, 1]`, whose `__list_literal__`
+(#103). Mojo's `Int` is `SIMD[DType.int, 1]`, whose `__list_literal__`
 initializer takes the elements, so such a literal is the value of `e`.
-A literal of any other length is rejected: Mojo 1.2.0 accepts it, a compiler
-bug that the nightly fixes (#122, D-0005).
+A literal of any other length is rejected: Mojo 1.2.0 accepted it, a compiler
+bug that the pinned nightly fixes (#122, D-0005).
 -/
 
 namespace MojoGrimoireTest.Parse.IntLiteral
@@ -93,18 +93,22 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard prints ["var ys: List[List[Int]] = [[[1]]]", "print(ys)"] ["[[1]]"]
 -- An index.
 #guard prints ["print(xs[[1]], arr[[0]])"] ["6 5"]
--- The right operand of an operator on an `Int`, and the left operand of an
--- arithmetic one.
+-- Either operand of an operator other than `and` and `or` whose other
+-- operand is an `Int`.
 #guard prints ["print(x + [2], x - [1], x * [3], x // [2], x % [2])"] ["3 0 3 0 1"]
 #guard prints ["print(x == [1], x != [1], x < [2], x <= [0], x > [0], x >= [2])"]
   ["True False True False True False"]
 #guard prints ["print([2] + x, [2] - x, [3] * x, [7] // x, [7] % x)"] ["3 1 3 7 0"]
 #guard prints ["x += [3]", "print(x)"] ["4"]
 #guard prints ["print(1 + [2], [5] - 2, len(xs) + [1])"] ["3 3 3"]
+#guard prints ["print([2] < x, [2] <= x, [2] > x, [2] >= x, [2] == x, [2] != x)"]
+  ["False False True True False True"]
+#guard prints ["print([2] < 3, [[2]] == x, [x * 2] >= x)"] ["True False True"]
 
 -- A place in the literal is read, re-checked and destroyed once every operand
 -- of the operation is evaluated, as the place alone would be.
 #guard prints ["print([x] + inc(x))"] ["11"]
+#guard prints ["print([x] == inc(x) + 11)"] ["True"]
 #guard prints ["print(two([x], inc(x)))"] ["1100"]
 #guard prints ["var ys: List[Int] = [[x], inc(x)]", "print(ys)"] ["[11, 0]"]
 #guard prints ["print(xs[[x] + inc(x) - 10])"] ["6"]
@@ -162,11 +166,10 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["print(rd([]))"] (.invalidType .noneType)
 #guard rejects ["xs.append([])"] (.invalidType .noneType)
 #guard rejects ["print(x + [])"] (.invalidType .noneType)
--- A literal with no type expected is still an array: as the left operand of
--- a comparison, negated, as the argument of `List[Int](…)`, or bound to a
--- variable.
-#guard rejects ["print([2] < x)"] (.typeMismatch .int (.array .int 1))
-#guard rejects ["print([1] == x)"] (.typeMismatch .int (.array .int 1))
+-- A literal with no type expected is still an array: as an operand of an
+-- operator whose other operand is not an `Int`, negated, as the argument of
+-- `List[Int](…)`, or bound to a variable.
+#guard rejects ["print([True] < x)"] (.typeMismatch .int (.array .bool 1))
 #guard rejects ["print(-[1])"] (.typeMismatch .int (.array .int 1))
 #guard rejects ["var ys = List[Int]([[1]])"] (.noMatchingInit (.list .int))
 #guard rejects ["var a = [1]", "var y: Int = a.copy()"] (.typeMismatch .int (.array .int 1))
