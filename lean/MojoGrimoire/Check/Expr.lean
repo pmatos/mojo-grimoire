@@ -203,8 +203,9 @@ the compiler types it before it finds the form of `range` that fits. One
 that holds a string or a call of `range` (`holdsStrOrRange`) fits none: it
 is typed only in its other parts, and has no type here, `None`. So has a
 literal in it. A place is typed by `typePlace`. One whose check gives an
-error that the compiler reports after its types, or after the misfit, an
-implicit copy, has its `lateElemTy`. -/
+error that the compiler reports after its types, or after the misfit, a
+call's implicit copy of the value it returns a reference to, has its
+`lateElemTy`. -/
 def typeArg (prog : Program) (e : Expr) : CheckM Ty :=
   if holdsStrOrRange e then do
     match e with
@@ -219,9 +220,10 @@ def typeArg (prog : Program) (e : Expr) : CheckM Ty :=
       try typePlace prog p catch err => unless err.late || err == .noMatchingInit .int do throw err
       placeTy prog p
     | .list .noneType es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => do typeArgs prog es; pure .noneType
-    | e => try checkExprAs prog false e catch err =>
-        if err.late || err == .noMatchingInit .int || err matches .implicitCopy _ then
-          lateElemTy prog e
+    | e => try checkExprAs prog false e catch err => do
+        let t ← lateElemTy prog e
+        if err.late || err == .noMatchingInit .int ||
+          (e matches .call .. | .method .. && err == .implicitCopy t) then pure t
         else throw err
   termination_by (sizeOf e, 1)
 

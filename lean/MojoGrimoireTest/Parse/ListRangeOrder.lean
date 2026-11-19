@@ -191,6 +191,10 @@ private def rangeOf (args : String) : String := s!"print(List[Int](range({args})
   ["var p = P(1)", "var u: Int", "print(List[Int](range(u, getp(p))))"] ==
   some (.rejected ⟨"main", .noMatchingInit (.list .int)⟩)
 
+-- An implicit copy inside an argument is a typing error, before any misfit.
+#guard rejectsWith (rangeOf "h(p) + 0, b") (.implicitCopy (.struct "P"))
+#guard rejectsWith (rangeOf "1, [h(p) + 0, 1], u") (.implicitCopy (.struct "P"))
+
 -- Limits of the compiler's tiered order, left to #96, which pin the model.
 -- A constant index into an array comes before the literal on the compiler,
 -- and before an index into a list; the model reports it as any index.
