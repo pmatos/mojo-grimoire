@@ -100,7 +100,9 @@ Each move of the Mojo pin gets an entry below.
     `field_by_field_unset_whole_loop.mojo`, `field_by_field_unset_ints.mojo`;
   - `field_by_field_move_after_last_use.mojo` and its `_loop` variant (#144);
   - `field_by_field_branch_move_other.mojo` and its `_both` variant (#137);
-  - `field_by_field_whole_branch_then_fields.mojo`.
+  - `field_by_field_whole_branch_then_fields.mojo`;
+  - `rejected/field_by_field_move_all_one_path.mojo`, the moved-out mirror
+    of a struct built wholly on one path, on which the model agrees.
 - Compiler: a variable of struct type declared without a value, whose
   fields are then assigned one by one, is destroyed whole even when some
   fields were never assigned. The compiler runs the destructor of each
@@ -137,10 +139,8 @@ Each move of the Mojo pin gets an entry below.
   branch may end, and so may the `self` of `__init__` built wholly in only
   one branch, which is whole once its fields are: the compiler accepts
   it with clean output. Every program above is rejected, except
-  `whole_branch_then_fields`: nothing of it ends partly built, so R does
-  not reject it, and the model destroys only the values assigned, four
-  `mark gone` lines. The human confirms this case, since the compiler's
-  rule at a join might reject it once fixed.
+  `whole_branch_then_fields`, where nothing ends partly built, and
+  `move_all_one_path`, which agrees.
 - Classification: compiler bug, ruled by the human on 2026-11-17 (#51).
   The fixed behaviour is R, ruled by the human on 2026-11-19 (#51): a
   variable that ends with only some of its fields set is rejected, however
@@ -151,14 +151,34 @@ Each move of the Mojo pin gets an entry below.
   and the fixed compiler applies its rule for a field moved out to a field
   never assigned, at a join of paths too. R replaces the 2026-11-17
   behaviour, which destroyed only the fields assigned and so matched
-  neither the compiler nor R. The model applies R as worded to a struct
-  whose fields are all `Int`s too, such as `var p: Pair; p.x = 1` in
-  `unset_ints`. The compiler accepts it, and its output shows no sign of
-  the bug, since an `Int` needs no destruction; an `Int` field cannot be
-  moved out to compare with, as `p.x^` copies it. The human confirms
-  whether R reaches this case. The first shape
-  still prints `drop 0` on the nightly 1.3.0.dev2026111705 (2026-11-18),
-  and the `Box` variant prints `box gone 1 15`, `drop 1`, `drop 0`.
+  neither the compiler nor R. The evidence, on 1.2.0 and on a nightly
+  (1.3.0.dev2026111705 or 1.3.0.dev2026111905, which agree), for three
+  cases that R's sentence does not spell out:
+  - structs of `Int`s: the compiler's rule for a field moved out does not
+    depend on a destructor. `var s = Seg(Pair(1, 2), Pair(3, 4));
+    print(s.lo.x); var h = s.hi^` is rejected with "field 's.hi'
+    destroyed out of the middle of a value", and so are
+    `rejected/move_field_destroyed` and `rejected/move_every_field`, whose
+    `Line` holds two `Point`s of `Int`s. So the model rejects `unset_ints`
+    (`var p: Pair; p.x = 1`) too, though its output shows no bug. An `Int`
+    field itself cannot be moved out, as `p.x^` copies it;
+  - a struct whole on one path and empty on another: the compiler judges
+    a field moved out at the join of paths.
+    `rejected/field_by_field_move_all_one_path` moves out every field of a
+    struct built field by field, in one branch only, and is rejected,
+    while `structs/field_by_field_move_every`, the same moves with no
+    branch, is accepted. So `unset_whole_branch` and `unset_whole_loop`
+    are rejected;
+  - a value held on only some paths: `var r: Res; if c: r = Res(1)` then
+    `r = Res(2)` prints `drop 1`, `2`, `drop 2`, destroying the first value
+    on the path that has one only. So the model, which destroys a part
+    only on the paths that hold it, accepts `whole_branch_then_fields` and
+    prints four `mark gone` lines, where the compiler also destroys the
+    two fields never assigned.
+
+  The first shape still prints `drop 0` on the nightly
+  1.3.0.dev2026111705 (2026-11-18), and the `Box` variant prints
+  `box gone 1 15`, `drop 1`, `drop 0`.
 - Upstream report: not filed yet. A draft on #51 awaits the human's
   approval; its link goes here once it is filed.
 
