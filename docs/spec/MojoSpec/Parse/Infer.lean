@@ -13,13 +13,13 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15281948054880269452")
+:::moduleDocs (fingerprint := "17053540287164507678")
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "7491183084080357663")
+:::readable MojoGrimoire.Parse.TyEnv (fingerprint := "8803222123172763763")
 *Definition: the types in scope.* Inference keeps the types of the
-variables in scope, innermost first. An arithmetic operator gives an
-$`\mathsf{Int}`, and every other binary operator a $`\mathsf{Bool}`.
+variables in scope, innermost first. An operator's result has its
+`binaryResult`.
 :::
 
 :::readable MojoGrimoire.Parse.foldable (fingerprint := "2964211985334498850")
@@ -39,7 +39,7 @@ temporary filled from $`e` when the call is made, which a returned
 reference keeps, so it does not see a later change (#103).
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "14381182947658030572")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "16124309116104749966")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
@@ -62,7 +62,11 @@ element has the type $`\mathsf{Int}` when it is expected to, is an
 $`\mathsf{Int}` (#103): $`e` itself, which Mojo reads as that operand, or,
 when $`e` is `foldable`, $`[e]_{\mathsf{Int}}`. The arguments of a call keep
 a literal passed `mut` or `ref` as $`[e]_{\mathsf{Int}}`, by
-`keepTemporaries`: Mojo passes a temporary there. A function that returns
+`keepTemporaries`: Mojo passes a temporary there. A literal of any other
+length left open where an $`\mathsf{Int}` is expected is
+$`[e^*]_{\mathsf{Int}}`, of type $`\mathsf{Int}`, with an
+$`\mathsf{Int}` expected of each element, as SIMD's initializer takes
+them; the checker rejects it (#153, #154). A function that returns
 a reference expects no type of the values it returns. An index is expected to be
 an $`\mathsf{Int}`, and so is either operand of an operator other than
 `and` and `or` whose other operand is an $`\mathsf{Int}`, as Mojo reads it

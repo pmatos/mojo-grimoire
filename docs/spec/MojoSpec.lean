@@ -82,7 +82,8 @@ compared with the compiler's diagnostics.
 
 {includeReadable "." MojoGrimoire.Check.Change "Changes and late re-checks" MojoSpec.Check.Change (level := 2)}
 
-{includeReadable "." MojoGrimoire.Check.Pass "Passing places" MojoSpec.Check.Pass (level := 2)}
+{includeReadable "." MojoGrimoire.Check.Transfer "Reading and transferring" MojoSpec.Check.Transfer (level := 2)}
+{includeReadable "." MojoGrimoire.Check.Pass "Checking helpers" MojoSpec.Check.Pass (level := 2)}
 
 {includeReadable "." MojoGrimoire.Check.Operators "Operators" MojoSpec.Check.Operators (level := 2)}
 

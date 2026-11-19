@@ -91,13 +91,16 @@ Lists, `List[T]`, follow the rules of
   an unknown name or attribute, or a misfit of a call inside it, also
   inside an argument that holds a string or a `range`. Then a misfit of
   `range`, `noMatchingInit`: a wrong number of arguments, an argument that
-  is not an `Int`, uninitialized or not, one that holds a string or a call
-  of `range` at any depth, even through an operator, or a `T` other than
-  `Int`. An open literal is a misfit too, unless every element that is
+  is not an `Int`, though it is uninitialized or reads such a value or a
+  constant index out of range, one that holds a string or a call of
+  `range` at any depth, even through an operator, or a `T` other than
+  `Int`: every argument is typed before any is read. An open literal is a misfit too, unless every element that is
   not a literal, at any depth, is an `Int` and its first element, at any
   depth, is not an empty literal: the compiler takes such a literal, or an
   empty one, for an `Int`, and fails only when it instantiates the call.
-  Then a use of an uninitialized or invalidated value. Then that literal,
+  Then a use of an uninitialized or invalidated value; the elements of a
+  literal are read late, as an operation's operands, so a later argument
+  that changes their list invalidates them. Then that literal,
   `noMatchingInit` again. Then a constant index out of range. A string
   inside a call keeps the model's class for a string outside `print`. The
   compiler reports the misfits as "no matching function in call to
@@ -191,19 +194,34 @@ here (#27).
   left operand of an arithmetic operator, `[True] + x`, or an operand of
   `and` and `or`, `x or [True]`, the compiler reports that the array has
   no `__add__` or `__bool__`, a message the suite does not classify.
-- A literal of `Int`s of any length but 1 fits no initializer of `Int`
-  either, and the model rejects it in every position, with the class of
-  the position, as for `[True]`. `[]` is `noMatchingInit` in a
-  declaration, an assignment and a `return`; anywhere else, a
-  construction and an enclosing literal included, it has no element
-  type, and is `invalidType`, as `var xs = []` is. Mojo 1.2.0 accepted every such literal, a compiler bug
-  by a provisional ruling (#122,
-  [D-0005](../conformance/decision-log.md)). The pinned nightly rejects
-  it in every position, with "function instantiation failed" and the note
-  "constraint failed: expected 1 elements in the SIMD list literal, found
-  N", which `diagnostics.json` classes as `noMatchingInit`. Whether the class should be
-  `noMatchingInit` in every position waits on #154, and a literal whose
-  elements differ in type, `P([1, True])`, on #153.
+- A literal of any length but 1 where an `Int` is expected fits no
+  initializer of `Int` either, and the model rejects it in every position,
+  as the pinned nightly does (#153, #154). Inference types it `Int`, and
+  each of its elements, as SIMD's initializer takes them. The checker
+  types each element without reading it, as the compiler does, and the
+  first that is no `Int`, nor such a literal of `Int`s, is a misfit,
+  before any element is read: `var z: Int; var y: Int = [z + 1, True]` is
+  `noMatchingInit`. A literal with no misfit has its elements read, then the
+  compiler fails SIMD's constraint "expected 1 elements in the SIMD list
+  literal, found N" (`noMatchingInit`), so `var z: Int; print(rd([z, 2]))`
+  is `uninitializedUse`. A misfit is reported by the position:
+
+  | Position | No misfit, `[1, 2]`, `[]`, `[[1], [2]]`, `[x, x]` | Misfit, `[1, True]`, `[[1], True]`, `[True, False]` |
+  | --- | --- | --- |
+  | Initializes the `Int`: a declaration, an assignment to a variable, a field or an element, a `return`, a construction `P(…)`, an element of an enclosing literal | `noMatchingInit` | `noMatchingInit`: "no matching function in initialization" |
+  | Converted: an argument of a function or a method, `append`, an operand of an operator other than `and` and `or`, `+=` | `noMatchingInit` | `typeMismatch`: "cannot be converted from list literal to 'Int'" |
+  | An index, the argument of `pop` | `noMatchingInit` | unclassified: "no matching method in call to '__getitem__'", as for `xs[True]` (#169); the model reports `typeMismatch` |
+
+  A nested literal counts as one element: `rd([[1, True], 3])` is a type
+  mismatch, `P([[1, True], 3])` and `[[1, True]]` in a declaration are
+  `noMatchingInit`, and `rd([[1, 2], 3])` and `rd([[], 3])` are
+  `noMatchingInit`. Mojo 1.2.0 accepted every literal of `Int`s of such a
+  length, a compiler bug by a provisional ruling (#122,
+  [D-0005](../conformance/decision-log.md)), which the nightly fixes. The
+  nightly reports the failed constraint after every other error of the
+  program, even one in a later function, where the model rejects at the
+  literal (#170). Passed `mut`, any literal is a temporary, `notAPlace`
+  (#81).
 - A constant index into an array of `N` elements is rejected when it is `N`
   or more (`constantIndexOutOfBounds`); one known only at run time fails
   then, as on a list. A constant index into a list fails only at run time.

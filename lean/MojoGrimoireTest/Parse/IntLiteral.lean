@@ -5,8 +5,10 @@ import MojoGrimoire.Interp.Run
 Tests of a literal `[e]` of one `Int` element where an `Int` is expected
 (#103). Mojo's `Int` is `SIMD[DType.int, 1]`, whose `__list_literal__`
 initializer takes the elements, so such a literal is the value of `e`.
-A literal of any other length is rejected: Mojo 1.2.0 accepted it, a compiler
-bug that the pinned nightly fixes (#122, D-0005).
+A literal of any other length is rejected in every position: Mojo 1.2.0
+accepted it, a compiler bug that the pinned nightly fixes (#122, D-0005,
+#154). So is one whose elements are not all `Int`s, by the class of its
+position (#153).
 -/
 
 namespace MojoGrimoireTest.Parse.IntLiteral
@@ -141,31 +143,103 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 -- An element that is not an `Int` fits no initializer of `Int`.
 #guard rejects ["var y: Int = [True]"] (.noMatchingInit .int)
 #guard rejects ["print(x + [True])"] (.typeMismatch .int (.array .bool 1))
--- Nor does a literal of any length but 1 (D-0005). Where it initializes the
--- `Int`, it is `noMatchingInit`.
+-- Nor does a literal of any length but 1, in every position (D-0005, #154):
+-- it is `noMatchingInit`, the pinned nightly's failed SIMD constraint.
+#guard mainBody ["def main():", "    var y: Int = [1, True]"] ==
+  some [.decl "y" .int (some (.list .int [.int 1, .bool true]))]
 #guard rejects ["var y: Int = []"] (.noMatchingInit .int)
 #guard rejects ["var y: Int = [1, 2]"] (.noMatchingInit .int)
 #guard rejects ["var y: Int = [1, 2, 3]"] (.noMatchingInit .int)
 #guard rejects ["var y: Int = [loud(1), loud(2)]"] (.noMatchingInit .int)
+#guard rejects ["var y: Int = [[1, 2]]"] (.noMatchingInit .int)
 #guard rejects ["x = [5, 6]"] (.noMatchingInit .int)
 #guard rejects ["x = []"] (.noMatchingInit .int)
+#guard rejects ["xs[0] = [5, 6]"] (.noMatchingInit .int)
 #guard rejects ["var s = S([4, 5], True)"] (.noMatchingInit (.struct "S"))
+#guard rejects ["var s = S([], True)"] (.noMatchingInit (.struct "S"))
 #guard rejects ["var ys: List[Int] = [[1, 2], [3]]"] (.noMatchingInit (.list .int))
+#guard rejects ["var ys: List[Int] = [[], [3]]"] (.noMatchingInit (.list .int))
+#guard rejects ["var ys: Array[Int, 2] = [[1, 2], 3]"] (.noMatchingInit (.array .int 2))
 #guard runLines (lib ++ ["def ret() -> Int:", "    return [3, 4]", "def main():",
   "    print(ret())"]) == some (.rejected ⟨"ret", .noMatchingInit .int⟩)
--- Passed to a function or a method, or as an operand, it is a type mismatch.
-#guard rejects ["print(rd([7, 8]))"] (.typeMismatch .int (.array .int 2))
-#guard rejects ["xs.append([2, 3])"] (.typeMismatch .int (.array .int 2))
-#guard rejects ["print(x + [2, 3])"] (.typeMismatch .int (.array .int 2))
--- Outside a declaration, an assignment and a `return`, `[]` has no element
--- type, as in `var xs = []`.
-#guard rejects ["var s = S([], True)"] (.invalidType .noneType)
-#guard rejects ["var ys: List[Int] = [[], [3]]"] (.invalidType .noneType)
 #guard runLines (lib ++ ["def ret() -> Int:", "    return []", "def main():",
   "    print(ret())"]) == some (.rejected ⟨"ret", .noMatchingInit .int⟩)
-#guard rejects ["print(rd([]))"] (.invalidType .noneType)
-#guard rejects ["xs.append([])"] (.invalidType .noneType)
-#guard rejects ["print(x + [])"] (.invalidType .noneType)
+-- Converted by a function, a method or an operator, or as an index, too.
+#guard rejects ["print(rd([7, 8]))"] (.noMatchingInit .int)
+#guard rejects ["print(own([7, 8]))"] (.noMatchingInit .int)
+#guard rejects ["print(rf([]))"] (.noMatchingInit .int)
+#guard rejects ["xs.append([2, 3])"] (.noMatchingInit .int)
+#guard rejects ["xs.append([])"] (.noMatchingInit .int)
+#guard rejects ["var q = Q(1)", "print(q.get([2, 3]))"] (.noMatchingInit .int)
+#guard rejects ["print(x + [2, 3])"] (.noMatchingInit .int)
+#guard rejects ["print(x + [])"] (.noMatchingInit .int)
+#guard rejects ["print([2, 3] < x)"] (.noMatchingInit .int)
+#guard rejects ["print([] == x)"] (.noMatchingInit .int)
+#guard rejects ["x += [2, 3]"] (.noMatchingInit .int)
+#guard rejects ["print(xs[[0, 1]])"] (.noMatchingInit .int)
+#guard rejects ["print(xs.pop([]))"] (.noMatchingInit .int)
+-- Its elements are `Int`s once each literal in it is: nested, of any length.
+#guard rejects ["print(rd([[1], [2]]))"] (.noMatchingInit .int)
+#guard rejects ["print(rd([x, x]))"] (.noMatchingInit .int)
+#guard rejects ["print(rd([[1, 2], 3]))"] (.noMatchingInit .int)
+#guard rejects ["print(rd([[], 3]))"] (.noMatchingInit .int)
+#guard rejects ["print(rd([[1, 2]]))"] (.noMatchingInit .int)
+-- It is rejected once its elements are read, as the instantiation fails.
+#guard rejects ["var z: Int", "var y: Int = [z, 2]"] (.uninitializedUse (.var "z"))
+#guard rejects ["var z: Int", "x = [[1, z], 2]"] (.uninitializedUse (.var "z"))
+#guard rejects ["var z: Int", "print(rd([z, 2]))"] (.uninitializedUse (.var "z"))
+#guard rejects ["var z: Int", "var s = S([z, 2], True)"] (.uninitializedUse (.var "z"))
+-- A literal whose elements are not all `Int`s (#153) is rejected before any
+-- element is read: where it initializes the `Int`, it is `noMatchingInit`.
+#guard rejects ["var y: Int = [1, True]"] (.noMatchingInit .int)
+#guard rejects ["var y: Int = [True, 1]"] (.noMatchingInit .int)
+#guard rejects ["var y: Int = [[1, True]]"] (.noMatchingInit .int)
+#guard rejects ["x = [[1], True]"] (.noMatchingInit .int)
+#guard rejects ["xs[0] = [1, True]"] (.noMatchingInit .int)
+#guard rejects ["var s = S([1, True], True)"] (.noMatchingInit (.struct "S"))
+#guard rejects ["var s = S([[1], True], True)"] (.noMatchingInit (.struct "S"))
+#guard rejects ["var s = S([[1, True], 3], True)"] (.noMatchingInit (.struct "S"))
+#guard rejects ["var q = Q([x, True])"] (.noMatchingInit (.struct "Q"))
+#guard rejects ["var ys: List[Int] = [[1, True], [3]]"] (.noMatchingInit (.list .int))
+#guard rejects ["var ys: Array[Int, 2] = [[1, True], 3]"] (.noMatchingInit (.array .int 2))
+#guard rejects ["var ys: List[List[Int]] = [[[1, True]]]"] (.noMatchingInit (.list .int))
+#guard runLines (lib ++ ["def ret() -> Int:", "    return [1, True]", "def main():",
+  "    print(ret())"]) == some (.rejected ⟨"ret", .noMatchingInit .int⟩)
+#guard rejects ["var z: Int", "var y: Int = [z, True]"] (.noMatchingInit .int)
+#guard rejects ["var z: Int", "var s = S([z, True], True)"] (.noMatchingInit (.struct "S"))
+-- Nor is any other element read first, nor an index computed.
+#guard rejects ["var z: Int", "var y: Int = [z + 1, True]"] (.noMatchingInit .int)
+#guard rejects ["var i: Int", "var y: Int = [xs[i], True]"] (.noMatchingInit .int)
+#guard rejects ["var y: Int = [arr[5], True]"] (.noMatchingInit .int)
+#guard rejects ["var b: Bool", "var y: Int = [[b], 1]"] (.noMatchingInit .int)
+#guard rejects ["ref r = xs[0]", "xs.append(3)", "var y: Int = [r + 1, True]"]
+  (.noMatchingInit .int)
+#guard rejects ["var z: Int", "var y: Int = [z + 1, 2]"] (.uninitializedUse (.var "z"))
+-- An element whose check gives such a later error has the type of its
+-- operator or call, and a nested literal's failed constraint comes later too.
+#guard rejects ["var y: Int = [arr[5] == 1, 2]"] (.noMatchingInit .int)
+#guard rejects ["print(rd([xs[1 - 2] == 1, 2]))"] (.typeMismatch .int .bool)
+#guard rejects ["var d = D(1)", "var y: Int = [eat(d^), d.n > 0]"] (.noMatchingInit .int)
+#guard rejects ["var y: Int = [[1, 2] == x, 3]"] (.noMatchingInit .int)
+#guard rejects ["print(rd([rd([1, 2]), True]))"] (.typeMismatch .int .bool)
+#guard rejects ["var z: Int", "var y: Int = [rd([z, 2]), 3]"] (.uninitializedUse (.var "z"))
+#guard rejects ["var bs: List[Bool] = [True]", "xs.append([bs[-1].copy(), 2])"]
+  (.typeMismatch .int .bool)
+#guard rejects ["print(rd([xs[[1, 2]], True]))"] (.typeMismatch .int .bool)
+-- Where a function, a method or an operator converts it, it is a type
+-- mismatch, of its first element that is not an `Int`.
+#guard rejects ["print(rd([1, True]))"] (.typeMismatch .int .bool)
+#guard rejects ["print(rd([True, False]))"] (.typeMismatch .int .bool)
+#guard rejects ["print(rd([[1, True]]))"] (.typeMismatch .int .bool)
+#guard rejects ["xs.append([1, True])"] (.typeMismatch .int .bool)
+#guard rejects ["var q = Q(1)", "print(q.get([True, 1]))"] (.typeMismatch .int .bool)
+#guard rejects ["print(x + [[1, True], 3])"] (.typeMismatch .int .bool)
+#guard rejects ["print([1, True] < x)"] (.typeMismatch .int .bool)
+#guard rejects ["print(rd([[True], 3]))"] (.typeMismatch .int (.array .bool 1))
+#guard rejects ["print(rd([xs, 1]))"] (.typeMismatch .int (.list .int))
+#guard rejects ["var z: Int", "print(rd([z, True]))"] (.typeMismatch .int .bool)
+#guard rejects ["var z: Int", "print(rd([z + 1, True]))"] (.typeMismatch .int .bool)
+#guard rejects ["var z: Int", "print(x + [z * 2, True])"] (.typeMismatch .int .bool)
 -- A literal whose element is not an `Int` stays an array where an `Int` is
 -- expected of it, as the left operand of a comparison with an `Int`.
 #guard rejects ["print([True] < x)"] (.typeMismatch .int (.array .bool 1))

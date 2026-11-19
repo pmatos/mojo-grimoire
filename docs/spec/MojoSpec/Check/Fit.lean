@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4111442416398469917")
+:::moduleDocs (fingerprint := "6946600155989512021")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "13691362365005740179")
@@ -66,13 +66,35 @@ holds one at any depth. Such an argument of the standard library's `range`
 fits none of its forms (#121).
 :::
 
-:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "10240546122308998633")
-*Definition: what the arguments of a range find.* Checking the arguments
-of `range` records, in the order of the compiler's passes, whether one
-fits no form of `range` once all are typed; the first use of an
-uninitialized or invalidated value; whether one is an open literal that
-the compiler takes for an $`\mathsf{Int}`, and that fails only when the
-call is instantiated; and the first constant index out of range. Two
-records join, the first's errors first. An error of a later pass than
-typing is a constant index out of range or else a use of a value.
+:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "6320632516701866375")
+*Definition: what reading the arguments of a range finds.* Reading the
+arguments of `range`, once they are typed, records the errors of the
+compiler's later passes in the order it reports them: the first use of an
+uninitialized or invalidated value, then the first constant index out of
+range. It also records the places each argument read without an error
+reads late, with its mark. Two records join, the first's errors first. An
+error of a later pass than typing is a constant index out of range or else
+a use of a value.
+:::
+
+:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "5042045329698814885")
+*Rule: a literal of the wrong length where an $`\mathsf{Int}` is
+expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1, which
+`wrongIntLiteral` picks out, fits no initializer of $`\mathsf{Int}`,
+which is $`\mathsf{SIMD}[\mathsf{int}, 1]` (#153, #154). The compiler
+types its elements before it reads any. So each element is typed first,
+in the state's `State.typing`, where every variable is whole and no
+reference invalidated. An element whose check still gives an error that
+the compiler reports after its types, one of a later pass or a nested
+literal's failed constraint, has its `lateElemTy`: the result of its
+operator, call or method, the type of the place it reads, the list that
+$`\mathsf{List}[u](e)` builds, an array of its first element, or else
+$`\mathsf{Int}`. The first element that is no $`\mathsf{Int}`, nor such
+a literal of $`\mathsf{Int}`s, is a misfit, reported before any element
+is read: by a function or a method, which converts the literal, as a type
+mismatch, and by an initializer of $`t` as `noMatchingInit` $`t`. With no
+misfit, the state is restored, the elements are read, and checked again
+once each is read, and the compiler then fails SIMD's constraint of one
+element: `noMatchingInit` $`\mathsf{Int}`, or $`t` for an initializer of
+$`t`. It never returns.
 :::

@@ -39,7 +39,8 @@ field. When a function returns, its `mut` parameters and the `self` of
 Returning a variable that the function owns moves it out, as Mojo does; any
 other place is copied, implicitly. A literal with no list or array expected
 that initializes a declared variable, a place assigned to or a function's
-result fits no initializer of its type (#46). A function that returns a reference
+result fits no initializer of its type (#46), nor, where an `Int` is
+expected, does one of any length but 1 (#153, #154). A function that returns a reference
 returns a location within its own origin, as `withinOrigin` decides.
 
 An assignment changes its place as a whole. After an `if`, a reference is
@@ -226,8 +227,12 @@ def checkConstructed (prog : Program) (p : Place) (e : Expr) : CheckM Unit := do
 /-- Checks the value `e` that initializes a value of the type `t`, given
 `value`, which checks it and gives its type. A literal with no type expected,
 where `t` is not a list or an array, fits no initializer of `t`: Mojo calls
-`t`'s initializer with the elements, which none takes (#46). -/
+`t`'s initializer with the elements, which none takes (#46). A literal of
+any length but 1 where an `Int` is expected initializes it, and fits no
+initializer (`rejectIntLiteral`, #153, #154). -/
 def checkInitValue (prog : Program) (t : Ty) (e : Expr) (value : CheckM Ty) : CheckM Unit := do
+  if let some es := wrongIntLiteral e then
+    rejectIntLiteral prog (.init t) (intMisfit prog es) (readIntElems prog es)
   if let .list .noneType es := e then
     unless t matches .list _ | .array .. do
       checkOperands prog es
@@ -262,12 +267,11 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let (t, origins, m) ← refTarget prog e
     modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
-    let t ← match e with
-      | .list .noneType _ => do
+    let t ← if e matches .list .noneType _ || (wrongIntLiteral e).isSome then do
         let u ← placeTy prog p
         checkInitValue prog u e (checkExpr prog e)
         pure u
-      | _ => checkExpr prog e
+      else checkExpr prog e
     checkIndices prog p
     expect (← placeTy prog p) t
     checkConstructed prog p e

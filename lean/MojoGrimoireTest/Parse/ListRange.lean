@@ -27,10 +27,11 @@ private def mainBody (ls : List String) : Option (List Stmt) :=
   | .error _ => none
 
 /-- A function that prints its argument, one that changes its argument,
-and a struct. -/
+one that takes a `P`, and a struct. -/
 private def lib : List String := [
   "def f(x: Int) -> Int:", "    print(\"f\", x)", "    return x",
   "def bump(mut x: Int) -> Int:", "    x += 10", "    return 3",
+  "def h(var q: P) -> Int:", "    return q.x",
   "@fieldwise_init", "struct P(Copyable):", "    var x: Int",
   ""]
 
@@ -221,6 +222,36 @@ private def rangeOf (args : String) : String := s!"print(List[Int](range({args})
 #guard rejectsWith (rangeOf "xs[-1], [1, 2]") (.noMatchingInit (.list .int))
 #guard rejectsWith (rangeOf "xs[-1], []") (.noMatchingInit (.list .int))
 #guard rejectsWith (rangeOf "[xs[-1], 2]") (.noMatchingInit (.list .int))
+-- Since the merge of #171, which types these literals `Int`, checked on the
+-- nightly: an uninitialized element is read, a `Bool` element is a misfit,
+-- and an empty literal is `noMatchingInit`, as `[1, 2]` is above.
+#guard rejectsWith "var z: Int\n    print(List[Int](range([z, 2])))" (.uninitializedUse (.var "z"))
+#guard rejectsWith (rangeOf "[1, True]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[]") (.noMatchingInit (.list .int))
+-- A literal's elements are read late, as an operation's operands: a later
+-- argument that changes the list invalidates an element read before it.
+#guard rejectsWith (rangeOf "[xs[0], 1], xs.pop()")
+  (.invalidatedReference (.index (.var "xs") (.int 0)))
+#guard rejectsWith (rangeOf "[u, xs[-1]]") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "[xs[-1], 1], u") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "[h(p^), p.x]") (.uninitializedUse (.field (.var "p") "x"))
+#guard rejectsWith (rangeOf "[[1, 2], 3]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[[], 3]") (.noMatchingInit (.list .int))
+-- An index is checked once: `h(p^)` in it moves `p` once.
+#guard prints ["var p = P(1)", "var xs: List[Int] = [1, 2]", "print(List[Int](range(xs[h(p^)])))"]
+  ["[0, 1]"]
+#guard prints ["var p = P(1)", "var xs: List[Int] = [1, 2]",
+  "print(List[Int](range(0, xs[h(p^)])))"] ["[0, 1]"]
+#guard rejectsWith (rangeOf "[xs[h(p^)], 1]") (.noMatchingInit (.list .int))
+-- An argument that is no `Int` is a misfit, though it reads an
+-- uninitialized value or has a constant index out of range.
+#guard rejectsWith (rangeOf "P(u)") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[P(u)]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "P(xs[-1])") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "b == (u == 1)") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[P(u), 1]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[1, b == (u == 1)], u") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "P(u), nope") (.unknownVariable "nope")
 -- A limit: inside an operation the model checks in program order (#96),
 -- where the compiler reports `u` uninitialized first. This pins the model.
 #guard rejectsWith (rangeOf "xs[-1] + u") (.negativeIndex (.index (.var "xs") (.int (-1))))

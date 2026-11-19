@@ -13,7 +13,14 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Operators: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3547930361775390461")
+:::moduleDocs (fingerprint := "9303907415561557740")
+:::
+
+:::readable MojoGrimoire.Check.binaryResult (fingerprint := "7037857992261783058")
+*Definition: the result of an operator.* An arithmetic operator gives an
+$`\mathsf{Int}`, and every other binary operator a $`\mathsf{Bool}`,
+whatever its operands: inference types an expression by it, and so does
+the checker an element whose own check fails later (`lateElemTy`).
 :::
 
 :::readable MojoGrimoire.Check.binaryTy MojoGrimoire.Check.unaryTy (fingerprint := "17580043234083190239")

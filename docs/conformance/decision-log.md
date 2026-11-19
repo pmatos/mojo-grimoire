@@ -178,13 +178,8 @@ Each move of the Mojo pin gets an entry below.
   `-D ASSERT=all` the program built, then trapped at run time: "mismatch
   in the number of elements in the SIMD variadic constructor".
 - Model: rejects a literal of `Int`s of every length but 1, n = 0
-  included: `noMatchingInit` where the literal initializes the `Int`, in a
-  declaration, an assignment, a `return`, a construction or an enclosing
-  literal; a `typeMismatch` passed to a function or a method, or as an
-  operand; and `[]` outside a declaration, an assignment and a `return`
-  is `invalidType`. Whether the class should be `noMatchingInit` in every
-  position waits on #154, and a literal whose elements differ in type on
-  #153.
+  included, in every position: `noMatchingInit` once its elements are
+  read (#154, ruled 2026-11-19).
 - Classification: compiler bug, ruled by the human on 2026-11-19 (#122).
   The ruling is provisional, until the human has discussed it with
   Modular.
@@ -195,11 +190,10 @@ Each move of the Mojo pin gets an entry below.
   note "constraint failed: expected 1 elements in the SIMD list literal,
   found N" (`std/simd.mojo:1094` at `10c54f6f5b`), which
   `diagnostics.json` classes as `noMatchingInit`. The three programs agree
-  with the model, and `known.json` no longer lists them. Passed to a
-  function or a method, or as an operand, the nightly's error is
-  `noMatchingInit` too, where the model reports `typeMismatch`, or
-  `invalidType` for `[]`; no suite program holds such a position, and #154
-  holds the question.
+  with the model, and `known.json` no longer lists them. The model
+  follows the nightly in every position (#154), and the suite holds an
+  argument, `append` and an operand (`rejected/int_literal_length_*`,
+  `rejected/int_literal_empty_append`).
 - Upstream report: none needed, since the nightly fixes it.
 
 ### D-0006: a struct cycle through a list, rejected as non-'Deinitable'

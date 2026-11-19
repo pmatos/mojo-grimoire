@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2742563799414151508")
+:::moduleDocs (fingerprint := "12058885147365312873")
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkRangeArgs MojoGrimoire.Check.checkLiteral MojoGrimoire.Check.checkParts MojoGrimoire.Check.checkPartsList MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "17297016674097138616")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "7657055534434236357")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -42,6 +42,13 @@ type:
   $`\mathsf{Int}` (#103). Passed to a parameter, a literal whose type is
   not a list or an array is checked as a value, as is any literal
   passed to an initializer;
+* $`[e^*]_{\mathsf{Int}}` of any other length, converted, is rejected by
+  `rejectIntLiteral` (#153, #154), with `intMisfit` giving the type of its
+  first element that is no $`\mathsf{Int}`, nor such a literal, each typed
+  as that rule says, a place by `typePlace`, and `readIntElems` reading
+  its elements as
+  $`\mathsf{Int}`s, a nested such literal's in turn. Passed to a
+  parameter, it is rejected by the call's fit;
 * $`\mathsf{List}[u](e)` with one argument copies the elements of a list
   or an array (#103). Its argument is passed by `ref`, as `len` takes its
   list: a place is located, its type must fit by `iterableFits`, and then
@@ -57,23 +64,26 @@ type:
   recorded as changed. The expression is a $`\mathsf{List}[u]`;
 * $`\mathsf{List}[u](\mathsf{range}(e^*))`, when the program declares no
   function or struct `range` and no variable in scope is named `range`, is
-  the standard library's range (#121): its one to three arguments are
-  checked by `checkRangeArgs` in the compiler's order of passes. First
-  every argument is typed, and an unknown name or a misfit of a call inside
-  any argument is reported at once; a place is typed before it is read. An
-  argument that holds a string or a call of `range` (`holdsStrOrRange`) is
-  typed only in its names, fields and calls, by `checkParts`, and an open
-  literal by `checkLiteral`. Then the call is `noMatchingInit`
-  $`\mathsf{List}[u]`: when an argument is not an $`\mathsf{Int}`, holds a
-  string or a `range`, or is an open literal other than one of
-  $`\mathsf{Int}`s, at any depth, whose first element is not an empty
-  literal; when there are not one to three arguments; or when $`u` is not
-  $`\mathsf{Int}`. Then comes the first use of an uninitialized or
-  invalidated value, also among the places read late; then such a literal
-  of $`\mathsf{Int}`s, or an empty one, is `noMatchingInit`, as the
-  compiler fails only when it instantiates the call; then a constant index
-  out of range. `range` anywhere else is an unknown function: a range is
-  not a value of its own;
+  the standard library's range (#121), whose one to three arguments are
+  checked in the compiler's order of passes. First `typeRangeArgs` types
+  every argument, each in `State.typing`, and reports an unknown name or a
+  misfit of a call inside any argument at once. An argument that holds a
+  string or a call of `range` (`holdsStrOrRange`) is typed only in its
+  other parts, by `typeArg`; an open literal's elements by `typeLiteral`;
+  and an argument whose check gives an error of a later pass has its
+  `lateElemTy`. Then the call is `noMatchingInit` $`\mathsf{List}[u]`:
+  when an argument is not an $`\mathsf{Int}`, holds a string or a
+  `range`, or is an open literal other than one of $`\mathsf{Int}`s, at
+  any depth, whose first element is not an empty literal; when there are
+  not one to three arguments; or when $`u` is not $`\mathsf{Int}`. In the
+  state before the typing, `readRangeArgs` then reads the arguments in
+  order, a literal's elements by `readIntElems`, and records the errors
+  of later passes. The first use of an uninitialized or invalidated value
+  comes first, also among the places read late; then such a literal of
+  $`\mathsf{Int}`s, or an empty one, is `noMatchingInit`, as the compiler
+  fails only when it instantiates the call; then a constant index out of
+  range. `range` anywhere else is an unknown function: a range is not a
+  value of its own;
 * $`\mathsf{List}[u](e^+)` with more than one argument checks each
   argument on its own, locating a place without reading it, and is then
   rejected as `noMatchingInit` $`\mathsf{List}[u]`: no initializer of

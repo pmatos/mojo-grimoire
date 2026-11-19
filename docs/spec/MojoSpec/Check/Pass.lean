@@ -11,9 +11,9 @@ The readable blocks of the section that renders `MojoGrimoire.Check.Pass`
 pins their fingerprint; the build fails when the Lean changes under it.
 -/
 
-#doc (Manual) "Passing places: readable blocks" =>
+#doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11219843614059425275")
+:::moduleDocs (fingerprint := "12609668123975707695")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -29,25 +29,18 @@ cannot be changed. Passed `mut` to an initializer, such a place is
 reported as the initializer's misfit.
 :::
 
-:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.noOwnOrigin MojoGrimoire.Check.CheckError.late MojoGrimoire.Check.lateErrors MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "3579335310442124913")
-*Rule: reading and moving a place.* Using a place $`p` as a value copies it
-implicitly: $`p` must be initialized, and its type implicitly copyable.
-Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable
-that the function may change, owned or held `mut`, not a `read` or `ref`
-parameter (`transferFromBorrowed`); afterwards $`p` is uninitialized and
-holds nothing, its path is added to $`M`, the part of $`H` above it, if
-any, to $`T`, the parts of $`T` strictly below it and of $`P` at or below
-it are removed, and a variable moved out whole keeps nothing in $`T`. The
-value in $`p` must have an origin of its own: an element of a list or an
-array, or a part of one, cannot be transferred out, nor can a value
-through a reference bound with `ref`, even one that may be changed. The
-compiler rejects both alike (`transferFromElement`), once the place has a
-type and before anything else. Its later errors, which such a transfer
-comes before, are the use of an uninitialized or invalidated value and a
-constant index out of range; `lateErrors` records one of them, instead of
-throwing it, for the arguments of `range` (#121). These conditions,
-without the move, are what $`q\,\hat{}` before a field or a method needs
-of $`q`.
+:::readable MojoGrimoire.Check.lateErrors (fingerprint := "2068864695038659814")
+*Definition: recording a later error.* In an argument of `range`, an error
+of a later pass than typing, a use of an uninitialized or invalidated
+value or a constant index out of range (`CheckError.late`), is recorded
+instead of thrown, so that the errors of all the arguments can be reported
+in the compiler's order of passes (#121).
+:::
+
+:::readable MojoGrimoire.Check.refResult (fingerprint := "4791063665474045528")
+*Definition: the result of a call.* A call or a method call that returns a
+reference, used as a value, gives the value it points to, which must be
+implicitly copyable, unless it is used as a reference.
 :::
 
 :::readable MojoGrimoire.Check.passPlace (fingerprint := "2500036056060291548")
