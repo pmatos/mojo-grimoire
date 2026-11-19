@@ -8,12 +8,12 @@ A disagreement in which the model is wrong is a model bug. It is fixed, not
 logged: the PR that fixes it says what changed, and the suite program that
 found it keeps it fixed. The human ruled this on 2026-11-16.
 
-Each entry is classified as one of:
-
-- **compiler bug**: the compiler is wrong. The model keeps its behaviour, and
-  the entry links an upstream report when there is one.
-- **spec decision**: the behaviour is incidental or ambiguous. The entry says
-  what the model does and why.
+Every entry is a **compiler bug**: the compiler is wrong, and the model does
+exactly what the fixed compiler would do. The entry says what that behaviour
+is, gives the evidence for it, and links an upstream report when there is
+one. There is no other kind of entry. The human ruled out spec decisions on
+2026-11-19 (ADR-2026-11-15-1907). A ruling is provisional until the human has
+discussed it with Modular.
 
 Every compiler bug that the human rules on is also listed in
 [compiler-bugs.json](compiler-bugs.json), with a minimal reproducer and the
@@ -39,8 +39,8 @@ Each move of the Mojo pin gets an entry below.
 - Program: <path to the test program>
 - Compiler: <what the compiler does>
 - Model: <what the model does>
-- Classification: model bug | compiler bug | spec decision
-- Decision and rationale: <what the model does from now on, and why>
+- Classification: compiler bug, ruled by the human on YYYY-MM-DD (#N)
+- Decision and rationale: <what the fixed compiler does, which the model does from now on, and the evidence for it>
 ```
 
 ## Entries

@@ -16,18 +16,23 @@ Tier: direction; area: semantics
 - Every test program runs through both the model and the compiler, and the
   model follows the compiler. A disagreement in which the model is wrong is
   a model bug: it is fixed, and the fixing PR says what changed.
-- The model departs from the compiler only where the compiler is broken, a
-  compiler bug, or its behaviour is incidental, a spec decision. Each
-  departure is recorded in `docs/conformance/decision-log.md`; a spec
-  decision says what the model does and why.
-- Where the compiler's behaviour is incidental rather than intended, the
-  model may be relational (allow a set of outcomes) rather than copy it, and
-  the decision log says so.
+- The model departs from the compiler only where the compiler has a bug.
+  There, the model does exactly what the fixed compiler would do, backed by
+  evidence: the Mojo docs, the compiler's own rule for a related case, or a
+  nightly that fixes it. There is no third kind of departure. Each departure
+  is recorded in `docs/conformance/decision-log.md`.
+- A ruling on a compiler bug is provisional until the human has discussed it
+  with Modular's engineers. If that discussion changes the semantics, the
+  model follows.
 
 The human chose Mojo 1.2.x as the starting reference on 2026-11-15, and that
 the project catches up with new releases as needed. On 2026-11-16 the human
 ruled that the model matches the compiler in the large, while it can still
-find bugs in the compiler when something is broken.
+find bugs in the compiler when something is broken. On 2026-11-19 the human
+ruled out the third kind of departure, the spec decision: "Either the model
+matches the compiler or the compiler has a bug and needs to be fixed to match
+the model. That's the rule. We cannot have a third option here."
+
 
 ## Why
 
@@ -42,6 +47,11 @@ Modular.
 
 - **Treat the documentation as the specification.** It is incomplete and does
   not cover ownership corner cases.
+- **Spec decisions**, where the model departs because the compiler's
+  behaviour seems incidental, and the model may then allow a set of
+  outcomes. Such a departure invents a behaviour that no compiler has, and
+  it cannot be taken to Modular as a fix. Removed on 2026-11-19, before any
+  entry used it.
 - **Log every disagreement, model bugs included.** Their entries repeated
   what the fixing PR and the suite record, and hid the departures.
 - **Test against the compiler's tip.** Expected results would go stale

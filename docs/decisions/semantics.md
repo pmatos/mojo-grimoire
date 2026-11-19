@@ -18,7 +18,7 @@ forward with new releases as needed; each move updates the conformance
 suite's recorded results, the script, the decision log and this page in the
 same PR. The human chose this on 2026-11-15. The model follows the compiler,
 and [the decision log](../conformance/decision-log.md) records each place
-where it departs: a compiler bug or a spec decision
+where it departs, each a compiler bug
 ([conformance.md](conformance.md#the-decision-log)).
 
 Rejected: testing against the compiler's tip, where expected results would go
