@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13407521696309402903")
+:::moduleDocs (fingerprint := "2582927524842732996")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "13691362365005740179")
@@ -59,10 +59,11 @@ $`\mathsf{List}[u]` (#103). The places that the elements are read from
 are checked again once every element is evaluated.
 :::
 
-:::readable MojoGrimoire.Check.rangeMisfit (fingerprint := "13791927815162967259")
+:::readable MojoGrimoire.Check.rangeMisfit (fingerprint := "16456493683688170740")
 *Definition: an argument that fits no range.* An argument of the standard
 library's `range` fits none of its forms by its shape alone when it is a
-string, a call of `range`, or a literal that holds one as an element: the
+string, a call of `range`, an empty literal, or a literal that holds a
+string or a call of `range` as an element: the
 compiler reports "no matching function in call to 'range'" once it has
 checked the arguments before it (#121).
 :::

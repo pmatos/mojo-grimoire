@@ -297,7 +297,10 @@ Each move of the Mojo pin gets an entry below.
   (`std/builtin/range.mojo:371`). That difference wraps to `Int.MIN`, the
   count comes out negative, and the allocation aborts. The elements, from
   `__next__`, are right, and every neighbour that does not abort, such as
-  `range(Int.MIN, Int.MAX, Int.MAX)`, gives the plain list. A `TODO` there
+  `range(Int.MIN, Int.MAX, Int.MAX)`, gives the plain list. The boundary
+  is exact: a span above 2^63, as in `range(Int.MIN, Int.MAX, 2^62)`,
+  wraps to a small positive count, which only under-reserves, and builds
+  the right list (`lists/range_wide`). A `TODO` there
   names the wrap, tracked internally as MSTDL-3087.
 - Model: builds the plain list, `[-1, 9223372036854775806]` for
   `range(-1, Int.MAX, Int.MAX)`, so the reproducer prints `before` and

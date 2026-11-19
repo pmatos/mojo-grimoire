@@ -142,6 +142,8 @@ private def minS : String := "-9223372036854775808"
 #guard rejects ["var xs = List[Int](range(1, \"b\"))"] (.noMatchingInit (.list .int))
 #guard rejects ["var xs = List[Int](range(0, 9, 2, \"b\"))"] (.noMatchingInit (.list .int))
 #guard rejects ["var xs = List[Int](range([\"a\"]))"] (.noMatchingInit (.list .int))
+#guard rejects ["var xs = List[Int](range([]))"] (.noMatchingInit (.list .int))
+#guard rejects ["var xs = List[Int](range(nope, \"a\"))"] (.unknownVariable "nope")
 #guard rejects ["var xs = List[Int](range(1, [range(3)]))"] (.noMatchingInit (.list .int))
 
 -- Anywhere else, `range` is an unknown function: a range is not a value.
@@ -157,5 +159,9 @@ private def minS : String := "-9223372036854775808"
 #guard rangeLength 0 10 3 == 4 && rangeLength 10 0 (-3) == 4 && rangeLength 0 5 0 == 0
 #guard rangeLength 5 2 1 == 0 && rangeLength 2 5 (-1) == 0 && rangeLength 3 3 1 == 0
 #guard rangeLength (-1) (2 ^ 63 - 1) (2 ^ 63 - 1) == 2
+-- Spans up to 2^64 - 1 count without wrapping around.
+#guard rangeLength (-2 ^ 63) (2 ^ 63 - 1) (2 ^ 62) == 4
+#guard rangeLength (-2 ^ 63) (2 ^ 63 - 1) 1 == 2 ^ 64 - 1
+#guard rangeLength (2 ^ 63 - 1) (-2 ^ 63) (-2 ^ 63) == 2
 
 end MojoGrimoireTest.Parse.ListRange
