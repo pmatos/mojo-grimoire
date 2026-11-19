@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3094323374432754575")
+:::moduleDocs (fingerprint := "616764801287705807")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -45,20 +45,24 @@ whole in only one branch; a part built from its fields is a piece, which
 counts even when the join of $`H` folded its fields into it. This
 rejects a struct built in only one branch of an `if`, even wholly, or in
 a loop, and a struct whose fields are all `Int`s too. The `self` of
+`__init__` built wholly in one branch is not, since it is whole once its
+fields are, and is no piece then. The `self` of
 `__deinit__` is destroyed field by field: each of its fields is a value
 of its own, which may stay moved out. Each error is
 $`\mathsf{partiallyDestroyed}`.
 :::
 
-:::readable MojoGrimoire.Check.checkExit (fingerprint := "16285919438882412919")
+:::readable MojoGrimoire.Check.checkExit (fingerprint := "16841318695536390912")
 *Rule: a return.* When a function returns, each `mut` parameter and the
 `self` of `__init__` must be wholly initialized, since the caller holds
 them, with no piece in $`P`: otherwise the error is
 $`\mathsf{uninitializedAtExit}`, or a use of the variable when it is
 itself the only piece and nothing of it is uninitialized, as the compiler
-reports. Every variable must then be allowed to end; the parameters are
-checked first, since the compiler reports a parameter left uninitialized
-before a variable that may not end.
+reports. The `mut` parameters are checked in their order, then the
+`self` of `__init__`, as the compiler reports them. Every variable must
+then be allowed to end; the parameters are checked first, since the
+compiler reports a parameter left uninitialized before a variable that may
+not end.
 :::
 
 :::readable MojoGrimoire.Check.endScope (fingerprint := "5094446271499096283")
@@ -125,7 +129,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "3797012120997196750")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "14000254169601649773")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
@@ -148,8 +152,9 @@ an expression, so a place is copied implicitly.
   $`P` the parts at or below $`p`, adds $`p` to $`H`, and adds to $`T`
   the part of $`H` above $`p`, if any. When a part above $`p` is
   uninitialized, the parts from it down to the part above $`p` become
-  pieces, except the `self` of `__init__` itself, which is whole once its
-  fields are, unless it was moved out whole first. Assigning a part below a field in $`M` does not remove it.
+  pieces. The `self` of `__init__` itself stops being a piece once its
+  fields are all assigned, since it is then whole, unless it was moved out
+  whole first. Assigning a part below a field in $`M` does not remove it.
   Through a reference or to an element, the old value is read first, so
   it must be initialized;
 * an expression statement checks its expression;

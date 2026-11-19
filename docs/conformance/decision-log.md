@@ -130,7 +130,9 @@ Each move of the Mojo pin gets an entry below.
 - Model: rejects as `partiallyDestroyed` a variable, or a part assigned
   whole, that may end with a field never assigned or moved out while it
   may hold another, on some path. A variable assigned whole in only one
-  branch may end. Every program above is rejected.
+  branch may end, and so may the `self` of `__init__` built wholly in only
+  one branch, which is whole once its fields are: the compiler accepts
+  it with clean output. Every program above is rejected.
 - Classification: compiler bug, ruled by the human on 2026-11-17 (#51).
   The fixed behaviour is R, ruled by the human on 2026-11-19 (#51): a
   variable that ends with only some of its fields set is rejected, however

@@ -118,17 +118,18 @@ def checkEnd (prog : Program) (v : VarState) : CheckM Unit := do
 /-- Rejects the state at a return: every `mut` parameter and the `self` of
 `__init__` must be wholly initialized, with no part built from its fields,
 and every variable must be allowed to end, checked after, as the compiler
-reports a parameter left uninitialized first. The caller uses a `mut`
+reports a parameter left uninitialized first: the `mut` parameters in
+their order, then the `self` of `__init__`. The caller uses a `mut`
 parameter whole, so the compiler reports one that is itself built field by
 field as a use of it. -/
 def checkExit (prog : Program) : CheckM Unit := do
   let vars := (← get).vars
-  for v in vars do
-    if v.access == .mutable || v.access == .constructing then
-      if v.uninit.isEmpty && v.pieces == [[]] then
-        throw (CheckError.uninitializedUse (.var v.name))
-      if !v.uninit.isEmpty || !v.pieces.isEmpty then
-        throw (CheckError.uninitializedAtExit v.name)
+  let params := vars.reverse.filter (·.access == .mutable) ++ vars.filter (·.access == .constructing)
+  for v in params do
+    if v.uninit.isEmpty && v.pieces == [[]] then
+      throw (CheckError.uninitializedUse (.var v.name))
+    if !v.uninit.isEmpty || !v.pieces.isEmpty then
+      throw (CheckError.uninitializedAtExit v.name)
   for v in vars do
     if v.access != .readOnly then checkEnd prog v
 
@@ -281,14 +282,13 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     if cannotEnd prog (partTy prog v.ty path) (partsWithin path v.uninit) (atOrBelow path v.moved)
         (partsWithin path v.held) ts (atOrBelow path v.pieces) 0 then
       throw (CheckError.partiallyDestroyed x)
-    let built := (above path v.uninit).flatMap (piecesTo · path)
-    let built := if v.access == .constructing && !v.moved.contains [] then built.filter (!·.isEmpty)
-      else built
+    let uninit := initPart prog v.uninit v.ty path
     let outside (us : List Path) := us.filter (!path.isPrefixOf ·)
-    setVar { v with uninit := initPart prog v.uninit v.ty path, moved := outside v.moved,
-                    held := uninitialize v.held path,
+    let pieces := union (outside v.pieces) ((above path v.uninit).flatMap (piecesTo · path))
+    let whole := v.access == .constructing && !v.moved.contains [] && uninit.isEmpty
+    setVar { v with uninit, moved := outside v.moved, held := uninitialize v.held path,
                     touched := union (outside v.touched) (above path v.held),
-                    pieces := union (outside v.pieces) built }
+                    pieces := if whole then pieces.filter (!·.isEmpty) else pieces }
   | .expr e => do let _ ← checkExpr prog e
   | .print args => do
     let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark

@@ -65,8 +65,9 @@ where the compiler and the manual disagree, the model follows the compiler.
   messages: "destroyed out of the middle of a value" and "cannot be
   consumed, because ... is used later". The checker cannot tell which one
   the compiler gives, since that depends on what follows (#39). Nor may
-  any struct end partly built, with a part uninitialized while it may
-  still hold another (D-0003, see below). Inside `__deinit__`, `self`'s own fields may
+  any struct end partly built, with a part that may be uninitialized while
+  it may still hold another, unless the parts it may hold cover that part
+  whole (D-0003, see below). Inside `__deinit__`, `self`'s own fields may
   stay moved out, but not fields of its fields.
 - Until a field moved out is assigned again at its path, the compiler
   reports a use of it, or of a part above it, as `uninitializedUse`, even
@@ -128,8 +129,10 @@ where the compiler and the manual disagree, the model follows the compiler.
   `MojoGrimoire.Check.VarState`. A variable, or a part assigned whole,
   may not end partly built, with a field never assigned while it holds
   another, however it got there: built in one branch of an `if` only,
-  even wholly, or in a loop, and with fields that are all `Int`s too. The
-  compiler accepts these and destroys the fields never assigned, a
+  even wholly, or in a loop, and with fields that are all `Int`s too; the
+  `self` of `__init__` built wholly in one branch only is whole, and may
+  be assigned whole after it, as the compiler accepts. The compiler
+  accepts these and destroys the fields never assigned, a
   compiler bug; the human ruled on 2026-11-19 that the fixed compiler
   rejects them, as it rejects a field moved out (R,
   [D-0003](../conformance/decision-log.md)), provisionally, until the

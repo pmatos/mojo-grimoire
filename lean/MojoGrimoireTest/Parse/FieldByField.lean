@@ -109,6 +109,26 @@ private def fld (x f : Name) : Place := .field (.var x) f
     "        print(z.a.id)", "    t = Two(Res(4), Res(5))", "    print(t.b.id)"] ==
   some (.finished ["1", "drop 1", "3", "drop 3", "drop 2", "5", "drop 4", "drop 5"])
 
+-- The `self` of `__init__` is whole once its fields are, so built wholly in
+-- one branch it may be assigned whole after, but not built partly on some
+-- path, even when the paths together assign every field.
+private def mk (branches : List String) : List String :=
+  ["struct Mk(Movable):", "    var a: Res", "    var b: Res",
+   "    def __init__(out self, k: Int, var x: Res, var y: Res):",
+   "        if k < 0:", "            self.a = x^", "            self.b = y^", "            return"] ++
+  branches ++ ["        self = Mk(-1, x^, y^)"]
+#guard inMain ["    var m = Mk(0, Res(3), Res(4))", "    print(m.a.id)"]
+    (mk ["        if k == 0:", "            self.a = Res(1)", "            self.b = Res(2)"]) ==
+  some (.finished ["drop 1", "drop 2", "3", "drop 3", "drop 4"])
+#guard inMain ["    var m = Mk(0, Res(3), Res(4))", "    print(m.a.id)"]
+    (mk ["        if k == 0:", "            self.a = Res(1)", "        elif k == 1:",
+      "            self.b = Res(2)"]) ==
+  some (.rejected ⟨"Mk.__init__", .partiallyDestroyed "self"⟩)
+#guard inMain ["    var m = Mk(0, Res(3), Res(4))", "    print(m.a.id)"]
+    (mk ["        if k == 0:", "            self.a = Res(1)", "        elif k == 1:",
+      "            self = Mk(-1, Res(5), Res(6))"]) ==
+  some (.rejected ⟨"Mk.__init__", .partiallyDestroyed "self"⟩)
+
 -- Each field of the `self` of `__deinit__` is a value of its own: one may
 -- stay moved out, but not end partly built.
 #guard inMain ["    var k = Keep(Pt(5, 6), Pt(7, 8))", "    print(k.b.y)"] [
@@ -245,6 +265,28 @@ private def fld (x f : Name) : Place := .field (.var x) f
     "    var j = q.a^",
     "    print(t.b.id, j.id)"] ==
   some (.rejected ⟨"takeA", .uninitializedAtExit "q"⟩)
+-- The `mut` parameters are reported in their order, then the `self` of
+-- `__init__`.
+#guard inMain ["    var p = Two(Res(1), Res(2))", "    var q = Two(Res(3), Res(4))",
+    "    takeB(p, q)"] [
+    "def takeB(mut p: Two, mut q: Two):",
+    "    var k = p^",
+    "    p.a = Res(7)",
+    "    p.b = Res(8)",
+    "    var j = q.a^",
+    "    print(j.id, k.a.id)"] ==
+  some (.rejected ⟨"takeB", .uninitializedUse (.var "p")⟩)
+#guard inMain ["    var q = Two(Res(3), Res(4))", "    var h = Hold(q)", "    print(h.a.id)"] [
+    "struct Hold(Movable):",
+    "    var a: Res",
+    "    var b: Res",
+    "    def __init__(out self, mut q: Two):",
+    "        var k = q^",
+    "        q.a = Res(7)",
+    "        q.b = Res(8)",
+    "        self.a = Res(1)",
+    "        print(k.a.id)"] ==
+  some (.rejected ⟨"Hold.__init__", .uninitializedUse (.var "q")⟩)
 #guard inMain ["    var m = Pt(1, 2)", "    half(m)", "    print(m.x)"] [
     "def half(mut p: Pt):",
     "    var q = p^",
