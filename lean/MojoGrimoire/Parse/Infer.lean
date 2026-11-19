@@ -21,7 +21,10 @@ literals and operators: that literal stays, typed `Int`, since Mojo does
 not compute an index that holds it when it compiles the program. Passed
 `mut` or `ref`, the literal is a temporary, so it stays too
 (`keepTemporaries`), and a function that returns a reference expects no
-`Int` of what it returns, which must be a place. An `Int`
+`Int` of what it returns, which must be a place. A literal of any other
+length where an `Int` is expected is typed `Int` too, and so is each of
+its elements, as SIMD's initializer takes them; the checker rejects it
+(#153, #154). An `Int`
 is also expected by an index, and by either operand of an operator other
 than `and` and `or` whose other operand is an `Int`, as Mojo reads it
 (#160). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
@@ -153,6 +156,8 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
       let (e', te) := inferExpr prog env .int e
       if te == some .int then (if foldable e' then .list .int [e'] else e', some .int)
       else (.list .noneType [e'], te.map (.array · 1))
+    | .noneType, .int, es =>
+      (.list .int ((inferList prog env (List.replicate es.length .int) es).map (·.1)), some .int)
     | t, _, es =>
       let n := es.length
       let t := if t == .noneType then openLiteralTy exp else t

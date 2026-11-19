@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "616764801287705807")
+:::moduleDocs (fingerprint := "8629427569029691928")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -113,14 +113,18 @@ does. $`\mathsf{List}[u](e)` builds its result in place, and passes $`e`
 by `ref` (#103).
 :::
 
-:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "16605841785613679210")
+:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "979873142394854438")
 *Rule: initializing values.* A value that initializes a declared variable,
 a place assigned to, or a function's result must have its type. A literal
 $`[e^*]_{\mathsf{None}}`, which has no list or array expected, where that
 type is neither, such as a struct or a $`\mathsf{Bool}`, is
 `noMatchingInit` of that type once its elements are checked on their own:
 Mojo calls the type's initializer with the elements and the keyword
-`__list_literal__`, which none takes (#46).
+`__list_literal__`, which none takes (#46). A literal
+$`[e^*]_{\mathsf{Int}}` of any length but 1 initializes an
+$`\mathsf{Int}`, and is rejected by `rejectIntLiteral` as an initializer
+of the type reports it (#153, #154). An assignment of either literal
+types its place first.
 :::
 
 :::readable MojoGrimoire.Check.checkReturnValue (fingerprint := "6201929813473914141")
@@ -129,7 +133,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "14000254169601649773")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "16463578403719747814")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`

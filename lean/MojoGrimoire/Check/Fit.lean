@@ -12,6 +12,8 @@ initializes the list or array expected where it stands, and `List[u](e)`
 from a source that is not a list or an array of `u` that can be copied. A
 literal passed to a function or a method is converted to its parameter's
 type, and the compiler reports one that does not fit as a type mismatch.
+A literal of any length but 1 where an `Int` is expected fits nowhere
+(`rejectIntLiteral`, #153, #154).
 -/
 
 namespace MojoGrimoire.Check
@@ -74,5 +76,19 @@ def iterableLiteralTy (prog : Program) (u : Ty) (ts : List (Ty × List Place × 
   unless ts.all (·.1 == t) do throw (CheckError.noMatchingInit (.list u))
   recheckLocs prog (ts.map (·.2))
   pure (.array t ts.length)
+
+/-- Rejects a literal `[e₁, …, eₙ]`, `n ≠ 1`, where an `Int` is expected,
+as a call of fit `fit` reports it (#153, #154). `misfit` types each
+element, a place unread, and gives the first that is no `Int`, nor such
+a literal of `Int`s: a misfit before any element is read. Otherwise
+`reads` reads them, and the compiler then fails SIMD's constraint of one
+element, `noMatchingInit`. -/
+def rejectIntLiteral (prog : Program) (fit : Fit) (misfit : CheckM (Option Ty))
+    (reads : CheckM (List (List Place × Nat))) : CheckM Ty := do
+  let s ← get
+  if let some u ← misfit then throw (fit.misfit (CheckError.typeMismatch .int u))
+  set s
+  recheckLocs prog (← reads)
+  throw (fit.misfit (CheckError.noMatchingInit .int))
 
 end MojoGrimoire.Check
