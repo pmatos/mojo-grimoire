@@ -107,6 +107,21 @@ def methodSig (prog : Program) (t : Ty) (m : Name) (n : Nat) : Except CheckError
     pure (funSig fd true)
   | t => throw (.unknownAttribute (typeName t) m)
 
+/-- Whether a call of `range` is the standard library's: the program
+declares no struct and no function named `range` (#121). -/
+def builtinRange (prog : Program) : Bool :=
+  (findStruct prog "range").isNone && (findFun prog "range").isNone
+
+/-- The parameters of the standard library's `range` called with `n`
+arguments, each an `Int` taken `read`: `end`; `start` and `end`; or
+`start`, `end` and `step`. With no argument it has one, and with more than
+three it has three, so that the call has a wrong number of arguments. -/
+def rangeParams (n : Nat) : List Param :=
+  (match n with
+    | 0 | 1 => ["end"]
+    | 2 => ["start", "end"]
+    | _ => ["start", "end", "step"]).map (⟨.read, ·, .int⟩)
+
 /-- How the values of the type `t` can be copied. `Int` and `Bool` are
 implicitly copyable, as in Mojo; a list or an array only explicitly, with
 `.copy()`, and only when its elements can be copied; string literals and

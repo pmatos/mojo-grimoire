@@ -33,7 +33,9 @@ takes the type of its elements (#46). What inference cannot find stays
 it has checked the initializer, whose own error comes first (#123).
 `List[u](e₁, …, eₙ)` is a list of `u`; nothing is expected of its
 arguments. With one argument, `e`, Mojo takes it by `ref`, which borrows
-`p^`: inference gives it the place `transferred p` (#103).
+`p^`: inference gives it the place `transferred p` (#103). A call of
+`range` that the program does not declare expects an `Int` of each of its
+arguments, as the standard library's `range` does (#121).
 
 Inference also gives `p^` its meaning when `p` is an `Int` or a `Bool`.
 Mojo does not move such a value: it warns that the transfer has no effect,
@@ -125,8 +127,9 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
   | .copy p => let (p', t) := inferPlace prog env p; (.copy p', t)
   | .call f args =>
     let sig := (callSig prog f).toOption
-    let args' := (inferList prog env (paramTys sig) args).map (·.1)
-    (.call f (keepTemporaries (sig.elim [] (·.params)) args args'),
+    let params := sig.elim (if f == "range" then rangeParams args.length else []) (·.params)
+    let args' := (inferList prog env (params.map (·.ty)) args).map (·.1)
+    (.call f (keepTemporaries params args args'),
       sig.elim (unsignedResult prog f) (some ·.result))
   | .method p m args =>
     let (p', pt) := inferPlace prog env p

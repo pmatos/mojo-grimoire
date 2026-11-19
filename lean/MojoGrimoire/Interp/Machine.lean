@@ -147,4 +147,22 @@ starts in `__init__`: each field is the blank of its type. -/
 def emptyStruct (prog : Program) (fuel : Nat) (sd : StructDecl) : EvalM Value := do
   pure (.struct sd.name (← sd.fields.mapM fun (f, t) => do pure (f, ← blankOf prog fuel t)))
 
+/-- The number of elements of `range(start, stop, step)`: the `Int`s
+`start + k * step`, from `k = 0` up, that come before `stop` in the
+direction of `step`. A `step` of 0 gives none. They all lie between `start`
+and `stop`, so none wraps around (#121). -/
+def rangeLength (start stop step : Int) : Nat :=
+  if 0 < step then ((stop - start + step - 1) / step).toNat
+  else if step < 0 then ((start - stop - step - 1) / -step).toNat
+  else 0
+
+/-- The list `range(start, stop, step)` built with the fuel `fuel`. A list
+needs one unit of fuel per element, so a range with more elements than
+`fuel` runs out of it, which is checked before the list is built, so that
+no list too long for any machine is started. -/
+def rangeList (fuel : Nat) (start stop step : Int) : EvalM Value := do
+  let k := rangeLength start stop step
+  if fuel < k then fail .outOfFuel
+  pure (.list ((List.range k).map fun (i : Nat) => .int (start + (i : Int) * step)))
+
 end MojoGrimoire.Interp

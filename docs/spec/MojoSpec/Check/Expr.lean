@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12248281578710616676")
+:::moduleDocs (fingerprint := "7739375896887882510")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -56,7 +56,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "3447150527940464845")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "2041505664870787019")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -95,6 +95,15 @@ type:
   types, also inside a nested literal, fit none. A place passed so that
   may be changed, by the rule of `changedArgs` for a `ref` parameter, is
   recorded as changed. The expression is a $`\mathsf{List}[u]`;
+* $`\mathsf{List}[u](\mathsf{range}(e^*))`, when the program declares no
+  function or struct `range`, is the standard library's range (#121): its
+  one to three arguments are passed as to `read` parameters of type
+  $`\mathsf{Int}`, with the fit of an initializer of
+  $`\mathsf{List}[u]`, so that a wrong number of arguments, an argument of
+  another type, a string, and a `range` among them, are all
+  `noMatchingInit` $`\mathsf{List}[u]`, as is a $`u` other than
+  $`\mathsf{Int}`. `range` anywhere else is an unknown function: a range
+  is not a value of its own;
 * $`\mathsf{List}[u](e^+)` with more than one argument checks each
   argument on its own, locating a place without reading it, and is then
   rejected as `noMatchingInit` $`\mathsf{List}[u]`: no initializer of

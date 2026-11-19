@@ -37,7 +37,11 @@ however they misfit (`MojoGrimoire.Check.Fit`, #46): a construction
 stands, and `List[u](e₁, …, eₙ)`, which no initializer of `List` takes.
 With one argument, `List[u](e)` copies the elements of a list or an
 array of `u`, which can be copied (#103): `e` is passed by `ref`, as
-`len` takes its list, and a mutable place passed so may be changed. A
+`len` takes its list, and a mutable place passed so may be changed.
+`List[u](range(…))`, when the program declares no `range`, takes one to
+three `Int`s, read as `read` arguments, and needs `u` to be `Int`; any
+misfit, a string or a `range` among the arguments too, is
+`noMatchingInit` (#121). Anywhere else `range` is an unknown function. A
 literal
 passed to a function or a method is converted, and one that does not fit,
 also inside it, is a type mismatch. A literal with no expected type takes
@@ -233,6 +237,16 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       | e => do
         let t ← match e with
           | .list .noneType es => do iterableLiteralTy prog u (← checkIterableElems prog u es)
+          | .call f args =>
+            if f == "range" && builtinRange prog then do
+              let params := rangeParams args.length
+              checkExclusive (← locationArgs prog params args)
+              recheckLocs prog (← tryCatch
+                (checkArgs prog (.init (.list u)) f params args params.length args.length)
+                fun err => throw (if err matches .stringOutsidePrint | .unknownFunction "range"
+                  then .noMatchingInit (.list u) else err))
+              pure (.list .int)
+            else do checkExprAs prog (← locOf prog (.call f args)).isSome (.call f args)
           | e => do checkExprAs prog (← locOf prog e).isSome e
         iterableFits prog u t
         pure t

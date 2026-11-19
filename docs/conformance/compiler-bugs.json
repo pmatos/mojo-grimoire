@@ -200,6 +200,37 @@
         "reproduces": true,
         "result": "rejects with the same non-'Deinitable' error, as on 1.2.0, and so do the other suite programs; with the empty __deinit__ it prints `0`"
       }
+    },
+    {
+      "issue": 121,
+      "title": "List[Int](range(start, end, step)) aborts when the range is not empty and start - end is ±2^63",
+      "ruled": "2026-11-19",
+      "decision_log": "D-0008",
+      "suite_programs": [],
+      "reference": {
+        "release": "1.3.0.dev2026111905",
+        "commit": "a549e6a6"
+      },
+      "reproducer": "def main():\n    print(\"before\")\n    print(List[Int](range(-1, 9223372036854775807, 9223372036854775807)))\n",
+      "compiler": "prints `before`, then aborts: \"ABORT: Mojo/stdlib/std/memory/alloc.mojo:1021:18: Layout: `length` must be >= 0\". _StridedRange._signed_count computes abs(start - end), which wraps, and List's initializer from an iterable reserves the negative count. 1.2.0 aborts the same way, with \"alloc.mojo:888:14: alloc: Layout.count() must be >= 0\"",
+      "fixed": "builds the range's list, `[-1, 9223372036854775806]`: every element lies between start and end, and only the reserved size overflows",
+      "model": "prints `before` and `[-1, 9223372036854775806]`",
+      "upstream": {
+        "status": "unfiled",
+        "draft": "https://github.com/pmatos/mojo-grimoire/issues/121#issuecomment-7020135751",
+        "tracking": 121,
+        "report": null
+      },
+      "confirmation": {
+        "status": "pending",
+        "notes": "provisional ruling, until the human has discussed it with Modular"
+      },
+      "nightly": {
+        "version": "1.3.0.dev2026111905",
+        "checked": "2026-11-19",
+        "reproduces": true,
+        "result": "aborts as above; the stdlib's TODO(MSTDL-3087) above _signed_count names the wrap"
+      }
     }
   ]
 }

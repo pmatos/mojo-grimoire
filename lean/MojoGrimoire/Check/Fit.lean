@@ -9,7 +9,8 @@ change, passed `mut`. An initializer reports every misfit as
 `noMatchingInit` of its type, since the compiler tries each initializer
 and reports only that none fits: a construction `S(…)`, and a literal that
 initializes the list or array expected where it stands, and `List[u](e)`
-from a source that is not a list or an array of `u` that can be copied. A
+from a source that is not a list or an array of `u` that can be copied,
+or from `range(…)` with arguments that fit no form of `range` (#121). A
 literal passed to a function or a method is converted to its parameter's
 type, and the compiler reports one that does not fit as a type mismatch.
 -/

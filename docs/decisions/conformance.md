@@ -137,8 +137,16 @@ length but 1 where an `Int` is expected: "function instantiation failed",
 with the note "constraint failed: expected N elements in the SIMD list
 literal, found M" (D-0005). `diagnostics.json` maps it, matched whole with
 its note, to `noMatchingInit` (#160); a failed instantiation with any other
-note does not match it. Each of the three messages still reaches only that
-class.
+note does not match it.
+
+It gives a fourth for `List[T](range(…))` whose arguments fit no form of
+the standard library's `range`, of any number or type: "no matching
+function in call to 'range'". Which of the two messages a misfit gets
+depends on whether every argument converts to the type of the first, which
+the model does not follow. The human ruled on 2026-11-19 (#121) that
+`diagnostics.json` maps it, matched whole, to `noMatchingInit`, so that
+every `range` argument that does not fit is one class. Each of the four
+messages still reaches only that class.
 
 Ordinary calls keep their classes, since the compiler names the misfit
 there: `typeMismatch` and `arityMismatch`. So does a literal passed to a

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The machine: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3615762742804319230")
+:::moduleDocs (fingerprint := "17278587509869168381")
 :::
 
 :::readable MojoGrimoire.Interp.Ref MojoGrimoire.Interp.Binding MojoGrimoire.Interp.Env (fingerprint := "5146776138028628767")
@@ -68,4 +68,15 @@ for a struct type with fields, the struct whose fields are the blanks of
 their types, and $`\bot` for any other type, so that its fields can be
 assigned one by one (#51). The `self` of `__init__` starts as the struct
 whose fields are the blanks of their types.
+:::
+
+:::readable MojoGrimoire.Interp.rangeLength MojoGrimoire.Interp.rangeList (fingerprint := "12566500717512235132")
+*Definition: a range's list.* $`\mathsf{range}(a, b, s)` holds the
+$`\mathsf{Int}`s $`a + k s`, for $`k = 0, 1, \ldots`, that come before
+$`b` in the direction of $`s`: those below $`b` when $`s > 0`, those above
+it when $`s < 0`, and none when $`s = 0`. Each lies between $`a` and $`b`,
+so none wraps around, and the list is the one that unbounded arithmetic
+gives (#121, D-0008). With fuel $`f`, a range of more than $`f` elements
+stops the run with `outOfFuel` before the list is built, as building it
+one element per unit of fuel would.
 :::

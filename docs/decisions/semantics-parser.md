@@ -55,7 +55,7 @@ else. These choices hold:
   literal that initializes an expected type (#46).
 - `List[T]()` is an empty list. `List[T](e1, …, en)` with arguments is
   read as its own expression, which the checker accepts only for one
-  argument that is a list or an array of `T` (see
+  argument that is a list or an array of `T`, or a call of `range` (see
   [Lists](semantics-lists.md#lists)). Its one argument `p^` is read as the
   place `p^`, which the compiler borrows (#103). `List[T](capacity=n)` is outside the
   subset and a syntax error.

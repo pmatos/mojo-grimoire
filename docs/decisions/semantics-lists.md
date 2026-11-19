@@ -65,13 +65,38 @@ Lists, `List[T]`, follow the rules of
   type, also inside a nested literal, fits no initializer, since the
   compiler infers the literal's type while it looks for one. Any other
   argument in the subset, an empty literal and a string among them, fits
-  no initializer either (`noMatchingInit`). The compiler also accepts
-  other iterables, such as `range(n)`, which are outside the subset until
-  #121 is ruled. The compiler
-  reports a `List[T]` source whose elements cannot be copied as "cannot
-  construct 'List[T]' with itself", which the suite also maps to
-  `noMatchingInit`
+  no initializer either (`noMatchingInit`). The compiler reports a
+  `List[T]` source whose elements cannot be copied as "cannot construct
+  'List[T]' with itself", which the suite also maps to `noMatchingInit`
   ([conformance.md](conformance.md#initializations-that-fit-no-initializer)).
+- `List[T](range(…))` with one, two or three `Int` arguments, the end, the
+  start and the end, or a step too, is the list of the range's `Int`s,
+  from the start, 0 by default, by the step, 1 by default, up to the end
+  and without it, or down to it for a negative step; a step of 0 gives
+  `[]`. The human ruled on 2026-11-19 that the model takes `range` only
+  as the argument of `List[T](…)` (#121). A range is not a value of its
+  own: `range` anywhere else, as in `var r = range(3)` or
+  `len(range(3))`, is `unknownFunction`, the class the model gives a call
+  of a function the program does not declare, though the compiler accepts
+  both. A function or a struct of the program named `range` is called
+  instead. The arguments are evaluated from left to right, as `read`
+  arguments of type `Int`, so a place among them is read once all are
+  evaluated, and a literal `[e]` is the `Int` `e`. `T` must be `Int`. Any
+  misfit, a wrong number of arguments, an argument that is not an `Int`,
+  a string or another `range` among them, or another `T`, is
+  `noMatchingInit`. The compiler reports some of these as "no matching
+  function in call to 'range'", which the suite maps to `noMatchingInit`
+  too, by the ruling of 2026-11-19 (#121), and the others as "no matching
+  function in initialization". The list is the one that unbounded
+  arithmetic gives, also at the extreme values of `Int`. A non-empty range
+  whose start and end lie exactly 2^63 apart aborts on the compiler, a
+  compiler bug by a provisional ruling ([D-0008](../conformance/decision-log.md)):
+  the model builds the list, which Lean tests pin, since the suite cannot
+  record the abort cleanly. A range longer than the fuel, such as
+  `range(9223372036854775807)`, runs out of it before the list is built
+  (`outOfFuel`); the compiler fails to allocate it, depending on the
+  machine's memory, so no suite program holds one, and Lean tests pin the
+  model.
 - `List[T](capacity=n)` stays a syntax error: the model does not read
   keyword arguments.
 

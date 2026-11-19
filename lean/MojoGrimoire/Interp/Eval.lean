@@ -16,7 +16,10 @@ of `and` and `or`, are read at once. An `Int`
 or a `Bool` passed to a `read` parameter is passed by value: Mojo copies
 it. Every function of the evaluator takes fuel, which each step spends; a
 run that spends it all stops with `outOfFuel`, so every run ends, even of a
-program that loops forever.
+program that loops forever. The standard library's `range`, which only
+`List[u](…)` takes (#121), reads its `Int`s as a call reads `read`
+arguments, and gives their list, which needs one unit of the call's fuel
+per element: a longer range runs out of fuel before the list is built.
 
 A value is destroyed where elaboration put a `drop` or a `withDrops`, when
 it is replaced by an assignment, when a temporary passed to a borrowing
@@ -302,6 +305,17 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
         let .list es ← evalListArg prog n env a | stuck "len of a value that is not a list"
         dropAll prog n env pre
         pure (.value (.int es.length))
+      | none, none, "range", args => do
+        let vs ← Pending.loadAll (← evalArgs prog n env (rangeParams args.length) args)
+        let ks ← vs.mapM fun
+          | .value v | .temp v => asInt v
+          | .place r => do asInt (← readRef r)
+        dropAll prog n env pre
+        match ks with
+        | [b] => do pure (.value (← rangeList n 0 b 1))
+        | [a, b] => do pure (.value (← rangeList n a b 1))
+        | [a, b, c] => do pure (.value (← rangeList n a b c))
+        | _ => stuck "range with no argument or more than three"
       | _, _, _, _ => stuck s!"unknown function {f}"
     | .method p m args => do
       let r ← placeRef prog n env p

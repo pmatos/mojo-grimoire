@@ -115,11 +115,11 @@ end
 
 /-- Whether each argument of a call of `f` is passed by value, when it is a
 place, as its signature says. `len`, which has none, takes its list by
-reference. -/
+reference. The standard library's `range` reads its `Int`s by value. -/
 def callModes (prog : Program) (f : Name) : List Bool :=
   match callSig prog f with
   | .ok sig => sig.params.map passedByValue
-  | .error _ => []
+  | .error _ => if f == "range" then (rangeParams 3).map passedByValue else []
 
 /-- Whether the receiver `p` of a call of the method `m` with `n` arguments,
 and each argument, is passed by value, as the method's signature says. -/
