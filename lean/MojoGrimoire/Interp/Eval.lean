@@ -28,9 +28,10 @@ every value it still owns. A method whose `self` is `var`, called on
 `p^`, takes the value out of `p`. Destroying a
 struct runs its `__deinit__`, whose elaborated body destroys its fields; a
 struct without one has its fields destroyed in order, and a list its
-elements. A value that holds nothing, a blank included, is not destroyed:
-a struct built field by field and never finished has only the fields that
-were assigned destroyed. A value taken out of a place leaves its blank
+elements. A value that holds nothing, a blank included, is not destroyed.
+A struct with some fields that hold nothing and some that hold a value is
+never destroyed: the checker rejects a program that would destroy one (R,
+D-0003). A value taken out of a place leaves its blank
 there, and a variable declared without a value starts as the blank of its
 type, so that its fields can be assigned one by one. A value that `print` writes is not destroyed after it: it holds
 only `Int`s and `Bool`s, so destroying it would do nothing.
@@ -108,6 +109,7 @@ def destroy (prog : Program) (fuel : Nat) (v : Value) : EvalM Unit :=
   | 0 => fail .outOfFuel
   | n + 1 => if v.empty then pure () else match v with
     | .struct s fs => do
+      if fs.any (·.2.empty) then stuck s!"destroying a partly built {s}"
       let some sd := findStruct prog s | stuck s!"unknown struct {s}"
       match sd.deinit with
       | some body => do

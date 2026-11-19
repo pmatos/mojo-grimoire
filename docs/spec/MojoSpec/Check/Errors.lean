@@ -59,8 +59,8 @@ of these classes, each with the names or types it concerns:
   (`argumentExclusivity`), a `mut` parameter or the `self` of `__init__`
   not wholly initialized when the function returns
   (`uninitializedAtExit`), and a struct that ends or is overwritten with
-  a field moved out and not assigned again, or with a part moved out below
-  a destructor of its own (`partiallyDestroyed`);
+  a field moved out and not assigned again, or partly built, with a field
+  never assigned or moved out while it holds another (`partiallyDestroyed`);
 * references: a `ref` binding to something that is not a location
   (`notAReference`), a returned reference that may point outside the
   function's origin (`escapingReference`), and a use of a reference into

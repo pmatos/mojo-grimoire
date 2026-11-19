@@ -21,9 +21,10 @@ too.
 Where a variable ends, at the end of its block or when the function
 returns, the parts it still holds are destroyed. The compiler destroys a
 struct whole, so a variable may not end with a field moved out and not
-assigned again while it still holds a part, nor with a struct that has a
-`__deinit__` of its own partly built, on some path. A variable that holds
-nothing may end, unless a field was moved out of a part held whole (#51).
+assigned again while it still holds a part, nor partly built on some path,
+with a field never assigned while it holds another, as the human ruled
+(R, D-0003). A variable that holds nothing may end, unless a field was
+moved out of a part held whole (#51).
 Assigning to a part destroys its old value, so the same holds for the
 part, and a part moved out may not be assigned whole once some of its
 fields were assigned. Assigning through a reference, or to an
@@ -55,35 +56,57 @@ namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
 
-/-- Whether a value of type `t`, whose uninitialized parts are `us` and
-whose parts that may hold a value are `hs`, has a part `s` whose type has a
-`__deinit__` of its own that may be destroyed partly built: a part below
-`s` may be uninitialized while `s` may hold a value, or `s` may be
-uninitialized while a part below it may hold one. The parts from depth
-`start` down count: 1 for the `self` of `__deinit__`, whose own destructor
-is running, and 0 for any other value. -/
-def partlyMovedDeinit (prog : Program) (t : Ty) (us hs : List Path) (start : Nat) : Bool :=
-  let deinitAbove (p : Path) : List Path :=
-    ((List.range p.length).filter (start ≤ ·)).map (p.take ·) |>.filter
-      (hasDeinit prog <| partTy prog t ·)
-  let near (ps : List Path) (s : Path) := ps.any fun p => p.isPrefixOf s || s.isPrefixOf p
-  us.any (fun u => (deinitAbove u).any (near hs)) ||
-    hs.any (fun h => (deinitAbove h).any (near us))
+/-- Whether the parts `hs` of a value of type `t` hold all of its part
+`q`: one of them is at or above `q`, or `q` is a struct and they hold each
+of its fields. A part held whole and then given a field again is recorded
+as its fields, which hold it all. -/
+def holdsAll (prog : Program) (t : Ty) (hs : List Path) (q : Path) : Bool :=
+  go (hs.foldl (fun n h => max n h.length) 0) q
+where
+  /-- `holdsAll` with fuel `n`, at least the depth of the parts in `hs`. -/
+  go : Nat → Path → Bool
+    | 0, q => hs.any (·.isPrefixOf q)
+    | n + 1, q => hs.any (·.isPrefixOf q) ||
+      let fs := fieldNames prog (partTy prog t q)
+      !fs.isEmpty && fs.all fun f => go n (q ++ [f])
 
-/-- Whether a value of type `t` may not be destroyed, given its
-uninitialized parts `us`, its parts moved out `ms`, its parts that may
-hold a value `hs`, its touched parts `ts` and its pieces `ps`. It may not
-when it still holds a part and a field was moved out of it, or it was
-moved out whole and then built from its fields; when a field was moved out
-of a touched part; or when it holds a part and has an uninitialized part
-that a destructor of its own needs whole. Parts from depth `start` down
-count, as in `partlyMovedDeinit`. -/
+/-- Whether a value of type `t` may be destroyed partly built, given its
+uninitialized parts `us`, its parts that may hold a value `hs` and its
+pieces `ps`: a part may be uninitialized while another part of it may
+hold a value, unless the parts of `hs` below it hold all of it, or a part
+may be held whole and another part of it uninitialized, or two disjoint
+parts may be one uninitialized and the other held; or a piece may be
+uninitialized while a part near it may hold one. The compiler destroys a
+struct whole, and rejects a value with a field moved out; the human ruled
+that a field never assigned counts the same (R, D-0003). Since `us`, `hs`
+and `ps` hold what may be so on some path, a part uninitialized on one
+path and held on another counts, as the compiler counts a field moved out
+on one path only, unless it is held whole on every path that holds it, as
+a variable assigned whole in one branch. A part built from its fields is
+a piece, and the join of `hs` may fold its fields into it, so the last
+condition finds it. The parts from depth `start` down are values of their
+own: 1 for the `self` of `__deinit__`, destroyed field by field, and 0 for
+any other value. -/
+def partlyBuilt (prog : Program) (t : Ty) (us hs ps : List Path) (start : Nat) : Bool :=
+  us.any (fun u => start ≤ u.length && hs.any fun h =>
+      let (u', h') := (u.drop start, h.drop start)
+      !initialized [u.take start] (h.take start) && u' != h' &&
+        !(u'.isPrefixOf h' && holdsAll prog t hs u)) ||
+    ps.any fun p => start ≤ p.length && us.any (·.isPrefixOf p) && !initialized hs p
+
+/-- Whether a value of type `t` may not be destroyed, given its uninitialized parts
+`us`, its parts moved out `ms`, its parts that may hold a value `hs`, its
+touched parts `ts` and its pieces `ps`. It may not when it still holds a
+part and a field was moved out of it, or it was moved out whole and then
+built from its fields; when a field was moved out of a touched part; or
+when it may be partly built. Parts from depth `start` down count, as in
+`partlyBuilt`. -/
 def cannotEnd (prog : Program) (t : Ty) (us ms hs ts ps : List Path) (start : Nat) : Bool :=
   let ms := ms.filter fun m => start == 0 || start < m.length
   let fields := ms.filter (!·.isEmpty)
   ((!fields.isEmpty || (ms.contains [] && ps.contains [])) && !hs.isEmpty) ||
     ts.any (fun c => fields.any (c.isPrefixOf ·)) ||
-    partlyMovedDeinit prog t us hs start
+    partlyBuilt prog t us hs ps start
 
 /-- Rejects the variable `v` if it may not end as it is. For the `self` of
 `__deinit__`, only fields of its fields count. -/
@@ -94,16 +117,20 @@ def checkEnd (prog : Program) (v : VarState) : CheckM Unit := do
 
 /-- Rejects the state at a return: every `mut` parameter and the `self` of
 `__init__` must be wholly initialized, with no part built from its fields,
-and every variable must be allowed to end. The caller uses a `mut`
+and every variable must be allowed to end, checked after, as the compiler
+reports a parameter left uninitialized first: the `mut` parameters in
+their order, then the `self` of `__init__`. The caller uses a `mut`
 parameter whole, so the compiler reports one that is itself built field by
 field as a use of it. -/
 def checkExit (prog : Program) : CheckM Unit := do
-  for v in (← get).vars do
-    if v.access == .mutable || v.access == .constructing then
-      if v.uninit.isEmpty && v.pieces == [[]] then
-        throw (CheckError.uninitializedUse (.var v.name))
-      if !v.uninit.isEmpty || !v.pieces.isEmpty then
-        throw (CheckError.uninitializedAtExit v.name)
+  let vars := (← get).vars
+  let params := vars.reverse.filter (·.access == .mutable) ++ vars.filter (·.access == .constructing)
+  for v in params do
+    if v.uninit.isEmpty && v.pieces == [[]] then
+      throw (CheckError.uninitializedUse (.var v.name))
+    if !v.uninit.isEmpty || !v.pieces.isEmpty then
+      throw (CheckError.uninitializedAtExit v.name)
+  for v in vars do
     if v.access != .readOnly then checkEnd prog v
 
 /-- Ends the variables declared since the scope had `n` variables: checks
@@ -255,14 +282,13 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     if cannotEnd prog (partTy prog v.ty path) (partsWithin path v.uninit) (atOrBelow path v.moved)
         (partsWithin path v.held) ts (atOrBelow path v.pieces) 0 then
       throw (CheckError.partiallyDestroyed x)
-    let built := (above path v.uninit).flatMap (piecesTo · path)
-    let built := if v.access == .constructing && !v.moved.contains [] then built.filter (!·.isEmpty)
-      else built
+    let uninit := initPart prog v.uninit v.ty path
     let outside (us : List Path) := us.filter (!path.isPrefixOf ·)
-    setVar { v with uninit := initPart prog v.uninit v.ty path, moved := outside v.moved,
-                    held := uninitialize v.held path,
+    let pieces := union (outside v.pieces) ((above path v.uninit).flatMap (piecesTo · path))
+    let whole := v.access == .constructing && !v.moved.contains [] && uninit.isEmpty
+    setVar { v with uninit, moved := outside v.moved, held := uninitialize v.held path,
                     touched := union (outside v.touched) (above path v.held),
-                    pieces := union (outside v.pieces) built }
+                    pieces := if whole then pieces.filter (!·.isEmpty) else pieces }
   | .expr e => do let _ ← checkExpr prog e
   | .print args => do
     let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark

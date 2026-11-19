@@ -162,4 +162,21 @@ private def go (body : List Stmt) (pairDeinit : Option (List Stmt) := none)
 #guard go [newRes "a" 1, call "consume" [.transfer (v "a")], call "show" [use "a"]] ==
   .rejected ⟨"main", .uninitializedUse (v "a")⟩
 
+/-- How destroying the value `w` stops, with `Pair` and `Res` declared:
+`none` when it finishes. -/
+private def destroyStop (w : Value) : Option RunError :=
+  let prog : Program := ⟨[resDecl, pairDecl none], []⟩
+  match ((destroy prog 100 w).run ⟨#[], #[]⟩).1 with
+  | .error (.error e) => some e
+  | _ => none
+
+-- A struct that holds nothing, or holds every field, is destroyed; one that
+-- is partly built is stuck, since the checker rejects a program that would
+-- destroy one (R, D-0003).
+#guard destroyStop (.struct "Pair" [("a", .uninit), ("b", .uninit)]) == none
+#guard destroyStop (.struct "Pair" [("a", .struct "Res" [("id", .int 1)]),
+  ("b", .struct "Res" [("id", .int 2)])]) == none
+#guard destroyStop (.struct "Pair" [("a", .struct "Res" [("id", .int 1)]), ("b", .uninit)]) ==
+  some (.stuck "destroying a partly built Pair")
+
 end MojoGrimoireTest.Interp

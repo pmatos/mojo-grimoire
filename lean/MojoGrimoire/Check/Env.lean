@@ -117,11 +117,6 @@ def copyingOf (prog : Program) : Ty → Copying
   | .list t | .array t _ => if copyingOf prog t == .none then .none else .explicit
   | .str | .noneType => .none
 
-/-- Whether the type `t` is a struct with a `__deinit__` of its own. -/
-def hasDeinit (prog : Program) : Ty → Bool
-  | .struct s => (findStruct prog s).any (·.deinit.isSome)
-  | _ => false
-
 /-- The type of the field `f` of a value of type `t`. Only a struct has
 fields; on any other type the field is an unknown attribute, named with
 the type's name. -/

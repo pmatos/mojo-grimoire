@@ -64,9 +64,9 @@ where the compiler and the manual disagree, the model follows the compiler.
   rejected as `partiallyDestroyed`, which covers both of the compiler's
   messages: "destroyed out of the middle of a value" and "cannot be
   consumed, because ... is used later". The checker cannot tell which one
-  the compiler gives, since that depends on what follows (#39). A part
-  below a struct with a `__deinit__` of its own may not be uninitialized
-  when the struct ends either, while the struct may still hold a part. Inside `__deinit__`, `self`'s own fields may
+  the compiler gives, since that depends on what follows (#39). Nor may
+  any struct end partly built, on some path, with a field never assigned
+  while it holds another (D-0003, see below). Inside `__deinit__`, `self`'s own fields may
   stay moved out, but not fields of its fields.
 - Until a field moved out is assigned again at its path, the compiler
   reports a use of it, or of a part above it, as `uninitializedUse`, even
@@ -125,17 +125,23 @@ where the compiler and the manual disagree, the model follows the compiler.
   given some of its fields. A part moved out and then given some of its
   fields may not be assigned whole. The checker tracks this with the
   parts that may hold a value, the touched parts and the pieces of
-  `MojoGrimoire.Check.VarState`; each rule follows the compiler on the
-  probes recorded on #51, except three shapes that the model rejects and
-  the compiler accepts: a field moved out in one branch of an `if` while
-  the other builds another field (#137), a field moved out after another
-  field's last use, which the compiler destroys early (#144), and a part
-  moved out whole, refilled and emptied, then assigned whole (#145). Where the compiler destroys a field that was
-  never assigned, a compiler bug, the model does not
-  ([D-0003](../conformance/decision-log.md)), and it still rejects a
-  struct with a `__deinit__` of its own that may end with a field never
-  assigned, on some path: built in one branch of an `if` only, or in a
-  loop, included. At a return, a `mut` parameter or a part of the `self` of
+  `MojoGrimoire.Check.VarState`. A variable, or a part assigned whole,
+  may not end partly built, with a field never assigned while it holds
+  another, however it got there: built in one branch of an `if` only,
+  even wholly, or in a loop, and with fields that are all `Int`s too. The
+  compiler accepts these and destroys the fields never assigned, a
+  compiler bug; the human ruled on 2026-11-19 that the fixed compiler
+  rejects them, as it rejects a field moved out (R,
+  [D-0003](../conformance/decision-log.md)), provisionally, until the
+  human has discussed it with Modular. The `self` of `__init__` built
+  wholly in one branch only is whole, and may be assigned whole after it,
+  as the compiler accepts with clean output. A variable held whole whose
+  field was moved out and assigned again is whole too. A field moved out after another
+  field's last use (#144) and a field moved out in one branch while the
+  other builds another field (#137) are such shapes. Each other rule
+  follows the compiler on the probes recorded on #51, except a part moved
+  out whole, refilled and emptied, then assigned whole, which the model
+  rejects and the compiler accepts (#145). At a return, a `mut` parameter or a part of the `self` of
   `__init__` built field by field is not initialized; a `mut` parameter
   that is itself built so is `uninitializedUse`, as the compiler reports
   it.
@@ -274,8 +280,8 @@ corrected against the compiler's recorded results (#25):
   declared without a value holds the blank of its type, the struct with
   no field assigned, and a value taken out of a place leaves its blank:
   so its fields can be assigned one by one. A value that holds nothing, a
-  blank included, is not destroyed, so a struct built field by field has
-  only its assigned fields destroyed (#51, D-0003).
+  blank included, is not destroyed. A struct that is partly built is never
+  destroyed: the checker rejects the program (#51, D-0003).
 - A temporary passed to a borrowing parameter is destroyed right after the
   call; the unused result of an expression statement is destroyed at once.
 - An assignment evaluates its value, then its place, and destroys the old

@@ -17,10 +17,18 @@
     "structs/cycle_fieldwise_init": "D-0004",
     "structs/cycle_fieldwise_init_both": "D-0004",
     "structs/cycle_fieldwise_init_holder_first": "D-0004",
+    "structs/field_by_field_branch_move_other": "D-0003",
+    "structs/field_by_field_branch_move_other_both": "D-0003",
+    "structs/field_by_field_move_after_last_use": "D-0003",
+    "structs/field_by_field_move_after_last_use_loop": "D-0003",
     "structs/field_by_field_unset_branch": "D-0003",
     "structs/field_by_field_unset_destroyed": "D-0003",
     "structs/field_by_field_unset_destructor": "D-0003",
+    "structs/field_by_field_unset_ints": "D-0003",
     "structs/field_by_field_unset_nested": "D-0003",
-    "structs/field_by_field_unset_overwritten": "D-0003"
+    "structs/field_by_field_unset_overwritten": "D-0003",
+    "structs/field_by_field_unset_whole_branch": "D-0003",
+    "structs/field_by_field_unset_whole_loop": "D-0003",
+    "structs/field_by_field_whole_branch_then_fields": "D-0003"
   }
 }

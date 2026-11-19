@@ -17,4 +17,5 @@ def main():
     print(s.lo.x, s.lo.y)
     s.lo = Pair(7, 8)
     s.hi.x = 9
+    s.hi.y = 10
     print(s.lo.x, s.hi.x)
