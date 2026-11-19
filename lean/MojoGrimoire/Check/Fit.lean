@@ -89,16 +89,29 @@ def State.typing (s : State) : State :=
   { s with vars := s.vars.map fun v => { v with uninit := [], moved := [], pieces := [] },
            stale := [] }
 
+/-- The type of an element `e` of a literal where an `Int` is expected, when
+checking it gives an error that the compiler reports after its types: one
+of a later pass (`CheckError.late`), or a nested literal's failed SIMD
+constraint. It is the type of its operator's or its call's result, of an
+array of its first element, or else `Int`. -/
+def lateElemTy (prog : Program) : Expr → CheckM Ty
+  | .unary .not _ => pure .bool
+  | .binary op _ _ => pure (if op matches .add | .sub | .mul | .floorDiv | .mod then .int else .bool)
+  | .call f _ => pure (((callSig prog f).toOption.map (·.result)).getD .int)
+  | .method p m args => do
+    pure (((methodSig prog (← placeTy prog p) m args.length).toOption.map (·.result)).getD .int)
+  | .list .noneType (e :: es) => do pure (.array (← lateElemTy prog e) (es.length + 1))
+  | _ => pure .int
+
 /-- Rejects a `wrongIntLiteral` as a call of fit `fit` reports it. The
-compiler types its elements before it reads any: `misfit`, run in the
-state's `State.typing`, gives the type of the first that is no `Int`,
-nor such a literal of `Int`s, a type mismatch. Otherwise `reads` reads
-them, and the compiler then fails SIMD's constraint of one element,
-`noMatchingInit`. -/
+compiler types its elements before it reads any: `misfit` types each in
+`State.typing`, and gives the type of the first that is no `Int`, nor
+such a literal of `Int`s, a type mismatch. Otherwise, in the state it
+started from, `reads` reads them, and the compiler then fails SIMD's
+constraint of one element, `noMatchingInit`. -/
 def rejectIntLiteral {α : Type} (prog : Program) (fit : Fit) (misfit : CheckM (Option Ty))
     (reads : CheckM (List (List Place × Nat))) : CheckM α := do
   let s ← get
-  set s.typing
   if let some u ← misfit then throw (fit.misfit (CheckError.typeMismatch .int u))
   set s
   recheckLocs prog (← reads)

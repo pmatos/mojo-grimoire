@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14207085305653288033")
+:::moduleDocs (fingerprint := "16464456095959676081")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -37,7 +37,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "16923234218384421071")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "5381407427294112019")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -65,9 +65,9 @@ type:
   passed to an initializer;
 * $`[e^*]_{\mathsf{Int}}` of any other length, converted, is rejected by
   `rejectIntLiteral` (#153, #154), with `intMisfit` giving the type of its
-  first element that is no $`\mathsf{Int}`, nor such a literal, where an
-  element that gives an error the compiler reports later is taken to
-  fit, and `readIntElems` reading its elements as
+  first element that is no $`\mathsf{Int}`, nor such a literal, each typed
+  as that rule says, a place by `typePlace`, and `readIntElems` reading
+  its elements as
   $`\mathsf{Int}`s, a nested such literal's in turn. Passed to a
   parameter, it is rejected by the call's fit;
 * $`\mathsf{List}[u](e)` with one argument copies the elements of a list

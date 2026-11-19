@@ -227,18 +227,18 @@ def checkOperands (prog : Program) : List Expr → CheckM Unit
     checkOperands prog args
 
 /-- The type of the first of the elements `es` of a literal where an `Int`
-is expected that is no `Int`, nor such a literal of `Int`s. An error that
-the compiler reports later (`CheckError.late`) is left to the reads: an
-element that gives one is taken to fit. -/
+is expected that is no `Int`, nor such a literal of `Int`s. Each is typed
+in `State.typing`, a place by `typePlace`; one whose check gives an error
+that the compiler reports later has its `lateElemTy`. -/
 def intMisfit (prog : Program) : List Expr → CheckM (Option Ty)
   | [] => pure none
   | e :: es => do
+    modify State.typing
     let u ← match e with
-      | .place p => do
-        try checkIndices prog p catch err => unless err.late do throw err
-        placeTy prog p
+      | .place p => do typePlace prog p; placeTy prog p
       | .list .int es' => do pure ((← intMisfit prog es').getD .int)
-      | e => try checkExprAs prog false e catch err => if err.late then pure .int else throw err
+      | e => try checkExprAs prog false e catch err =>
+          if err.late || err == .noMatchingInit .int then lateElemTy prog e else throw err
     if u == .int then intMisfit prog es else pure (some u)
 
 /-- Reads the elements `es` of such a literal of `Int`s, as `Int`s passed

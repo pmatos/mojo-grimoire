@@ -215,6 +215,14 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["ref r = xs[0]", "xs.append(3)", "var y: Int = [r + 1, True]"]
   (.noMatchingInit .int)
 #guard rejects ["var z: Int", "var y: Int = [z + 1, 2]"] (.uninitializedUse (.var "z"))
+-- An element whose check gives such a later error has the type of its
+-- operator or call, and a nested literal's failed constraint comes later too.
+#guard rejects ["var y: Int = [arr[5] == 1, 2]"] (.noMatchingInit .int)
+#guard rejects ["print(rd([xs[1 - 2] == 1, 2]))"] (.typeMismatch .int .bool)
+#guard rejects ["var d = D(1)", "var y: Int = [eat(d^), d.n > 0]"] (.noMatchingInit .int)
+#guard rejects ["var y: Int = [[1, 2] == x, 3]"] (.noMatchingInit .int)
+#guard rejects ["print(rd([rd([1, 2]), True]))"] (.typeMismatch .int .bool)
+#guard rejects ["var z: Int", "var y: Int = [rd([z, 2]), 3]"] (.uninitializedUse (.var "z"))
 -- Where a function, a method or an operator converts it, it is a type
 -- mismatch, of its first element that is not an `Int`.
 #guard rejects ["print(rd([1, True]))"] (.typeMismatch .int .bool)
