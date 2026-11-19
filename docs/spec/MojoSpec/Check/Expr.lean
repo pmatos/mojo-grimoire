@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2010845337470467821")
+:::moduleDocs (fingerprint := "15497120852019240352")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -56,7 +56,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "11879056004062857720")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "10230517371699055813")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -101,9 +101,9 @@ type:
   $`\mathsf{Int}`, with the fit of an initializer of
   $`\mathsf{List}[u]`, so that a wrong number of arguments and an argument
   of another type are `noMatchingInit` $`\mathsf{List}[u]`, as is a $`u`
-  other than $`\mathsf{Int}`. An argument that is a string or a call of
-  `range` fits no parameter either: the arguments before it are checked,
-  and then the call is `noMatchingInit`; a string or a `range` deeper inside
+  other than $`\mathsf{Int}`. An argument that `rangeMisfit` names fits
+  no parameter either: the arguments before it are checked, and then the
+  call is `noMatchingInit`; a string or a `range` deeper inside
   an argument keeps its own class. `range` anywhere else is an unknown function: a range
   is not a value of its own;
 * $`\mathsf{List}[u](e^+)` with more than one argument checks each

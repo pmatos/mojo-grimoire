@@ -76,4 +76,14 @@ def iterableLiteralTy (prog : Program) (u : Ty) (ts : List (Ty × List Place × 
   recheckLocs prog (ts.map (·.2))
   pure (.array t ts.length)
 
+/-- Whether the argument `a` of the standard library's `range` fits none
+of its forms by its shape alone: a string, a call of `range`, or a literal
+that holds one. The compiler reports it as "no matching function in call
+to 'range'", once it has checked the arguments before it (#121). -/
+def rangeMisfit (a : Expr) : Bool :=
+  match a with
+  | .str _ | .call "range" _ => true
+  | .list _ es => es.any (· matches .str _ | .call "range" _)
+  | _ => false
+
 end MojoGrimoire.Check

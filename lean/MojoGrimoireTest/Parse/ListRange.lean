@@ -141,6 +141,8 @@ private def minS : String := "-9223372036854775808"
 #guard rejects ["var xs = List[Int](range(len(range(3)), range(2)))"] (.unknownFunction "range")
 #guard rejects ["var xs = List[Int](range(1, \"b\"))"] (.noMatchingInit (.list .int))
 #guard rejects ["var xs = List[Int](range(0, 9, 2, \"b\"))"] (.noMatchingInit (.list .int))
+#guard rejects ["var xs = List[Int](range([\"a\"]))"] (.noMatchingInit (.list .int))
+#guard rejects ["var xs = List[Int](range(1, [range(3)]))"] (.noMatchingInit (.list .int))
 
 -- Anywhere else, `range` is an unknown function: a range is not a value.
 #guard rejects ["var r = range(3)"] (.unknownFunction "range")

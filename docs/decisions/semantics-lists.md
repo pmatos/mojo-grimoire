@@ -84,8 +84,10 @@ Lists, `List[T]`, follow the rules of
   arguments of type `Int`, so a place among them is read once all are
   evaluated, and a literal `[e]` is the `Int` `e`. `T` must be `Int`. Any
   misfit, a wrong number of arguments, an argument that is not an `Int`,
-  a string or another `range` among them, or another `T`, is
-  `noMatchingInit`. The compiler reports some of these as "no matching
+  or another `T`, is `noMatchingInit`. An argument that is a string, a
+  call of `range`, or a literal holding one, is a misfit once the
+  arguments before it are checked: an error in those, or deeper inside an
+  argument, keeps its class. The compiler reports some of these as "no matching
   function in call to 'range'", which the suite maps to `noMatchingInit`
   too, by the ruling of 2026-11-19 (#121), and the others as "no matching
   function in initialization". The list is the one that unbounded

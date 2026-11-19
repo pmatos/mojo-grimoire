@@ -40,8 +40,9 @@ array of `u`, which can be copied (#103): `e` is passed by `ref`, as
 `len` takes its list, and a mutable place passed so may be changed.
 `List[u](range(…))`, when the program declares no `range`, takes one to
 three `Int`s, read as `read` arguments, and needs `u` to be `Int`; any
-misfit, a string or a `range` among the arguments too, is
-`noMatchingInit` (#121). Anywhere else `range` is an unknown function. A
+misfit is `noMatchingInit` (#121). An argument that `rangeMisfit` names
+is one once the arguments before it are checked, whose errors keep their
+class. Anywhere else `range` is an unknown function. A
 literal
 passed to a function or a method is converted, and one that does not fit,
 also inside it, is a type mismatch. A literal with no expected type takes
@@ -239,7 +240,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
           | .list .noneType es => do iterableLiteralTy prog u (← checkIterableElems prog u es)
           | .call f args =>
             if builtinRange prog f then do
-              let k := (args.findIdx? (· matches .str _ | .call "range" _)).getD args.length
+              let k := (args.findIdx? rangeMisfit).getD args.length
               let params := if k < args.length then (rangeParams args.length).take k
                 else rangeParams args.length
               recheckLocs prog
