@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13277166753181632064")
+:::moduleDocs (fingerprint := "2742563799414151508")
 :::
 
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkRangeArgs MojoGrimoire.Check.checkParts MojoGrimoire.Check.checkPartsList MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "12727839935079675300")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkRangeArgs MojoGrimoire.Check.checkLiteral MojoGrimoire.Check.checkParts MojoGrimoire.Check.checkPartsList MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "17297016674097138616")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -60,17 +60,20 @@ type:
   the standard library's range (#121): its one to three arguments are
   checked by `checkRangeArgs` in the compiler's order of passes. First
   every argument is typed, and an unknown name or a misfit of a call inside
-  any argument is reported at once. An argument that holds a string or a
-  call of `range` (`holdsStrOrRange`) is typed only in its other parts, by
-  `checkParts`. Then the call is `noMatchingInit` $`\mathsf{List}[u]`
-  when an argument is not an $`\mathsf{Int}`, holds a string or a `range`,
-  or is a literal of other elements, when there are not one to three
-  arguments, or when $`u` is not $`\mathsf{Int}`. Then comes the first use
-  of an uninitialized or invalidated value; then a literal of
-  $`\mathsf{Int}`s at any depth, or an empty one, is `noMatchingInit`, as
-  the compiler fails only when it instantiates the call; then a constant
-  index out of range. `range` anywhere else is an unknown function: a range
-  is not a value of its own;
+  any argument is reported at once; a place is typed before it is read. An
+  argument that holds a string or a call of `range` (`holdsStrOrRange`) is
+  typed only in its names, fields and calls, by `checkParts`, and an open
+  literal by `checkLiteral`. Then the call is `noMatchingInit`
+  $`\mathsf{List}[u]`: when an argument is not an $`\mathsf{Int}`, holds a
+  string or a `range`, or is an open literal other than one of
+  $`\mathsf{Int}`s, at any depth, whose first element is not an empty
+  literal; when there are not one to three arguments; or when $`u` is not
+  $`\mathsf{Int}`. Then comes the first use of an uninitialized or
+  invalidated value, also among the places read late; then such a literal
+  of $`\mathsf{Int}`s, or an empty one, is `noMatchingInit`, as the
+  compiler fails only when it instantiates the call; then a constant index
+  out of range. `range` anywhere else is an unknown function: a range is
+  not a value of its own;
 * $`\mathsf{List}[u](e^+)` with more than one argument checks each
   argument on its own, locating a place without reading it, and is then
   rejected as `noMatchingInit` $`\mathsf{List}[u]`: no initializer of

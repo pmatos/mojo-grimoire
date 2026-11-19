@@ -97,9 +97,9 @@ end
 /-- What checking the arguments of the standard library's `range` finds,
 by the compiler's passes, which report in this order (#121): `misfit`, an
 argument that fits no form of `range` once every argument is typed;
-`owned`, the first use of an uninitialized or invalidated value; `literal`,
-a literal of `Int`s of a length other than 1, or empty, which fails when
-the call is instantiated; `index`, the first constant index out of range.
+`owned`, the first use of an uninitialized or invalidated value;
+`literal`, an open literal that the compiler takes for an `Int`, which
+fails only when the call is instantiated; `index`, the first constant index out of range.
 `locs` holds, for each argument, the places it reads late, with its mark. -/
 structure RangeArgs where
   misfit : Bool := false
@@ -118,12 +118,5 @@ def RangeArgs.append (r s : RangeArgs) : RangeArgs :=
 def RangeArgs.ofLate (err : CheckError) : RangeArgs :=
   if err matches .negativeIndex _ | .constantIndexOutOfBounds _ then { index := some err }
   else { owned := some err }
-
-/-- Whether the type `t` is `Int`, or an array of such, as the elements of
-a literal of `Int`s are, at any depth. -/
-def intShaped : Ty → Bool
-  | .int => true
-  | .array t _ => intShaped t
-  | _ => false
 
 end MojoGrimoire.Check

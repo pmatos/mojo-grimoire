@@ -160,6 +160,9 @@ private def rangeOf (args : String) : String := s!"print(List[Int](range({args})
 #guard rejectsWith (rangeOf "[p.y, \"a\"]") (.unknownAttribute "P" "y")
 #guard rejectsWith (rangeOf "[f(True)]") (.typeMismatch .int .bool)
 #guard rejectsWith (rangeOf "\"a\", f(p)") (.typeMismatch .int (.struct "P"))
+#guard rejectsWith (rangeOf "P(1, 2), nope") (.noMatchingInit (.struct "P"))
+#guard rejectsWith (rangeOf "len(List[Int](b)), nope") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[u, nope]") (.unknownVariable "nope")
 -- Then the misfits of `range`: an argument of another type, or that holds a
 -- string or a `range` at any depth, a literal of other elements, a wrong
 -- number of arguments, or another element type. A misfit comes before a use
@@ -179,6 +182,23 @@ private def rangeOf (args : String) : String := s!"print(List[Int](range({args})
 #guard rejectsWith (rangeOf "u, [True]") (.noMatchingInit (.list .int))
 #guard rejectsWith (rangeOf "xs[-1], \"a\"") (.noMatchingInit (.list .int))
 #guard rejectsWith "print(List[Bool](range(u)))" (.noMatchingInit (.list .bool))
+-- A place is typed before it is read, and an open literal's elements too.
+#guard rejectsWith "var c: Bool\n    print(List[Int](range(c)))" (.noMatchingInit (.list .int))
+#guard rejectsWith "var q: P\n    print(List[Int](range(1, q)))" (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[True, u]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[True, xs[-1]]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[[True], u]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[1, [True]], u") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[1, [[True]]], u") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[[], [1]], u") (.noMatchingInit (.list .int))
+-- A place that is not an `Int`, in a literal or in a range, is a misfit, not
+-- an implicit copy.
+#guard rejectsWith (rangeOf "[p]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[1, p], u") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[xs, \"a\"]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "range(xs)") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[\"a\", []]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[range(3), [True, 1]]") (.noMatchingInit (.list .int))
 -- Then a use of an uninitialized value, before a literal of `Int`s of the
 -- wrong length, or an empty one, and before a constant index out of range.
 #guard rejectsWith (rangeOf "[1, 2], u") (.uninitializedUse (.var "u"))
@@ -186,11 +206,24 @@ private def rangeOf (args : String) : String := s!"print(List[Int](range({args})
 #guard rejectsWith (rangeOf "u, [1, [2]]") (.uninitializedUse (.var "u"))
 #guard rejectsWith (rangeOf "u, [[1, 2]]") (.uninitializedUse (.var "u"))
 #guard rejectsWith (rangeOf "xs[-1], u") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "[1, []], u") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "[1, [[]]], u") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "[u, 2]") (.uninitializedUse (.var "u"))
+-- A place read late, invalidated by a later argument, comes before the
+-- literal and the index.
+#guard rejectsWith (rangeOf "xs[0], xs.pop(), [1, 2]")
+  (.invalidatedReference (.index (.var "xs") (.int 0)))
+#guard rejectsWith (rangeOf "xs[0], xs.pop(), xs[-1]")
+  (.invalidatedReference (.index (.var "xs") (.int 0)))
 -- Then the literal, before a constant index out of range.
 #guard rejectsWith (rangeOf "[1, 2]") (.noMatchingInit (.list .int))
 #guard rejectsWith (rangeOf "[1, [2]]") (.noMatchingInit (.list .int))
 #guard rejectsWith (rangeOf "xs[-1], [1, 2]") (.noMatchingInit (.list .int))
 #guard rejectsWith (rangeOf "xs[-1], []") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[xs[-1], 2]") (.noMatchingInit (.list .int))
+-- A limit: inside an operation the model checks in program order (#96),
+-- where the compiler reports `u` uninitialized first. This pins the model.
+#guard rejectsWith (rangeOf "xs[-1] + u") (.negativeIndex (.index (.var "xs") (.int (-1))))
 
 -- A string inside a call keeps the model's class for a string outside
 -- `print`, where the compiler reports the call's own misfit.

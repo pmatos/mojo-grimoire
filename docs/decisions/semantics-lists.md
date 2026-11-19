@@ -91,21 +91,24 @@ Lists, `List[T]`, follow the rules of
   an unknown name or attribute, or a misfit of a call inside it, also
   inside an argument that holds a string or a `range`. Then a misfit of
   `range`, `noMatchingInit`: a wrong number of arguments, an argument that
-  is not an `Int`, that holds a string or a call of `range` at any depth,
-  even through an operator, or a literal of other elements, or a `T`
-  other than `Int`. Then a use of an uninitialized or invalidated value.
-  Then a literal of `Int`s, at any depth, of a length other than 1, or an
-  empty one, `noMatchingInit` again, which the compiler finds only when it
-  instantiates the call. Then a constant index out of range. A string
+  is not an `Int`, uninitialized or not, one that holds a string or a call
+  of `range` at any depth, even through an operator, or a `T` other than
+  `Int`. An open literal is a misfit too, unless every element that is
+  not a literal, at any depth, is an `Int` and its first element, at any
+  depth, is not an empty literal: the compiler takes such a literal, or an
+  empty one, for an `Int`, and fails only when it instantiates the call.
+  Then a use of an uninitialized or invalidated value. Then that literal,
+  `noMatchingInit` again. Then a constant index out of range. A string
   inside a call keeps the model's class for a string outside `print`. The
   compiler reports the misfits as "no matching function in call to
-  'range'" or "no matching function in initialization", and a literal of
-  the wrong length as "function instantiation failed"; the suite maps each
-  to `noMatchingInit`, the first by the ruling of 2026-11-19 (#121). A
-  later pass's error inside one argument still hides an error of an earlier
-  pass after it in the same argument, as in any expression (#96):
-  `range([u, nope])`, with `u` uninitialized, is `uninitializedUse`, and
-  `range(xs[-1] + u)` is `negativeIndex`. The list is the one that unbounded
+  'range'" or "no matching function in initialization", and the literal
+  as "function instantiation failed"; the suite maps each to
+  `noMatchingInit`, the first by the ruling of 2026-11-19 (#121). Two
+  limits remain. Inside an operation, the model checks in program order,
+  as in any expression (#96): `range(xs[-1] + u)`, with `u` uninitialized,
+  is `negativeIndex`. And an argument whose check stops at a later pass's
+  error does not record what it moved, so `range(g(p^, xs[-1]), p.x)` is
+  `negativeIndex` where the compiler reports `p` uninitialized. The list is the one that unbounded
   arithmetic gives, also at the extreme values of `Int`. A non-empty range
   whose start and end lie exactly 2^63 apart aborts on the compiler, a
   compiler bug by a provisional ruling ([D-0008](../conformance/decision-log.md)):

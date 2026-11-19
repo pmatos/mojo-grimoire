@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1667884896041032981")
+:::moduleDocs (fingerprint := "4111442416398469917")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "13691362365005740179")
@@ -66,14 +66,13 @@ holds one at any depth. Such an argument of the standard library's `range`
 fits none of its forms (#121).
 :::
 
-:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate MojoGrimoire.Check.intShaped (fingerprint := "15000236733738162497")
+:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "10240546122308998633")
 *Definition: what the arguments of a range find.* Checking the arguments
 of `range` records, in the order of the compiler's passes, whether one
 fits no form of `range` once all are typed; the first use of an
-uninitialized or invalidated value; whether one is a literal of
-$`\mathsf{Int}`s, at any depth, of a length other than 1, which fails when
-the call is instantiated; and the first constant index out of range. Two
+uninitialized or invalidated value; whether one is an open literal that
+the compiler takes for an $`\mathsf{Int}`, and that fails only when the
+call is instantiated; and the first constant index out of range. Two
 records join, the first's errors first. An error of a later pass than
-typing is a constant index out of range or else a use of a value. A type
-is `intShaped` when it is $`\mathsf{Int}` or an array of such.
+typing is a constant index out of range or else a use of a value.
 :::

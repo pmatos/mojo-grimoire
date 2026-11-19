@@ -55,6 +55,11 @@ def CheckError.late : CheckError → Bool
   | .constantIndexOutOfBounds _ => true
   | _ => false
 
+/-- Runs `x`, and records an error of a later pass than typing that it
+throws (`CheckError.late`) instead of throwing it. -/
+def lateErrors (x : CheckM RangeArgs) : CheckM RangeArgs :=
+  tryCatch x fun err => if err.late then pure (RangeArgs.ofLate err) else throw err
+
 /-- Rejects unless the value in the place `p` may be transferred out, and
 gives its type. It must have an origin of its own (`noOwnOrigin`), checked
 before anything else, be initialized, and the function must own it, or

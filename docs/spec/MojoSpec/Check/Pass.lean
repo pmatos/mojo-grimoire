@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Passing places: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3615873095296089646")
+:::moduleDocs (fingerprint := "11219843614059425275")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -29,7 +29,7 @@ cannot be changed. Passed `mut` to an initializer, such a place is
 reported as the initializer's misfit.
 :::
 
-:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.noOwnOrigin MojoGrimoire.Check.CheckError.late MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "14982648558514621564")
+:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.noOwnOrigin MojoGrimoire.Check.CheckError.late MojoGrimoire.Check.lateErrors MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "3579335310442124913")
 *Rule: reading and moving a place.* Using a place $`p` as a value copies it
 implicitly: $`p` must be initialized, and its type implicitly copyable.
 Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable
@@ -44,8 +44,10 @@ through a reference bound with `ref`, even one that may be changed. The
 compiler rejects both alike (`transferFromElement`), once the place has a
 type and before anything else. Its later errors, which such a transfer
 comes before, are the use of an uninitialized or invalidated value and a
-constant index out of range. These conditions, without the move, are
-what $`q\,\hat{}` before a field or a method needs of $`q`.
+constant index out of range; `lateErrors` records one of them, instead of
+throwing it, for the arguments of `range` (#121). These conditions,
+without the move, are what $`q\,\hat{}` before a field or a method needs
+of $`q`.
 :::
 
 :::readable MojoGrimoire.Check.passPlace (fingerprint := "2500036056060291548")

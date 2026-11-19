@@ -171,9 +171,9 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
               if r.misfit || args.isEmpty || 3 < args.length || u != .int then
                 throw (CheckError.noMatchingInit (.list u))
               if let some err := r.owned then throw err
+              recheckLocs prog r.locs
               if r.literal then throw (CheckError.noMatchingInit (.list u))
               if let some err := r.index then throw err
-              recheckLocs prog r.locs
               pure (.list .int)
             else do checkExprAs prog (← locOf prog (.call f args)).isSome (.call f args)
           | e => do checkExprAs prog (← locOf prog e).isSome e
@@ -208,54 +208,84 @@ argument of `List[u](…)`, each as an `Int` passed to a `read` parameter,
 and gives what they find (`RangeArgs`). An error of typing, the
 compiler's first pass, is thrown at once; the misfits of `range` and the
 errors of later passes are recorded, and the arguments after them still
-checked. An open literal of `Int`s, at any depth, is a misfit only when
-the call is instantiated (#121). -/
+checked. A place is typed before it is read, and an open literal is
+checked by `checkLiteral` (#121). -/
 def checkRangeArgs (prog : Program) (u : Ty) : List Expr → CheckM RangeArgs
   | [] => pure {}
   | a :: as => do
-    let r : RangeArgs ← tryCatch (match a with
-        | .list .noneType es =>
-          if holdsStrOrRange a then do
-            pure { (← checkParts prog (.list .noneType es)) with misfit := true }
-          else do
-            let ts ← checkIterableElems prog u es
-            pure (if ts.all (intShaped ·.1) then ({ literal := true } : RangeArgs)
-              else { misfit := true })
-        | .place p => do
+    let r : RangeArgs ← match a with
+      | .list .noneType es => do
+        let (r, ints, empty) ← checkLiteral prog es
+        pure (if es.isEmpty || (ints && !empty) then { r with literal := true }
+          else { r with misfit := true })
+      | .place p => do
+        typePlace prog p
+        if (← placeTy prog p) != .int then pure ({ misfit := true } : RangeArgs)
+        else lateErrors (do
           checkIndices prog p
-          let t ← readPlace prog p
-          pure ({ misfit := t != .int, locs := [([p], ← mark)] } : RangeArgs)
-        | e =>
-          if holdsStrOrRange e then do pure { (← checkParts prog e) with misfit := true }
-          else do
-            let t ← checkExprAs prog false e
-            pure ({ misfit := t != .int, locs := [(← lateLocs prog e, ← mark)] } : RangeArgs))
-      fun err => if err.late then pure (RangeArgs.ofLate err)
-        else if err matches .noMatchingInit _ then pure ({ misfit := true } : RangeArgs)
-        else throw err
+          let _ ← readPlace prog p
+          pure ({ locs := [([p], ← mark)] } : RangeArgs))
+      | e =>
+        if holdsStrOrRange e then do checkParts prog e; pure ({ misfit := true } : RangeArgs)
+        else lateErrors (do
+          let t ← checkExprAs prog false e
+          pure ({ misfit := t != .int, locs := [(← lateLocs prog e, ← mark)] } : RangeArgs))
     pure (r.append (← checkRangeArgs prog u as))
   termination_by as => (sizeOf as, 2)
 
+/-- Checks the elements `es` of an open literal that is an argument of
+`range`, and gives what they find, whether every element that is not a
+literal, at any depth, is an `Int`, and whether its first element, at any
+depth, is an empty literal. The compiler takes such a literal of `Int`s
+for an `Int`, and fails only when it instantiates the call; any other
+literal fits no form of `range` (#121). -/
+def checkLiteral (prog : Program) : List Expr → CheckM (RangeArgs × Bool × Bool)
+  | [] => pure ({}, true, true)
+  | e :: es => do
+    let (r, ints, empty) ← match e with
+      | .list .noneType es' => checkLiteral prog es'
+      | .place p => do
+        typePlace prog p
+        let t ← placeTy prog p
+        let r ← lateErrors (do
+          checkIndices prog p
+          let _ ← readPlace prog p
+          pure {})
+        pure (r, t == .int, false)
+      | e =>
+        if holdsStrOrRange e then do checkParts prog e; pure ({}, false, false)
+        else do
+          let r ← lateErrors (do
+            let t ← checkExprAs prog false e
+            pure ({ misfit := t != .int } : RangeArgs))
+          pure ({ r with misfit := false }, !r.misfit, false)
+    let (rs, intsRest, _) ← checkLiteral prog es
+    pure (r.append rs, ints && intsRest, empty)
+  termination_by es => (sizeOf es, 2)
+
 /-- Checks the parts of the expression `e` that the compiler types before
-it finds that `e`, which holds a string or a call of `range`
-(`holdsStrOrRange`), fits no form of `range`: every part that holds
-neither, through literals, operators and the arguments of `range`. It
-records the errors of later passes among them. -/
-def checkParts (prog : Program) (e : Expr) : CheckM RangeArgs :=
+it finds that an argument of `range` that holds `e` fits no form of
+`range`: every name, field and call that holds no string and no call of
+`range`, through literals, operators and the arguments of `range`. Only
+their typing errors count, since the misfit comes before later passes. -/
+def checkParts (prog : Program) (e : Expr) : CheckM Unit :=
   if holdsStrOrRange e then
     match e with
     | .call _ es | .list _ es => checkPartsList prog es
     | .unary _ a => checkParts prog a
-    | .binary _ a b => do pure ((← checkParts prog a).append (← checkParts prog b))
-    | _ => pure {}
-  else tryCatch (do let _ ← checkExprAs prog false e; pure {})
-    fun err => if err.late then pure (RangeArgs.ofLate err) else throw err
+    | .binary _ a b => do checkParts prog a; checkParts prog b
+    | _ => pure ()
+  else
+    match e with
+    | .place p => typePlace prog p
+    | .list _ es => checkPartsList prog es
+    | e => do let _ ← lateErrors (do let _ ← checkExprAs prog false e; pure {})
   termination_by (sizeOf e, 1)
 
 /-- Checks the parts of each of the expressions `es` (`checkParts`). -/
-def checkPartsList (prog : Program) : List Expr → CheckM RangeArgs
-  | [] => pure {}
-  | e :: es => do pure ((← checkParts prog e).append (← checkPartsList prog es))
+def checkPartsList (prog : Program) : List Expr → CheckM Unit
+  | [] => pure ()
+  | e :: es => do checkParts prog e; checkPartsList prog es
   termination_by es => (sizeOf es, 2)
 
 /-- Checks each of the arguments `args` of `List[u](…)` on its own: a place
