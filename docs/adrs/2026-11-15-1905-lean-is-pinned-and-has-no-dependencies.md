@@ -12,9 +12,13 @@ Tier: direction; area: lean-model
   Mathlib, no Lean-MLIR. Adding one means editing this ADR first, with the
   human's ruling. The spec document in `docs/spec/` is a separate package
   that requires Verso (ADR-2026-11-15-2030); `lean/` never does.
-- **Three libraries.** `MojoGrimoire` is the model, `MojoGrimoireTest` its
-  tests, whose root imports every module, and `MojoGrimoireCheck` runs the
-  axiom check (ADR-2026-11-15-1906).
+- **Four libraries and an executable.** `MojoGrimoire` is the model,
+  `MojoGrimoireTest` its tests, whose root imports every module, and
+  `MojoGrimoireCheck` runs the axiom check (ADR-2026-11-15-1906). The
+  executable `mojo-grimoire` has the root module `MojoGrimoireCli`, which is
+  also declared as a library, so that `MojoGrimoireTest` can import it and
+  Lake builds it first. The human approved that library on 2026-11-18
+  (#100).
 - **One build command.** Every Lake run in `lean/`, in hooks, CI or by hand,
   goes through `scripts/build-lean.sh` or applies its guards: it unsets each
   variable that `git rev-parse --local-env-vars` lists, sets

@@ -5,7 +5,8 @@ Tier: direction; area: lean-model
 
 ## Decision
 
-- `MojoGrimoireCheck` runs `#check_axioms MojoGrimoire MojoGrimoireTest` as
+- `MojoGrimoireCheck` runs
+  `#check_axioms MojoGrimoire MojoGrimoireTest MojoGrimoireCli` as
   its last command (`lean/MojoGrimoireTest/Axioms.lean`). It fails, naming
   each declaration, on one that:
   - depends on an axiom other than `propext`, `Classical.choice`,
