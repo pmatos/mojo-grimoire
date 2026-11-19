@@ -1,5 +1,6 @@
 import MojoGrimoire.Parse.Stmt
 import MojoGrimoire.Check.State
+import MojoGrimoire.Check.Operators
 
 /-!
 Type inference for what the parser leaves open: the type of a variable
@@ -51,11 +52,6 @@ open MojoGrimoire.Core MojoGrimoire.Check
 
 /-- The types of the variables in scope, innermost first. -/
 abbrev TyEnv := List (Name × Ty)
-
-/-- The type of the result of the binary operator `op`. -/
-def binaryResult : BinOp → Ty
-  | .add | .sub | .mul | .floorDiv | .mod => .int
-  | _ => .bool
 
 /-- The type of an open literal that is expected to have the type `t`: `t`
 itself when it is a list or an array, whose size the checker compares with

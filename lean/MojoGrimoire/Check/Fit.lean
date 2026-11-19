@@ -1,4 +1,5 @@
 import MojoGrimoire.Check.Change
+import MojoGrimoire.Check.Operators
 
 /-!
 How a call reports an argument that does not fit its parameter (#46).
@@ -92,14 +93,16 @@ def State.typing (s : State) : State :=
 /-- The type of an element `e` of a literal where an `Int` is expected, when
 checking it gives an error that the compiler reports after its types: one
 of a later pass (`CheckError.late`), or a nested literal's failed SIMD
-constraint. It is the type of its operator's or its call's result, of an
-array of its first element, or else `Int`. -/
+constraint. It is the type of its operator's or its call's result, of
+the place it reads, of an array of its first element, or else `Int`. -/
 def lateElemTy (prog : Program) : Expr → CheckM Ty
   | .unary .not _ => pure .bool
-  | .binary op _ _ => pure (if op matches .add | .sub | .mul | .floorDiv | .mod then .int else .bool)
+  | .binary op _ _ => pure (binaryResult op)
   | .call f _ => pure (((callSig prog f).toOption.map (·.result)).getD .int)
   | .method p m args => do
     pure (((methodSig prog (← placeTy prog p) m args.length).toOption.map (·.result)).getD .int)
+  | .place p | .copy p | .transfer p => placeTy prog p
+  | .listInit u _ => pure (.list u)
   | .list .noneType (e :: es) => do pure (.array (← lateElemTy prog e) (es.length + 1))
   | _ => pure .int
 

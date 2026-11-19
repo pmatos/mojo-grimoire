@@ -235,7 +235,10 @@ def intMisfit (prog : Program) : List Expr → CheckM (Option Ty)
   | e :: es => do
     modify State.typing
     let u ← match e with
-      | .place p => do typePlace prog p; placeTy prog p
+      | .place p => do
+        try typePlace prog p catch err =>
+          unless err.late || err == .noMatchingInit .int do throw err
+        placeTy prog p
       | .list .int es' => do pure ((← intMisfit prog es').getD .int)
       | e => try checkExprAs prog false e catch err =>
           if err.late || err == .noMatchingInit .int then lateElemTy prog e else throw err

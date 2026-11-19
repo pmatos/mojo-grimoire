@@ -223,6 +223,9 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["var y: Int = [[1, 2] == x, 3]"] (.noMatchingInit .int)
 #guard rejects ["print(rd([rd([1, 2]), True]))"] (.typeMismatch .int .bool)
 #guard rejects ["var z: Int", "var y: Int = [rd([z, 2]), 3]"] (.uninitializedUse (.var "z"))
+#guard rejects ["var bs: List[Bool] = [True]", "xs.append([bs[-1].copy(), 2])"]
+  (.typeMismatch .int .bool)
+#guard rejects ["print(rd([xs[[1, 2]], True]))"] (.typeMismatch .int .bool)
 -- Where a function, a method or an operator converts it, it is a type
 -- mismatch, of its first element that is not an `Int`.
 #guard rejects ["print(rd([1, True]))"] (.typeMismatch .int .bool)

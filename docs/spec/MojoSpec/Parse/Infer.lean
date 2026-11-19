@@ -13,13 +13,13 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10937750649795983328")
+:::moduleDocs (fingerprint := "12176993774892537513")
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.binaryResult (fingerprint := "7491183084080357663")
+:::readable MojoGrimoire.Parse.TyEnv (fingerprint := "8803222123172763763")
 *Definition: the types in scope.* Inference keeps the types of the
-variables in scope, innermost first. An arithmetic operator gives an
-$`\mathsf{Int}`, and every other binary operator a $`\mathsf{Bool}`.
+variables in scope, innermost first. An operator's result has its
+`binaryResult`.
 :::
 
 :::readable MojoGrimoire.Parse.foldable (fingerprint := "2964211985334498850")
@@ -39,7 +39,7 @@ temporary filled from $`e` when the call is made, which a returned
 reference keeps, so it does not see a later change (#103).
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "15055019410656189792")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "16211497486626516937")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
