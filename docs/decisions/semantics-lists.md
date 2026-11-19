@@ -149,9 +149,10 @@ here (#27).
   initializer of `Int` either, and the model rejects it in every position,
   as the pinned nightly does (#153, #154). Inference types it `Int`, and
   each of its elements, as SIMD's initializer takes them. The checker
-  types each element, a place without reading it, and the first that is
-  no `Int`, nor such a literal of `Int`s, is a misfit, before any element
-  is read. A literal with no misfit has its elements read, then the
+  types each element without reading it, as the compiler does, and the
+  first that is no `Int`, nor such a literal of `Int`s, is a misfit,
+  before any element is read: `var z: Int; var y: Int = [z + 1, True]` is
+  `noMatchingInit`. A literal with no misfit has its elements read, then the
   compiler fails SIMD's constraint "expected 1 elements in the SIMD list
   literal, found N" (`noMatchingInit`), so `var z: Int; print(rd([z, 2]))`
   is `uninitializedUse`. A misfit is reported by the position:

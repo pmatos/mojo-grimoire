@@ -207,6 +207,14 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
   "    print(ret())"]) == some (.rejected ⟨"ret", .noMatchingInit .int⟩)
 #guard rejects ["var z: Int", "var y: Int = [z, True]"] (.noMatchingInit .int)
 #guard rejects ["var z: Int", "var s = S([z, True], True)"] (.noMatchingInit (.struct "S"))
+-- Nor is any other element read first, nor an index computed.
+#guard rejects ["var z: Int", "var y: Int = [z + 1, True]"] (.noMatchingInit .int)
+#guard rejects ["var i: Int", "var y: Int = [xs[i], True]"] (.noMatchingInit .int)
+#guard rejects ["var y: Int = [arr[5], True]"] (.noMatchingInit .int)
+#guard rejects ["var b: Bool", "var y: Int = [[b], 1]"] (.noMatchingInit .int)
+#guard rejects ["ref r = xs[0]", "xs.append(3)", "var y: Int = [r + 1, True]"]
+  (.noMatchingInit .int)
+#guard rejects ["var z: Int", "var y: Int = [z + 1, 2]"] (.uninitializedUse (.var "z"))
 -- Where a function, a method or an operator converts it, it is a type
 -- mismatch, of its first element that is not an `Int`.
 #guard rejects ["print(rd([1, True]))"] (.typeMismatch .int .bool)
@@ -219,6 +227,8 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["print(rd([[True], 3]))"] (.typeMismatch .int (.array .bool 1))
 #guard rejects ["print(rd([xs, 1]))"] (.typeMismatch .int (.list .int))
 #guard rejects ["var z: Int", "print(rd([z, True]))"] (.typeMismatch .int .bool)
+#guard rejects ["var z: Int", "print(rd([z + 1, True]))"] (.typeMismatch .int .bool)
+#guard rejects ["var z: Int", "print(x + [z * 2, True])"] (.typeMismatch .int .bool)
 -- A literal whose element is not an `Int` stays an array where an `Int` is
 -- expected of it, as the left operand of a comparison with an `Int`.
 #guard rejects ["print([True] < x)"] (.typeMismatch .int (.array .bool 1))

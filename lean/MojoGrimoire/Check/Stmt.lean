@@ -231,9 +231,8 @@ where `t` is not a list or an array, fits no initializer of `t`: Mojo calls
 any length but 1 where an `Int` is expected initializes it, and fits no
 initializer (`rejectIntLiteral`, #153, #154). -/
 def checkInitValue (prog : Program) (t : Ty) (e : Expr) (value : CheckM Ty) : CheckM Unit := do
-  if let .list .int es := e then
-    unless es.length == 1 do
-      let _ ← rejectIntLiteral prog (.init t) (intMisfit prog es) (readIntElems prog es)
+  if let some es := wrongIntLiteral e then
+    rejectIntLiteral prog (.init t) (intMisfit prog es) (readIntElems prog es)
   if let .list .noneType es := e then
     unless t matches .list _ | .array .. do
       checkOperands prog es
@@ -268,12 +267,11 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let (t, origins, m) ← refTarget prog e
     modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
-    let t ← match e with
-      | .list .noneType _ | .list .int [] | .list .int (_ :: _ :: _) => do
+    let t ← if e matches .list .noneType _ || (wrongIntLiteral e).isSome then do
         let u ← placeTy prog p
         checkInitValue prog u e (checkExpr prog e)
         pure u
-      | _ => checkExpr prog e
+      else checkExpr prog e
     checkIndices prog p
     expect (← placeTy prog p) t
     checkConstructed prog p e

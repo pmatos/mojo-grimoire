@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7716211715460669792")
+:::moduleDocs (fingerprint := "4775292838835420929")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "13691362365005740179")
@@ -59,16 +59,19 @@ $`\mathsf{List}[u]` (#103). The places that the elements are read from
 are checked again once every element is evaluated.
 :::
 
-:::readable MojoGrimoire.Check.rejectIntLiteral (fingerprint := "10759371099519613472")
+:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.rejectIntLiteral (fingerprint := "15255960079670182161")
 *Rule: a literal of the wrong length where an $`\mathsf{Int}` is
-expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1 fits no
-initializer of $`\mathsf{Int}`, which is $`\mathsf{SIMD}[\mathsf{int}, 1]`
-(#153, #154). Its elements are typed first, a place without being read,
-and the state is then restored. The first that is no $`\mathsf{Int}`,
-nor such a literal of $`\mathsf{Int}`s, is a misfit, reported before any
-element is read: by a function or a method, which converts the literal,
-as a type mismatch, and by an initializer of $`t` as `noMatchingInit`
-$`t`. With no misfit, the elements are read, and checked again once each
-is read, and the compiler then fails SIMD's constraint of one element:
-`noMatchingInit` $`\mathsf{Int}`, or $`t` for an initializer of $`t`.
+expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1, which
+`wrongIntLiteral` picks out, fits no initializer of $`\mathsf{Int}`,
+which is $`\mathsf{SIMD}[\mathsf{int}, 1]` (#153, #154). The compiler
+types its elements before it reads any, so they are typed first in the
+state's `State.typing`, where every variable is whole and no reference
+invalidated, and the state is then restored. The first that is no
+$`\mathsf{Int}`, nor such a literal of $`\mathsf{Int}`s, is a misfit,
+reported before any element is read: by a function or a method, which
+converts the literal, as a type mismatch, and by an initializer of $`t`
+as `noMatchingInit` $`t`. With no misfit, the elements are read, and
+checked again once each is read, and the compiler then fails SIMD's
+constraint of one element: `noMatchingInit` $`\mathsf{Int}`, or $`t`
+for an initializer of $`t`. It never returns.
 :::

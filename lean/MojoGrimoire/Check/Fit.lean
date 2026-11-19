@@ -77,15 +77,28 @@ def iterableLiteralTy (prog : Program) (u : Ty) (ts : List (Ty × List Place × 
   recheckLocs prog (ts.map (·.2))
   pure (.array t ts.length)
 
-/-- Rejects a literal `[e₁, …, eₙ]`, `n ≠ 1`, where an `Int` is expected,
-as a call of fit `fit` reports it (#153, #154). `misfit` types each
-element, a place unread, and gives the first that is no `Int`, nor such
-a literal of `Int`s: a misfit before any element is read. Otherwise
-`reads` reads them, and the compiler then fails SIMD's constraint of one
-element, `noMatchingInit`. -/
-def rejectIntLiteral (prog : Program) (fit : Fit) (misfit : CheckM (Option Ty))
-    (reads : CheckM (List (List Place × Nat))) : CheckM Ty := do
+/-- The elements of a literal `[e₁, …, eₙ]`, `n ≠ 1`, typed `Int`, as
+inference types one where an `Int` is expected (#153, #154). -/
+def wrongIntLiteral : Expr → Option (List Expr)
+  | .list .int es => if es.length == 1 then none else some es
+  | _ => none
+
+/-- The state `s` with every variable whole and no reference invalidated,
+in which an expression is typed without its reads failing. -/
+def State.typing (s : State) : State :=
+  { s with vars := s.vars.map fun v => { v with uninit := [], moved := [], pieces := [] },
+           stale := [] }
+
+/-- Rejects a `wrongIntLiteral` as a call of fit `fit` reports it. The
+compiler types its elements before it reads any: `misfit`, run in the
+state's `State.typing`, gives the type of the first that is no `Int`,
+nor such a literal of `Int`s, a type mismatch. Otherwise `reads` reads
+them, and the compiler then fails SIMD's constraint of one element,
+`noMatchingInit`. -/
+def rejectIntLiteral {α : Type} (prog : Program) (fit : Fit) (misfit : CheckM (Option Ty))
+    (reads : CheckM (List (List Place × Nat))) : CheckM α := do
   let s ← get
+  set s.typing
   if let some u ← misfit then throw (fit.misfit (CheckError.typeMismatch .int u))
   set s
   recheckLocs prog (← reads)

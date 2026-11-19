@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8629427569029691928")
+:::moduleDocs (fingerprint := "7886249328356133873")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -113,7 +113,7 @@ does. $`\mathsf{List}[u](e)` builds its result in place, and passes $`e`
 by `ref` (#103).
 :::
 
-:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "979873142394854438")
+:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "14580347412378468746")
 *Rule: initializing values.* A value that initializes a declared variable,
 a place assigned to, or a function's result must have its type. A literal
 $`[e^*]_{\mathsf{None}}`, which has no list or array expected, where that
@@ -133,7 +133,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "16463578403719747814")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "6422578952718213855")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
