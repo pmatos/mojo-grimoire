@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11719028120359603411")
+:::moduleDocs (fingerprint := "7821518589324785209")
 :::
 
-:::readable MojoGrimoire.Check.partlyMovedDeinit MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9992527159242234863")
+:::readable MojoGrimoire.Check.partlyBuilt MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "2822956514513128474")
 *Rule: the end of a variable.* The compiler destroys a struct whole, so a
 variable may not end when it still holds a part, in $`H`, and a field is
 in $`M`, moved out and not assigned again, or $`\epsilon` is in both
@@ -24,18 +24,22 @@ $`M` and $`P`, so that it was moved out whole and then built from its
 fields. A variable that holds nothing may end with fields moved out, since
 nothing of it is destroyed (#51), unless a field in $`M` is at or below a
 touched part in $`T`: a field moved out of a part held whole, or out of
-one whose inside was assigned. Nor may a part whose struct has a
-destructor of its own, which needs the whole value, end partly built: with
-a part below it uninitialized while it may hold a value, or uninitialized
-itself while a part below it may hold one. Since $`U` and $`H` hold what
-may be so on some path, this also rejects a struct built in only one
-branch of an `if`, or in a loop. The `self` of `__deinit__` is destroyed
-field by field: its own fields may stay moved out, and its own type does
-not count, since its destructor is the one running. Each error is
+one whose inside was assigned. Nor may it end partly built, however it got
+there, which is the human's ruling R on D-0003, provisional until it is
+discussed with Modular: a part in $`U` may not differ from a part in $`H`,
+and a piece in $`P` with a part of $`U` at or above it may not have a part
+of $`H` at, above or below it. Since $`U`, $`H` and $`P` hold what may be
+so on some path, a field uninitialized on one path and held on another
+counts, as the compiler counts a field moved out on one path only. The same
+part in both, as for a variable assigned whole in only one branch, does
+not. This rejects a struct built in only one branch of an `if`, even
+wholly, or in a loop, and a struct whose fields are all `Int`s too. The
+`self` of `__deinit__` is destroyed field by field: each of its fields is
+a value of its own, which may stay moved out. Each error is
 $`\mathsf{partiallyDestroyed}`.
 :::
 
-:::readable MojoGrimoire.Check.checkExit (fingerprint := "14818459797278618962")
+:::readable MojoGrimoire.Check.checkExit (fingerprint := "1396109122842959689")
 *Rule: a return.* When a function returns, each `mut` parameter and the
 `self` of `__init__` must be wholly initialized, since the caller holds
 them, with no piece in $`P`: otherwise the error is
@@ -45,7 +49,7 @@ reports. Every variable must be allowed
 to end.
 :::
 
-:::readable MojoGrimoire.Check.endScope (fingerprint := "5094446271499096283")
+:::readable MojoGrimoire.Check.endScope (fingerprint := "18362619191598304924")
 *Rule: the end of a scope.* The variables a block declared end with it,
 each checked as above if the end of the block is reached, and leave the
 set of invalidated references.
@@ -109,7 +113,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "3797012120997196750")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "10726706536154406641")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
@@ -126,8 +130,8 @@ an expression, so a place is copied implicitly.
   whole, its old value ends, and $`p` is initialized. The old value may
   not end, as at the end of a variable, with the parts of $`p` taken as
   the value's own, $`p` itself uninitialized when a part at or above it
-  is; so a part in $`M` that was given some of its fields
-  may not be assigned whole, and a field moved out of a part of $`T`
+  is; so a part partly built, or a part in $`M` that was given some of
+  its fields, may not be assigned whole, and a field moved out of a part of $`T`
   above $`p` counts as moved out of a touched part. Assigning $`p` removes from $`M`, $`T` and
   $`P` the parts at or below $`p`, adds $`p` to $`H`, and adds to $`T`
   the part of $`H` above $`p`, if any. When a part above $`p` is

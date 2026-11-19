@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1487112832430675558")
+:::moduleDocs (fingerprint := "12036352528970781500")
 :::
 
-:::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "4257948032270631622")
+:::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "1921251147877829779")
 *Definition: lookups.* The checker finds a struct or a function of the
 program by its name, the first one declared with that name, and a field or
 method of a struct by its name. `fieldOf` gives the type of the field
@@ -76,11 +76,6 @@ it declares; a list or an array is copied only explicitly, with
 never copied.
 :::
 
-:::readable MojoGrimoire.Check.hasDeinit (fingerprint := "13047813040906958986")
-*Definition: types with a destructor.* A type has a destructor of its own
-when it is a struct that declares `__deinit__`.
-:::
-
 :::readable MojoGrimoire.Check.validTy (fingerprint := "16319643588843478444")
 *Definition: declarable types.* A variable, parameter or field may have the
 type $`\mathsf{Int}`, $`\mathsf{Bool}`, a struct of the program, or a
@@ -100,7 +95,7 @@ through a list when some list wraps it, under any number of arrays and
 lists.
 :::
 
-:::readable MojoGrimoire.Check.successors MojoGrimoire.Check.reach (fingerprint := "7569000885113384078")
+:::readable MojoGrimoire.Check.successors MojoGrimoire.Check.reach (fingerprint := "9773415220993628220")
 *Definition: reachable structs.* A field leads to the struct of its
 element type. The successors of a struct, through the fields whose type
 satisfies a predicate, are the structs that those fields lead to. The
@@ -109,7 +104,7 @@ step, the successors of the structs added by the last step that were not
 reached yet.
 :::
 
-:::readable MojoGrimoire.Check.rejectedCycle (pin := MojoGrimoire.Check.elemBase) (pin := MojoGrimoire.Check.throughList) (pin := MojoGrimoire.Check.successors) (pin := MojoGrimoire.Check.reach) (fingerprint := "12767551648373614766")
+:::readable MojoGrimoire.Check.rejectedCycle (pin := MojoGrimoire.Check.elemBase) (pin := MojoGrimoire.Check.throughList) (pin := MojoGrimoire.Check.successors) (pin := MojoGrimoire.Check.reach) (fingerprint := "11060244545788174600")
 *Definition: rejected cycles.* A field leads to the struct of its element
 type through a list when some list wraps it, directly when nothing does,
 and neither when only arrays do. The compiler rejects a cycle of fields

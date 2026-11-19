@@ -4,9 +4,11 @@ import MojoGrimoire.Interp.Run
 /-!
 Tests of a struct variable declared without a value and built field by
 field (#51). Each expected outcome is the pinned compiler's, except where
-the compiler destroys a field that was never assigned, a compiler bug
-(D-0003): there the model destroys only the fields assigned. The programs
-are parsed from text, one line per string, after the shared declarations.
+the compiler destroys a variable with a field never assigned, a compiler
+bug (D-0003): there the model rejects the program, as the compiler does
+when the field was moved out (R, ruled on 2026-11-19, provisional). The
+programs are parsed from text, one line per string, after the shared
+declarations.
 -/
 
 namespace MojoGrimoireTest.Parse.FieldByField
@@ -70,17 +72,49 @@ private def fld (x f : Name) : Place := .field (.var x) f
 #guard inMain ["    var p: Pt", "    p.x = 1", "    p.y = 2", "    print(p.x, p.y)"] ==
   some (.finished ["1 2"])
 #guard inMain ["    var t: Line", "    t.a.x = 5", "    t.a.y = 6", "    print(t.a.x, t.a.y)",
-    "    t.a = Pt(7, 8)", "    print(t.a.x)"] == some (.finished ["5 6", "7"])
+    "    t.a = Pt(7, 8)", "    t.b = Pt(1, 2)", "    print(t.a.x)"] == some (.finished ["5 6", "7"])
 
--- Only the fields assigned are destroyed (D-0003): the compiler also prints
--- `drop 0` for `t.b`, `o.w.r` and the old `o.w.r`.
-#guard inMain ["    var t: Two", "    t.a = Res(1)", "    print(t.a.id)"] ==
-  some (.finished ["1", "drop 1"])
-#guard inMain ["    var o: Outer", "    o.z = 3", "    print(o.z)"] == some (.finished ["3"])
-#guard inMain ["    var o: Outer", "    o.w.k = 1", "    print(o.w.k)", "    o.w = Wrap(Res(5), 2)",
-    "    print(o.w.k)"] == some (.finished ["1", "2", "drop 5"])
-#guard inMain ["    var t: Two", "    t.a = Res(1)", "    t = Two(Res(2), Res(3))",
-    "    print(t.a.id)"] == some (.finished ["drop 1", "2", "drop 2", "drop 3"])
+-- A variable, or a part assigned whole, may not end with a field never
+-- assigned while it holds another (D-0003): the compiler destroys it whole,
+-- and prints `drop 0` for `t.b`, `o.w.r` and the old `o.w.r`. It is so even
+-- when every field is an `Int`, where the compiler's output shows nothing.
+#guard destroyed "t" ["    var t: Two", "    t.a = Res(1)", "    print(t.a.id)"]
+#guard destroyed "o" ["    var o: Outer", "    o.z = 3", "    print(o.z)"]
+#guard destroyed "o" ["    var o: Outer", "    o.w.k = 1", "    print(o.w.k)",
+    "    o.w = Wrap(Res(5), 2)", "    print(o.w.k)"]
+#guard destroyed "t" ["    var t: Two", "    t.a = Res(1)", "    t = Two(Res(2), Res(3))",
+    "    print(t.a.id)"]
+#guard destroyed "t" ["    var t: Line", "    t.a.x = 5", "    print(t.a.x)"]
+#guard destroyed "p" ["    var p: Pt", "    p.x = 1", "    print(p.x)"]
+
+-- On some path is enough, as the compiler counts a field moved out on one
+-- path only: built in one branch only, or in a loop, even wholly, or built
+-- in one branch and moved out in the other. Assigned whole in one branch
+-- only, it may end.
+#guard destroyed "t" ["    var c = True", "    var t: Two", "    if c:", "        t.a = Res(1)",
+    "        t.b = Res(2)", "    print(c)"]
+#guard destroyed "t" ["    var c = True", "    var t: Two", "    if c:", "        t.b = Res(2)",
+    "        t.a = Res(1)", "    else:", "        t.a = Res(3)", "        var s = t.a^",
+    "        print(s.id)", "    print(c)"]
+#guard destroyed "t" ["    var i = 0", "    var t: Line", "    while i < 2:", "        t.a = Pt(i, i)",
+    "        i = i + 1", "    print(i)"]
+#guard destroyed "t" ["    var i = 0", "    var t: Line", "    while i < 2:", "        t.a = Pt(i, i)",
+    "        t.b = Pt(i, i)", "        i = i + 1", "    print(i)"]
+#guard inMain ["    var c = True", "    var t: Two", "    if c:", "        t = Two(Res(1), Res(2))",
+    "    print(c)"] == some (.finished ["drop 1", "drop 2", "True"])
+
+-- Each field of the `self` of `__deinit__` is a value of its own: one may
+-- stay moved out, but not end partly built.
+#guard inMain ["    var k = Keep(Pt(5, 6), Pt(7, 8))", "    print(k.b.y)"] [
+    "@fieldwise_init",
+    "struct Keep(Movable):",
+    "    var a: Pt",
+    "    var b: Pt",
+    "    def __deinit__(deinit self):",
+    "        var k = self.a^",
+    "        self.a.x = 1",
+    "        print(k.x, self.a.x)"] ==
+  some (.rejected ⟨"Keep.__deinit__", .partiallyDestroyed "self"⟩)
 
 -- A struct with a destructor of its own runs it once every field is
 -- assigned, and may not end with a field never assigned.
@@ -117,7 +151,7 @@ private def fld (x f : Name) : Place := .field (.var x) f
 #guard destroyed "t" ["    var t: Line", "    t.a = Pt(1, 2)", "    t.a.x = 3", "    var s = t.a^",
     "    print(s.x)"]
 #guard inMain ["    var t: Line", "    t.a = Pt(1, 2)", "    t.a.x = 3", "    var s = t.a^",
-    "    t.a = Pt(5, 6)", "    print(s.x, t.a.x)"] == some (.finished ["3 5"])
+    "    t.a = Pt(5, 6)", "    t.b = Pt(7, 8)", "    print(s.x, t.a.x)"] == some (.finished ["3 5"])
 #guard destroyed "o" ["    var o = Outer(Wrap(Res(1), 2), 3)", "    var s = o.w.r^",
     "    o.w = Wrap(Res(4), 5)", "    print(s.id, o.z)"]
 #guard inMain ["    var t = Line(Pt(1, 2), Pt(3, 4))", "    t.a.x = 9", "    var u = t^",
@@ -156,8 +190,8 @@ private def fld (x f : Name) : Place := .field (.var x) f
 #guard unused (fld "t" "a") ["    var t: Line", "    t.a.x = 1", "    t.a.y = 2", "    showPt(t.a)"]
 #guard unused (.var "t") ["    var t: Line", "    t.a = Pt(1, 2)", "    t.b = Pt(3, 4)",
     "    var u = t^", "    print(u.a.x)"]
-#guard inMain ["    var t: Line", "    t.a.x = 1", "    var u = t.a.x", "    print(u)"] ==
-  some (.finished ["1"])
+#guard inMain ["    var t: Line", "    t.a.x = 1", "    var u = t.a.x", "    t.a.y = 2",
+    "    t.b = Pt(3, 4)", "    print(u)"] == some (.finished ["1"])
 -- A part of `self` built field by field in `__init__` is not whole at its
 -- return, nor is a `mut` parameter, or a part of one, built so.
 #guard inMain ["    var m = Made()", "    print(m.b.y)"] [
