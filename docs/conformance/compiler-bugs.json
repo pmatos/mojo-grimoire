@@ -116,6 +116,40 @@
       }
     },
     {
+      "issue": 122,
+      "title": "var x: Int = [e1, ..., en] is accepted for every n, keeps e1 when n >= 2 and crashes at run time when n = 0",
+      "ruled": "2026-11-19",
+      "decision_log": "D-0005",
+      "suite_programs": [
+        "basics/int_literal_length_evaluated",
+        "basics/int_literal_length_three",
+        "basics/int_literal_length_two"
+      ],
+      "reference": {
+        "release": "1.2.0",
+        "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
+      },
+      "reproducer": "def main():\n    var x: Int = [1, 2]\n    print(x)\n",
+      "compiler": "accepts and prints `1`: SIMD's __list_literal__ initializer checks the documented element count only with an assert, which a default build leaves out. `[f(1), f(2)]` evaluates both elements and keeps the first; `var x: Int = []` builds and segfaults (exit 139)",
+      "model": "rejects every length but 1, with the class of the position (D-0005); here noMatchingInit",
+      "upstream": {
+        "status": "fixed-upstream",
+        "draft": null,
+        "tracking": null,
+        "report": null
+      },
+      "confirmation": {
+        "status": "pending",
+        "notes": "provisional ruling, until the human has discussed it with Modular"
+      },
+      "nightly": {
+        "version": "1.3.0.dev2026111705",
+        "checked": "2026-11-19",
+        "reproduces": false,
+        "result": "rejected: \"function instantiation failed\", with the note \"constraint failed: expected 1 elements in the SIMD list literal, found 2\" (std/simd.mojo:1056); every other length but 1, n = 0 included, is rejected the same way"
+      }
+    },
+    {
       "issue": 136,
       "title": "a struct on a cycle through a List is rejected as non-'Deinitable' unless some structs have a __deinit__ of their own",
       "ruled": "2026-11-19",
@@ -149,7 +183,7 @@
       },
       "confirmation": {
         "status": "pending",
-        "notes": null
+        "notes": "provisional ruling, until the human has discussed it with Modular"
       },
       "nightly": {
         "version": "1.3.0.dev2026111705",
