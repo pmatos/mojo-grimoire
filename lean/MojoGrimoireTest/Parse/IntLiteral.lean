@@ -137,9 +137,8 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 -- An element that is not an `Int` fits no initializer of `Int`.
 #guard rejects ["var y: Int = [True]"] (.noMatchingInit .int)
 #guard rejects ["print(x + [True])"] (.typeMismatch .int (.array .bool 1))
--- Nor does a literal of any length but 1, a compiler bug of Mojo 1.2.0 that
--- the nightly fixes (D-0005). Where it initializes the `Int`, it is
--- `noMatchingInit`.
+-- Nor does a literal of any length but 1 (D-0005). Where it initializes the
+-- `Int`, it is `noMatchingInit`.
 #guard rejects ["var y: Int = []"] (.noMatchingInit .int)
 #guard rejects ["var y: Int = [1, 2]"] (.noMatchingInit .int)
 #guard rejects ["var y: Int = [1, 2, 3]"] (.noMatchingInit .int)
@@ -154,6 +153,10 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["print(rd([7, 8]))"] (.typeMismatch .int (.array .int 2))
 #guard rejects ["xs.append([2, 3])"] (.typeMismatch .int (.array .int 2))
 #guard rejects ["print(x + [2, 3])"] (.typeMismatch .int (.array .int 2))
+-- There `[]` has no element type, as in `var xs = []`.
+#guard rejects ["print(rd([]))"] (.invalidType .noneType)
+#guard rejects ["xs.append([])"] (.invalidType .noneType)
+#guard rejects ["print(x + [])"] (.invalidType .noneType)
 -- A literal with no type expected is still an array: as the left operand of
 -- a comparison, negated, as the argument of `List[Int](…)`, or bound to a
 -- variable.

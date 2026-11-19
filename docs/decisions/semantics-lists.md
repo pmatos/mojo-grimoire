@@ -143,17 +143,15 @@ here (#27).
   left operand of an arithmetic operator, `[True] + x`, or an operand of
   `and` and `or`, `x or [True]`, the compiler reports that the array has
   no `__add__` or `__bool__`, a message the suite does not classify.
-- A literal of any length but 1 fits no initializer of `Int` either, `[]`
-  included, and the model rejects it in every position, with the class
-  of the position, as for `[True]`: `noMatchingInit` where it initializes
-  the `Int`, a type mismatch passed to a function or a method, `append`
-  among them, or as an operand. A default build of Mojo 1.2.0 accepts it:
-  it evaluates every element and keeps the first, and `[]` builds a
-  program that crashes. The stdlib documents that the count must be 1,
-  but 1.2.0 checks it only with an `assert` that a default build leaves
-  out. The human ruled on 2026-11-19 that this is a compiler bug, which
-  the nightly fixes by rejecting every such length (#122, D-0005). The
-  ruling is provisional, until the human has discussed it with Modular.
+- A literal of `Int`s of any length but 1 fits no initializer of `Int`
+  either, and the model rejects it in every position, with the class of
+  the position, as for `[True]`. `[]` passed to a function or a method, or
+  as an operand, has no element type, and is `invalidType`, as
+  `var xs = []` is. Mojo 1.2.0 accepts every such literal, a compiler bug
+  by a provisional ruling, which the nightly fixes (#122,
+  [D-0005](../conformance/decision-log.md)). Whether the class should be
+  `noMatchingInit` in every position waits on #154, and a literal whose
+  elements differ in type, `P([1, True])`, on #153.
 - A constant index into an array of `N` elements is rejected when it is `N`
   or more (`constantIndexOutOfBounds`); one known only at run time fails
   then, as on a list. A constant index into a list fails only at run time.

@@ -127,7 +127,7 @@
       },
       "reproducer": "def main():\n    var x: Int = [1, 2]\n    print(x)\n",
       "compiler": "accepts and prints `1`: SIMD's __list_literal__ initializer checks the documented element count only with an assert, which a default build leaves out. `[f(1), f(2)]` evaluates both elements and keeps the first; `var x: Int = []` builds and segfaults (exit 139)",
-      "model": "rejects every length but 1 (noMatchingInit here; typeMismatch for a literal passed to a function or a method, or as an operand)",
+      "model": "rejects every length but 1, with the class of the position (D-0005); here noMatchingInit",
       "upstream": {
         "status": "fixed-upstream",
         "draft": null,

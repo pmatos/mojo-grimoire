@@ -202,13 +202,18 @@ Each move of the Mojo pin gets an entry below.
   `return`, a function argument, a field of `@fieldwise_init`, `append`
   on a `List[Int]`, an operand `x + [2, 3]`, and an element of a literal
   of `Int`s, where `var xs: List[Int] = [[1, 2], [3]]` prints `[1, 3]`.
-  With `-D ASSERT=all` the build traps instead: "mismatch in the number
-  of elements in the SIMD variadic constructor".
-- Model: rejects every length but 1, n = 0 included. Where the literal
-  initializes the `Int`, in a declaration, an assignment, a `return`, a
-  construction or an enclosing literal, it is `noMatchingInit`. Passed to
-  a function or a method, `append` among them, or as an operand, it is a
-  `typeMismatch`, as for `[True]` there.
+  With `-D ASSERT=all` the program builds, then traps at run time:
+  "mismatch in the number of elements in the SIMD variadic constructor".
+- Model: rejects a literal of `Int`s of every length but 1, n = 0
+  included. Where the literal initializes the `Int`, in a declaration, an
+  assignment, a `return`, a construction or an enclosing literal, it is
+  `noMatchingInit`. Passed to a function or a method, `append` among them,
+  or as an operand, it is a `typeMismatch`, as for `[True]` there, and
+  `[]`, which has no element type there, is `invalidType`. Whether the
+  class should be `noMatchingInit` in every position waits on #154. A
+  literal whose elements differ in type, `P([1, True])`, is a
+  `typeMismatch` where the compiler reports an initialization, which #153
+  tracks.
 - Classification: compiler bug, ruled by the human on 2026-11-19 (#122).
   The ruling is provisional, until the human has discussed it with
   Modular.
