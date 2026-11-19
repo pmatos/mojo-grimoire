@@ -142,16 +142,25 @@ here (#27).
   an operator other than `and` and `or`, it is a type mismatch. As the
   left operand of an arithmetic operator, `[True] + x`, or an operand of
   `and` and `or`, `x or [True]`, the compiler reports that the array has
-  no `__add__` or `__bool__`, a message the suite does not classify. A literal of another length is accepted by a default
-  build, which keeps its first element, and `[]` crashes; the model keeps
-  rejecting both, as above, until #122 is ruled.
+  no `__add__` or `__bool__`, a message the suite does not classify.
+- A literal of `Int`s of any length but 1 fits no initializer of `Int`
+  either, and the model rejects it in every position, with the class of
+  the position, as for `[True]`. `[]` is `noMatchingInit` in a
+  declaration, an assignment and a `return`; anywhere else, a
+  construction and an enclosing literal included, it has no element
+  type, and is `invalidType`, as `var xs = []` is. Mojo 1.2.0 accepts every such literal, a compiler bug
+  by a provisional ruling, which the nightly fixes (#122,
+  [D-0005](../conformance/decision-log.md)). Whether the class should be
+  `noMatchingInit` in every position waits on #154, and a literal whose
+  elements differ in type, `P([1, True])`, on #153.
 - A constant index into an array of `N` elements is rejected when it is `N`
   or more (`constantIndexOutOfBounds`); one known only at run time fails
   then, as on a list. A constant index into a list fails only at run time.
-- A struct may not hold an array, or a list, of itself: the compiler
-  rejects both, and so does the model (`recursiveStruct`). The rule for
-  cycles through several structs is in
-  [semantics.md](semantics.md#the-static-checker).
+- A struct may not hold an array of itself: the compiler rejects it, and
+  so does the model (`recursiveStruct`). A struct may hold a list of
+  itself, which the compiler rejects in some cases, depending on
+  `__deinit__`, a compiler bug (D-0006, #136). The rule for cycles through
+  several structs is in [semantics.md](semantics.md#the-static-checker).
 
 Rejected: keeping every literal a `List`, which would accept programs that
 the compiler rejects, such as `append` to an unannotated literal.

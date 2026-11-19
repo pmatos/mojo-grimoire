@@ -167,28 +167,39 @@ def successors (prog : Program) (edge : Ty → Bool) (u : Name) : List Name :=
 
 /-- The structs reached from `seen` through the fields for which `edge`
 holds, in at most `fuel` more steps: each step adds the successors of
-`frontier`, the structs that the last step added, not seen yet. -/
-def reach (prog : Program) (edge : Ty → Bool) : Nat → List Name → List Name → List Name
-  | 0, seen, _ => seen
+`frontier`, the structs that the last step added, not seen yet. The search
+ends when a step adds nothing. It gives `none` when the fuel runs out
+first, so that a caller cannot mistake a search cut short for a complete
+one. -/
+def reach (prog : Program) (edge : Ty → Bool) : Nat → List Name → List Name → Option (List Name)
+  | _, seen, [] => some seen
+  | 0, _, _ => none
   | fuel + 1, seen, frontier =>
     let next := (frontier.flatMap (successors prog edge)).eraseDups.filter (!seen.contains ·)
     reach prog edge fuel (seen ++ next) next
 
-/-- Whether the struct `s` lies on a cycle of fields that the compiler
+/-- Whether the struct `s` lies on a cycle of fields that the fixed compiler
 rejects, through a field of type `t`. A field leads to the struct of its
-element type: through a list when some list wraps it, directly when nothing
-does, and neither when only arrays do. The compiler rejects a cycle with
-no field through a list, and a cycle with no direct field; it accepts a
-cycle with both, which the list keeps finite. So the field is rejected when
-it leads back to `s` along fields none of which is through a list, or
-along fields none of which is direct. The search runs for as many steps as
-the program has structs, enough for any chain with no struct repeated. -/
+element type, and through a list when some list wraps it. A cycle with no
+field through a list is rejected: a struct that holds itself directly, or
+through arrays, has no finite layout. A cycle with a field through a list
+is accepted, whatever its other fields, since the list keeps it finite;
+the compiler rejects some of these, a compiler bug (D-0006). So the field
+is rejected when it leads back to `s` along fields none of which is
+through a list. Every cycle of direct fields is one of them, which keeps
+finite each walk over the direct fields of structs, such as the blank of
+a struct in the interpreter.
+
+Each step of the search adds a struct of the program not seen yet, except
+perhaps the last, which can add only names that the program does not
+declare, which lead nowhere. So as many steps as the program has structs,
+and one more, end it. A search that runs out of fuel rejects the field: it
+never accepts a field it has not finished searching. -/
 def rejectedCycle (prog : Program) (s : Name) (t : Ty) : Bool :=
   match elemBase t with
   | .struct v =>
-    let back (edge : Ty → Bool) : Bool :=
-      edge t && (reach prog edge prog.structs.length [v] [v]).contains s
-    back (!throughList ·) || back fun u => !(u matches .struct _)
+    !throughList t &&
+      (reach prog (!throughList ·) (prog.structs.length + 1) [v] [v]).all (·.contains s)
   | _ => false
 
 /-- Whether a place passed to the parameter `prm` is passed by value: to a

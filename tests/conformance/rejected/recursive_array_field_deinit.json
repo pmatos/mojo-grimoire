@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "recursiveStruct",
+  "diagnostic": "attempt to resolve a recursive reference to declaration 'A.__move_ctor_is_trivial'"
+}
