@@ -153,7 +153,12 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["print(rd([7, 8]))"] (.typeMismatch .int (.array .int 2))
 #guard rejects ["xs.append([2, 3])"] (.typeMismatch .int (.array .int 2))
 #guard rejects ["print(x + [2, 3])"] (.typeMismatch .int (.array .int 2))
--- There `[]` has no element type, as in `var xs = []`.
+-- Outside a declaration, an assignment and a `return`, `[]` has no element
+-- type, as in `var xs = []`.
+#guard rejects ["var s = S([], True)"] (.invalidType .noneType)
+#guard rejects ["var ys: List[Int] = [[], [3]]"] (.invalidType .noneType)
+#guard runLines (lib ++ ["def ret() -> Int:", "    return []", "def main():",
+  "    print(ret())"]) == some (.rejected ⟨"ret", .noMatchingInit .int⟩)
 #guard rejects ["print(rd([]))"] (.invalidType .noneType)
 #guard rejects ["xs.append([])"] (.invalidType .noneType)
 #guard rejects ["print(x + [])"] (.invalidType .noneType)

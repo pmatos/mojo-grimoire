@@ -208,8 +208,10 @@ Each move of the Mojo pin gets an entry below.
   included. Where the literal initializes the `Int`, in a declaration, an
   assignment, a `return`, a construction or an enclosing literal, it is
   `noMatchingInit`. Passed to a function or a method, `append` among them,
-  or as an operand, it is a `typeMismatch`, as for `[True]` there, and
-  `[]`, which has no element type there, is `invalidType`. Whether the
+  or as an operand, it is a `typeMismatch`, as for `[True]` there. `[]`
+  is `noMatchingInit` only in a declaration, an assignment and a
+  `return`; everywhere else, a construction and an enclosing literal
+  included, it has no element type, and is `invalidType`. Whether the
   class should be `noMatchingInit` in every position waits on #154. A
   literal whose elements differ in type, `P([1, True])`, is a
   `typeMismatch` where the compiler reports an initialization, which #153

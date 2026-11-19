@@ -145,9 +145,10 @@ here (#27).
   no `__add__` or `__bool__`, a message the suite does not classify.
 - A literal of `Int`s of any length but 1 fits no initializer of `Int`
   either, and the model rejects it in every position, with the class of
-  the position, as for `[True]`. `[]` passed to a function or a method, or
-  as an operand, has no element type, and is `invalidType`, as
-  `var xs = []` is. Mojo 1.2.0 accepts every such literal, a compiler bug
+  the position, as for `[True]`. `[]` is `noMatchingInit` in a
+  declaration, an assignment and a `return`; anywhere else, a
+  construction and an enclosing literal included, it has no element
+  type, and is `invalidType`, as `var xs = []` is. Mojo 1.2.0 accepts every such literal, a compiler bug
   by a provisional ruling, which the nightly fixes (#122,
   [D-0005](../conformance/decision-log.md)). Whether the class should be
   `noMatchingInit` in every position waits on #154, and a literal whose
