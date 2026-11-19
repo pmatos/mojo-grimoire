@@ -60,7 +60,8 @@
         "structs/field_by_field_unset_nested",
         "structs/field_by_field_unset_overwritten",
         "structs/field_by_field_unset_whole_branch",
-        "structs/field_by_field_unset_whole_loop"
+        "structs/field_by_field_unset_whole_loop",
+        "structs/field_by_field_whole_branch_then_fields"
       ],
       "reference": {
         "release": "1.2.0",

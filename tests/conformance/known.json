@@ -28,6 +28,7 @@
     "structs/field_by_field_unset_nested": "D-0003",
     "structs/field_by_field_unset_overwritten": "D-0003",
     "structs/field_by_field_unset_whole_branch": "D-0003",
-    "structs/field_by_field_unset_whole_loop": "D-0003"
+    "structs/field_by_field_unset_whole_loop": "D-0003",
+    "structs/field_by_field_whole_branch_then_fields": "D-0003"
   }
 }

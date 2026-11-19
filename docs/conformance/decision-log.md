@@ -99,7 +99,8 @@ Each move of the Mojo pin gets an entry below.
   - `field_by_field_unset_whole_branch.mojo`,
     `field_by_field_unset_whole_loop.mojo`, `field_by_field_unset_ints.mojo`;
   - `field_by_field_move_after_last_use.mojo` and its `_loop` variant (#144);
-  - `field_by_field_branch_move_other.mojo` and its `_both` variant (#137).
+  - `field_by_field_branch_move_other.mojo` and its `_both` variant (#137);
+  - `field_by_field_whole_branch_then_fields.mojo`.
 - Compiler: a variable of struct type declared without a value, whose
   fields are then assigned one by one, is destroyed whole even when some
   fields were never assigned. The compiler runs the destructor of each
@@ -116,7 +117,10 @@ Each move of the Mojo pin gets an entry below.
     `1`, `drop 1`, `drop 0`, `box`;
   - when the struct is built in one branch of an `if` only, partly or
     wholly, or in a loop: `whole_branch` prints `mark gone` four times for
-    two fields assigned, and `whole_loop` ten times for four.
+    two fields assigned, and `whole_loop` ten times for four;
+  - when the struct is assigned whole in one branch only and then given
+    every field: `whole_branch_then_fields` prints `mark gone` six times
+    for four fields assigned, on 1.2.0 and on the nightly.
   The compiler also accepts a field moved out after another field's last
   use (#144), and a field moved out in one branch while the other builds
   another field (#137). With fields that print `drop <id>`, each of these
@@ -132,7 +136,11 @@ Each move of the Mojo pin gets an entry below.
   may hold another, on some path. A variable assigned whole in only one
   branch may end, and so may the `self` of `__init__` built wholly in only
   one branch, which is whole once its fields are: the compiler accepts
-  it with clean output. Every program above is rejected.
+  it with clean output. Every program above is rejected, except
+  `whole_branch_then_fields`: nothing of it ends partly built, so R does
+  not reject it, and the model destroys only the values assigned, four
+  `mark gone` lines. The human confirms this case, since the compiler's
+  rule at a join might reject it once fixed.
 - Classification: compiler bug, ruled by the human on 2026-11-17 (#51).
   The fixed behaviour is R, ruled by the human on 2026-11-19 (#51): a
   variable that ends with only some of its fields set is rejected, however
