@@ -13,50 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15497120852019240352")
+:::moduleDocs (fingerprint := "13277166753181632064")
 :::
 
-:::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
-*Definition: helpers.* `lift` runs a lookup of the program's tables inside
-the checker, and `expect` rejects a type other than the one expected.
-:::
-
-:::readable MojoGrimoire.Check.requireMutable (fingerprint := "3665794792439843375")
-*Definition: requiring a place that may change.* A place that is assigned
-to or passed `mut` must be one the function may change, and not reached
-through $`q\,\hat{}`: the compiler borrows $`q` there as a value that
-cannot be changed. Passed `mut` to an initializer, such a place is
-reported as the initializer's misfit.
-:::
-
-:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.noOwnOrigin MojoGrimoire.Check.CheckError.late MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "14982648558514621564")
-*Rule: reading and moving a place.* Using a place $`p` as a value copies it
-implicitly: $`p` must be initialized, and its type implicitly copyable.
-Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable
-that the function may change, owned or held `mut`, not a `read` or `ref`
-parameter (`transferFromBorrowed`); afterwards $`p` is uninitialized and
-holds nothing, its path is added to $`M`, the part of $`H` above it, if
-any, to $`T`, the parts of $`T` strictly below it and of $`P` at or below
-it are removed, and a variable moved out whole keeps nothing in $`T`. The
-value in $`p` must have an origin of its own: an element of a list or an
-array, or a part of one, cannot be transferred out, nor can a value
-through a reference bound with `ref`, even one that may be changed. The
-compiler rejects both alike (`transferFromElement`), once the place has a
-type and before anything else. Its later errors, which such a transfer
-comes before, are the use of an uninitialized or invalidated value and a
-constant index out of range. These conditions, without the move, are
-what $`q\,\hat{}` before a field or a method needs of $`q`.
-:::
-
-:::readable MojoGrimoire.Check.passPlace (fingerprint := "2500036056060291548")
-*Rule: passing a place.* A place passed to a `read` or `ref` parameter
-must be initialized and of the parameter's type; one passed `mut` must
-also be a place the function may change; one passed `var` is copied
-implicitly. No argument may be passed `out` or `deinit`. A misfit is
-reported as the call's fit says.
-:::
-
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "10230517371699055813")
+:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.checkRangeArgs MojoGrimoire.Check.checkParts MojoGrimoire.Check.checkPartsList MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "12727839935079675300")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -96,15 +56,20 @@ type:
   may be changed, by the rule of `changedArgs` for a `ref` parameter, is
   recorded as changed. The expression is a $`\mathsf{List}[u]`;
 * $`\mathsf{List}[u](\mathsf{range}(e^*))`, when the program declares no
-  function or struct `range`, is the standard library's range (#121): its
-  one to three arguments are passed as to `read` parameters of type
-  $`\mathsf{Int}`, with the fit of an initializer of
-  $`\mathsf{List}[u]`, so that a wrong number of arguments and an argument
-  of another type are `noMatchingInit` $`\mathsf{List}[u]`, as is a $`u`
-  other than $`\mathsf{Int}`. An argument that `rangeMisfit` names fits
-  no parameter either: the arguments before it are checked, and then the
-  call is `noMatchingInit`; a string or a `range` deeper inside
-  an argument keeps its own class. `range` anywhere else is an unknown function: a range
+  function or struct `range` and no variable in scope is named `range`, is
+  the standard library's range (#121): its one to three arguments are
+  checked by `checkRangeArgs` in the compiler's order of passes. First
+  every argument is typed, and an unknown name or a misfit of a call inside
+  any argument is reported at once. An argument that holds a string or a
+  call of `range` (`holdsStrOrRange`) is typed only in its other parts, by
+  `checkParts`. Then the call is `noMatchingInit` $`\mathsf{List}[u]`
+  when an argument is not an $`\mathsf{Int}`, holds a string or a `range`,
+  or is a literal of other elements, when there are not one to three
+  arguments, or when $`u` is not $`\mathsf{Int}`. Then comes the first use
+  of an uninitialized or invalidated value; then a literal of
+  $`\mathsf{Int}`s at any depth, or an empty one, is `noMatchingInit`, as
+  the compiler fails only when it instantiates the call; then a constant
+  index out of range. `range` anywhere else is an unknown function: a range
   is not a value of its own;
 * $`\mathsf{List}[u](e^+)` with more than one argument checks each
   argument on its own, locating a place without reading it, and is then

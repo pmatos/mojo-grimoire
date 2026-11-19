@@ -76,14 +76,54 @@ def iterableLiteralTy (prog : Program) (u : Ty) (ts : List (Ty × List Place × 
   recheckLocs prog (ts.map (·.2))
   pure (.array t ts.length)
 
-/-- Whether the argument `a` of the standard library's `range` fits none
-of its forms by its shape alone: a string, a call of `range`, an empty
-literal, or a literal that holds a string or a call of `range`. The compiler reports it as "no matching function in call
-to 'range'", once it has checked the arguments before it (#121). -/
-def rangeMisfit (a : Expr) : Bool :=
-  match a with
-  | .str _ | .call "range" _ | .list _ [] => true
-  | .list _ es => es.any (· matches .str _ | .call "range" _)
+mutual
+/-- Whether the expression `e` holds a string or a call of `range`, itself
+or through a literal or an operator: the model cannot type it, and the
+compiler finds no form of `range` that takes it as an argument (#121). -/
+def holdsStrOrRange : Expr → Bool
+  | .str _ | .call "range" _ => true
+  | .list _ es => holdsStrOrRangeList es
+  | .unary _ a => holdsStrOrRange a
+  | .binary _ a b => holdsStrOrRange a || holdsStrOrRange b
+  | _ => false
+
+/-- Whether one of the expressions `es` holds a string or a call of
+`range` (`holdsStrOrRange`). -/
+def holdsStrOrRangeList : List Expr → Bool
+  | [] => false
+  | e :: es => holdsStrOrRange e || holdsStrOrRangeList es
+end
+
+/-- What checking the arguments of the standard library's `range` finds,
+by the compiler's passes, which report in this order (#121): `misfit`, an
+argument that fits no form of `range` once every argument is typed;
+`owned`, the first use of an uninitialized or invalidated value; `literal`,
+a literal of `Int`s of a length other than 1, or empty, which fails when
+the call is instantiated; `index`, the first constant index out of range.
+`locs` holds, for each argument, the places it reads late, with its mark. -/
+structure RangeArgs where
+  misfit : Bool := false
+  owned : Option CheckError := none
+  literal : Bool := false
+  index : Option CheckError := none
+  locs : List (List Place × Nat) := []
+
+/-- What the arguments `r` and then `s` find. -/
+def RangeArgs.append (r s : RangeArgs) : RangeArgs :=
+  ⟨r.misfit || s.misfit, r.owned <|> s.owned, r.literal || s.literal, r.index <|> s.index,
+    r.locs ++ s.locs⟩
+
+/-- The error `err` of a later pass than typing, found in an argument of
+`range`: a constant index out of range, or else a use of a value. -/
+def RangeArgs.ofLate (err : CheckError) : RangeArgs :=
+  if err matches .negativeIndex _ | .constantIndexOutOfBounds _ then { index := some err }
+  else { owned := some err }
+
+/-- Whether the type `t` is `Int`, or an array of such, as the elements of
+a literal of `Int`s are, at any depth. -/
+def intShaped : Ty → Bool
+  | .int => true
+  | .array t _ => intShaped t
   | _ => false
 
 end MojoGrimoire.Check

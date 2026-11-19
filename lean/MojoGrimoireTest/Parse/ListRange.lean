@@ -132,19 +132,86 @@ private def minS : String := "-9223372036854775808"
 #guard rejects ["var xs = List[Int](range(range(3)))"] (.noMatchingInit (.list .int))
 #guard rejects ["var xs = List[Int](range([1, 2]))"] (.noMatchingInit (.list .int))
 
--- An error inside an argument keeps its class, a string or a `range`
--- nested deeper among them.
-#guard rejects ["var xs = List[Int](range(nope))"] (.unknownVariable "nope")
+/-- Whether `main` is rejected with `e` when it declares `p`, a `P`; `b`, a
+`Bool`; `u`, an uninitialized `Int`; and `xs`, a list, then runs `line`. -/
+private def rejectsWith (line : String) (e : CheckError) : Bool :=
+  rejects ["var p = P(1)", "var b = True", "var u: Int", "var xs: List[Int] = [1]", line] e
+
+/-- `List[Int](range(args))` in `main` (`rejectsWith`). -/
+private def rangeOf (args : String) : String := s!"print(List[Int](range({args})))"
+
+-- The compiler's order of passes, each case checked on the nightly
+-- 1.3.0.dev2026111905. First, typing errors in any argument, also after a
+-- misfit of `range` and inside an argument that holds a string or a range.
+#guard rejectsWith (rangeOf "nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "\"a\", nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "b, nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "[], nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "range(3), nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "1, 2, 3, nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "[1, 2, \"a\"], nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "[nope, \"a\"]") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "[\"a\", nope]") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "[u, nope, \"a\"]") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "[True, nope]") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "\"a\" + nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "range(nope)") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "xs, p.y") (.unknownAttribute "P" "y")
+#guard rejectsWith (rangeOf "[p.y, \"a\"]") (.unknownAttribute "P" "y")
+#guard rejectsWith (rangeOf "[f(True)]") (.typeMismatch .int .bool)
+#guard rejectsWith (rangeOf "\"a\", f(p)") (.typeMismatch .int (.struct "P"))
+-- Then the misfits of `range`: an argument of another type, or that holds a
+-- string or a `range` at any depth, a literal of other elements, a wrong
+-- number of arguments, or another element type. A misfit comes before a use
+-- of an uninitialized value and a constant index out of range.
+#guard rejectsWith (rangeOf "\"a\"") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[[\"a\"]]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[[range(3)]]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "\"a\" + \"b\"") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "\"a\" == \"b\"") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "not \"a\"") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[True, 1]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[1, True]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[[1], [True]]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "1, [range(3)]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "u, \"a\"") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "u, b") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "u, [True]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "xs[-1], \"a\"") (.noMatchingInit (.list .int))
+#guard rejectsWith "print(List[Bool](range(u)))" (.noMatchingInit (.list .bool))
+-- Then a use of an uninitialized value, before a literal of `Int`s of the
+-- wrong length, or an empty one, and before a constant index out of range.
+#guard rejectsWith (rangeOf "[1, 2], u") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "u, []") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "u, [1, [2]]") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "u, [[1, 2]]") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "xs[-1], u") (.uninitializedUse (.var "u"))
+-- Then the literal, before a constant index out of range.
+#guard rejectsWith (rangeOf "[1, 2]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[1, [2]]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "xs[-1], [1, 2]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "xs[-1], []") (.noMatchingInit (.list .int))
+
+-- A string inside a call keeps the model's class for a string outside
+-- `print`, where the compiler reports the call's own misfit.
 #guard rejects ["var xs = List[Int](range(f(\"a\")))"] .stringOutsidePrint
-#guard rejects ["var xs = List[Int](range(len(range(3))))"] (.unknownFunction "range")
 #guard rejects ["var xs = List[Int](range(f(\"a\"), \"b\"))"] .stringOutsidePrint
+-- `len(range(3))` is outside the subset by the ruling of 2026-11-19, so the
+-- model gives it its class for `range` used elsewhere, `unknownFunction`,
+-- also as an argument of `range`. The compiler, which takes it, reports
+-- these two programs as `noMatchingInit`: this pins the model's choice.
+#guard rejects ["var xs = List[Int](range(len(range(3))))"] (.unknownFunction "range")
 #guard rejects ["var xs = List[Int](range(len(range(3)), range(2)))"] (.unknownFunction "range")
-#guard rejects ["var xs = List[Int](range(1, \"b\"))"] (.noMatchingInit (.list .int))
-#guard rejects ["var xs = List[Int](range(0, 9, 2, \"b\"))"] (.noMatchingInit (.list .int))
-#guard rejects ["var xs = List[Int](range([\"a\"]))"] (.noMatchingInit (.list .int))
-#guard rejects ["var xs = List[Int](range([]))"] (.noMatchingInit (.list .int))
-#guard rejects ["var xs = List[Int](range(nope, \"a\"))"] (.unknownVariable "nope")
-#guard rejects ["var xs = List[Int](range(1, [range(3)]))"] (.noMatchingInit (.list .int))
+
+-- A variable or a parameter named `range` hides the standard library's:
+-- the compiler reports that an `Int` cannot be called, which the suite
+-- does not classify, and the model rejects the call as `unknownFunction`.
+#guard rejects ["var range = 5", "print(List[Int](range(3)))"] (.unknownFunction "range")
+#guard runLines (["def g(range: Int) -> List[Int]:", "    return List[Int](range(range))",
+  "def main():", "    print(g(3))"]) == some (.rejected ⟨"g", .unknownFunction "range"⟩)
+-- A variable declared after the call does not.
+#guard prints ["print(List[Int](range(3)))", "var range = 5", "print(range)"]
+  ["[0, 1, 2]", "5"]
 
 -- Anywhere else, `range` is an unknown function: a range is not a value.
 #guard rejects ["var r = range(3)"] (.unknownFunction "range")

@@ -109,14 +109,14 @@ def methodSig (prog : Program) (t : Ty) (m : Name) (n : Nat) : Except CheckError
 
 /-- Whether a call of `f` is one of the standard library's `range`: `f` is
 `range`, and the program declares no struct and no function of that name
-(#121). -/
+(#121). The checker also needs that no variable in scope has that name. -/
 def builtinRange (prog : Program) (f : Name) : Bool :=
   f == "range" && (findStruct prog f).isNone && (findFun prog f).isNone
 
 /-- The parameters of the standard library's `range` called with `n`
 arguments, each an `Int` taken `read`: `end`; `start` and `end`; or
 `start`, `end` and `step`. With no argument it has one, and with more than
-three it has three, so that the call has a wrong number of arguments. -/
+three it has three; the checker rejects a wrong number of arguments. -/
 def rangeParams (n : Nat) : List Param :=
   (match n with
     | 0 | 1 => ["end"]

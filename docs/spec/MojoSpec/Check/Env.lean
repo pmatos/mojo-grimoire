@@ -71,10 +71,12 @@ elaboration all read the signatures of calls here.
 :::readable MojoGrimoire.Check.builtinRange MojoGrimoire.Check.rangeParams (fingerprint := "10555727433073696386")
 *Definition: the standard library's range.* A call of $`f` is the
 standard library's `range` when $`f` is `range` and the program declares
-no struct and no function of that name (#121). It then takes one, two or three $`\mathsf{Int}`s,
-each `read`: the end; the start and the end; or the start, the end and
-the step. Called with no argument it is given one parameter, and with more
-than three, three, so that the call has a wrong number of arguments.
+no struct and no function of that name (#121); the checker also needs
+that no variable in scope has it. It then takes one, two or three
+$`\mathsf{Int}`s, each `read`: the end; the start and the end; or the
+start, the end and the step. Called with no argument it is given one
+parameter, and with more than three, three; the checker rejects a wrong
+number of arguments itself.
 :::
 
 :::readable MojoGrimoire.Check.copyingOf (fingerprint := "11191475259856383167")

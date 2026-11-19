@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2582927524842732996")
+:::moduleDocs (fingerprint := "1667884896041032981")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "13691362365005740179")
@@ -59,11 +59,21 @@ $`\mathsf{List}[u]` (#103). The places that the elements are read from
 are checked again once every element is evaluated.
 :::
 
-:::readable MojoGrimoire.Check.rangeMisfit (fingerprint := "16456493683688170740")
-*Definition: an argument that fits no range.* An argument of the standard
-library's `range` fits none of its forms by its shape alone when it is a
-string, a call of `range`, an empty literal, or a literal that holds a
-string or a call of `range` as an element: the
-compiler reports "no matching function in call to 'range'" once it has
-checked the arguments before it (#121).
+:::readable MojoGrimoire.Check.holdsStrOrRange MojoGrimoire.Check.holdsStrOrRangeList (fingerprint := "3244732862091383215")
+*Definition: an argument the model cannot type.* An expression holds a
+string or a call of `range` when it is one, or a literal or an operator
+holds one at any depth. Such an argument of the standard library's `range`
+fits none of its forms (#121).
+:::
+
+:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate MojoGrimoire.Check.intShaped (fingerprint := "15000236733738162497")
+*Definition: what the arguments of a range find.* Checking the arguments
+of `range` records, in the order of the compiler's passes, whether one
+fits no form of `range` once all are typed; the first use of an
+uninitialized or invalidated value; whether one is a literal of
+$`\mathsf{Int}`s, at any depth, of a length other than 1, which fails when
+the call is instantiated; and the first constant index out of range. Two
+records join, the first's errors first. An error of a later pass than
+typing is a constant index out of range or else a use of a value. A type
+is `intShaped` when it is $`\mathsf{Int}` or an array of such.
 :::
