@@ -94,7 +94,8 @@ def State.typing (s : State) : State :=
 checking it gives an error that the compiler reports after its types: one
 of a later pass (`CheckError.late`), or a nested literal's failed SIMD
 constraint. It is the type of its operator's or its call's result, of
-the place it reads, of an array of its first element, or else `Int`. -/
+the place it reads, the list that `List[u](e)` builds, an array of its
+first element, or else `Int`. -/
 def lateElemTy (prog : Program) : Expr → CheckM Ty
   | .unary .not _ => pure .bool
   | .binary op _ _ => pure (binaryResult op)
@@ -102,7 +103,7 @@ def lateElemTy (prog : Program) : Expr → CheckM Ty
   | .method p m args => do
     pure (((methodSig prog (← placeTy prog p) m args.length).toOption.map (·.result)).getD .int)
   | .place p | .copy p | .transfer p => placeTy prog p
-  | .listInit u _ => pure (.list u)
+  | .listInit u [_] => pure (.list u)
   | .list .noneType (e :: es) => do pure (.array (← lateElemTy prog e) (es.length + 1))
   | _ => pure .int
 
