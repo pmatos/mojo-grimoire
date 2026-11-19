@@ -102,6 +102,12 @@ private def fld (x f : Name) : Place := .field (.var x) f
     "        t.b = Pt(i, i)", "        i = i + 1", "    print(i)"]
 #guard inMain ["    var c = True", "    var t: Two", "    if c:", "        t = Two(Res(1), Res(2))",
     "    print(c)"] == some (.finished ["drop 1", "drop 2", "True"])
+-- So may one held whole on one path, with a field moved out and assigned
+-- again, and moved out whole on the other.
+#guard inMain ["    var c = True", "    var t = Two(Res(1), Res(2))", "    var y = t.a^",
+    "    t.a = Res(3)", "    print(y.id)", "    if c:", "        var z = t^",
+    "        print(z.a.id)", "    t = Two(Res(4), Res(5))", "    print(t.b.id)"] ==
+  some (.finished ["1", "drop 1", "3", "drop 3", "drop 2", "5", "drop 4", "drop 5"])
 
 -- Each field of the `self` of `__deinit__` is a value of its own: one may
 -- stay moved out, but not end partly built.
@@ -115,6 +121,21 @@ private def fld (x f : Name) : Place := .field (.var x) f
     "        self.a.x = 1",
     "        print(k.x, self.a.x)"] ==
   some (.rejected ⟨"Keep.__deinit__", .partiallyDestroyed "self"⟩)
+#guard inMain ["    var k = Keep(Two(Res(1), Res(2)), 1)", "    print(k.n)"] [
+    "@fieldwise_init",
+    "struct Keep(Movable):",
+    "    var a: Two",
+    "    var n: Int",
+    "    def __deinit__(deinit self):",
+    "        var c = self.n > 0",
+    "        if c:",
+    "            var k = self.a^",
+    "            print(k.a.id)",
+    "        else:",
+    "            var y = self.a.a^",
+    "            print(y.id)",
+    "            self.a.a = Res(9)",
+    "        print(\"keep\")"] == some (.finished ["1", "1", "drop 1", "drop 2", "keep"])
 
 -- A struct with a destructor of its own runs it once every field is
 -- assigned, and may not end with a field never assigned.
@@ -215,6 +236,15 @@ private def fld (x f : Name) : Place := .field (.var x) f
     "    l.a.x = q.y",
     "    l.a.y = q.x"] ==
   some (.rejected ⟨"flipA", .uninitializedAtExit "l"⟩)
+-- A `mut` parameter left uninitialized is reported before a variable that
+-- may not end, as the compiler reports it first.
+#guard inMain ["    var q = Two(Res(3), Res(4))", "    takeA(q)"] [
+    "def takeA(mut q: Two):",
+    "    var t: Two",
+    "    t.b = Res(2)",
+    "    var j = q.a^",
+    "    print(t.b.id, j.id)"] ==
+  some (.rejected ⟨"takeA", .uninitializedAtExit "q"⟩)
 #guard inMain ["    var m = Pt(1, 2)", "    half(m)", "    print(m.x)"] [
     "def half(mut p: Pt):",
     "    var q = p^",

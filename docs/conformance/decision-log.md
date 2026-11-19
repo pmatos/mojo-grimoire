@@ -141,9 +141,12 @@ Each move of the Mojo pin gets an entry below.
   and the fixed compiler applies its rule for a field moved out to a field
   never assigned, at a join of paths too. R replaces the 2026-11-17
   behaviour, which destroyed only the fields assigned and so matched
-  neither the compiler nor R. R follows its wording where the compiler's
-  output shows no bug: a struct whose fields are all `Int`s, such as
-  `var p: Pair; p.x = 1` in `unset_ints`, is rejected too. The first shape
+  neither the compiler nor R. The model applies R as worded to a struct
+  whose fields are all `Int`s too, such as `var p: Pair; p.x = 1` in
+  `unset_ints`. The compiler accepts it, and its output shows no sign of
+  the bug, since an `Int` needs no destruction; an `Int` field cannot be
+  moved out to compare with, as `p.x^` copies it. The human confirms
+  whether R reaches this case. The first shape
   still prints `drop 0` on the nightly 1.3.0.dev2026111705 (2026-11-18),
   and the `Box` variant prints `box gone 1 15`, `drop 1`, `drop 0`.
 - Upstream report: not filed yet. A draft on #51 awaits the human's

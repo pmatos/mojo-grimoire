@@ -47,7 +47,7 @@ def checkBody (prog : Program) (fd : FunDecl) : Except CheckError Unit := do
       checkBlock prog fd fd.body
       if (← get).live then
         unless fd.result == Ty.noneType do throw (CheckError.missingReturn fd.name)
-        checkExit).run start
+        checkExit prog).run start
 
 /-- Rejects a parameter list in which a parameter has the convention `out` or
 `deinit`, which only the `self` of `__init__` and `__deinit__` may have. -/

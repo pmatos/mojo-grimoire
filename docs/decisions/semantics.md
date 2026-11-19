@@ -64,9 +64,9 @@ where the compiler and the manual disagree, the model follows the compiler.
   rejected as `partiallyDestroyed`, which covers both of the compiler's
   messages: "destroyed out of the middle of a value" and "cannot be
   consumed, because ... is used later". The checker cannot tell which one
-  the compiler gives, since that depends on what follows (#39). A part
-  below a struct with a `__deinit__` of its own may not be uninitialized
-  when the struct ends either, while the struct may still hold a part. Inside `__deinit__`, `self`'s own fields may
+  the compiler gives, since that depends on what follows (#39). Nor may
+  any struct end partly built, with a part uninitialized while it may
+  still hold another (D-0003, see below). Inside `__deinit__`, `self`'s own fields may
   stay moved out, but not fields of its fields.
 - Until a field moved out is assigned again at its path, the compiler
   reports a use of it, or of a part above it, as `uninitializedUse`, even
