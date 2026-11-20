@@ -209,10 +209,15 @@ human ruled this on 2026-11-20 (#176).
 Both patterns come first in `diagnostics.json`, since each message holds
 a name of the program's, a type or a method, that a later pattern could
 match. The compiler finds both errors when it types the operands, before
-any read: the model finds them from the operands' types before it reads
-them, once it has typed them, so that an error inside an operand comes
-first (`s + nope` is `unknownVariable`) and an uninitialized operand
-after (`var s: S; s + 1` is `missingMethod`).
+any read. The model finds a missing method from the operands' types
+before it reads them, once it has typed them, so that an error inside an
+operand comes first (`s + nope` is `unknownVariable`) and an
+uninitialized operand after (`var s: S; s + 1` is `missingMethod`); a
+struct, list or array operand is never copied first. It finds a misfit of
+an overload set as an ordinary call finds a misfit, once the argument is
+read, so `var b: Bool; xs[b]` is `uninitializedUse` in the model and
+`noMatchingMethod` in the compiler. That order across the compiler's
+passes is left to #96.
 
 Rejected: mapping either message to an existing class, `noMatchingInit`,
 `typeMismatch` or `unknownAttribute`, which would merge errors that the

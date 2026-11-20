@@ -25,11 +25,15 @@ whose overloads also differ. An index of an `Int` has one overload, and
 its misfit stays a type mismatch.
 
 The compiler types every operand before it looks up the method, and
-reads them only in a later pass. So the checker finds these errors from
-the operands' types (`operandTy`) before it reads them; the operands are
-then typed, so that an error inside one comes first (`rejectAfter`).
-The checker finds them again once the operands are read, from their
-checked types, when their form did not give one.
+reads them only in a later pass. So the checker finds a missing method
+from the operands' types (`operandTy`) before it reads them; the operands
+are then typed, so that an error inside one comes first (`rejectAfter`).
+It finds it again once the operands are read, from their checked types,
+when their form did not give one. A misfit of an overload set is found as
+an ordinary call finds its misfit, once its argument is read, so an
+uninitialized argument of the wrong type is still `uninitializedUse`
+first, where the compiler reports `noMatchingMethod`: that order across
+the compiler's passes is left to #96.
 -/
 
 namespace MojoGrimoire.Check

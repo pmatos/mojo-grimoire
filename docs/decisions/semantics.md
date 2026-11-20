@@ -207,8 +207,10 @@ where the compiler and the manual disagree, the model follows the compiler.
   `Bool`, a struct or an array, and `__call__` on a variable that is
   called. Within its scope a variable or a parameter hides a function,
   `len`, `range`, `print` or a struct of its name, also before it is
-  initialized (#176). The checker finds both from the operands' types before it reads
-  them, as the compiler does
+  initialized (#176). The checker finds a missing method from the
+  operands' types before it reads them, as the compiler does; a misfit of
+  an overload set is found once the argument is read, as for any call
+  (#96)
   ([conformance.md](conformance.md#calls-that-fit-no-overload-and-methods-a-type-lacks)).
 - A struct may not lie on a cycle of fields with no field that holds the
   next struct through a list, such as a struct that holds itself directly
