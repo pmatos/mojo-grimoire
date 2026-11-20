@@ -101,7 +101,9 @@ required checks, `pre-commit` and `PR title`, are green
 1. Branch from an up-to-date `main`. Never commit on `main`.
 2. Write commit messages as Conventional Commits; the `commit-msg` hook checks.
 3. Open a PR whose title is a Conventional Commit header: squash merging makes
-   it the commit message on `main`. Body: what changed and why, `Closes #N`.
+   it the commit message on `main`. Body: what changed and why, `Closes #N`,
+   or `Part of #N` for one PR of several
+   ([process.md](docs/decisions/process.md#one-issue-several-prs)).
 4. If the PR is behind `main`, merge `main` into it and wait for its checks on
    the new head. Never resolve a conflict in `docs/adrs/INDEX.md` by hand:
    resolve the rest, then run `python3 scripts/adr_index.py --write`.

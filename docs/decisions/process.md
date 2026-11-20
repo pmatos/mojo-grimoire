@@ -96,7 +96,8 @@ up to date with `main` before it merges.
 1. Branch from an up-to-date `main`. Never commit on `main`.
 2. Write commit messages as Conventional Commits; the `commit-msg` hook checks.
 3. Open a PR whose title is a Conventional Commit header: squash merging makes
-   it the commit message on `main`. Body: what changed and why, `Closes #N`.
+   it the commit message on `main`. Body: what changed and why, `Closes #N`,
+   or `Part of #N` for a part that does not finish the issue.
 4. If the PR is behind `main`, merge `main` into it and wait for its checks on
    the new head. `docs/adrs/INDEX.md` is generated: resolve every other
    conflict first, then run `python3 scripts/adr_index.py --write`.
@@ -107,6 +108,20 @@ The format is `type(scope)!: summary`, with the types `feat`, `fix`, `perf`,
 
 Rejected: commitlint, which jsse uses. It is a second implementation, in
 Node, that could disagree with the local hook.
+
+### One issue, several PRs
+
+A PR that changes the model stays small enough for one deep review to settle
+it. When an issue needs more, it gets a short plan of parts, recorded on the
+issue, and each part lands as its own PR, one at a time. Each part leaves
+every program that agreed with the compiler on `main` still agreeing, and a
+construct that a later part covers keeps `main`'s result until that part
+lands. A part's body says `Part of #N`; only the last part closes the issue.
+The human ruled this on 2026-11-20, after #191's single PR (#202) needed
+three deep reviews and each round of fixes brought new findings.
+
+Rejected: one PR per issue, which let #202 grow until no review could settle
+it.
 
 ### Review depth
 
