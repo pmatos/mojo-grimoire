@@ -17,7 +17,8 @@ Lists, `List[T]`, follow the rules of
   elements can be copied.
 - The only methods modelled are `append`, `pop()`, `pop(i)` and the
   built-in `len`, which a function named `len` hides (#40), and a variable
-  or a parameter in scope too (#176). `pop()` takes
+  or a parameter in scope too (#176), but not yet one whose struct type
+  declares `__call__` (#191). `pop()` takes
   its list `mut`, removes the last element and gives it back as an owned
   value of the element type. On an empty list it fails at run time, as the
   compiler's bounds check does. `pop(i)` removes and gives back the

@@ -196,15 +196,25 @@ length still fails SIMD's constraint first, `noMatchingInit` (#169).
 The compiler gives "'T' does not implement the '__X__' method" for an
 operator whose operand's type lacks its method: `+`, `-`, `*`, `//`,
 `%` and negation of a `Bool`, of an array or of `None`; `-`, `//`, `%`,
-ordering and negation of a list; every operator of a struct that does not
-declare the method; and `__bool__` of a struct, an array or `None` under
-`not`, `and` or `or`, either operand of the last two. It gives the same
-for a call of a variable, whose type lacks `__call__`: within its scope a
-variable or a parameter named like a function, `len`, `range`, `print` or
-a struct hides it, and the arguments are typed without the hidden
-function's signature. `diagnostics.json` maps the message, matched whole, to
-`missingMethod`, and the model reports it in each of these cases. The
-human ruled this on 2026-11-20 (#176).
+ordering and negation of a list; every operator of a struct that neither
+declares the method nor gets it from a trait; and `__bool__` of a struct,
+an array or `None` under `not`, `and` or `or`, either operand of the last
+two. It gives the same for a call of a variable, whose type lacks
+`__call__`: within its scope a variable or a parameter named like a
+function, `len`, `range`, `print` or a struct hides it in a call, and the
+arguments are typed without the hidden function's signature.
+`diagnostics.json` maps the message, matched whole, to `missingMethod`,
+and the model reports it in each of these cases. The human ruled this on
+2026-11-20 (#176).
+
+The model does not yet follow three cases of the same rules. The operator
+methods that `Equatable` and `Comparable` supply by default (`a == b` on a
+struct that conforms to `Equatable`) are not modelled: the model reports
+`missingMethod` where the compiler accepts (#194). A variable whose struct
+type declares `__call__` does not yet hide a function, `len` or `print`:
+the model runs the hidden callee (#191). And hiding applies only to calls:
+a variable named like a struct in a type annotation or in `List[...]` still
+names the type in the model, where the compiler rejects it (#193).
 
 Both patterns come first in `diagnostics.json`, since each message holds
 a name of the program's, a type or a method, that a later pattern could

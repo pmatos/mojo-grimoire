@@ -12,9 +12,13 @@ is the compiler's error "'T' does not implement the '__X__' method",
 `missingMethod`: a `Bool` has no arithmetic and no negation, a list no
 `-`, `//`, `%`, ordering or negation, an array no arithmetic, negation
 or `__bool__`, a struct only the methods it declares, and `None` none.
-A variable that is called is such a value too: its type lacks
-`__call__`. Inside its scope a variable, or a parameter, hides a function,
-`len`, `range`, `print` or a struct of the same name.
+The methods that a trait such as `Equatable` supplies are not yet
+modelled (#194). A variable that is called is such a value too: its type
+lacks `__call__`. Inside its scope a variable, or a parameter, hides a
+function, `len`, `range`, `print` or a struct of the same name in a call,
+but not yet in a type position (#193). A variable whose struct type
+declares `__call__` does not yet hide it: the call goes to the hidden
+callee (#191).
 
 An integer literal, and an expression made only of them and of
 arithmetic (`intLiteral`), has the type `IntLiteral`, whose operators have
@@ -62,8 +66,9 @@ def unaryMethod : UnOp → Name
   | .not => "__bool__"
 
 /-- Whether a value of type `t` has the method `m`, of those that the
-model's operators and calls need. A string literal is only printed: the
-model claims nothing of its methods. -/
+model's operators and calls need. A struct has those it declares; the
+defaults of its traits are not yet modelled (#194). A string literal is
+only printed: the model claims nothing of its methods. -/
 def hasMethod (prog : Program) (t : Ty) (m : Name) : Bool :=
   match t with
   | .int => m != "__call__"
@@ -91,7 +96,9 @@ def intLiteral : Expr → Bool
 
 /-- The type of the operand `e`, found from its form and from the types
 of the places it names, without checking or reading it; `none` when that
-does not give it, or fails. -/
+does not give it, or fails. A literal with no type expected has one only
+when every element's form gives the same type: one whose elements differ
+is left to checking, which reports their mismatch first. -/
 def operandTy (prog : Program) (e : Expr) : CheckM (Option Ty) :=
   tryCatch (formTy e) fun _ => pure none
 where
@@ -108,12 +115,18 @@ where
       pure ((methodSig prog (← placeTy prog p) m args.length).toOption.map (·.result))
     | .unary op _ => pure (some (if op == .neg then .int else .bool))
     | .binary op _ _ => pure (some (binaryResult op))
-    | .list .noneType (e :: es) => do pure ((← formTy e).map (.array · (es.length + 1)))
+    | .list .noneType (e :: es) => do
+      let u ← formTy e
+      pure (if ← sameTy u es then u.map (.array · (es.length + 1)) else none)
     | .list .int [_] => pure (some .int)
     | .list t@(.list _) _ | .list t@(.array ..) _ => pure (some t)
     | .listInit u _ => pure (some (.list u))
     | .withDrops e _ _ => formTy e
     | _ => pure none
+  /-- Whether the form of each of `es` gives the type `u`. -/
+  sameTy (u : Option Ty) : List Expr → CheckM Bool
+    | [] => pure true
+    | e :: es => do pure ((← formTy e) == u && (← sameTy u es))
 
 /-- `missingMethod` of the type `t` and the method `m`, when `t` is known
 and lacks `m`. -/
@@ -134,16 +147,29 @@ gives, when it is known: the method that the type lacks. -/
 def unaryMisfit (prog : Program) (op : UnOp) (ta : Option Ty) : Option CheckError :=
   lacks prog (unaryMethod op) ta
 
+/-- Rejects with `err`, found from the types of operands, once `typing`
+has typed them in `State.typing`: an error inside an operand, which the
+compiler finds as it types it, comes first. -/
+def rejectAfter {α : Type} (typing : CheckM Unit) (err : CheckError) : CheckM α := do
+  modify State.typing
+  typing
+  throw err
+
 /-- Checks the call of the method `m`, of signature `sig`, on the place `p`
 of type `t`, whose indices are checked, with the arguments `args`, which
 `check` checks against `sig`'s parameters as a call of the fit it is
 given does: a method with several overloads reports every misfit as
 `noMatchingMethod`, of its receiver too, such as a list that may not
-change for `pop`. The receiver is passed by its convention, but when
+change for `pop`. When such a method's receiver cannot be passed, its
+arguments are typed first, by `typing`, so that an error inside one comes
+before the receiver's misfit, as the compiler types them before it looks
+for an overload that fits (`rejectAfter`). A method with one overload
+passes its receiver first (#89). The receiver is passed by its convention, but when
 it is `q^` and `self` is `var`: then `q` is consumed once the arguments
 are read. -/
 def methodCall (prog : Program) (asRef : Bool) (p : Place) (t : Ty) (m : Name) (args : List Expr)
-    (sig : Signature) (check : Fit → CheckM (List (List Place × Nat))) : CheckM Ty := do
+    (sig : Signature) (typing : CheckM Unit) (check : Fit → CheckM (List (List Place × Nat))) :
+    CheckM Ty := do
   let some self := sig.self | throw (CheckError.invalidSelf m)
   let fit := if overloaded t m then Fit.overload m else .call
   let consumed := consumedReceiver self.conv p
@@ -151,7 +177,9 @@ def methodCall (prog : Program) (asRef : Bool) (p : Place) (t : Ty) (m : Name) (
     | some q => do pure [← passedPlace .mutable q]
     | none => if self.conv == .owned then pure [] else do pure [← passedPlace self.conv p]
   checkExclusive (recv ++ (← locationArgs prog sig.params args))
-  if consumed.isNone then passPlace prog fit m self.conv t p
+  if consumed.isNone then
+    let pass := passPlace prog fit m self.conv t p
+    if fit matches .overload _ then tryCatch pass (rejectAfter typing) else pass
   let k ← mark
   let ks ← check fit
   recheckLocs prog (([p], k) :: ks)
@@ -173,14 +201,6 @@ def methodUnaryTy (prog : Program) (op : UnOp) (ta : Ty) : Except CheckError Ty 
   | some err => throw err
   | none => unaryTy op ta
 
-/-- Rejects with `err`, found from the types of operands, once `typing`
-has typed them in `State.typing`: an error inside an operand, which the
-compiler finds as it types it, comes first. -/
-def rejectAfter {α : Type} (typing : CheckM Unit) (err : CheckError) : CheckM α := do
-  modify State.typing
-  typing
-  throw err
-
 /-- Rejects with the error `misfit`, when there is one, as `rejectAfter`
 does. -/
 def rejectMisfit (misfit : Option CheckError) (typing : CheckM Unit) : CheckM Unit :=
@@ -189,9 +209,10 @@ def rejectMisfit (misfit : Option CheckError) (typing : CheckM Unit) : CheckM Un
   | none => pure ()
 
 /-- Rejects a call of `f` when a variable in scope of that name hides the
-function, `len`, `range` or the struct `f`, and its type has no
+function, `len`, `range`, `print` or the struct `f`, and its type has no
 `__call__`, once `typing` has typed the call's arguments: the compiler
-types them first (#176). -/
+types them first (#176). A variable whose type declares `__call__` is let
+through, and the call goes to the hidden callee, which #191 tracks. -/
 def rejectCalledVar (prog : Program) (f : Name) (typing : CheckM Unit) : CheckM Unit := do
   rejectMisfit (lacks prog "__call__" ((← findVar f).map (·.ty))) typing
 

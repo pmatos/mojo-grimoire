@@ -64,7 +64,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     checkIndices prog p
     let t ← placeTy prog p
     let sig ← lift (methodSig prog t m args.length)
-    methodCall prog asRef p t m args sig fun fit =>
+    methodCall prog asRef p t m args sig (typeArgs prog args) fun fit =>
       checkArgs prog fit m sig.params args sig.params.length args.length
   | .unary op a => do
     rejectMisfit (unaryMisfit prog op (← operandTy prog a)) (do let _ ← typeArg prog a)

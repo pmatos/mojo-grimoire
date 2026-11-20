@@ -56,6 +56,11 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 -- A list that may not change fits no overload of `pop` either.
 #guard runLines ["def f(xs: List[Int]):", "    print(xs.pop(0))", "def main():",
   "    var xs: List[Int] = [1]", "    f(xs)"] == some (.rejected ⟨"f", .noMatchingMethod "pop"⟩)
+-- An error inside an argument of `pop` comes before its receiver's misfit.
+#guard runLines ["def f(xs: List[Int]):", "    print(xs.pop(nope))", "def main():",
+  "    var xs: List[Int] = [1]", "    f(xs)"] == some (.rejected ⟨"f", .unknownVariable "nope"⟩)
+#guard rejects ["var xs: List[Int] = [1]", "print(xs^.pop(True + 1))"]
+  (.missingMethod .bool "__add__")
 -- `append` has one overload: its misfit is named.
 #guard rejects ["var xs: List[Int] = [1]", "xs.append(True)", "print(len(xs))"]
   (.typeMismatch .int .bool)
@@ -71,7 +76,10 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["var b = True", "print([2] + b)"] (.missingMethod (.array .int 1) "__add__")
 #guard rejects ["var a = [1]", "print(not a)"] (.missingMethod (.array .int 1) "__bool__")
 #guard rejects ["var s = S(1)", "s -= 1", "print(s.n)"] (.missingMethod (.struct "S") "__sub__")
--- An error inside an operand comes first.
+-- An error inside an operand comes first, a literal whose elements differ
+-- too.
+#guard rejects ["print(-[1, True])"] (.typeMismatch .int .bool)
+#guard rejects ["var b = True", "print(b or [1, True])"] (.typeMismatch .int .bool)
 #guard rejects ["var s = S(1)", "print(s + nope)"] (.unknownVariable "nope")
 #guard rejects ["print(True + (1 + True))"] (.noMatchingMethod "__add__")
 

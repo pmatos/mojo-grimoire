@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12487509247907205991")
+:::moduleDocs (fingerprint := "10399382533808827385")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -31,7 +31,8 @@ calls need, an $`\mathsf{Int}` has every one but `__call__`. A
 $`\mathsf{Bool}` has the comparisons and `__bool__`, and no arithmetic
 or negation. A list has `__add__`, `__mul__`, `__eq__`, `__ne__` and
 `__bool__`. An array has the comparisons only. A struct has the methods
-it declares, and `None` none. A string literal, which is only printed, is
+it declares; those its traits supply are not yet modelled (#194). `None`
+has none. A string literal, which is only printed, is
 taken to have them all: the model claims nothing of it.
 :::
 
@@ -45,12 +46,13 @@ them, negation and arithmetic, has the type `IntLiteral`, whose operators
 have several overloads too.
 :::
 
-:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy (fingerprint := "8888595506646022763")
+:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "8972853512470543273")
 *Definition: the type of an operand from its form.* The type of an
 operand is found, without checking or reading it, from its form: a
 literal's, a place's type, the result of the function, struct or method
 it calls, the result of its operator, an array of its first element's
-type for a literal with no type expected, a list or an array literal's
+type for a literal with no type expected whose elements' forms all give
+that type, a list or an array literal's
 type, an $`\mathsf{Int}` for $`[e]` of type $`\mathsf{Int}`, and
 $`\mathsf{List}[u]` for $`\mathsf{List}[u](\ldots)`. A call of a name
 that a variable hides, and any other form, gives none, and so does a
@@ -65,13 +67,16 @@ $`\mathsf{or}`, so is a right operand whose type lacks `__bool__`, and
 for a unary operator its operand's (#176).
 :::
 
-:::readable MojoGrimoire.Check.methodCall (fingerprint := "10455306421872178154")
+:::readable MojoGrimoire.Check.methodCall (fingerprint := "3090070374288288694")
 *Rule: a method call.* A call $`p.m(e^*)` of a method of signature
 $`\mathit{sig}`, once the indices of $`p` are checked, takes the method's
 receiver by its convention: $`p` is passed as a place, or, when $`p` is
 $`q\hat{}` and `self` is `var`, $`q` is consumed once the arguments are
 read. The receiver and the location arguments must not alias a mutable
-one. The receiver and the arguments are checked with the fit
+one. When a method with several overloads cannot be passed its
+receiver, its arguments are typed first, so that an error inside one
+comes before the receiver's misfit. The receiver and the arguments are
+checked with the fit
 `overload m` when the method has several overloads, `pop` of a list, so
 that every misfit, a wrong number of arguments or a receiver that may not
 change included, is `noMatchingMethod` (#88, #169), and as an ordinary
@@ -101,5 +106,7 @@ parameter, its name is the variable, also before it is initialized: a
 call $`f(e^*)` where $`f` names one hides the function, `len`, `range`,
 `print` or the struct $`f`. A variable whose type has no `__call__` cannot be
 called: `missingMethod` of its type and `__call__`, once the arguments
-are typed, since the compiler types them first (#176).
+are typed, since the compiler types them first (#176). A variable whose
+type declares `__call__` is not yet modelled: the call goes on to the
+hidden callee (#191).
 :::
