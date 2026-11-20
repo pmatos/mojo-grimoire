@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13757989865106505685")
+:::moduleDocs (fingerprint := "7696823461128157924")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "13691362365005740179")
@@ -59,6 +59,25 @@ $`\mathsf{List}[u]` (#103). The places that the elements are read from
 are checked again once every element is evaluated.
 :::
 
+:::readable MojoGrimoire.Check.holdsStrOrRange MojoGrimoire.Check.holdsStrOrRangeList (fingerprint := "3244732862091383215")
+*Definition: an argument the model cannot type.* An expression holds a
+string or a call of `range` when it is one, or a literal or an operator
+holds one at any depth. Such an argument of the standard library's `range`
+fits none of its forms (#121).
+:::
+
+:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "15634190465506606034")
+*Definition: what reading the arguments of a range finds.* Reading the
+arguments of `range`, once they are typed, records the errors of the
+compiler's later passes in the order it reports them: the first use of an
+uninitialized or invalidated value, then whether a nested literal of
+$`\mathsf{Int}`s of the wrong length fails when the call is instantiated,
+then the first constant index out of range. It also records the places each argument read without an error
+reads late, with its mark. Two records join, the first's errors first. An
+error of a later pass than typing is a constant index out of range,
+a nested literal's failed constraint, or else a use of a value.
+:::
+
 :::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "5042045329698814885")
 *Rule: a literal of the wrong length where an $`\mathsf{Int}` is
 expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1, which
@@ -68,7 +87,8 @@ types its elements before it reads any. So each element is typed first,
 in the state's `State.typing`, where every variable is whole and no
 reference invalidated. An element whose check still gives an error that
 the compiler reports after its types, one of a later pass or a nested
-literal's failed constraint, has its `lateElemTy`: the result of its
+literal's failed constraint, has its `lateElemTy`, as has such an
+argument of `range` (#121): the result of its
 operator, call or method, the type of the place it reads, the list that
 $`\mathsf{List}[u](e)` builds, an array of its first element, or else
 $`\mathsf{Int}`. The first element that is no $`\mathsf{Int}`, nor such

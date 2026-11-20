@@ -117,7 +117,8 @@ parameter, whether `S` is `@fieldwise_init` or has its own `__init__`; a
 literal whose length or elements do not fit the list or array it
 initializes, or that initializes a struct or a `Bool`; and
 `List[T](e1, …, en)` with arguments, but for one list or array of `T`
-that can be copied (#103). The model reports
+that can be copied (#103) and for `range(…)` of `Int` arguments with `T`
+an `Int` (#121). The model reports
 all of them as one class, `noMatchingInit`, and `diagnostics.json` maps
 that message, matched whole, to it alone. The human ruled this on
 2026-11-16 (#46), following the precedent of `unknownAttribute`.
@@ -137,13 +138,21 @@ length but 1 where an `Int` is expected: "function instantiation failed",
 with the note "constraint failed: expected N elements in the SIMD list
 literal, found M" (D-0005). `diagnostics.json` maps it, matched whole with
 its note, to `noMatchingInit` (#160); a failed instantiation with any other
-note does not match it. Each of the three messages still reaches only that
-class. The nightly gives it in every position, a converted argument or
-operand too, so the model reports `noMatchingInit` there as well (#154);
-a literal whose elements are not all `Int`s gives the first message where
-it initializes the `Int`, and "cannot be converted from list literal"
-where it is converted (#153). The table of positions is on
-[semantics-lists.md](semantics-lists.md).
+note does not match it. The nightly gives it in every position, a
+converted argument or operand too, so the model reports `noMatchingInit`
+there as well (#154); a literal whose elements are not all `Int`s gives
+the first message where it initializes the `Int`, and "cannot be converted
+from list literal" where it is converted (#153). The table of positions is
+on [semantics-lists.md](semantics-lists.md).
+
+It gives a fourth for `List[T](range(…))` whose arguments fit no form of
+the standard library's `range`, of any number or type: "no matching
+function in call to 'range'". Which of the two messages a misfit gets
+depends on whether every argument converts to the type of the first, which
+the model does not follow. The human ruled on 2026-11-19 (#121) that
+`diagnostics.json` maps it, matched whole, to `noMatchingInit`, so that
+every `range` argument that does not fit is one class. Each of the four
+messages still reaches only that class.
 
 Ordinary calls keep their classes, since the compiler names the misfit
 there: `typeMismatch` and `arityMismatch`. So does a literal passed to a

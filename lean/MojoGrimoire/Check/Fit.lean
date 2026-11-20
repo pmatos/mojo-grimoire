@@ -10,11 +10,31 @@ change, passed `mut`. An initializer reports every misfit as
 `noMatchingInit` of its type, since the compiler tries each initializer
 and reports only that none fits: a construction `S(…)`, and a literal that
 initializes the list or array expected where it stands, and `List[u](e)`
-from a source that is not a list or an array of `u` that can be copied. A
+from a source that is not a list or an array of `u` that can be copied,
+or from `range(…)` with arguments that fit no form of `range` (#121). A
 literal passed to a function or a method is converted to its parameter's
-type, and the compiler reports one that does not fit as a type mismatch.
-A literal of any length but 1 where an `Int` is expected fits nowhere
-(`rejectIntLiteral`, #153, #154).
+type, and the compiler reports one that does not fit, also inside it, as a
+type mismatch. A literal with no expected type takes the type of its
+elements, and an element that differs from the first is a type mismatch
+too. A literal of type `Int`, which inference keeps only for `[e]` of one
+`Int` element made of literals and operators, or passed `mut` or `ref`,
+has the type of `e` (#103); passed so, what `e` is read from is read late,
+as an operand. One of any other length where an `Int` is expected fits
+nowhere (`rejectIntLiteral`, #153, #154): an element that is no `Int` fits
+no initializer, or is a type mismatch where the literal is converted; else
+it is `noMatchingInit` once its elements are read.
+
+With one argument, `List[u](e)` copies the elements of a list or an array
+of `u`, which can be copied (#103): `e` is passed by `ref`, as `len` takes
+its list, and a mutable place passed so may be changed. `List[u](range(…))`,
+when neither the program nor a variable in scope is named `range`, takes
+one to three `Int`s, read as `read` arguments, and needs `u` to be `Int`;
+any misfit is `noMatchingInit` (#121). Its errors come in the compiler's
+order of passes: typing errors in any argument first, then the misfits of
+`range`, then uses of uninitialized or invalidated values, then a literal
+of `Int`s of the wrong length, then a constant index out of range. The
+compiler's order is tiered more finely, which is left to #96. Anywhere
+else `range` is an unknown function.
 -/
 
 namespace MojoGrimoire.Check
@@ -78,6 +98,48 @@ def iterableLiteralTy (prog : Program) (u : Ty) (ts : List (Ty × List Place × 
   recheckLocs prog (ts.map (·.2))
   pure (.array t ts.length)
 
+mutual
+/-- Whether the expression `e` holds a string or a call of `range`, itself
+or through a literal or an operator: the model cannot type it, and the
+compiler finds no form of `range` that takes it as an argument (#121). -/
+def holdsStrOrRange : Expr → Bool
+  | .str _ | .call "range" _ => true
+  | .list _ es => holdsStrOrRangeList es
+  | .unary _ a => holdsStrOrRange a
+  | .binary _ a b => holdsStrOrRange a || holdsStrOrRange b
+  | _ => false
+
+/-- Whether one of the expressions `es` holds a string or a call of
+`range` (`holdsStrOrRange`). -/
+def holdsStrOrRangeList : List Expr → Bool
+  | [] => false
+  | e :: es => holdsStrOrRange e || holdsStrOrRangeList es
+end
+
+/-- What reading the arguments of the standard library's `range` finds, of
+the compiler's passes after typing, which report in this order (#121):
+`owned`, the first use of an uninitialized or invalidated value;
+`literal`, a nested literal of `Int`s of the wrong length, which fails when
+the call is instantiated; `index`, the first constant index out of range. `locs` holds the places that the
+arguments read late, each with its mark, of those read without an error. -/
+structure RangeArgs where
+  owned : Option CheckError := none
+  literal : Bool := false
+  index : Option CheckError := none
+  locs : List (List Place × Nat) := []
+
+/-- What the arguments `r` and then `s` find. -/
+def RangeArgs.append (r s : RangeArgs) : RangeArgs :=
+  ⟨r.owned <|> s.owned, r.literal || s.literal, r.index <|> s.index, r.locs ++ s.locs⟩
+
+/-- The error `err` of a later pass than typing, found in an argument of
+`range`: a constant index out of range, a nested literal's failed
+constraint, or else a use of a value. -/
+def RangeArgs.ofLate (err : CheckError) : RangeArgs :=
+  if err matches .negativeIndex _ | .constantIndexOutOfBounds _ then { index := some err }
+  else if err == .noMatchingInit .int then { literal := true }
+  else { owned := some err }
+
 /-- The elements of a literal `[e₁, …, eₙ]`, `n ≠ 1`, typed `Int`, as
 inference types one where an `Int` is expected (#153, #154). -/
 def wrongIntLiteral : Expr → Option (List Expr)
@@ -90,8 +152,8 @@ def State.typing (s : State) : State :=
   { s with vars := s.vars.map fun v => { v with uninit := [], moved := [], pieces := [] },
            stale := [] }
 
-/-- The type of an element `e` of a literal where an `Int` is expected, when
-checking it gives an error that the compiler reports after its types: one
+/-- The type of an element `e` of a literal where an `Int` is expected, or
+of an argument of `range` (#121), when checking it gives an error that the compiler reports after its types: one
 of a later pass (`CheckError.late`), or a nested literal's failed SIMD
 constraint. It is the type of its operator's or its call's result, of
 the place it reads, the list that `List[u](e)` builds, an array of its

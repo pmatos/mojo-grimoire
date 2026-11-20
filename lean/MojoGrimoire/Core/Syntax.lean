@@ -45,8 +45,10 @@ parser gives it the type `None`, which inference replaces only when a list
 or an array is expected, or an `Int` for a literal `[e]` of one `Int`
 made of literals and operators, which is the value of `e` (#103). `listInit u es` is Mojo's `List[u](e₁, …, eₙ)`
 with at least one argument. With one, a list or an array of `u`, it is a
-new list of copies of its elements (#103); with more, Mojo 1.2.0 rejects
-it (#46): no initializer of `List` takes its elements as arguments.
+new list of copies of its elements (#103), and with one that calls the
+standard library's `range`, the list of the range's `Int`s (#121); with
+more, the compiler rejects it (#46): no initializer of `List` takes its
+elements as arguments.
 `withDrops e pre post` performs the operation `e` and destroys the values
 in the places `pre` once its operands are read, before it is performed,
 and those in `post` once it is done; only elaboration inserts it. -/

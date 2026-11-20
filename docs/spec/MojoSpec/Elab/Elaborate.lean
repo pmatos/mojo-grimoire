@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8493691824464778794")
+:::moduleDocs (fingerprint := "9141360601481084344")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
@@ -53,7 +53,7 @@ dropped that a body declares, in order, each once. Variables of sibling blocks m
 name, and then share a slot, since neither is live in the other.
 :::
 
-:::readable MojoGrimoire.Elab.callModes MojoGrimoire.Elab.methodModes (fingerprint := "16327785967890316099")
+:::readable MojoGrimoire.Elab.callModes MojoGrimoire.Elab.methodModes (fingerprint := "8918438346001052769")
 *Definition: operands passed by value.* A place passed to a `var`
 parameter, or an $`\mathsf{Int}` or a $`\mathsf{Bool}` passed to a `read`
 one, is passed by value: the call reads it once its arguments are
@@ -62,7 +62,8 @@ returns. The signature of what is called gives each parameter's
 convention, so a `@fieldwise_init` struct takes its fields by value,
 `append` its list by reference and its element by value, and `pop` its
 list by reference and its index by value. `len`, which has no signature,
-takes its list by reference. A method's receiver is passed by value only
+takes its list by reference, and the standard library's `range` its
+$`\mathsf{Int}`s by value (#121). A method's receiver is passed by value only
 to a `var self`; the receiver's type, from the variables declared so far,
 gives the method.
 :::

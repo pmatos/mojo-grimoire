@@ -15,8 +15,9 @@ whose `self` is `var`. The type of a literal `[…]` is left for
 inference, and `List[T]()` is an empty list of `T`. `List[T](e₁, …, eₙ)`
 with arguments is read as a call of `List`'s initializer, which the checker
 accepts only for one argument, a list or an array of `T` that it copies
-(#103), and rejects otherwise (#46). The compiler also accepts one other
-iterable, such as `range(n)`, which is outside the subset (#121).
+(#103), or a call of the standard library's `range` (#121), and rejects
+otherwise (#46). The compiler also accepts other iterables, which are
+outside the subset.
 
 `^` is also binary XOR, which is outside the subset. As in the compiler,
 `^` after a term is XOR when the next token of the logical line can start

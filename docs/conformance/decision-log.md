@@ -95,55 +95,22 @@ Each move of the Mojo pin gets an entry below.
 - Date: 2026-11-18, revised 2026-11-19
 - Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868);
   reproduces unchanged on the pinned nightly 1.3.0.dev2026111905 (D-0007)
-- Programs, all in `tests/conformance/structs/`:
-  - `field_by_field_unset_destroyed.mojo`, `field_by_field_unset_nested.mojo`,
-    `field_by_field_unset_overwritten.mojo`,
-    `field_by_field_unset_destructor.mojo`, `field_by_field_unset_branch.mojo`;
-  - `field_by_field_unset_whole_branch.mojo`,
-    `field_by_field_unset_whole_loop.mojo`, `field_by_field_unset_ints.mojo`;
-  - `field_by_field_move_after_last_use.mojo` and its `_loop` variant (#144);
-  - `field_by_field_branch_move_other.mojo` and its `_both` variant (#137);
-  - `field_by_field_whole_branch_then_fields.mojo`;
-  - `rejected/field_by_field_move_all_one_path.mojo`, the moved-out mirror
-    of a struct built wholly on one path, on which the model agrees.
+- Programs: thirteen in `tests/conformance/structs/`, from
+  `field_by_field_unset_destroyed.mojo` on, and
+  `rejected/field_by_field_move_all_one_path.mojo`, all listed on
+  [the detail page](decision-log-d0003.md#programs).
 - Compiler: a variable of struct type declared without a value, whose
   fields are then assigned one by one, is destroyed whole even when some
-  fields were never assigned. The compiler runs the destructor of each
-  such field on whatever memory it holds. With `Duo` holding two `Token`s
-  that print `drop <n>` when destroyed:
-  - at the end of the variable: `var d: Duo; d.left = Token(1);
-    print(d.left.n)` prints `1`, `drop 1`, `drop 0`;
-  - for a field below a nested struct: `var r: Rack; r.z = 3`, where
-    `Rack` holds a `Slot` that holds a `Token`, prints `drop 0`;
-  - when a part is assigned whole: `r.s.k = 1; r.s = Slot(Token(5), 2)`
-    prints `drop 0` before the new value is stored;
-  - when the struct has a `__deinit__` of its own: `var b: Box;
-    b.a = Token(1)`, where `Box` prints `box` in its `__deinit__`, prints
-    `1`, `drop 1`, `drop 0`, `box`;
-  - when the struct is built in one branch of an `if` only, partly or
-    wholly, or in a loop: `whole_branch` prints `mark gone` four times for
-    two fields assigned, and `whole_loop` ten times for four;
-  - when the struct is assigned whole in one branch only and then given
-    every field: `whole_branch_then_fields` prints `mark gone` six times
-    for four fields assigned, on 1.2.0 and on the nightly.
-  The compiler also accepts a field moved out after another field's last
-  use (#144), and a field moved out in one branch while the other builds
-  another field (#137). With fields that print `drop <id>`, each of these
-  programs prints `drop <garbage>` first: it destroys a field never
-  assigned.
-  The compiler rejects the same shapes when a field was moved out rather
-  than never assigned: "field 'd.a' destroyed out of the middle of a
-  value, preventing the overall value from being destroyed", with or
-  without a `__deinit__`, and when the field is moved out on one path only,
-  as in `t.b = Res(2); t.a = Res(1); if c: var y = t.b^; var x = t.a^`.
+  fields were never assigned: the compiler runs the destructor of each
+  such field on whatever memory it holds. It rejects the same shapes when
+  a field was moved out rather than never assigned: "field 'd.a' destroyed
+  out of the middle of a value, preventing the overall value from being
+  destroyed". Every shape probed is on
+  [the detail page](decision-log-d0003.md#compiler).
 - Model: rejects as `partiallyDestroyed` a variable, or a part assigned
   whole, that may end with a field never assigned or moved out while it
-  may hold another, on some path. A variable assigned whole in only one
-  branch may end, and so may the `self` of `__init__` built wholly in only
-  one branch, which is whole once its fields are: the compiler accepts
-  it with clean output. Every program above is rejected, except
-  `whole_branch_then_fields`, where nothing ends partly built, and
-  `move_all_one_path`, which agrees.
+  may hold another, on some path
+  ([detail](decision-log-d0003.md#model)).
 - Classification: compiler bug, ruled by the human on 2026-11-17 (#51).
   The fixed behaviour is R, ruled by the human on 2026-11-19 (#51): a
   variable that ends with only some of its fields set is rejected, however
@@ -154,34 +121,9 @@ Each move of the Mojo pin gets an entry below.
   and the fixed compiler applies its rule for a field moved out to a field
   never assigned, at a join of paths too. R replaces the 2026-11-17
   behaviour, which destroyed only the fields assigned and so matched
-  neither the compiler nor R. The evidence, on 1.2.0 and on a nightly
-  (1.3.0.dev2026111705 or 1.3.0.dev2026111905, which agree), for three
-  cases that R's sentence does not spell out:
-  - structs of `Int`s: the compiler's rule for a field moved out does not
-    depend on a destructor. `var s = Seg(Pair(1, 2), Pair(3, 4));
-    print(s.lo.x); var h = s.hi^` is rejected with "field 's.hi'
-    destroyed out of the middle of a value", and so are
-    `rejected/move_field_destroyed` and `rejected/move_every_field`, whose
-    `Line` holds two `Point`s of `Int`s. So the model rejects `unset_ints`
-    (`var p: Pair; p.x = 1`) too, though its output shows no bug. An `Int`
-    field itself cannot be moved out, as `p.x^` copies it;
-  - a struct whole on one path and empty on another: the compiler judges
-    a field moved out at the join of paths.
-    `rejected/field_by_field_move_all_one_path` moves out every field of a
-    struct built field by field, in one branch only, and is rejected,
-    while `structs/field_by_field_move_every`, the same moves with no
-    branch, is accepted. So `unset_whole_branch` and `unset_whole_loop`
-    are rejected;
-  - a value held on only some paths: `var r: Res; if c: r = Res(1)` then
-    `r = Res(2)` prints `drop 1`, `2`, `drop 2`, destroying the first value
-    on the path that has one only. So the model, which destroys a part
-    only on the paths that hold it, accepts `whole_branch_then_fields` and
-    prints four `mark gone` lines, where the compiler also destroys the
-    two fields never assigned.
-
-  The first shape still prints `drop 0` on the nightly
-  1.3.0.dev2026111705 (2026-11-18), and the `Box` variant prints
-  `box gone 1 15`, `drop 1`, `drop 0`.
+  neither the compiler nor R. The evidence for the cases that R's sentence
+  does not spell out is on
+  [the detail page](decision-log-d0003.md#evidence-for-r).
 - Upstream report: not filed yet. A draft on #51 awaits the human's
   approval; its link goes here once it is filed.
 
@@ -324,3 +266,45 @@ Each move of the Mojo pin gets an entry below.
   nightly reads a literal `[e]` on the left of a comparison with an `Int`
   as an `Int`, and the model follows it. D-0002, D-0003 and D-0006
   reproduce unchanged.
+
+### D-0008: a range whose start and end lie 2^63 apart aborts (provisional)
+
+- Date: 2026-11-19
+- Mojo release and commit: nightly 1.3.0.dev2026111905 (D-0007); 1.2.0
+  (527d069ee11a41ac5320af1f9402db0a66b2b868) aborts the same way
+- Programs: none in the suite. The runtime writes the abort on standard
+  output, and `scripts/conformance.py` records it as a printed line, with
+  the first line of the stack trace, which holds an address and a local
+  path, as the failure's detail. So the cases are pinned by `#guard` tests
+  in `lean/MojoGrimoireTest/Parse/ListRange.lean`, and the reproducer is
+  `print("before")` followed by
+  `print(List[Int](range(-1, 9223372036854775807, 9223372036854775807)))`.
+- Compiler: `List[Int](range(start, end, step))` aborts at run time when
+  the range is not empty and `start - end` is ±2^63, such as
+  `range(-1, Int.MAX, Int.MAX)` or `range(0, Int.MIN, Int.MIN)`, with
+  ``ABORT: Mojo/stdlib/std/memory/alloc.mojo:1021:18: Layout: `length`
+  must be >= 0`` (1.2.0: `alloc.mojo:888:14: alloc: Layout.count() must be
+  >= 0`). Lines printed before it are kept. At `10c54f6f5b` the
+  initializer of `List` from an iterable reserves the lower bound that
+  `bounds()` gives (`std/collections/list.mojo:548`), which
+  `_StridedRange._signed_count` computes from `abs(start - end)`
+  (`std/builtin/range.mojo:371`). That difference wraps to `Int.MIN`, the
+  count comes out negative, and the allocation aborts. The elements, from
+  `__next__`, are right, and every neighbour that does not abort, such as
+  `range(Int.MIN, Int.MAX, Int.MAX)`, gives the plain list. The boundary
+  is exact: a span above 2^63, as in `range(Int.MIN, Int.MAX, 2^62)`,
+  wraps to a small positive count, which only under-reserves, and builds
+  the right list (`lists/range_wide`). A `TODO` there
+  names the wrap, tracked internally as MSTDL-3087.
+- Model: builds the plain list, `[-1, 9223372036854775806]` for
+  `range(-1, Int.MAX, Int.MAX)`, so the reproducer prints `before` and
+  that list.
+- Classification: compiler bug, ruled by the human on 2026-11-19 (#121).
+  The ruling is provisional, until the human has discussed it with
+  Modular.
+- Decision and rationale: the fixed compiler builds the range's elements,
+  each of which lies between `start` and `end`, so no element overflows;
+  only the reserved size does. The model builds the list that unbounded
+  arithmetic gives, as for every range that does not abort.
+- Upstream report: not filed yet. A draft on #121 awaits the human's
+  approval; its link goes here once it is filed.

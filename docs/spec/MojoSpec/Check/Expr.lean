@@ -13,31 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7634310979405949160")
+:::moduleDocs (fingerprint := "5909551615633593430")
 :::
 
-:::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
-*Definition: helpers.* `lift` runs a lookup of the program's tables inside
-the checker, and `expect` rejects a type other than the one expected.
-:::
-
-:::readable MojoGrimoire.Check.requireMutable (fingerprint := "3665794792439843375")
-*Definition: requiring a place that may change.* A place that is assigned
-to or passed `mut` must be one the function may change, and not reached
-through $`q\,\hat{}`: the compiler borrows $`q` there as a value that
-cannot be changed. Passed `mut` to an initializer, such a place is
-reported as the initializer's misfit.
-:::
-
-:::readable MojoGrimoire.Check.passPlace (fingerprint := "2500036056060291548")
-*Rule: passing a place.* A place passed to a `read` or `ref` parameter
-must be initialized and of the parameter's type; one passed `mut` must
-also be a place the function may change; one passed `var` is copied
-implicitly. No argument may be passed `out` or `deinit`. A misfit is
-reported as the call's fit says.
-:::
-
-:::readable MojoGrimoire.Check.refResult MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "14383138222989444522")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "18219537702837666834")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -83,6 +62,31 @@ type:
   types, also inside a nested literal, fit none. A place passed so that
   may be changed, by the rule of `changedArgs` for a `ref` parameter, is
   recorded as changed. The expression is a $`\mathsf{List}[u]`;
+* $`\mathsf{List}[u](\mathsf{range}(e^*))`, when the program declares no
+  function or struct `range` and no variable in scope is named `range`, is
+  the standard library's range (#121), whose one to three arguments are
+  checked in the compiler's order of passes. First `typeRangeArgs` types
+  every argument, each in `State.typing`, and reports an unknown name or a
+  misfit of a call inside any argument at once. An argument that holds a
+  string or a call of `range` (`holdsStrOrRange`) is typed only in its
+  other parts, by `typeArg`; an open literal's elements by `typeLiteral`;
+  and an argument whose check gives an error that the compiler reports
+  after its types, or after the misfit, an implicit copy of the value a
+  call returns a reference to, has its `lateElemTy`. Then the call is `noMatchingInit` $`\mathsf{List}[u]`:
+  when an argument is not an $`\mathsf{Int}`, holds a string or a
+  `range`, or is an open literal other than one of $`\mathsf{Int}`s at
+  any depth; when the first argument is an empty literal, or one whose
+  first element, at any depth, is an empty literal; when there are not one
+  to three arguments; or when $`u` is not $`\mathsf{Int}`. In the state
+  before the typing, `readRangeArgs` then reads the arguments in order, a
+  literal's elements each in turn, and records the errors of later
+  passes. The first use of an uninitialized or invalidated value comes
+  first, also among the places read late; then such a literal of
+  $`\mathsf{Int}`s, or an empty one, or one of the wrong length nested in
+  an argument, is `noMatchingInit`, as the compiler
+  fails only when it instantiates the call; then a constant index out of
+  range. `range` anywhere else is an unknown function: a range is not a
+  value of its own;
 * $`\mathsf{List}[u](e^+)` with more than one argument checks each
   argument on its own, locating a place without reading it, and is then
   rejected as `noMatchingInit` $`\mathsf{List}[u]`: no initializer of

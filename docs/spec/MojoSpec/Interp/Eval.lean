@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16497286322111073520")
+:::moduleDocs (fingerprint := "11296488422048341989")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "14136961392570647166")
@@ -41,7 +41,7 @@ $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "12599151179705438993")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "5594273983289960036")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -74,7 +74,12 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   is a list of the same elements: values are trees, so this copies each
   element; a temporary argument is destroyed first (#103).
   $`\mathsf{List}[u](e^+)` with more arguments, which the checker always
-  rejects, gets stuck.
+  rejects, gets stuck. $`\mathsf{range}(e^*)`, which the checker
+  accepts only as the argument of $`\mathsf{List}[u]`, evaluates its
+  arguments as `read` arguments of type $`\mathsf{Int}`, read when the
+  call is made, and gives the list `rangeList` builds from them, with the
+  call's fuel: the end alone counts from 0, and the step is 1 unless a
+  third argument gives it (#121).
 - *Calls.* A struct with `__init__` is built in a location holding the
   struct with blank fields, passed as `out self`; a `@fieldwise_init` struct from its
   arguments. A function's arguments are evaluated left to right by their

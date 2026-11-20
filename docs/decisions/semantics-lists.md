@@ -65,13 +65,72 @@ Lists, `List[T]`, follow the rules of
   type, also inside a nested literal, fits no initializer, since the
   compiler infers the literal's type while it looks for one. Any other
   argument in the subset, an empty literal and a string among them, fits
-  no initializer either (`noMatchingInit`). The compiler also accepts
-  other iterables, such as `range(n)`, which are outside the subset until
-  #121 is ruled. The compiler
-  reports a `List[T]` source whose elements cannot be copied as "cannot
-  construct 'List[T]' with itself", which the suite also maps to
-  `noMatchingInit`
+  no initializer either (`noMatchingInit`). The compiler reports a
+  `List[T]` source whose elements cannot be copied as "cannot construct
+  'List[T]' with itself", which the suite also maps to `noMatchingInit`
   ([conformance.md](conformance.md#initializations-that-fit-no-initializer)).
+- `List[T](range(…))` with one, two or three `Int` arguments, the end, the
+  start and the end, or a step too, is the list of the range's `Int`s,
+  from the start, 0 by default, by the step, 1 by default, up to the end
+  and without it, or down to it for a negative step; a step of 0 gives
+  `[]`. The human ruled on 2026-11-19 that the model takes `range` only
+  as the argument of `List[T](…)` (#121). A range is not a value of its
+  own: `range` anywhere else, as in `var r = range(3)` or
+  `len(range(3))`, is `unknownFunction`, the class the model gives a call
+  of a function the program does not declare, though the compiler accepts
+  both. A function or a struct of the program, or a variable in scope,
+  named `range` is used instead; called, a variable is rejected as
+  `unknownFunction`, where the compiler reports that an `Int` cannot be
+  called, a message the suite does not classify. Any other iterable that
+  the compiler accepts as the one argument of `List[T](…)` stays outside
+  the subset. The arguments are evaluated from left to right, as `read`
+  arguments of type `Int`, so a place among them is read once all are
+  evaluated, and a literal `[e]` is the `Int` `e`. `T` must be `Int`.
+  Errors come in the order of the compiler's passes, which differs from
+  the order of the arguments. First, an error of typing in any argument:
+  an unknown name or attribute, or a misfit of a call inside it, also
+  inside an argument that holds a string or a `range`. Then a misfit of
+  `range`, `noMatchingInit`: a wrong number of arguments, an argument that
+  is not an `Int`, though it is uninitialized or reads such a value or a
+  constant index out of range, one that holds a string or a call of
+  `range` at any depth (through an operator, the model's choice; see
+  below), or a `T` other than `Int`: every argument is typed before any
+  is read. An open literal is a misfit too, unless every element that is
+  not a literal, at any depth, is an `Int` and, as the first argument, it
+  is not empty and its first element, at any depth, is not an empty
+  literal: the compiler takes such a literal for an `Int`, and fails only
+  when it instantiates the call.
+  Then a use of an uninitialized or invalidated value; the elements of a
+  literal are read late, as an operation's operands, so a later argument
+  that changes their list invalidates them. Then that literal,
+  `noMatchingInit` again. Then a constant index out of range. A string
+  inside a call keeps the model's class for a string outside `print`. The
+  compiler reports the misfits as "no matching function in call to
+  'range'" or "no matching function in initialization", and the literal
+  as "function instantiation failed"; the suite maps each to
+  `noMatchingInit`, the first by the ruling of 2026-11-19 (#121). The
+  compiler's order is tiered more finely than these passes, and the rest
+  is left to #96. Inside an operation, the model checks in program order,
+  as in any expression: `range(xs[-1] + u)`, with `u` uninitialized, is
+  `negativeIndex`. An argument whose check stops at a later pass's error
+  does not record what it moved, so `range(g(p^, xs[-1]), p.x)` is
+  `negativeIndex` where the compiler reports `p` uninitialized. A constant
+  index into an array comes before the literal and before an index into a
+  list on the compiler, and the model reports it as any index. A nested
+  `List[Int](range([1, 2]))` fails at once in the model, before a use of
+  an uninitialized value in another argument. And an operator over an
+  `Int` and a string or a range, outside the subset, is a misfit of
+  `range` in the model, where the compiler reports the operator's type
+  mismatch. The list is the one that unbounded
+  arithmetic gives, also at the extreme values of `Int`. A non-empty range
+  whose start and end lie exactly 2^63 apart aborts on the compiler, a
+  compiler bug by a provisional ruling ([D-0008](../conformance/decision-log.md)):
+  the model builds the list, which Lean tests pin, since the suite cannot
+  record the abort cleanly. A range longer than the fuel, such as
+  `range(9223372036854775807)`, runs out of it before the list is built
+  (`outOfFuel`); the compiler fails to allocate it, depending on the
+  machine's memory, so no suite program holds one, and Lean tests pin the
+  model.
 - `List[T](capacity=n)` stays a syntax error: the model does not read
   keyword arguments.
 

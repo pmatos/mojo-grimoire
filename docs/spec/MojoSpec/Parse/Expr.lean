@@ -71,7 +71,7 @@ whose fields and methods the chain goes on to read, as the compiler does
 for `p^.f` and `p^.m(…)` (#66).
 A literal $`[e^*]` is left for inference to type, and $`\mathsf{List}[\mathit{type}]()` is an empty list literal.
 With arguments, $`\mathsf{List}[\mathit{type}](e^+)` is its own expression, which the checker accepts only for one
-argument, a list or an array that it copies (#103), and rejects otherwise (#46). Mojo 1.2.0 also accepts one other
-iterable, such as `range(n)`, which is outside the subset (#121). Each function takes fuel and spends it on
+argument, a list or an array that it copies (#103), or a call of the standard library's `range` (#121), and rejects
+otherwise (#46). The compiler also accepts other iterables, which are outside the subset. Each function takes fuel and spends it on
 each call, so parsing ends.
 :::

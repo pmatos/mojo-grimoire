@@ -1,94 +1,27 @@
-import MojoGrimoire.Check.Fit
-import MojoGrimoire.Check.Transfer
-import MojoGrimoire.Check.Change
+import MojoGrimoire.Check.Pass
 import MojoGrimoire.Check.Operators
 
 /-!
 The checking of expressions and of the arguments of calls.
 
 An expression is checked from left to right, as Mojo evaluates it, and the
-state follows: a transfer `p^` leaves `p` uninitialized for what comes after
-it. Before a field or a method, `p^` borrows `p`, which must be whole and
-could be transferred, and cannot be changed through it; a method whose
-`self` is `var` takes it, once the arguments are read. Mojo reads a place
-operand only once every operand of its operation is evaluated, so each place
-operand must still be initialized then; so it reads a call that returns a
-reference, read by value, whose origins must then still be initialized and
-not invalidated. A place passed as an argument is
-passed by its parameter's convention: `read`, `mut` and `ref` pass the
-location, which must be initialized, and `mut` also needs a place the
-function may change; `var` passes a value, which is copied implicitly unless
-the argument transfers it. A transfer of a value with no origin of its
-own, an element or one through a reference bound with `ref`, is rejected
-as soon as its place is typed, also when it is passed to a `mut`
-parameter, as is a transfer out of a `read` or `ref` parameter passed to
-one, as the compiler does (#85, #119).
-A call that returns a reference and is a located operand
-(`MojoGrimoire.Check.locOf`), passed to a `read`, `mut` or `ref` parameter
-or to `len`, is passed the same way: it is not copied, it stands for its
-origins, and for `mut` it must be mutable.
-
-A call records as changed each place it is passed `mut`, or `ref` when the
-place may be changed, once its operands are checked, and the operands read
-late are checked again then (`MojoGrimoire.Check.Change`).
-
-An initialization whose arguments fit no initializer is `noMatchingInit`,
-however they misfit (`MojoGrimoire.Check.Fit`, #46): a construction
-`S(…)`, a literal that initializes the list or array expected where it
-stands, and `List[u](e₁, …, eₙ)`, which no initializer of `List` takes.
-With one argument, `List[u](e)` copies the elements of a list or an
-array of `u`, which can be copied (#103): `e` is passed by `ref`, as
-`len` takes its list, and a mutable place passed so may be changed. A
-literal
-passed to a function or a method is converted, and one that does not fit,
-also inside it, is a type mismatch. A literal with no expected type takes
-the type of its elements, and an element that differs from the first is a
-type mismatch too. A literal of type `Int`, which inference keeps only for
-`[e]` of one `Int` element made of literals and operators, or passed `mut`
-or `ref`, has the type of `e` (#103); passed so, what `e` is read from is
-read late, as an operand. One of any other length where an `Int` is
-expected is rejected (`rejectIntLiteral`, #153, #154): an element that is
-no `Int` fits no initializer, or is a type mismatch where the literal is
-converted; else it is `noMatchingInit` once its elements are read.
+state follows: a transfer `p^` leaves `p` uninitialized for what comes
+after it (`MojoGrimoire.Check.Transfer`). Before a field or a method, `p^`
+borrows `p`, which must be whole and could be transferred, and cannot be
+changed through it; a method whose `self` is `var` takes it, once the
+arguments are read. A place passed as an argument is passed by its
+parameter's convention (`passPlace`), and so is a call that returns a
+reference and is a located operand (`MojoGrimoire.Check.locOf`), passed to
+a `read`, `mut` or `ref` parameter or to `len`: it is not copied, and it
+stands for its origins. The operands read late, and the places that a call
+changes, are checked as `MojoGrimoire.Check.Change` says. An argument that
+does not fit is reported as `MojoGrimoire.Check.Fit` says, which also gives
+the rules of literals, of `List[u](…)` and of its `range` argument.
 -/
 
 namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
-
-/-- Lifts a result of the program's tables into the checker. -/
-def lift {α : Type} (r : Except CheckError α) : CheckM α := StateT.lift r
-
-/-- Rejects unless the type `actual` is the type `expected`. -/
-def expect (expected actual : Ty) : CheckM Unit :=
-  unless expected == actual do throw (CheckError.typeMismatch expected actual)
-
-/-- Rejects unless the place `p` may be changed: not through `q^`. It
-reports the error that `fit` gives when `p` is an argument. -/
-def requireMutable (p : Place) (fit : Fit := .call) : CheckM Unit := do
-  let v ← lookup (splitPlace p).1
-  unless v.access.canChange && !throughTransfer p do
-    throw (fit.misfit (CheckError.immutablePlace p))
-
-/-- Passes the place `p` to a parameter of convention `c` and type `t`, of
-a call of fit `fit`. -/
-def passPlace (prog : Program) (fit : Fit) (callee : Name) (c : Conv) (t : Ty) (p : Place) :
-    CheckM Unit := do
-  match c with
-  | .read | .ref => expectArg fit t (← readPlace prog p)
-  | .mutable => do
-    expectArg fit t (← readPlace prog p)
-    requireMutable p fit
-  | .owned => expectArg fit t (← copyPlace prog p)
-  | .out | .deinit => throw (CheckError.invalidConvention callee)
-
-/-- The type of a call of signature `sig`. A call that returns a reference,
-used as a value, copies the value it points to implicitly, unless `asRef`
-holds. -/
-def refResult (prog : Program) (asRef : Bool) (sig : Signature) : CheckM Ty := do
-  if sig.origin.isSome && !asRef && copyingOf prog sig.result != .implicit then
-    throw (CheckError.implicitCopy sig.result)
-  pure sig.result
 
 mutual
 /-- The type of the expression `e`. A string literal has no type here: it may
@@ -189,6 +122,20 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       | e => do
         let t ← match e with
           | .list .noneType es => do iterableLiteralTy prog u (← checkIterableElems prog u es)
+          | .call f args =>
+            if builtinRange prog f && !(← get).vars.any (·.name == f) then do
+              let s ← get
+              let (misfit, literal) ← typeRangeArgs prog true args
+              set s
+              if misfit || args.isEmpty || 3 < args.length || u != .int then
+                throw (CheckError.noMatchingInit (.list u))
+              let r ← readRangeArgs prog args
+              if let some err := r.owned then throw err
+              recheckLocs prog r.locs
+              if literal || r.literal then throw (CheckError.noMatchingInit (.list u))
+              if let some err := r.index then throw err
+              pure (.list .int)
+            else do checkExprAs prog (← locOf prog (.call f args)).isSome (.call f args)
           | e => do checkExprAs prog (← locOf prog e).isSome e
         iterableFits prog u t
         pure t
@@ -198,6 +145,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     checkOperands prog args
     throw (CheckError.noMatchingInit (.list u))
   | .withDrops e _ _ => checkExprAs prog asRef e
+  termination_by e => (sizeOf e, 0)
 
 /-- Checks the elements `es` of a literal with no type expected that is
 the argument of `List[u](…)`, in order, each as passed to a `var`
@@ -213,6 +161,96 @@ def checkIterableElems (prog : Program) (u : Ty) : List Expr → CheckM (List (T
       | e => checkExprAs prog false e
     let k ← mark
     pure ((t, ← lateLocs prog e, k) :: (← checkIterableElems prog u es))
+  termination_by es => (sizeOf es, 2)
+
+/-- Types the arguments of the standard library's `range` in the argument
+of `List[u](…)`, each in `State.typing`, and gives whether one fits no form
+of `range`, and whether one is an open literal of `Int`s, which the
+compiler takes for an `Int` and rejects only when it instantiates the call
+(#121). An error of typing is thrown, in any argument; a literal is typed
+by `typeLiteral`, and any other argument by `typeArg`. A literal whose first
+element, at any depth, is an empty literal fits no form as the `first`
+argument, and is such a literal of `Int`s after it. -/
+def typeRangeArgs (prog : Program) (first : Bool) : List Expr → CheckM (Bool × Bool)
+  | [] => pure (false, false)
+  | a :: as => do
+    modify State.typing
+    let (misfit, literal) ← match a with
+      | .list .noneType es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => do
+        let (ints, empty) ← typeLiteral prog es
+        pure (if ints && !(first && empty) then (false, true) else (true, false))
+      | a => do pure ((← typeArg prog a) != .int, false)
+    let (misfit', literal') ← typeRangeArgs prog false as
+    pure (misfit || misfit', literal || literal')
+  termination_by as => (sizeOf as, 2)
+
+/-- Types the elements `es` of an open literal that is an argument of
+`range`, and gives whether every element that is not a literal, at any
+depth, is an `Int`, and whether its first element, at any depth, is an
+empty literal: such a literal fits no form of `range` (#121). -/
+def typeLiteral (prog : Program) : List Expr → CheckM (Bool × Bool)
+  | [] => pure (true, true)
+  | e :: es => do
+    let (ints, empty) ← match e with
+      | .list .noneType es' | .list .int es'@([]) | .list .int es'@(_ :: _ :: _) => typeLiteral prog es'
+      | e => do pure ((← typeArg prog e) == .int, false)
+    let (ints', _) ← typeLiteral prog es
+    pure (ints && ints', empty)
+  termination_by es => (sizeOf es, 2)
+
+/-- The type of the argument `e` of `range`, or of an element of one, as
+the compiler types it before it finds the form of `range` that fits. One
+that holds a string or a call of `range` (`holdsStrOrRange`) fits none: it
+is typed only in its other parts, and has no type here, `None`. So has a
+literal in it. A place is typed by `typePlace`. One whose check gives an
+error that the compiler reports after its types, or after the misfit, a
+call's implicit copy of the value it returns a reference to, has its
+`lateElemTy`. -/
+def typeArg (prog : Program) (e : Expr) : CheckM Ty :=
+  if holdsStrOrRange e then do
+    match e with
+    | .call _ es | .list _ es => typeArgs prog es
+    | .unary _ a => let _ ← typeArg prog a
+    | .binary _ a b => do let _ ← typeArg prog a; let _ ← typeArg prog b
+    | _ => pure ()
+    pure .noneType
+  else
+    match e with
+    | .place p => do
+      try typePlace prog p catch err => unless err.late || err == .noMatchingInit .int do throw err
+      placeTy prog p
+    | .list .noneType es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => do typeArgs prog es; pure .noneType
+    | e => try checkExprAs prog false e catch err => do
+        let t ← lateElemTy prog e
+        if err.late || err == .noMatchingInit .int ||
+          (e matches .call .. | .method .. && err == .implicitCopy t) then pure t
+        else throw err
+  termination_by (sizeOf e, 1)
+
+/-- Types each of the expressions `es` (`typeArg`). -/
+def typeArgs (prog : Program) : List Expr → CheckM Unit
+  | [] => pure ()
+  | e :: es => do let _ ← typeArg prog e; typeArgs prog es
+  termination_by es => (sizeOf es, 2)
+
+/-- Reads the arguments `args` of `range`, typed by `typeRangeArgs`, in
+order, as `Int`s passed to `read` parameters, and an open literal's
+elements in turn. An error of a later pass than typing is recorded
+(`lateErrors`), and the arguments and elements after it still read. -/
+def readRangeArgs (prog : Program) : List Expr → CheckM RangeArgs
+  | [] => pure {}
+  | a :: as => do
+    let r ← match a with
+      | .list .noneType es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => readRangeArgs prog es
+      | .place p => lateErrors (do
+        checkIndices prog p
+        let _ ← readPlace prog p
+        pure { locs := [([p], ← mark)] })
+      | a => lateErrors (do
+        let _ ← checkExprAs prog false a
+        pure { locs := [(← lateLocs prog a, ← mark)] })
+    pure (r.append (← readRangeArgs prog as))
+  termination_by as => (sizeOf as, 2)
 
 /-- Checks each of the arguments `args` of `List[u](…)` on its own: a place
 is located, and any other expression checked, before the call is rejected. -/
@@ -225,6 +263,7 @@ def checkOperands (prog : Program) : List Expr → CheckM Unit
   | e :: args => do
     let _ ← checkExprAs prog false e
     checkOperands prog args
+  termination_by es => (sizeOf es, 2)
 
 /-- The type of the first of the elements `es` of a literal where an `Int`
 is expected that is no `Int`, nor such a literal of `Int`s. Each is typed
@@ -243,6 +282,7 @@ def intMisfit (prog : Program) : List Expr → CheckM (Option Ty)
       | e => try checkExprAs prog false e catch err =>
           if err.late || err == .noMatchingInit .int then lateElemTy prog e else throw err
     if u == .int then intMisfit prog es else pure (some u)
+  termination_by es => (sizeOf es, 2)
 
 /-- Reads the elements `es` of such a literal of `Int`s, as `Int`s passed
 `var`, a nested one's elements in turn, and gives what each reads late. -/
@@ -254,6 +294,7 @@ def readIntElems (prog : Program) : List Expr → CheckM (List (List Place × Na
       | .list .int es'@(_ :: _ :: _) => readIntElems prog es'
       | e => do expect .int (← checkExprAs prog false e); let k ← mark; pure [(← lateLocs prog e, k)]
     pure (ks ++ (← readIntElems prog es))
+  termination_by es => (sizeOf es, 2)
 
 /-- Checks the index expressions of the place `p`: each is an `Int`, and
 one that Mojo computes when it compiles the program may not be negative,
@@ -276,6 +317,7 @@ def checkIndices (prog : Program) : Place → CheckM Unit
     requireOwnOrigin prog p
     checkIndices prog p
     let _ ← requireTransferable prog p
+  termination_by p => (sizeOf p, 2)
 
 /-- Rejects `p^` when the value in `p` has no origin of its own
 (`noOwnOrigin`), as the compiler does once it has typed `p` (#85, #119):
@@ -284,6 +326,7 @@ index, or at the parameter `p^` is passed to. -/
 def requireOwnOrigin (prog : Program) (p : Place) : CheckM Unit := do
   typePlace prog p
   if ← noOwnOrigin p then throw (CheckError.transferFromElement p)
+  termination_by (sizeOf p, 1)
 
 /-- Types the place `p` as the compiler does, from its variable outward,
 each indexed place, but an `Int` (#127), before its index, each index as
@@ -305,6 +348,7 @@ def typePlace (prog : Program) : Place → CheckM Unit
       if ← noOwnOrigin p then throw (CheckError.transferFromElement p)
       unless (← lookup (splitPlace p).1).access.canChange do
         throw (CheckError.transferFromBorrowed p)
+  termination_by p => (sizeOf p, 0)
 
 /-- Checks the arguments `args` of a call of `callee` against its parameters
 `params`, in order, and gives, for each, the places it is read from once
@@ -360,6 +404,8 @@ def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
       let k ← mark
       pure ((← lateLocs prog e, k) :: (← checkArgs prog fit callee prms args n m))
   | _, _, n, m => throw (fit.misfit (CheckError.arityMismatch callee n m))
+  termination_by _ args _ _ => (sizeOf args, 2)
+
 end
 
 /-- The type of the expression `e`, used as a value. -/

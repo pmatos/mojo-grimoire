@@ -1,0 +1,213 @@
+import MojoGrimoire.Parse.Infer
+import MojoGrimoire.Interp.Run
+
+/-!
+Tests of the order in which the errors among the arguments of
+`List[T](range(…))` are reported (#121): the compiler's order of passes,
+each case checked on the nightly 1.3.0.dev2026111905, and the limits of the
+model, which the compiler's tiered order leaves to #96. The forms and the
+values of the range are tested in `MojoGrimoireTest.Parse.ListRange`.
+-/
+
+namespace MojoGrimoireTest.Parse.ListRangeOrder
+
+open MojoGrimoire.Core MojoGrimoire.Check MojoGrimoire.Parse MojoGrimoire.Interp
+
+/-- A function that prints its argument, one that changes its argument,
+one that takes a `P`, and a struct. -/
+private def lib : List String := [
+  "def f(x: Int) -> Int:", "    print(\"f\", x)", "    return x",
+  "def bump(mut x: Int) -> Int:", "    x += 10", "    return 3",
+  "def h(var q: P) -> Int:", "    return q.x",
+  "@fieldwise_init", "struct P(Copyable):", "    var x: Int",
+  ""]
+
+/-- The outcome of the program of `lib` and the functions `funs` whose
+`main` runs `body`; a syntax error gives `none`. -/
+private def runLines' (funs body : List String) : Option Outcome :=
+  match parse ("\n".intercalate (lib ++ funs ++ "def main():" :: body.map ("    " ++ ·))) with
+  | .ok prog => some (run prog 100000)
+  | .error _ => none
+
+/-- The outcome of the program of `lib` whose `main` runs `body`. -/
+private def runMain (body : List String) : Option Outcome := runLines' [] body
+
+/-- Whether `main`, running `body`, prints the lines `out`. -/
+private def prints (body : List String) (out : List String) : Bool :=
+  runMain body == some (.finished out)
+
+/-- Whether `main`, running `body`, is rejected with the error `e`. -/
+private def rejects (body : List String) (e : CheckError) : Bool :=
+  runMain body == some (.rejected ⟨"main", e⟩)
+
+/-- Whether `main` is rejected with `e` when it declares `p`, a `P`; `b`, a
+`Bool`; `u`, an uninitialized `Int`; and `xs`, a list, then runs `line`. -/
+private def rejectsWith (line : String) (e : CheckError) : Bool :=
+  rejects ["var p = P(1)", "var b = True", "var u: Int", "var xs: List[Int] = [1]", line] e
+
+/-- `List[Int](range(args))` in `main` (`rejectsWith`). -/
+private def rangeOf (args : String) : String := s!"print(List[Int](range({args})))"
+
+-- The compiler's order of passes, each case checked on the nightly
+-- 1.3.0.dev2026111905. First, typing errors in any argument, also after a
+-- misfit of `range` and inside an argument that holds a string or a range.
+#guard rejectsWith (rangeOf "nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "\"a\", nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "b, nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "[], nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "range(3), nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "1, 2, 3, nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "[1, 2, \"a\"], nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "[nope, \"a\"]") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "[\"a\", nope]") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "[u, nope, \"a\"]") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "[True, nope]") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "\"a\" + nope") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "range(nope)") (.unknownVariable "nope")
+#guard rejectsWith (rangeOf "xs, p.y") (.unknownAttribute "P" "y")
+#guard rejectsWith (rangeOf "[p.y, \"a\"]") (.unknownAttribute "P" "y")
+#guard rejectsWith (rangeOf "[f(True)]") (.typeMismatch .int .bool)
+#guard rejectsWith (rangeOf "\"a\", f(p)") (.typeMismatch .int (.struct "P"))
+#guard rejectsWith (rangeOf "P(1, 2), nope") (.noMatchingInit (.struct "P"))
+#guard rejectsWith (rangeOf "len(List[Int](b)), nope") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[u, nope]") (.unknownVariable "nope")
+-- Then the misfits of `range`: an argument of another type, or that holds a
+-- string or a `range` at any depth, a literal of other elements, a wrong
+-- number of arguments, or another element type. A misfit comes before a use
+-- of an uninitialized value and a constant index out of range.
+#guard rejectsWith (rangeOf "\"a\"") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[[\"a\"]]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[[range(3)]]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "\"a\" + \"b\"") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "\"a\" == \"b\"") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "not \"a\"") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[True, 1]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[1, True]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[[1], [True]]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "1, [range(3)]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "u, \"a\"") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "u, b") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "u, [True]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "xs[-1], \"a\"") (.noMatchingInit (.list .int))
+#guard rejectsWith "print(List[Bool](range(u)))" (.noMatchingInit (.list .bool))
+-- A place is typed before it is read, and an open literal's elements too.
+#guard rejectsWith "var c: Bool\n    print(List[Int](range(c)))" (.noMatchingInit (.list .int))
+#guard rejectsWith "var q: P\n    print(List[Int](range(1, q)))" (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[True, u]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[True, xs[-1]]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[[True], u]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[1, [True]], u") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[1, [[True]]], u") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[[], [1]], u") (.noMatchingInit (.list .int))
+-- A place that is not an `Int`, in a literal or in a range, is a misfit, not
+-- an implicit copy.
+#guard rejectsWith (rangeOf "[p]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[1, p], u") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[xs, \"a\"]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "range(xs)") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[\"a\", []]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[range(3), [True, 1]]") (.noMatchingInit (.list .int))
+-- Then a use of an uninitialized value, before a literal of `Int`s of the
+-- wrong length, or an empty one, and before a constant index out of range.
+#guard rejectsWith (rangeOf "[1, 2], u") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "u, []") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "u, [1, [2]]") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "u, [[1, 2]]") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "xs[-1], u") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "[1, []], u") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "[1, [[]]], u") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "[u, 2]") (.uninitializedUse (.var "u"))
+-- A place read late, invalidated by a later argument, comes before the
+-- literal and the index.
+#guard rejectsWith (rangeOf "xs[0], xs.pop(), [1, 2]")
+  (.invalidatedReference (.index (.var "xs") (.int 0)))
+#guard rejectsWith (rangeOf "xs[0], xs.pop(), xs[-1]")
+  (.invalidatedReference (.index (.var "xs") (.int 0)))
+-- Then the literal, before a constant index out of range.
+#guard rejectsWith (rangeOf "[1, 2]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[1, [2]]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "xs[-1], [1, 2]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "xs[-1], []") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[xs[-1], 2]") (.noMatchingInit (.list .int))
+-- Since the merge of #171, which types these literals `Int`, checked on the
+-- nightly: an uninitialized element is read, a `Bool` element is a misfit,
+-- and an empty literal is `noMatchingInit`, as `[1, 2]` is above.
+#guard rejectsWith "var z: Int\n    print(List[Int](range([z, 2])))" (.uninitializedUse (.var "z"))
+#guard rejectsWith (rangeOf "[1, True]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[]") (.noMatchingInit (.list .int))
+-- A literal's elements are read late, as an operation's operands: a later
+-- argument that changes the list invalidates an element read before it.
+#guard rejectsWith (rangeOf "[xs[0], 1], xs.pop()")
+  (.invalidatedReference (.index (.var "xs") (.int 0)))
+#guard rejectsWith (rangeOf "[u, xs[-1]]") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "[xs[-1], 1], u") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "[h(p^), p.x]") (.uninitializedUse (.field (.var "p") "x"))
+#guard rejectsWith (rangeOf "[[1, 2], 3]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[[], 3]") (.noMatchingInit (.list .int))
+-- An index is checked once: `h(p^)` in it moves `p` once.
+#guard prints ["var p = P(1)", "var xs: List[Int] = [1, 2]", "print(List[Int](range(xs[h(p^)])))"]
+  ["[0, 1]"]
+#guard prints ["var p = P(1)", "var xs: List[Int] = [1, 2]",
+  "print(List[Int](range(0, xs[h(p^)])))"] ["[0, 1]"]
+#guard rejectsWith (rangeOf "[xs[h(p^)], 1]") (.noMatchingInit (.list .int))
+-- An argument that is no `Int` is a misfit, though it reads an
+-- uninitialized value or has a constant index out of range.
+#guard rejectsWith (rangeOf "P(u)") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[P(u)]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "P(xs[-1])") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "b == (u == 1)") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[P(u), 1]") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[1, b == (u == 1)], u") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "P(u), nope") (.unknownVariable "nope")
+-- A non-`Int` argument that is uninitialized, or moved, is a misfit.
+#guard rejectsWith "var q: P\n    print(List[Int](range(q^)))" (.noMatchingInit (.list .int))
+#guard rejectsWith "var q: P\n    print(List[Int](range(q.copy())))" (.noMatchingInit (.list .int))
+-- A literal whose first element, at any depth, is an empty literal fits no
+-- form of `range` as the first argument; after it, it is a literal of `Int`s
+-- that fails only when the call is instantiated.
+#guard rejectsWith (rangeOf "[], u") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[[]], u") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "[[], 1], [], u") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "1, [], u") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "u, [[], 1]") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "1, [[], 1], u") (.uninitializedUse (.var "u"))
+-- Each element of a literal is read on its own: an index out of range in
+-- one does not hide that a later argument invalidates the one before it.
+#guard rejectsWith (rangeOf "[xs[0], xs[-1]], xs.pop()")
+  (.invalidatedReference (.index (.var "xs") (.int 0)))
+-- A limit: inside an operation the model checks in program order (#96),
+-- where the compiler reports `u` uninitialized first. This pins the model.
+#guard rejectsWith (rangeOf "xs[-1] + u") (.negativeIndex (.index (.var "xs") (.int (-1))))
+
+-- A literal of `Int`s of the wrong length nested in an argument fails only
+-- when the call is instantiated, after a use of an uninitialized value.
+#guard rejectsWith (rangeOf "[1, 2] + 2, u") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "xs[[1, 2]], u") (.uninitializedUse (.var "u"))
+#guard rejectsWith (rangeOf "xs[[1, 2]], nope") (.unknownVariable "nope")
+
+-- A call that returns a reference to a value that is no `Int` is a misfit,
+-- before the value would be copied.
+#guard runLines' ["def getp(ref q: P) -> ref [q] P:", "    return q"]
+  ["var p = P(1)", "var u: Int", "print(List[Int](range(u, getp(p))))"] ==
+  some (.rejected ⟨"main", .noMatchingInit (.list .int)⟩)
+
+-- An implicit copy inside an argument is a typing error, before any misfit.
+#guard rejectsWith (rangeOf "h(p) + 0, b") (.implicitCopy (.struct "P"))
+#guard rejectsWith (rangeOf "1, [h(p) + 0, 1], u") (.implicitCopy (.struct "P"))
+
+-- Limits of the compiler's tiered order, left to #96, which pin the model.
+-- A constant index into an array comes before the literal on the compiler,
+-- and before an index into a list; the model reports it as any index.
+#guard rejectsWith "var a: Array[Int, 2] = [1, 2]\n    print(List[Int](range([1, 2], a[2])))"
+  (.noMatchingInit (.list .int))
+-- A nested `List[Int](range(…))` of a literal of `Int`s fails at once in the
+-- model, where the compiler fails it only when it instantiates the call.
+#guard rejectsWith (rangeOf "len(List[Int](range([1, 2]))), u") (.noMatchingInit (.list .int))
+-- An operator over an `Int` and a string or a range is a misfit of `range`
+-- in the model, which cannot type either; the compiler reports the
+-- operator's own type mismatch. This is the model's choice for a program
+-- outside the subset, which awaits a ruling.
+#guard rejectsWith (rangeOf "p.x + range(2)") (.noMatchingInit (.list .int))
+#guard rejectsWith (rangeOf "u + \"a\"") (.noMatchingInit (.list .int))
+
+end MojoGrimoireTest.Parse.ListRangeOrder
