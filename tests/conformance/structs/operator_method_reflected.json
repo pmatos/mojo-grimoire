@@ -1,0 +1,17 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "radd 3 1",
+    "5 301",
+    "del T 3",
+    "7 30 3 1",
+    "pr 5",
+    "mk 2",
+    "radd 2 5",
+    "del T 2",
+    "205",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

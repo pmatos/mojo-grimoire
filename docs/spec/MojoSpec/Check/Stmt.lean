@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3460774467130204207")
+:::moduleDocs (fingerprint := "16045597353589041512")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -133,7 +133,18 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "11244212085081677629")
+:::readable MojoGrimoire.Check.checkSetter (fingerprint := "4437923153880268148")
+*Rule: assigning a subscript through its setter.* $`q[i] = v`, which
+inference makes a call of `__setitem__` when $`q`'s struct declares it
+and `__getitem__`, first has the types of the getter call $`q[i]`
+checked, neither its implicit copies nor a later pass's errors, and the
+type of $`v` against the getter's result, as the compiler does, then the
+setter call as any other call. A literal of `Int`s of the wrong length
+fails only in the setter call, after its receiver. These first checks
+change nothing in the state, since the getter is not run (#191).
+:::
+
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "5532494487483213685")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
@@ -144,8 +155,9 @@ an expression, so a place is copied implicitly.
   compiler does (#123);
 * $`\mathsf{ref}~x = e` binds $`x` to a reference, as the next section
   says; $`x` may not hide a variable in scope either;
-* $`p = e` checks $`e` first, then the indices of $`p`, then needs $`p`
-  of $`e`'s type, then that $`e` does not build its result into $`p`
+* $`p = e` rejects a subscript of a struct that has a getter and no
+  setter once its getter call is checked (`valueSubscript`, #191); else
+  it checks $`e` first, then the indices of $`p`, then needs $`p` of $`e`'s type, then that $`e` does not build its result into $`p`
   while changing the list that holds it, then needs a place the function may change; $`p` is changed as a
   whole, its old value ends, and $`p` is initialized. The old value may
   not end, as at the end of a variable, with the parts of $`p` taken as
@@ -161,7 +173,8 @@ an expression, so a place is copied implicitly.
   whole first. Assigning a part below a field in $`M` does not remove it.
   Through a reference or to an element, the old value is read first, so
   it must be initialized;
-* an expression statement checks its expression;
+* an expression statement checks its expression, once `checkSetter` has
+  checked what a setter call needs;
 * `print`, unless a variable in scope named `print` hides it, which
   `rejectCalledVar` rejects once the arguments are typed (#176), checks
   its arguments as above, then that its place arguments are still

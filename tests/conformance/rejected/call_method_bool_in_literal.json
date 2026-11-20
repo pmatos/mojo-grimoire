@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "missingMethod",
+  "diagnostic": "'Array[Bool, Int(2)]' does not implement the '__neg__' method"
+}

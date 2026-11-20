@@ -42,6 +42,12 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     if copyingOf prog t == .none then throw (CheckError.notCopyable t)
     pure t
   | .call f args => do
+    if let .place p :: _ := args then
+      if inPlaceCallee f then
+        let s ← get
+        typePlace prog p
+        set s
+    requireInPlace f args
     rejectCalledVar prog f (typeArgs prog args)
     match callSig prog f with
     | .ok sig =>
@@ -59,6 +65,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
           | e => do checkExprAs prog (← locOf prog e).isSome e))
         pure .int
       | "len", _, .unknownFunction _ => throw (CheckError.arityMismatch f 1 args.length)
+      | _, _, .missingMethod .. => rejectAfter (typeArgs prog args) err
       | _, _, _ => throw err
   | .method p m args => do
     checkIndices prog p
@@ -81,6 +88,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       else checkExprAs prog false b
     let kb ← mark
     unless op == .and || op == .or do recheckPlaces prog [a, b] [ka, kb]
+    rejectReadTwice prog op a
     lift (methodBinaryTy prog op ta tb)
   | .list .noneType [] => throw (CheckError.invalidType .noneType)
   | .list .noneType (e :: es) => do

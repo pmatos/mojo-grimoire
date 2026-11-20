@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Uses, moves and liveness: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7911769236395021182")
+:::moduleDocs (fingerprint := "15587195897367674273")
 :::
 
 :::readable MojoGrimoire.Elab.Slots MojoGrimoire.Elab.Slots.of MojoGrimoire.Elab.Slots.isSlot (fingerprint := "3465937767195176188")
@@ -74,4 +74,41 @@ uses it before defining it again. Liveness runs backwards:
 For the loop, one pass through the body gives the fixed point: the body's
 liveness keeps each slot live after it, or removes it, or adds it, whatever
 else is live, so a second pass adds nothing.
+:::
+
+:::readable MojoGrimoire.Elab.defs MojoGrimoire.Elab.usesStmt MojoGrimoire.Elab.movesStmt MojoGrimoire.Elab.dying (fingerprint := "11068515715879896736")
+*Definition: what dies at a simple statement.* A declaration, `ref`
+binding, assignment, expression or `print` uses, moves and defines slots as its parts do; an
+assignment to a part of a slot, such as an element or a field, uses the
+slot that holds it, and one through a reference the slots it may point
+into. The
+slots that die right after it are those it uses but neither moves away nor
+destroys or consumes in its expressions, and those it defines, unless they
+are live after it. A value defined and never used dies right after its
+definition, even when the expression that gives it destroys or consumes
+the old value of the same slot, as `s = s^.consume()` does: what the
+expression destroys or consumes dies before the statement defines
+anything.
+:::
+
+:::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
+*Definition: values that are dropped.* Only values of struct type, and
+lists and arrays of values that are dropped. Values of $`\mathsf{Int}`,
+$`\mathsf{Bool}`, string and $`\mathsf{None}` type have no destruction a
+program can observe.
+:::
+
+:::readable MojoGrimoire.Elab.drops (fingerprint := "5696115969548938391")
+*Definition: drops.* The `drop` statements for a set of slots, in the
+order of the slots the function owns, which is the order in which the
+compiler destroys values that die at once: its `var` parameters, then its
+local variables, each the last declared first; in `__deinit__`, the fields
+of `self` in their order. A slot the function does not own, such as a
+borrowed parameter, is never dropped.
+:::
+
+:::readable MojoGrimoire.Elab.declared MojoGrimoire.Elab.declaredBlock (fingerprint := "2404514119192343687")
+*Definition: local variables.* The variables of a type whose values are
+dropped that a body declares, in order, each once. Variables of sibling blocks may share a
+name, and then share a slot, since neither is live in the other.
 :::

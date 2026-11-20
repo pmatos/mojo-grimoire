@@ -6,11 +6,15 @@ The checking of statements and blocks.
 A block is a scope: the variables it declares end with it. A declaration
 may not reuse the name of a variable in scope, so no variable hides
 another, though sibling blocks may reuse a name; a variable named `print`
-hides it, and printing is then a call of the variable (#176), but not
-yet when its struct type declares `__call__` (#191). When inference could not
+hides it, and printing is then a call of the variable (#176), which
+inference makes a call of its `__call__` when its struct declares one
+(#191). When inference could not
 find a declaration's type, the checker checks its initializer before it
 rejects the declaration, so that the initializer's own error is reported,
-as the compiler does (#123).
+as the compiler does (#123). An assignment through a setter, which
+inference makes a call, first has the getter call and the value checked
+against the getter's result, without changing the state (`checkSetter`,
+#191).
 After an `if`, a part of a variable is
 initialized only when both branches leave it initialized, and a branch that
 returns does not count. A loop body that can reach its end must leave
@@ -249,6 +253,26 @@ def checkReturnValue (prog : Program) : Expr → CheckM Ty
     if v.access == .owned then transferPlace prog (.var x) else copyPlace prog (.var x)
   | e => checkExpr prog e
 
+/-- Checks what the compiler checks of `q[i] = v` before it calls the
+setter, when `e` is the call `S.__setitem__(q, i, v)` that inference makes
+of it (#191): the types of the call of the getter `q[i]`, which is not
+made, so neither its implicit copies nor a later pass's errors count, then
+the type of `v` against what the getter gives (`typeArg`). A literal of
+`Int`s of the wrong length fails later, after the setter's receiver. The
+state is left as it was. -/
+def checkSetter (prog : Program) (e : Expr) : CheckM Unit := do
+  let .call f (.place q :: args) := e | pure ()
+  let some (s, "__setitem__", false) := calleeMethod f | pure ()
+  let some v := args.getLast? | pure ()
+  let g := methodCallee s "__getitem__"
+  let s0 ← get
+  modify State.typing
+  try let _ ← checkExpr prog (.call g (.place q :: args.dropLast))
+  catch err => unless err.late || err matches .implicitCopy _ | .noMatchingInit .int do throw err
+  if let (.ok sig, false) := (callSig prog g, v matches .list .noneType _ || (wrongIntLiteral v).isSome) then
+    expect sig.result (← typeArg prog v)
+  set s0
+
 mutual
 /-- Checks the statement `s` of the function `sig`, whose name, result type
 and origin a `return` is checked against. -/
@@ -269,6 +293,9 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let (t, origins, m) ← refTarget prog e
     modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
+    if let some g ← valueSubscript prog p then
+      let _ ← checkExpr prog g
+      throw (CheckError.immutablePlace p)
     let t ← if e matches .list .noneType _ || (wrongIntLiteral e).isSome then do
         let u ← placeTy prog p
         checkInitValue prog u e (checkExpr prog e)
@@ -295,7 +322,9 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     setVar { v with uninit, moved := outside v.moved, held := uninitialize v.held path,
                     touched := union (outside v.touched) (above path v.held),
                     pieces := if whole then pieces.filter (!·.isEmpty) else pieces }
-  | .expr e => do let _ ← checkExpr prog e
+  | .expr e => do
+    checkSetter prog e
+    let _ ← checkExpr prog e
   | .print args => do
     rejectCalledVar prog "print" (typeArgs prog args)
     let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark

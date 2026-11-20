@@ -74,13 +74,46 @@ def typeName : Ty → Name
   | .list _ => "List"
   | .array .. => "Array"
 
+/-- The method `fd` called as a function, its receiver first, or, when
+it is `reflected`, with its first two parameters swapped
+(`MojoGrimoire.Core.methodCallee`). -/
+def asCallee (fd : FunDecl) (reflected : Bool) : FunDecl :=
+  match reflected, fd.params with
+  | true, a :: b :: ps => { fd with params := b :: a :: ps }
+  | _, _ => fd
+
+/-- The function that a call of `f` runs: the function `f`, or the
+method that the callee `f` names (`MojoGrimoire.Core.methodCallee`). -/
+def findCallee (prog : Program) (f : Name) : Option FunDecl :=
+  match findFun prog f, calleeMethod f with
+  | some fd, _ => some fd
+  | none, some (s, m, reflected) =>
+    ((findStruct prog s).bind (findMethod · m)).map (asCallee · reflected)
+  | none, none => none
+
+/-- Whether a call of `f` is a subscript `p[i]` that Mojo reads late: a
+call of the `__getitem__` of a struct that also declares `__setitem__`,
+whose subscript is a place of its own, read, as a place operand is, once
+every operand of its operation is evaluated, when the getter is called.
+With no `__setitem__`, the subscript is a value, and the getter is called
+in order, as any other call is (#191). -/
+def lateGetter (prog : Program) (f : Name) : Bool :=
+  match calleeMethod f with
+  | some (s, "__getitem__", false) =>
+    (findStruct prog s).any fun sd => (findMethod sd "__setitem__").isSome
+  | _ => false
+
 /-- The signature of a call of `f`: the construction of the struct `f`,
 which takes the parameters of its `__init__` after `self`, or each field
-`var` when it is `@fieldwise_init`; otherwise the function `f`. A struct
-wins over a function of the same name. `len` has none, since it takes a
-list or an array of any type. -/
+`var` when it is `@fieldwise_init`; otherwise the function `f`, or the
+method that the callee `f` names, which takes its receiver as its first
+argument. A struct wins over a function of the same name. `len` has none,
+since it takes a list or an array of any type. A method that the callee
+names and its struct lacks is `missingMethod`: inference makes such a
+call only of an in-place operator, `p += e`, whose struct lacks its
+method (#191). -/
 def callSig (prog : Program) (f : Name) : Except CheckError Signature :=
-  match findStruct prog f, findFun prog f with
+  match findStruct prog f, findCallee prog f with
   | some sd, _ => match sd.init with
     | some fd => pure ⟨none, fd.params.tail, .struct f, none, false⟩
     | none =>
@@ -88,7 +121,9 @@ def callSig (prog : Program) (f : Name) : Except CheckError Signature :=
         pure ⟨none, sd.fields.map fun (x, t) => ⟨.owned, x, t⟩, .struct f, none, false⟩
       else throw (.noInitializer f)
   | none, some fd => pure (funSig fd false)
-  | none, none => throw (.unknownFunction f)
+  | none, none => match calleeMethod f with
+    | some (s, m, _) => throw (.missingMethod (.struct s) m)
+    | none => throw (.unknownFunction f)
 
 /-- The signature of the method `m` on a value of type `t`, called with `n`
 arguments: one of a list's methods, or a method of a struct, whose first

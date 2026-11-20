@@ -108,6 +108,8 @@ compiler destroys a value, so that the interpreter destroys only what a
 
 {includeReadable "." MojoGrimoire.Elab.Origins "The origins of references" MojoSpec.Elab.Origins (level := 2)}
 
+{includeReadable "." MojoGrimoire.Elab.Late "Subscripts read late" MojoSpec.Elab.Late (level := 2)}
+
 {includeReadable "." MojoGrimoire.Elab.Elaborate "Inserting drops" MojoSpec.Elab.Elaborate (level := 2)}
 
 {includeReadable "." MojoGrimoire.Elab.Strip "Elaboration only inserts drops" MojoSpec.Elab.Strip (level := 2)}
@@ -121,6 +123,8 @@ with the compiler.
 {includeReadable "." MojoGrimoire.Interp.Value "Values" MojoSpec.Interp.Value (level := 2)}
 
 {includeReadable "." MojoGrimoire.Interp.Machine "The machine" MojoSpec.Interp.Machine (level := 2)}
+
+{includeReadable "." MojoGrimoire.Interp.Args "Arguments and operands" MojoSpec.Interp.Args (level := 2)}
 
 {includeReadable "." MojoGrimoire.Interp.Eval "Evaluation" MojoSpec.Interp.Eval (level := 2)}
 
@@ -141,6 +145,10 @@ line, as the compiler's `mojo run` does.
 {includeReadable "." MojoGrimoire.Parse.Expr "Expressions" MojoSpec.Parse.Expr (level := 2)}
 
 {includeReadable "." MojoGrimoire.Parse.Stmt "Statements and declarations" MojoSpec.Parse.Stmt (level := 2)}
+
+{includeReadable "." MojoGrimoire.Parse.SelfType "Self in methods" MojoSpec.Parse.SelfType (level := 2)}
+
+{includeReadable "." MojoGrimoire.Parse.Dispatch "Methods of operators on structs" MojoSpec.Parse.Dispatch (level := 2)}
 
 {includeReadable "." MojoGrimoire.Parse.Infer "Type inference" MojoSpec.Parse.Infer (level := 2)}
 

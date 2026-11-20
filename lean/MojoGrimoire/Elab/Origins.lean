@@ -107,4 +107,21 @@ def slotsOf (prog : Program) (fieldwise : Option (List Name)) (params : List Par
     (body : List Stmt) : Slots :=
   (aliasBlock prog (⟨fieldwise, []⟩, params.map fun prm => (prm.name, prm.ty)) body).1
 
+/-- Whether each argument of a call of `f` is passed by value, when it is a
+place, as its signature says. `len`, which has none, takes its list by
+reference. The standard library's `range` reads its `Int`s by value. -/
+def callModes (prog : Program) (f : Name) : List Bool :=
+  match callSig prog f with
+  | .ok sig => sig.params.map passedByValue
+  | .error _ =>
+    if builtinRange prog f then (rangeParams 3).map passedByValue else []
+
+/-- Whether the receiver `p` of a call of the method `m` with `n` arguments,
+and each argument, is passed by value, as the method's signature says. -/
+def methodModes (prog : Program) (env : TyEnv) (p : Place) (m : Name) (n : Nat) :
+    Bool × List Bool :=
+  match (placeTyOf prog env p).bind fun t => (methodSig prog t m n).toOption with
+  | some sig => (sig.self.any passedByValue, sig.params.map passedByValue)
+  | none => (false, [])
+
 end MojoGrimoire.Elab

@@ -1,0 +1,16 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "get 2 0",
+    "12 12",
+    "get 12 0",
+    "f 22 22",
+    "44",
+    "get 22 0",
+    "64",
+    "get 32 0",
+    "32 42"
+  ],
+  "class": null,
+  "diagnostic": null
+}

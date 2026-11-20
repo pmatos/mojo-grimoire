@@ -71,10 +71,8 @@ def fail {α : Type} (e : RunError) : EvalM α := throw (.error e)
 def stuck {α : Type} (what : String) : EvalM α := fail (.stuck what)
 
 /-- A new location holding `v`. -/
-def alloc (v : Value) : EvalM Ref := do
-  let m ← get
-  set { m with store := m.store.push v }
-  pure ⟨m.store.size, []⟩
+def alloc (v : Value) : EvalM Ref :=
+  modifyGet fun m => (⟨m.store.size, []⟩, { m with store := m.store.push v })
 
 /-- The value at the reference `r`. -/
 def readRef (r : Ref) : EvalM Value := do
@@ -84,10 +82,9 @@ def readRef (r : Ref) : EvalM Value := do
 
 /-- Replaces the value at the reference `r` by `w`. -/
 def writeRef (r : Ref) (w : Value) : EvalM Unit := do
-  let m ← get
-  let some v := m.store[r.loc]? | stuck "no such location"
+  let some v := (← get).store[r.loc]? | stuck "no such location"
   let some v' := v.set r.path w | stuck "no such part"
-  set { m with store := m.store.set! r.loc v' }
+  modify fun m => { m with store := m.store.set! r.loc v' }
 
 /-- Takes the value out of the reference `r`, and leaves what is left of
 it, `Value.blank`, in its place. -/

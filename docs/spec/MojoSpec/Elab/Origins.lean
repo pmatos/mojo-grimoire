@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The origins of references: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9228573848291175163")
+:::moduleDocs (fingerprint := "309407173084607407")
 :::
 
 :::readable MojoGrimoire.Elab.TyEnv MojoGrimoire.Elab.placeTyOf MojoGrimoire.Elab.refCallee (fingerprint := "3982555203705002604")
@@ -41,4 +41,19 @@ reference bound to another reference points into the same slots. Two
 references of the same name in sibling blocks share one entry, with the
 slots of both. The pass also records the type of each variable, starting
 from the parameters', to find the methods that calls name.
+:::
+
+:::readable MojoGrimoire.Elab.callModes MojoGrimoire.Elab.methodModes (fingerprint := "15740976577910938643")
+*Definition: operands passed by value.* A place passed to a `var`
+parameter, or an $`\mathsf{Int}` or a $`\mathsf{Bool}` passed to a `read`
+one, is passed by value: the call reads it once its arguments are
+evaluated. Any other place is passed by reference, and used until the call
+returns. The signature of what is called gives each parameter's
+convention, so a `@fieldwise_init` struct takes its fields by value,
+`append` its list by reference and its element by value, and `pop` its
+list by reference and its index by value. `len`, which has no signature,
+takes its list by reference, and the standard library's `range` its
+$`\mathsf{Int}`s by value (#121). A method's receiver is passed by value only
+to a `var self`; the receiver's type, from the variables declared so far,
+gives the method.
 :::
