@@ -87,6 +87,8 @@ compared with the compiler's diagnostics.
 
 {includeReadable "." MojoGrimoire.Check.Operators "Operators" MojoSpec.Check.Operators (level := 2)}
 
+{includeReadable "." MojoGrimoire.Check.Methods "Methods" MojoSpec.Check.Methods (level := 2)}
+
 {includeReadable "." MojoGrimoire.Check.Expr "Expressions and arguments" MojoSpec.Check.Expr (level := 2)}
 
 {includeReadable "." MojoGrimoire.Check.Ref "References" MojoSpec.Check.Ref (level := 2)}

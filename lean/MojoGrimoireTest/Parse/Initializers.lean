@@ -135,7 +135,7 @@ private def withStructs (body : List String) : List String := structs ++ inMain 
 
 -- An argument's own error, and one found once an initializer fits, keep
 -- their classes.
-#guard rejects (withStructs ["var p = P(1 + True)"]) (.typeMismatch .int .bool)
+#guard rejects (withStructs ["var p = P(1 + True)"]) (.noMatchingMethod "__add__")
 #guard rejects (withStructs ["var p = P(nope)"]) (.unknownVariable "nope")
 #guard rejects (withStructs ["var y: Int", "var p = P(y)"]) (.uninitializedUse (.var "y"))
 #guard rejects (withStructs ["var p = P(1)", "var h = H([1, 2])", "var r = H(h.xs)"])

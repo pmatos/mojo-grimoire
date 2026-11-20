@@ -22,7 +22,10 @@ has the type of `e` (#103); passed so, what `e` is read from is read late,
 as an operand. One of any other length where an `Int` is expected fits
 nowhere (`rejectIntLiteral`, #153, #154): an element that is no `Int` fits
 no initializer, or is a type mismatch where the literal is converted; else
-it is `noMatchingInit` once its elements are read.
+it is `noMatchingInit` once its elements are read. A method or an
+operator with several overloads reports every misfit as
+`noMatchingMethod`, a wrong number of arguments included
+(`MojoGrimoire.Check.Methods`).
 
 With one argument, `List[u](e)` copies the elements of a list or an array
 of `u`, which can be copied (#103): `e` is passed by `ref`, as `len` takes
@@ -42,16 +45,19 @@ namespace MojoGrimoire.Check
 open MojoGrimoire.Core
 
 /-- How a call reports an argument that does not fit its parameter: a
-function or a method by the error itself, and an initializer of the type
-`t` by `noMatchingInit t`, whatever the misfit. -/
+function or a method by the error itself, an initializer of the type `t`
+by `noMatchingInit t`, whatever the misfit, and the method or operator
+`m` with several overloads by `noMatchingMethod m` (#88). -/
 inductive Fit where
   | call
   | init (t : Ty)
+  | overload (m : Name)
 
 /-- The error that a call of fit `fit` reports for the misfit `e`. -/
 def Fit.misfit : Fit → CheckError → CheckError
   | .call, e => e
   | .init t, _ => .noMatchingInit t
+  | .overload m, _ => .noMatchingMethod m
 
 /-- Rejects unless the type of an argument, `actual`, is its parameter's,
 `expected`, by the error that `fit` reports. -/
@@ -99,21 +105,24 @@ def iterableLiteralTy (prog : Program) (u : Ty) (ts : List (Ty × List Place × 
   pure (.array t ts.length)
 
 mutual
-/-- Whether the expression `e` holds a string or a call of `range`, itself
-or through a literal or an operator: the model cannot type it, and the
-compiler finds no form of `range` that takes it as an argument (#121). -/
-def holdsStrOrRange : Expr → Bool
-  | .str _ | .call "range" _ => true
-  | .list _ es => holdsStrOrRangeList es
-  | .unary _ a => holdsStrOrRange a
-  | .binary _ a b => holdsStrOrRange a || holdsStrOrRange b
+/-- Whether the expression `e` holds a string or a call of the standard
+library's `range` (`builtinRange`), itself or through a literal or an
+operator: the model cannot type it, and the compiler finds no form of
+`range` that takes it as an argument (#121). A function of the program
+named `range` is typed as any other. -/
+def holdsStrOrRange (prog : Program) : Expr → Bool
+  | .str _ => true
+  | .call f _ => builtinRange prog f
+  | .list _ es => holdsStrOrRangeList prog es
+  | .unary _ a => holdsStrOrRange prog a
+  | .binary _ a b => holdsStrOrRange prog a || holdsStrOrRange prog b
   | _ => false
 
 /-- Whether one of the expressions `es` holds a string or a call of
 `range` (`holdsStrOrRange`). -/
-def holdsStrOrRangeList : List Expr → Bool
+def holdsStrOrRangeList (prog : Program) : List Expr → Bool
   | [] => false
-  | e :: es => holdsStrOrRange e || holdsStrOrRangeList es
+  | e :: es => holdsStrOrRange prog e || holdsStrOrRangeList prog es
 end
 
 /-- What reading the arguments of the standard library's `range` finds, of
@@ -139,6 +148,24 @@ def RangeArgs.ofLate (err : CheckError) : RangeArgs :=
   if err matches .negativeIndex _ | .constantIndexOutOfBounds _ then { index := some err }
   else if err == .noMatchingInit .int then { literal := true }
   else { owned := some err }
+
+/-- Checks `List[u](range(…))` with `n` arguments, which `typing` types,
+giving whether one fits no form of `range` and whether one is a literal
+of `Int`s, and which `reading` then reads (`RangeArgs`). Every misfit of
+`range` comes first, then the errors of reading in the compiler's order
+of passes (#121). The state that typing leaves is dropped. -/
+def rangeList (prog : Program) (u : Ty) (n : Nat) (typing : CheckM (Bool × Bool))
+    (reading : CheckM RangeArgs) : CheckM Ty := do
+  let s ← get
+  let (misfit, literal) ← typing
+  set s
+  if misfit || n == 0 || 3 < n || u != .int then throw (CheckError.noMatchingInit (.list u))
+  let r ← reading
+  if let some err := r.owned then throw err
+  recheckLocs prog r.locs
+  if literal || r.literal then throw (CheckError.noMatchingInit (.list u))
+  if let some err := r.index then throw err
+  pure (.list .int)
 
 /-- The elements of a literal `[e₁, …, eₙ]`, `n ≠ 1`, typed `Int`, as
 inference types one where an `Int` is expected (#153, #154). -/
@@ -174,13 +201,17 @@ compiler types its elements before it reads any: `misfit` types each in
 `State.typing`, and gives the type of the first that is no `Int`, nor
 such a literal of `Int`s, a type mismatch. Otherwise, in the state it
 started from, `reads` reads them, and the compiler then fails SIMD's
-constraint of one element, `noMatchingInit`. -/
+constraint of one element, `noMatchingInit`: by an initializer of `t` of
+`t`, and else of `Int`, also for a method or an operator with several
+overloads, since the literal fits the one that takes an `Int` and fails
+only once it is chosen (#169). -/
 def rejectIntLiteral {α : Type} (prog : Program) (fit : Fit) (misfit : CheckM (Option Ty))
     (reads : CheckM (List (List Place × Nat))) : CheckM α := do
   let s ← get
   if let some u ← misfit then throw (fit.misfit (CheckError.typeMismatch .int u))
   set s
   recheckLocs prog (← reads)
-  throw (fit.misfit (CheckError.noMatchingInit .int))
+  throw (if fit matches .overload _ then CheckError.noMatchingInit .int
+    else fit.misfit (CheckError.noMatchingInit .int))
 
 end MojoGrimoire.Check

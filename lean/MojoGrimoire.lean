@@ -12,6 +12,7 @@ import MojoGrimoire.Check.Change
 import MojoGrimoire.Check.Transfer
 import MojoGrimoire.Check.Pass
 import MojoGrimoire.Check.Operators
+import MojoGrimoire.Check.Methods
 import MojoGrimoire.Check.Expr
 import MojoGrimoire.Check.Ref
 import MojoGrimoire.Check.Stmt

@@ -81,14 +81,15 @@ private def res : List String := [
   "print(\"before\")",
   "print(xs.pop())"]) == some (.failed .indexOutOfBounds ["before"])
 
--- `pop` changes its list, which must be one the function may change.
+-- `pop` changes its list, which must be one the function may change: no
+-- overload of `pop` fits a list that may not change (#88).
 #guard rejects [
   "def f(xs: List[Int]):",
   "    print(xs.pop())",
   "",
   "def main():",
   "    var xs: List[Int] = [1]",
-  "    f(xs)"] (.immutablePlace (.var "xs")) "f"
+  "    f(xs)"] (.noMatchingMethod "pop") "f"
 
 -- An array has no `pop`.
 #guard rejects (inMain ["var xs = [1, 2]", "print(xs.pop())"]) (.unknownAttribute "Array" "pop")

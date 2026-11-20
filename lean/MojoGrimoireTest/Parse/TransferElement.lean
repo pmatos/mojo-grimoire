@@ -144,9 +144,8 @@ private def at_ (x : Name) (k : Int) : Place := .index (.var x) (.int k)
 #guard go ["def main():", "    var n = 5", "    var u = n[zz]^", "    print(u)"] ==
   rejects (.unknownVariable "zz")
 
--- A `Bool` index: the compiler finds no `__getitem__`, a message with no
--- class (#88); the model reports the index's type.
-#guard inMain ["    var u = l[True]^", "    print(u.k)"] == rejects (.typeMismatch .int .bool)
-#guard inMain ["    g(l[True]^)"] == rejects (.typeMismatch .int .bool)
+-- A `Bool` index: no overload of the list's `__getitem__` fits (#169).
+#guard inMain ["    var u = l[True]^", "    print(u.k)"] == rejects (.noMatchingMethod "__getitem__")
+#guard inMain ["    g(l[True]^)"] == rejects (.noMatchingMethod "__getitem__")
 
 end MojoGrimoireTest.Parse.TransferElement

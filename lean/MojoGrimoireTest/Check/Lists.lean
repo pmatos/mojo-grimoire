@@ -80,9 +80,10 @@ private def ress : Stmt := .decl "rs" (.list res) (some (.list (.list res) [newR
 #guard verdict (prog [ress, .decl "ys" (.list res) (some (.copy (v "rs")))]) ==
   some (.notCopyable (.list res))
 
--- `xs[True]`: an index is an `Int`.
+-- `xs[True]`: an index is an `Int`, and a list's `__getitem__` has
+-- several overloads, none of which fits (#169).
 #guard verdict (prog [ints, .print [.place (.index (v "xs") (.bool true))]]) ==
-  some (.typeMismatch .int .bool)
+  some (.noMatchingMethod "__getitem__")
 
 -- `swapRes(rs[0], rs[1])`: two `mut` elements of one list overlap.
 #guard verdict (prog [ress, .expr (.call "swapRes" [.place (at_ "rs" 0), .place (at_ "rs" 1)])]) ==

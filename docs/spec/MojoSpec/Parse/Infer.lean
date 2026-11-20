@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17053540287164507678")
+:::moduleDocs (fingerprint := "10873102889185525487")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv (fingerprint := "8803222123172763763")
@@ -39,7 +39,7 @@ temporary filled from $`e` when the call is made, which a returned
 reference keeps, so it does not see a later change (#103).
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "16124309116104749966")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "9497775184132414115")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
@@ -50,7 +50,9 @@ has the result of its signature. A call of a struct that cannot be built
 still has the struct's type, so that the checker reports why, and `len`
 gives an $`\mathsf{Int}`. A call of `range`, when the program declares no
 function or struct `range`, expects an $`\mathsf{Int}` of each argument, by
-`rangeParams` (#121). Any other call with no signature has no type. A literal left open takes the type expected where
+`rangeParams` (#121). A call of a name that a variable in scope hides
+follows no signature and has no type, so that the checker rejects it
+(#176). Any other call with no signature has no type. A literal left open takes the type expected where
 it stands, a list type or an array type, and the checker compares an
 array's size with the literal's length. With no list or array expected, it is
 an array of its elements, of the type of the first: Mojo's

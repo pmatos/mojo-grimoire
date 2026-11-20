@@ -13,17 +13,19 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7696823461128157924")
+:::moduleDocs (fingerprint := "592774327768273263")
 :::
 
-:::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "13691362365005740179")
+:::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
 *Definition: how a call reports a misfit.* A call of a function or a method
 reports an argument that does not fit its parameter by the error itself: a
 type mismatch, a wrong number of arguments, a value that is not a place or
 a place that may not change passed `mut`. An initializer of the type $`t`
 reports every such misfit as `noMatchingInit` $`t`, since the compiler
-tries every initializer and reports only that none fits (#46). An
-argument whose type is not its parameter's is such a misfit.
+tries every initializer and reports only that none fits (#46). A method
+or an operator $`m` with several overloads reports it, a wrong number of
+arguments included, as `noMatchingMethod` $`m`, for the same reason
+(#88). An argument whose type is not its parameter's is such a misfit.
 :::
 
 :::readable MojoGrimoire.Check.passValue (fingerprint := "184049633496572427")
@@ -59,14 +61,15 @@ $`\mathsf{List}[u]` (#103). The places that the elements are read from
 are checked again once every element is evaluated.
 :::
 
-:::readable MojoGrimoire.Check.holdsStrOrRange MojoGrimoire.Check.holdsStrOrRangeList (fingerprint := "3244732862091383215")
+:::readable MojoGrimoire.Check.holdsStrOrRange MojoGrimoire.Check.holdsStrOrRangeList (fingerprint := "10596365314781892554")
 *Definition: an argument the model cannot type.* An expression holds a
-string or a call of `range` when it is one, or a literal or an operator
-holds one at any depth. Such an argument of the standard library's `range`
+string or a call of the standard library's `range` when it is one, or a
+literal or an operator holds one at any depth; a function of the program
+named `range` is no such call. Such an argument of the standard library's `range`
 fits none of its forms (#121).
 :::
 
-:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "15634190465506606034")
+:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "9468303853430784741")
 *Definition: what reading the arguments of a range finds.* Reading the
 arguments of `range`, once they are typed, records the errors of the
 compiler's later passes in the order it reports them: the first use of an
@@ -78,7 +81,20 @@ error of a later pass than typing is a constant index out of range,
 a nested literal's failed constraint, or else a use of a value.
 :::
 
-:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "5042045329698814885")
+:::readable MojoGrimoire.Check.rangeList (fingerprint := "5393411661139869736")
+*Rule: $`\mathsf{List}[u](\mathsf{range}(e^*))`.* The arguments of
+`range` are typed first, and the state that typing leaves is dropped.
+An argument that fits no form of `range`, no argument or more than three,
+or $`u` other than $`\mathsf{Int}` is `noMatchingInit`
+$`\mathsf{List}[u]`. Then the arguments are read, and the errors of the
+later passes come in the compiler's order: a use of an uninitialized or
+invalidated value, the places read late checked again, a literal of
+$`\mathsf{Int}`s of the wrong length, `noMatchingInit`
+$`\mathsf{List}[u]`, then a constant index out of range (#121). The
+call gives a $`\mathsf{List}[\mathsf{Int}]`.
+:::
+
+:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "10508323097046125712")
 *Rule: a literal of the wrong length where an $`\mathsf{Int}` is
 expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1, which
 `wrongIntLiteral` picks out, fits no initializer of $`\mathsf{Int}`,
@@ -98,5 +114,8 @@ mismatch, and by an initializer of $`t` as `noMatchingInit` $`t`. With no
 misfit, the state is restored, the elements are read, and checked again
 once each is read, and the compiler then fails SIMD's constraint of one
 element: `noMatchingInit` $`\mathsf{Int}`, or $`t` for an initializer of
-$`t`. It never returns.
+$`t`; a method or an operator with several overloads keeps
+`noMatchingInit` $`\mathsf{Int}`, since the literal fits the overload
+that takes an $`\mathsf{Int}` and fails once it is chosen (#169). It
+never returns.
 :::

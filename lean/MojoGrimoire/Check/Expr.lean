@@ -1,5 +1,4 @@
-import MojoGrimoire.Check.Pass
-import MojoGrimoire.Check.Operators
+import MojoGrimoire.Check.Methods
 
 /-!
 The checking of expressions and of the arguments of calls.
@@ -16,7 +15,10 @@ a `read`, `mut` or `ref` parameter or to `len`: it is not copied, and it
 stands for its origins. The operands read late, and the places that a call
 changes, are checked as `MojoGrimoire.Check.Change` says. An argument that
 does not fit is reported as `MojoGrimoire.Check.Fit` says, which also gives
-the rules of literals, of `List[u](…)` and of its `range` argument.
+the rules of literals, of `List[u](…)` and of its `range` argument. An
+operator or a call that its operands' types reject, a method that a type
+lacks or no overload that fits, is reported before they are read, as
+`MojoGrimoire.Check.Methods` says.
 -/
 
 namespace MojoGrimoire.Check
@@ -40,6 +42,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     if copyingOf prog t == .none then throw (CheckError.notCopyable t)
     pure t
   | .call f args => do
+    rejectCalledVar prog f (typeArgs prog args)
     match callSig prog f with
     | .ok sig =>
       let params := sig.params
@@ -50,14 +53,10 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       refResult prog asRef sig
     | .error err =>
       match f, args, err with
-      | "len", [.place p], .unknownFunction _ => do
-        checkIndices prog p
-        let t ← readPlace prog p
-        let _ ← lift (elemOf t)
-        pure .int
       | "len", [e], .unknownFunction _ => do
-        let t ← checkExprAs prog (← locOf prog e).isSome e
-        let _ ← lift (elemOf t)
+        let _ ← lift (elemOf (← match e with
+          | .place p => do checkIndices prog p; readPlace prog p
+          | e => do checkExprAs prog (← locOf prog e).isSome e))
         pure .int
       | "len", _, .unknownFunction _ => throw (CheckError.arityMismatch f 1 args.length)
       | _, _, _ => throw err
@@ -65,43 +64,31 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     checkIndices prog p
     let t ← placeTy prog p
     let sig ← lift (methodSig prog t m args.length)
-    let some self := sig.self | throw (CheckError.invalidSelf m)
-    let params := sig.params
-    let consumed := consumedReceiver self.conv p
-    let recv ← match consumed with
-      | some q => do pure [← passedPlace .mutable q]
-      | none => if self.conv == .owned then pure [] else do pure [← passedPlace self.conv p]
-    checkExclusive (recv ++ (← locationArgs prog params args))
-    if consumed.isNone then passPlace prog .call m self.conv t p
-    let k ← mark
-    let ks ← checkArgs prog .call m params args params.length args.length
-    recheckLocs prog (([p], k) :: ks)
-    if let some q := consumed then let _ ← transferPlace prog q
-    for q in ← changedArgs prog sig.allParams (.place p :: args) do changePlace prog q
-    refResult prog asRef sig
-  | .unary op a => do lift (unaryTy op (← checkExprAs prog false a))
+    methodCall prog asRef p t m args sig (typeArgs prog args) fun fit =>
+      checkArgs prog fit m sig.params args sig.params.length args.length
+  | .unary op a => do
+    rejectMisfit (unaryMisfit prog op (← operandTy prog a)) (do let _ ← typeArg prog a)
+    lift (methodUnaryTy prog op (← checkExprAs prog false a))
   | .binary op a b => do
+    rejectMisfit (binaryMisfit prog op (← operandTy prog a) (← operandTy prog b))
+      (do let _ ← typeArg prog a; let _ ← typeArg prog b)
     let ta ← checkExprAs prog false a
     let ka ← mark
-    let tb ← checkExprAs prog false b
+    let tb ← if intLiteral a && op != .and && op != .or then do
+        let m := binaryMethod op
+        let _ ← checkArg prog (.overload m) m ⟨.read, "rhs", .int⟩ b
+        pure .int
+      else checkExprAs prog false b
     let kb ← mark
     unless op == .and || op == .or do recheckPlaces prog [a, b] [ka, kb]
-    lift (binaryTy op ta tb)
+    lift (methodBinaryTy prog op ta tb)
   | .list .noneType [] => throw (CheckError.invalidType .noneType)
-  | .list .noneType (.place p :: es) => do
-    checkIndices prog p
-    let u ← copyPlace prog p
-    let k ← mark
-    recheckLocs prog (([p], k) ::
-      (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
-        es.length es.length))
-    pure (.array u (es.length + 1))
   | .list .noneType (e :: es) => do
     let u ← checkExprAs prog false e
     let t := Ty.array u (es.length + 1)
     unless validTy prog u do throw (CheckError.invalidType t)
     let k ← mark
-    recheckLocs prog (([], k) ::
+    recheckLocs prog ((if let .place p := e then [p] else [], k) ::
       (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
         es.length es.length))
     pure t
@@ -123,18 +110,8 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         let t ← match e with
           | .list .noneType es => do iterableLiteralTy prog u (← checkIterableElems prog u es)
           | .call f args =>
-            if builtinRange prog f && !(← get).vars.any (·.name == f) then do
-              let s ← get
-              let (misfit, literal) ← typeRangeArgs prog true args
-              set s
-              if misfit || args.isEmpty || 3 < args.length || u != .int then
-                throw (CheckError.noMatchingInit (.list u))
-              let r ← readRangeArgs prog args
-              if let some err := r.owned then throw err
-              recheckLocs prog r.locs
-              if literal || r.literal then throw (CheckError.noMatchingInit (.list u))
-              if let some err := r.index then throw err
-              pure (.list .int)
+            if builtinRange prog f && (← findVar f).isNone then
+              rangeList prog u args.length (typeRangeArgs prog true args) (readRangeArgs prog args)
             else do checkExprAs prog (← locOf prog (.call f args)).isSome (.call f args)
           | e => do checkExprAs prog (← locOf prog e).isSome e
         iterableFits prog u t
@@ -156,7 +133,6 @@ def checkIterableElems (prog : Program) (u : Ty) : List Expr → CheckM (List (T
   | [] => pure []
   | e :: es => do
     let t ← match e with
-      | .place p => do checkIndices prog p; copyPlace prog p
       | .list .noneType es' => do iterableLiteralTy prog u (← checkIterableElems prog u es')
       | e => checkExprAs prog false e
     let k ← mark
@@ -200,14 +176,15 @@ def typeLiteral (prog : Program) : List Expr → CheckM (Bool × Bool)
 
 /-- The type of the argument `e` of `range`, or of an element of one, as
 the compiler types it before it finds the form of `range` that fits. One
-that holds a string or a call of `range` (`holdsStrOrRange`) fits none: it
+that holds a string or a call of the standard library's `range`
+(`holdsStrOrRange`) fits none: it
 is typed only in its other parts, and has no type here, `None`. So has a
 literal in it. A place is typed by `typePlace`. One whose check gives an
 error that the compiler reports after its types, or after the misfit, a
 call's implicit copy of the value it returns a reference to, has its
 `lateElemTy`. -/
 def typeArg (prog : Program) (e : Expr) : CheckM Ty :=
-  if holdsStrOrRange e then do
+  if holdsStrOrRange prog e then do
     match e with
     | .call _ es | .list _ es => typeArgs prog es
     | .unary _ a => let _ ← typeArg prog a
@@ -307,7 +284,7 @@ def checkIndices (prog : Program) : Place → CheckM Unit
   | .index p i => do
     checkIndices prog p
     let k ← mark
-    expect .int (← checkExprAs prog false i)
+    checkIndex prog (← operandTy prog (.place p)) i
     requireUnchanged prog p k
     if let some k := constInt i then
       if k < 0 then throw (CheckError.negativeIndex (.index p i))
@@ -318,6 +295,15 @@ def checkIndices (prog : Program) : Place → CheckM Unit
     checkIndices prog p
     let _ ← requireTransferable prog p
   termination_by p => (sizeOf p, 2)
+
+/-- Checks the index `i` of a place of type `base`, an `Int`. An index of a
+list or an array is an argument of `__getitem__`, which has several
+overloads (`overloaded`). -/
+def checkIndex (prog : Program) (base : Option Ty) (i : Expr) : CheckM Unit :=
+  let m := "__getitem__"
+  if base.any (overloaded · m) then do let _ ← checkArg prog (.overload m) m ⟨.read, "idx", .int⟩ i
+  else do expect .int (← checkExprAs prog false i)
+  termination_by (sizeOf i, 4)
 
 /-- Rejects `p^` when the value in `p` has no origin of its own
 (`noOwnOrigin`), as the compiler does once it has typed `p` (#85, #119):
@@ -340,7 +326,7 @@ def typePlace (prog : Program) : Place → CheckM Unit
     typePlace prog p
     let t ← placeTy prog p
     unless t == .int do let _ ← lift (elemOf t)
-    try expect .int (← checkExprAs prog false i) catch e => unless e.late do throw e
+    try checkIndex prog (some t) i catch e => unless e.late do throw e
     let _ ← placeTy prog (.index p i)
   | .transferred p => do
     typePlace prog p
@@ -363,17 +349,28 @@ function or a method is converted to its parameter's type. -/
 def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
     List Param → List Expr → Nat → Nat → CheckM (List (List Place × Nat))
   | [], [], _, _ => pure []
-  | prm :: prms, .place p :: args, n, m => do
+  | prm :: prms, e :: args, n, m => do
+    let l ← checkArg prog fit callee prm e
+    pure (l :: (← checkArgs prog fit callee prms args n m))
+  | _, _, n, m => throw (fit.misfit (CheckError.arityMismatch callee n m))
+  termination_by _ args _ _ => (sizeOf args, 2)
+
+/-- Checks the argument `e` of a call of `callee` of fit `fit`, passed to
+the parameter `prm`, as `checkArgs` says, and gives the places it is read
+from once every argument is evaluated, with how many changes were
+recorded once it was checked. A string literal fits no overload. -/
+def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
+    Expr → CheckM (List Place × Nat)
+  | .place p => do
     checkIndices prog p
     passPlace prog fit callee prm.conv prm.ty p
-    let k ← mark
-    pure (([p], k) :: (← checkArgs prog fit callee prms args n m))
-  | prm :: prms, (e@(.list t es)) :: args, n, m => do
+    pure ([p], ← mark)
+  | .list t es => do
     passValue fit callee prm.conv
     let t' ← if t == .int && es.length != 1 then
         rejectIntLiteral prog fit (intMisfit prog es) (readIntElems prog es)
       else if !(t matches .list _ | .array ..) || fit matches .init _ then
-        checkExprAs prog false e
+        checkExprAs prog false (.list t es)
       else do
         let u ← literalElem prog .call t es.length
         recheckLocs prog (← checkArgs prog .call (typeName t)
@@ -382,8 +379,10 @@ def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
     expectArg fit prm.ty t'
     let k ← mark
     let late ← if let [x] := es then if t == .int then lateLocs prog x else pure [] else pure []
-    pure ((late, k) :: (← checkArgs prog fit callee prms args n m))
-  | prm :: prms, e :: args, n, m => do
+    pure (late, k)
+  | e => do
+    if e matches .str _ && fit matches .overload _ then
+      throw (fit.misfit (CheckError.typeMismatch prm.ty .str))
     if prm.conv == .out || prm.conv == .deinit then
       throw (CheckError.invalidConvention callee)
     match ← if passedByValue prm then pure none else locOf prog e with
@@ -391,8 +390,7 @@ def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
       expectArg fit prm.ty (← checkExprAs prog true e)
       if prm.conv == .mutable && !mq then
         throw (fit.misfit (CheckError.immutablePlace (os.headD (.var callee))))
-      let k ← mark
-      pure ((os, k) :: (← checkArgs prog fit callee prms args n m))
+      pure (os, ← mark)
     | none =>
       if prm.conv == .mutable then
         if let .transfer p := e then
@@ -402,9 +400,8 @@ def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
         throw (fit.misfit (CheckError.notAPlace callee))
       expectArg fit prm.ty (← checkExprAs prog false e)
       let k ← mark
-      pure ((← lateLocs prog e, k) :: (← checkArgs prog fit callee prms args n m))
-  | _, _, n, m => throw (fit.misfit (CheckError.arityMismatch callee n m))
-  termination_by _ args _ _ => (sizeOf args, 2)
+      pure (← lateLocs prog e, k)
+  termination_by e => (sizeOf e, 3)
 
 end
 

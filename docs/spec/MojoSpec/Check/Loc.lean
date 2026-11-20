@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Located operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7984238877512883390")
+:::moduleDocs (fingerprint := "6252894720499367893")
 :::
 
 :::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable MojoGrimoire.Check.passedMutable (fingerprint := "13335214914752779514")
@@ -32,7 +32,7 @@ returns through a `mut` parameter may be changed; through a `ref`
 parameter, when its argument may be; through a `read` parameter, never.
 :::
 
-:::readable MojoGrimoire.Check.locOfAs MojoGrimoire.Check.originsOf MojoGrimoire.Check.locOf (fingerprint := "4619920407038218378")
+:::readable MojoGrimoire.Check.locOfAs MojoGrimoire.Check.originsOf MojoGrimoire.Check.locOf (fingerprint := "2923818814505434713")
 *Rule: located operands.* A located operand names a location. A place is
 one: its origins are the place, or the same place in each origin of the
 reference it goes through, and it passes on a mutable reference when its
@@ -41,7 +41,9 @@ A call or a method call that returns a reference is one when every
 argument passed to a parameter its origin names, a method's receiver
 included, is a located operand in turn: its origins are those arguments'
 origins, and it may be changed when each of them passes on a mutable
-reference. Nothing else is one.
+reference. A call of a name that a variable in scope hides is one, with
+no origins and immutable, so that checking it as a call rejects it
+(#176). Nothing else is one.
 
 Not strictly, an origin argument that is not a located operand, such as
 a temporary, is left out instead: the call's origins are those of its

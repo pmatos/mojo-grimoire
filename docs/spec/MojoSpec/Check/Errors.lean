@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Errors: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12161194175526071246")
+:::moduleDocs (fingerprint := "17735214546287232542")
 :::
 
-:::readable MojoGrimoire.Check.CheckError (fingerprint := "16771763470733647822")
+:::readable MojoGrimoire.Check.CheckError (fingerprint := "4251184407377762558")
 *Definition: the classes of error.* The checker rejects a program with one
 of these classes, each with the names or types it concerns:
 
@@ -38,7 +38,12 @@ of these classes, each with the names or types it concerns:
   arguments fit no initializer (`noMatchingInit`, one class however they
   misfit, since the compiler reports them alike): a construction with
   wrong arguments, a literal that does not fit the list or array it
-  initializes, or that initializes another type, and `List[u](e1, …, en)`;
+  initializes, or that initializes another type, and `List[u](e1, …, en)`,
+  a call of a method or an operator with several overloads, none of which
+  its arguments fit, a wrong number of them included (`noMatchingMethod`,
+  one class for the same reason, #88), and a method that a type lacks, an
+  operator's on its operand's type or `__call__` on a variable that is
+  called (`missingMethod`, #176);
 * declarations: a parameter of a convention its function may not have
   (`invalidConvention`), a method or initializer whose `self` is wrong
   (`invalidSelf`), a construction of a struct with no initializer

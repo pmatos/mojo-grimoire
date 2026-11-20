@@ -198,6 +198,22 @@ where the compiler and the manual disagree, the model follows the compiler.
   [conformance.md](conformance.md#initializations-that-fit-no-initializer)),
   or, when the one argument has the type it initializes, as "cannot
   construct ... with itself".
+- A call of a method or an operator with several overloads, none of which
+  its arguments fit, a wrong number of them included, is one class,
+  `noMatchingMethod`: an operator whose left operand is an integer
+  literal, or an expression made only of them, an index of a list or an
+  array, and a list's `pop` (#88, #169). A method that a type lacks is
+  `missingMethod`: an operator's on its operand's type, such as `+` on a
+  `Bool`, a struct or an array, and `__call__` on a variable that is
+  called. Within its scope a variable or a parameter hides, in a call, a
+  function, `len`, `range`, `print` or a struct of its name, also before
+  it is initialized (#176); not yet when its struct type declares
+  `__call__` (#191), nor in a type position (#193). Operator methods that
+  a trait supplies are not yet modelled (#194). The checker finds a missing method from the
+  operands' types before it reads them, as the compiler does; a misfit of
+  an overload set is found once the argument is read, as for any call
+  (#96)
+  ([conformance.md](conformance.md#calls-that-fit-no-overload-and-methods-a-type-lacks)).
 - A struct may not lie on a cycle of fields with no field that holds the
   next struct through a list, such as a struct that holds itself directly
   or through arrays: the compiler rejects it, and so does the model

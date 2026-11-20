@@ -98,8 +98,9 @@ private def at_ (p : Place) (i : Int) : Place := .index p (.int i)
 #guard rejects ["var xs: List[Int] = [3, 4]", "xs[0] = xs.pop(1)", "print(xs[0])"]
   (.argumentExclusivity (x "xs"))
 
--- The index is an `Int`, and `pop` takes at most one argument.
-#guard rejects ["var xs: List[Int] = [1, 2]", "print(xs.pop(True))"] (.typeMismatch .int .bool)
-#guard rejects ["var xs: List[Int] = [1, 2]", "print(xs.pop(0, 1))"] (.arityMismatch "pop" 1 2)
+-- The index is an `Int`, and `pop` takes at most one argument. `pop` has
+-- several overloads, so any misfit is `noMatchingMethod` (#88, #169).
+#guard rejects ["var xs: List[Int] = [1, 2]", "print(xs.pop(True))"] (.noMatchingMethod "pop")
+#guard rejects ["var xs: List[Int] = [1, 2]", "print(xs.pop(0, 1))"] (.noMatchingMethod "pop")
 
 end MojoGrimoireTest.Parse.ListPopIndex

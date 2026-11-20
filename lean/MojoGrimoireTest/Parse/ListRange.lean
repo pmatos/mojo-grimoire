@@ -144,11 +144,10 @@ private def minS : String := "-9223372036854775808"
 #guard rejects ["var xs = List[Int](range(len(range(3)), range(2)))"] (.unknownFunction "range")
 
 -- A variable or a parameter named `range` hides the standard library's:
--- the compiler reports that an `Int` cannot be called, which the suite
--- does not classify, and the model rejects the call as `unknownFunction`.
-#guard rejects ["var range = 5", "print(List[Int](range(3)))"] (.unknownFunction "range")
+-- an `Int` has no `__call__` (#176).
+#guard rejects ["var range = 5", "print(List[Int](range(3)))"] (.missingMethod .int "__call__")
 #guard runLines (["def g(range: Int) -> List[Int]:", "    return List[Int](range(range))",
-  "def main():", "    print(g(3))"]) == some (.rejected ⟨"g", .unknownFunction "range"⟩)
+  "def main():", "    print(g(3))"]) == some (.rejected ⟨"g", .missingMethod .int "__call__"⟩)
 -- A variable declared after the call does not.
 #guard prints ["print(List[Int](range(3)))", "var range = 5", "print(range)"]
   ["[0, 1, 2]", "5"]
