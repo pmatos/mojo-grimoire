@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Errors: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17735214546287232542")
+:::moduleDocs (fingerprint := "16887117944261018205")
 :::
 
-:::readable MojoGrimoire.Check.CheckError (fingerprint := "4251184407377762558")
+:::readable MojoGrimoire.Check.CheckError (fingerprint := "1838917303650679153")
 *Definition: the classes of error.* The checker rejects a program with one
 of these classes, each with the names or types it concerns:
 
@@ -47,7 +47,9 @@ of these classes, each with the names or types it concerns:
 * declarations: a parameter of a convention its function may not have
   (`invalidConvention`), a method or initializer whose `self` is wrong
   (`invalidSelf`), a construction of a struct with no initializer
-  (`noInitializer`), a `return` that does not fit the result type
+  (`noInitializer`), a field of a struct that declares `Copyable`, or
+  `ImplicitlyCopyable`, whose type cannot be copied, or not implicitly
+  (`uncopyableField`, #164), a `return` that does not fit the result type
   (`invalidReturn`), a function with a result that can end without
   returning (`missingReturn`), a program with no `main` (`noMain`), and
   an origin that names something other than a parameter passed as a

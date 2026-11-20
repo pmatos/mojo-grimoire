@@ -242,6 +242,35 @@ Rejected: mapping either message to an existing class, `noMatchingInit`,
 `typeMismatch` or `unknownAttribute`, which would merge errors that the
 compiler tells apart.
 
+### Copyable structs whose fields cannot be copied
+
+The compiler synthesizes the copy initializer of a struct that declares
+`Copyable` from its fields, and rejects the struct at its declaration,
+even when nothing copies it, when a field cannot be copied: "cannot
+synthesize copy constructor because field 'F' has non-copyable type
+'T'". For `ImplicitlyCopyable` it rejects a field that cannot be copied
+implicitly, such as a `List[Int]` or a `Copyable` struct: "cannot
+synthesize implicit copy constructor because field 'F' has
+non-implicitly-copyable type 'T'". The error points at the first such
+field. A struct's copyability is what it declares, so a struct that holds
+a rejected struct is not rejected for it, and a method `copy` that the
+struct writes changes nothing. `diagnostics.json` maps both messages,
+matched whole, to `uncopyableField`. The human ruled this on 2026-11-20
+(#164). A hand-written copy initializer, `__init__(out self, *, copy:
+Self)`, which the compiler accepts, is not yet parsed (#184).
+
+The compiler reports this error after the errors of its first pass in
+every body of the program, even a body after the struct, and before the
+errors of its later passes, such as a use of an uninitialized value or a
+missing return, and before a missing `main`. The model checks the fields
+after every body and `main`'s signature. A later pass's error in a body
+still comes first in the model, so such a program is `uninitializedUse`
+or `missingReturn` in the model and `uncopyableField` in the compiler.
+That order across the compiler's passes is left to #96.
+
+Rejected: an existing class, `notCopyable` or `implicitCopy`, which would
+merge an error at a struct's declaration with an error at a copy.
+
 ### Rejections made while parsing
 
 A program that the compiler rejects while parsing, and that the model

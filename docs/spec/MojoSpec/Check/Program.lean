@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13706039531035906049")
+:::moduleDocs (fingerprint := "14277500069030721100")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17131055927722852879")
@@ -59,9 +59,22 @@ the struct. Its initializer, its destructor, checked with the single
 parameter `deinit self`, and its methods are checked.
 :::
 
-:::readable MojoGrimoire.Check.checkProgram (fingerprint := "12688032733967879011")
+:::readable MojoGrimoire.Check.checkCopying (fingerprint := "11704993049387811985")
+*Rule: copyable structs.* A struct that declares `Copyable` gets a copy
+initializer synthesized from its fields, so each field's type must be
+copyable; one that declares `ImplicitlyCopyable` needs each field's type
+implicitly copyable. Otherwise the struct is rejected with
+`uncopyableField`, naming its first such field, as the compiler does at
+the declaration, even when nothing copies the struct (#164). A field's
+struct is copyable as it declares, whatever its own fields.
+:::
+
+:::readable MojoGrimoire.Check.checkProgram (fingerprint := "9654407533411021076")
 *Rule: programs.* A program is accepted when its structs and functions have
-distinct names, every struct and function is accepted, and it has a
-function `main` with no parameters that returns nothing. Otherwise it is
-rejected with the first error found, and where.
+distinct names, every struct and function is accepted, `main`, if it is
+declared, has no parameters and returns nothing, every copyable struct's
+fields can be copied, and `main` is declared. The checks run in that
+order, as the compiler reports the copyable structs' fields after the
+errors of every body (#164). Otherwise the program is rejected with the
+first error found, and where.
 :::

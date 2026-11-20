@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "uncopyableField",
+  "diagnostic": "cannot synthesize implicit copy constructor because field 'c' has non-implicitly-copyable type 'C'"
+}

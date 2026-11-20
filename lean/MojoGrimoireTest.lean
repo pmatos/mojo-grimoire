@@ -16,6 +16,7 @@ import MojoGrimoireTest.Parse.ListPop
 import MojoGrimoireTest.Parse.ListPopIndex
 import MojoGrimoireTest.Parse.Methods
 import MojoGrimoireTest.Parse.StructOperators
+import MojoGrimoireTest.Parse.CopyableFields
 import MojoGrimoireTest.Parse.StaleRefs
 import MojoGrimoireTest.Parse.ReturnedElements
 import MojoGrimoireTest.Parse.CallSignatures
