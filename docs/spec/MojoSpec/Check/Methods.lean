@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9624399355942652456")
+:::moduleDocs (fingerprint := "48018097187772296")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -124,6 +124,13 @@ needs a receiver $`p` that may change, once its indices are typed, before
 the method is looked up and its arguments checked, whatever the convention
 of the method's `self`:
 `immutablePlace` otherwise, as the compiler reports it (#191).
+:::
+
+:::readable MojoGrimoire.Check.rejectReadTwice (fingerprint := "2213423846925770043")
+*Rule: a getter called twice.* A subscript read late on the left of `and`
+or `or`, whose getter takes a `var` struct from a temporary or a
+transfer, is `uninitializedUse`: the compiler calls the getter twice,
+the second time with what the first consumed (#191).
 :::
 
 :::readable MojoGrimoire.Check.valueSubscript (fingerprint := "7094260322137169490")

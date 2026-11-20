@@ -63,29 +63,6 @@ namespace MojoGrimoire.Parse
 
 open MojoGrimoire.Core MojoGrimoire.Check
 
-/-- The types of the variables in scope, innermost first, and the variables
-that may not change: `read` and `ref` parameters, and `ref` bindings into
-them. -/
-structure TyEnv where
-  vars : List (Name × Ty)
-  fixed : List Name := []
-
-/-- The type of the variable `x`. -/
-def TyEnv.lookup (env : TyEnv) (x : Name) : Option Ty := env.vars.lookup x
-
-/-- The variables after `x` of type `t` is declared. -/
-def TyEnv.push (env : TyEnv) (x : Name) (t : Ty) : TyEnv := { env with vars := (x, t) :: env.vars }
-
-/-- Whether the place `p` goes into a variable that may not change. -/
-def TyEnv.fixedPlace (env : TyEnv) (p : Place) : Bool := env.fixed.contains (splitPlace p).1
-
-/-- Whether the operand `e` may be passed to the parameter `prm` with its
-convention: a `mut` parameter takes only a place that may change (#191). -/
-def TyEnv.canPass (env : TyEnv) (e : Expr) (prm : Param) : Bool :=
-  prm.conv != .mutable || match e with
-    | .place p => !env.fixedPlace p && !throughTransfer p
-    | _ => false
-
 /-- The type of an open literal that is expected to have the type `t`: `t`
 itself when it is a list or an array, whose size the checker compares with
 the literal's length, and otherwise `None`, which the elements decide. -/
@@ -182,7 +159,7 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
     match chooseBinary prog op ta₀ tb₀
       (fun prm => (if a matches .list .. then (inferExpr prog env prm.ty a).2 else ta₀) == some prm.ty)
       (fun prm => (if b matches .list .. then (inferExpr prog env prm.ty b).2 else tb₀) == some prm.ty)
-      (env.canPass a₀) (env.canPass b₀)
+      (env.canPass prog a₀) (env.canPass prog b₀)
     with
     | some (s, fd, reflected) =>
       let u := ((otherParam fd).map (·.ty)).getD .noneType
@@ -283,12 +260,8 @@ def inferStmt (prog : Program) (result : Ty) (env : TyEnv) : Stmt → Stmt × Ty
     (.decl x t' (init'.map (·.1)), env.push x t')
   | .refDecl x e =>
     let (e', t) := inferTarget prog env .noneType e
-    let fixed := match e with
-      | .place p => env.fixedPlace p
-      | .call _ args => args.any fun | .place p => env.fixedPlace p | _ => false
-      | _ => false
     (.refDecl x e', match t with
-      | some t => { env.push x t with fixed := if fixed then x :: env.fixed else env.fixed }
+      | some t => { env.push x t with fixed := if env.mutableAt prog e then env.fixed else x :: env.fixed }
       | none => env)
   | .assign (.index q i) e =>
     let (q', qt) := inferPlace prog env q

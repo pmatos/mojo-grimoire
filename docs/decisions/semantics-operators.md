@@ -24,9 +24,12 @@ is: `t < u` may give an `Int`.
   fits its parameter. Otherwise it calls the reflected method of `b`'s
   struct when `a` fits it. A method fits only when its operands can also
   be passed with their conventions: a `mut` parameter, `self` among them,
-  takes only a place that may change, so `1 + t` on a read-only or
-  temporary `t` whose `__radd__` takes `mut self` is the left operand's
-  `noMatchingMethod`. The reflected methods are `__radd__`, `__rsub__`, `__rmul__`,
+  takes only a place that may change, or a call that returns a reference
+  it may change through, so `1 + t` on a read-only or temporary `t` whose
+  `__radd__` takes `mut self` is the left operand's `noMatchingMethod`. A
+  `ref` binding may change what it points to as the reference it is bound
+  to may. A subscript of a struct with a setter passed `mut` this way is
+  rejected (`notAPlace`, #198), never sent to the reflected method. The reflected methods are `__radd__`, `__rsub__`, `__rmul__`,
   `__rfloordiv__` and `__rmod__` for arithmetic; `__gt__`, `__ge__`,
   `__lt__` and `__le__` for `<`, `<=`, `>` and `>=`; and `__eq__` and
   `__ne__` for themselves. The reflected method is tried whatever `a` is: an `Int`, a
@@ -53,7 +56,12 @@ is: `t < u` may give an `Int`.
   destroying nothing, and when it decides its getter is called again, with
   the getters of the subscripts read late among its arguments, for the
   result, after what the right one would have used dies; its index is not
-  evaluated again.
+  evaluated again, and a temporary in it dies once, after the second call.
+  When it does not decide, what it last uses dies after the test in the
+  usual order. A getter that takes a `var` struct from a temporary or a
+  transfer there is `uninitializedUse`: the second call uses what the
+  first consumed. A subscript read late as the right operand destroys
+  what its index last uses before its getter, as anywhere else.
 - `p += e`, `p -= e` and `p *= e` on a struct call `__iadd__`, `__isub__`
   and `__imul__`, with no fallback to `__add__`: a struct that lacks the
   method is `missingMethod`. The destination must be a place that may
@@ -68,14 +76,18 @@ is: `t < u` may give an `Int`.
   operand that changes or moves `p` comes first. The getters are called
   before the operation reads its other operands, so `print(x.n, x[0])`
   with a getter that changes `x` prints the changed `x.n`; a list
-  literal reads its elements in order. A getter that returns a value
+  literal reads its elements in order. An argument copied into a `var`
+  parameter, or into a struct field of a `@fieldwise_init` construction,
+  is copied before the getters. A getter that returns a value
   destroys what it last uses right after it, in any operation and in a
   `return`; one that returns a reference leaves that to the operation.
   With no setter it is a value, and the getter is called in order.
   `p[i] = v` calls `__setitem__` when the struct declares both, evaluating
-  `i` before `v`. The compiler first checks the getter call `p[i]`, then
-  `v` against the getter's result, then the setter call; the getter is
-  not run. `v` is read as it is evaluated: a subscript read late there
+  `i` before `v`. The compiler first checks the types of the getter call
+  `p[i]`, then the type of `v` against the getter's result, then the
+  setter call; the getter is not run, so nothing is copied for it, and a
+  literal of `Int`s of the wrong length fails only after the setter's
+  receiver. `v` is read as it is evaluated: a subscript read late there
   calls its getter before those in `i`. With a getter and no setter
   `p[i] = v` is `immutablePlace`, reported once the getter call `p[i]` is
   checked and before `v` is.

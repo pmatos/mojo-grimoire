@@ -88,6 +88,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       else checkExprAs prog false b
     let kb ← mark
     unless op == .and || op == .or do recheckPlaces prog [a, b] [ka, kb]
+    rejectReadTwice prog op a
     lift (methodBinaryTy prog op ta tb)
   | .list .noneType [] => throw (CheckError.invalidType .noneType)
   | .list .noneType (e :: es) => do

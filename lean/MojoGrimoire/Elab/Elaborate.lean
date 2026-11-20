@@ -53,23 +53,6 @@ namespace MojoGrimoire.Elab
 
 open MojoGrimoire.Core MojoGrimoire.Check
 
-/-- Whether each argument of a call of `f` is passed by value, when it is a
-place, as its signature says. `len`, which has none, takes its list by
-reference. The standard library's `range` reads its `Int`s by value. -/
-def callModes (prog : Program) (f : Name) : List Bool :=
-  match callSig prog f with
-  | .ok sig => sig.params.map passedByValue
-  | .error _ =>
-    if builtinRange prog f then (rangeParams 3).map passedByValue else []
-
-/-- Whether the receiver `p` of a call of the method `m` with `n` arguments,
-and each argument, is passed by value, as the method's signature says. -/
-def methodModes (prog : Program) (env : TyEnv) (p : Place) (m : Name) (n : Nat) :
-    Bool × List Bool :=
-  match (placeTyOf prog env p).bind fun t => (methodSig prog t m n).toOption with
-  | some sig => (sig.self.any passedByValue, sig.params.map passedByValue)
-  | none => (false, [])
-
 /-- What elaboration knows inside a function: the program, its slots, the
 slots it owns in the order they die when several die at once, and the types
 of the variables declared so far. -/
@@ -134,6 +117,12 @@ def directOf (ctx : Ctx) (e : Expr) (m : Bool) : List Place × Bool :=
         (placeSlots ctx.prog ctx.sl args, m || !(callSig ctx.prog f).toOption.any (·.origin.isSome))
       else locOperand ctx e m
     | e => locOperand ctx e m
+
+/-- What the operand `e`, read once it is done, keeps alive until then: what
+a call's reference points into, and for a subscript read late only that,
+since its getter destroys what else it last uses (#191). -/
+def opKeep (ctx : Ctx) (e : Expr) : List Place :=
+  (if isGetter ctx.prog e then locOperand ctx e true else directOf ctx e true).1
 
 /-- The direct uses of the operands `es`, passed by value as `ms` says. A
 subscript read late that gives a value has none: its getter destroys what
@@ -210,11 +199,12 @@ def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Expr :=
       let la := lateValue ctx.prog a
       let d := opDrops ctx.owned [if la then ([], true) else directOf ctx a true,
         (uses ctx.sl b, false)] after
-      let b' := elabExpr ctx false b (union after (directOf ctx b true).1)
+      let b' := elabExpr ctx false b (union after (opKeep ctx b))
       let rest := diff d.2.1 (droppedIn b')
       let b'' := if rest.isEmpty then b' else .withDrops (.withDrops b' [] []) [] rest
       let a' := if la then elabLate ctx a d.2.2 [] else elabExpr ctx false a d.2.2
-      withDropsOf (.binary op a' b'') d.1 d.2.1
+      let pre := if la then ctx.owned.filter (union d.1 (droppedIn a')).contains else d.1
+      withDropsOf (.binary op a' b'') pre d.2.1
     else
       let d := opDrops ctx.owned (directArgs ctx [a, b] [true, true]) after
       let late := lateValue ctx.prog
@@ -298,10 +288,9 @@ owns live until then, and die then in the order of `owned`. The inner
 not before it is made. A subscript read late keeps only what its getter's
 reference points into: its getter destroys what else it last uses. -/
 def elabReturn (ctx : Ctx) (e : Expr) : Expr :=
-  match e, directOf ctx e true with
+  match e, opKeep ctx e with
   | .place _, _ => e
-  | e, (keep, _) =>
-    let keep := if isGetter ctx.prog e then (locOperand ctx e true).1 else keep
+  | e, keep =>
     let e' := elabExpr ctx false e keep
     if keep.isEmpty then e' else .withDrops (.withDrops e' [] []) keep []
 

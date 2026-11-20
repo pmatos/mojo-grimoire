@@ -14,7 +14,8 @@ may change it first. A subscript `p[i]` of a struct that declares
 getter (#191), is an operand of its own kind: Mojo locates its receiver
 and evaluates its index in order, but calls the getter only when it
 reads the operand (`MojoGrimoire.Check.lateGetter`), before it reads the
-operation's other operands (`loadFirst`). On the left of `and` or `or`,
+operation's other operands, but after it copies the arguments of `var`
+parameters (`loadFirst`). On the left of `and` or `or`,
 such a getter runs once to test the operand and again for the result
 when it decides. The operand of a unary operator, and those of `and` and
 `or`, are read at once. An `Int` or a `Bool` passed to a `read` parameter is passed
@@ -46,11 +47,13 @@ inductive Operand where
   | getter (fd : FunDecl) (args : List Pending) (pre post : List Place)
 
 /-- An argument before the operands passed by value are read: `load o` is
-read into a value when the call is made, and `temp o` into a temporary
-passed to a borrowing parameter. -/
+read into a value when the call is made, `copy o` too, for a `var`
+parameter, and `temp o` into a temporary passed to a borrowing
+parameter. -/
 inductive Pending where
   | arg (a : Arg)
   | load (o : Operand)
+  | copy (o : Operand)
   | temp (o : Operand)
 end
 
@@ -60,15 +63,23 @@ def Result.read : Result → EvalM Value
   | .value v => pure v
   | .ref r => readRef r
 
-/-- Whether the operand `o` is a subscript read late. -/
-def Operand.late : Operand → Bool
-  | .getter .. => true
-  | _ => false
+/-- When the operand `o` is read among its operation's: a subscript read
+late, `1`, before any other, `2`. -/
+def Operand.rank : Operand → Nat
+  | .getter .. => 1
+  | _ => 2
 
-/-- Whether the pending argument `p` is a subscript read late. -/
-def Pending.late : Pending → Bool
-  | .load o | .temp o => o.late
-  | .arg _ => false
+/-- When the pending argument `p` is read among its call's: a copy into a
+`var` parameter first, `0`, then a subscript read late, then any other. -/
+def Pending.rank : Pending → Nat
+  | .copy o => if o.rank == 1 then 1 else 0
+  | .load o | .temp o => o.rank
+  | .arg _ => 2
+
+/-- When the operand `o` of the field of type `t` of a `@fieldwise_init`
+construction is read: like an argument, copied first into a struct field. -/
+def fieldRank (o : Operand) (t : Ty) : Nat :=
+  if o.rank == 1 then 1 else if t matches .struct _ then 0 else 2
 
 mutual
 /-- The operand `o` with none of its getters' drops: the compiler calls the
@@ -78,11 +89,14 @@ def Operand.undropped : Operand → Operand
   | .getter fd as _ _ => .getter fd (Pending.undroppedAll as) [] []
   | o => o
 
-/-- The pending arguments `ps` with none of their getters' drops. -/
+/-- The pending arguments `ps` with none of their getters' drops, and their
+temporaries passed as values, which the callee does not destroy. -/
 def Pending.undroppedAll : List Pending → List Pending
   | [] => []
   | .load o :: ps => .load o.undropped :: Pending.undroppedAll ps
+  | .copy o :: ps => .copy o.undropped :: Pending.undroppedAll ps
   | .temp o :: ps => .temp o.undropped :: Pending.undroppedAll ps
+  | .arg (.temp v) :: ps => .arg (.value v) :: Pending.undroppedAll ps
   | p :: ps => p :: Pending.undroppedAll ps
 end
 
@@ -95,8 +109,22 @@ def Operand.drops : Operand → List Place
 /-- The drops of the getters of the pending arguments `ps`. -/
 def Pending.dropsAll : List Pending → List Place
   | [] => []
-  | .load o :: ps | .temp o :: ps => o.drops ++ Pending.dropsAll ps
+  | .load o :: ps | .copy o :: ps | .temp o :: ps => o.drops ++ Pending.dropsAll ps
   | _ :: ps => Pending.dropsAll ps
+end
+
+mutual
+/-- The temporaries passed to the getters of the operand `o`. -/
+def Operand.temps : Operand → List Value
+  | .getter _ as _ _ => Pending.tempsAll as
+  | _ => []
+
+/-- The temporaries passed to the getters of the pending arguments `ps`. -/
+def Pending.tempsAll : List Pending → List Value
+  | [] => []
+  | .arg (.temp v) :: ps => v :: Pending.tempsAll ps
+  | .load o :: ps | .copy o :: ps | .temp o :: ps => o.temps ++ Pending.tempsAll ps
+  | _ :: ps => Pending.tempsAll ps
 end
 
 mutual
@@ -113,21 +141,17 @@ def lateRootsAll : List Expr → List Name
   | e :: es => lateRoots e ++ lateRootsAll es
 end
 
-/-- Reads `xs` with `load`: those that `late` picks first, then the others,
-each in order. Mojo calls the getters of the subscripts read late among an
-operation's operands before it reads its other operands (#191). -/
-def loadFirst {α β : Type} (late : α → Bool) (load : α → EvalM β) (xs : List α) :
+/-- Reads `xs` with `load`, by `rank`, each rank in order: Mojo copies into
+`var` parameters, calls the getters of the subscripts read late, and reads
+the other operands, in that order (#191). -/
+def loadFirst {α β : Type} (rank : α → Nat) (load : α → EvalM β) (xs : List α) :
     EvalM (List β) := do
-  if !xs.any late then return ← xs.mapM load
-  let mut got ← (xs.filter late).mapM load
-  let mut out := []
-  for x in xs do
-    if late x then
-      let v :: vs := got | stuck "a getter read twice"
-      out := v :: out
-      got := vs
-    else out := (← load x) :: out
-  pure out.reverse
+  if xs.all (rank · == 2) then return ← xs.mapM load
+  let mut out : Array (Option β) := xs.toArray.map fun _ => none
+  for r in [0, 1, 2] do
+    for (x, i) in xs.zipIdx do
+      if rank x == r then out := out.set! i (some (← load x))
+  pure (out.toList.filterMap id)
 
 /-- The getter, its arguments and its drops, of the operand `e` when it is
 a subscript read late (`MojoGrimoire.Check.lateGetter`). -/

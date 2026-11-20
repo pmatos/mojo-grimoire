@@ -255,17 +255,22 @@ def checkReturnValue (prog : Program) : Expr → CheckM Ty
 
 /-- Checks what the compiler checks of `q[i] = v` before it calls the
 setter, when `e` is the call `S.__setitem__(q, i, v)` that inference makes
-of it (#191): the call of the getter `q[i]`, then `v` against what the
-getter gives, without changing what the state holds. -/
+of it (#191): the types of the call of the getter `q[i]`, which is not
+made, so neither its implicit copies nor a later pass's errors count, then
+the type of `v` against what the getter gives (`typeArg`). A literal of
+`Int`s of the wrong length fails later, after the setter's receiver. The
+state is left as it was. -/
 def checkSetter (prog : Program) (e : Expr) : CheckM Unit := do
   let .call f (.place q :: args) := e | pure ()
   let some (s, "__setitem__", false) := calleeMethod f | pure ()
   let some v := args.getLast? | pure ()
+  let g := methodCallee s "__getitem__"
   let s0 ← get
-  let u ← checkExpr prog (.call (methodCallee s "__getitem__") (.place q :: args.dropLast))
-  if v matches .list .noneType _ || (wrongIntLiteral v).isSome then
-    checkInitValue prog u v (checkExpr prog v)
-  else expect u (← checkExpr prog v)
+  modify State.typing
+  try let _ ← checkExpr prog (.call g (.place q :: args.dropLast))
+  catch err => unless err.late || err matches .implicitCopy _ | .noMatchingInit .int do throw err
+  if let (.ok sig, false) := (callSig prog g, v matches .list .noneType _ || (wrongIntLiteral v).isSome) then
+    expect sig.result (← typeArg prog v)
   set s0
 
 mutual

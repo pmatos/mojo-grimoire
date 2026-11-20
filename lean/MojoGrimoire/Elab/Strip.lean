@@ -155,7 +155,7 @@ theorem stripExpr_elabReturn (ctx : Ctx) (e : Expr) :
   unfold elabReturn
   split
   · rfl
-  · split <;> simp only [] <;> split <;> simp [stripExpr, stripExpr_elabExpr]
+  · split <;> simp [stripExpr, stripExpr_elabExpr]
 
 mutual
 /-- Elaborating a statement only inserts drops. -/

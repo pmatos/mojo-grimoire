@@ -13,25 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "438431531253367789")
+:::moduleDocs (fingerprint := "17747278772285183232")
 :::
 
-:::readable MojoGrimoire.Elab.callModes MojoGrimoire.Elab.methodModes (fingerprint := "8918438346001052769")
-*Definition: operands passed by value.* A place passed to a `var`
-parameter, or an $`\mathsf{Int}` or a $`\mathsf{Bool}` passed to a `read`
-one, is passed by value: the call reads it once its arguments are
-evaluated. Any other place is passed by reference, and used until the call
-returns. The signature of what is called gives each parameter's
-convention, so a `@fieldwise_init` struct takes its fields by value,
-`append` its list by reference and its element by value, and `pop` its
-list by reference and its index by value. `len`, which has no signature,
-takes its list by reference, and the standard library's `range` its
-$`\mathsf{Int}`s by value (#121). A method's receiver is passed by value only
-to a `var self`; the receiver's type, from the variables declared so far,
-gives the method.
-:::
-
-:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.locOperand MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "3903764806320649842")
+:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.locOperand MojoGrimoire.Elab.directOf MojoGrimoire.Elab.opKeep MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "13595545447377966094")
 *Definition: what an operation destroys.* Inside a function, elaboration
 knows the program, the slots, the slots the function owns in the order they
 die, and the types of the variables declared so far. An operation uses
@@ -53,7 +38,9 @@ slots it uses by value and nowhere later die once its operands are read,
 in the order they are read; those it uses by reference and nowhere later
 die once it is done, in the order of the owned slots. Its operands are
 evaluated with those slots, and the ones it reads, live after them. An
-operation that destroys nothing is left unwrapped. The slots that a list
+operation that destroys nothing is left unwrapped. An operand read once
+it is done keeps alive what a call's reference points into, and for a
+subscript read late only that. The slots that a list
 of operands read by reference uses directly are the union of theirs.
 :::
 
@@ -65,7 +52,7 @@ the slots that the method calls in it consume, at any depth, also inside
 the argument of $`\mathsf{List}[u](e)`.
 :::
 
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps MojoGrimoire.Elab.elabLate (fingerprint := "9176549638953812109")
+:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps MojoGrimoire.Elab.elabLate (fingerprint := "6578793653537322177")
 *Definition: elaborating expressions.* Each call, method call, operator,
 list literal, $`\mathsf{List}[u](e)` and `.copy()` is wrapped with what it
 destroys, and its operands are elaborated in turn, each with the slots that the later
@@ -76,7 +63,10 @@ then and those of the subscripts read late after it, so its getter
 destroys what it last uses right after it is called, while the places of
 those read late before it live as its arguments are evaluated (#191).
 On the left of `and` or `or`, such a subscript destroys what it last uses
-itself, the right operand's places aside. A place is left as it is, and a literal
+itself, the right operand's places aside, and the operation destroys that
+too, in the order of the owned slots, when it is tested and does not
+decide. As the right operand, such a subscript keeps only what its
+reference points into. A place is left as it is, and a literal
 $`[e]_{\mathsf{Int}}` has only its element elaborated: the operation that
 reads it destroys what its element uses. The operation at the
 top of a statement leaves what dies once it is done to the statement, as
@@ -111,7 +101,7 @@ operand keeps the getter's places alive until then, as the places of the
 getters before it live as its arguments are evaluated (#191).
 :::
 
-:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "4129290821710669471")
+:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "11375539691499870916")
 *Definition: elaboration.* Given the slots live after a statement:
 
 - a simple statement's expressions are elaborated, and the statement is

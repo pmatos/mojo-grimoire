@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12753448479466747151")
+:::moduleDocs (fingerprint := "7648077184085691593")
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.loadOperand MojoGrimoire.Interp.loadArgs MojoGrimoire.Interp.loadArg MojoGrimoire.Interp.evalLogic MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.evalPassed MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "13962923493979800499")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.loadOperand MojoGrimoire.Interp.loadArgs MojoGrimoire.Interp.loadArg MojoGrimoire.Interp.evalLogic MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.evalPassed MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "4479988210671575673")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -46,7 +46,8 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   it uses itself when it runs. A subscript read late on the left is tested
   with no drops, which follow when it does not decide; when it decides,
   its getter is called again, with them, for the result, before the
-  values in $`q^*` that its arguments use. A value that is no struct is
+  values in $`q^*` that its arguments use; a temporary among its
+  arguments dies once, after its last call. A value that is no struct is
   tested where it is, with no new location.
   The operands of an operator, the elements of a list literal and the
   values printed are evaluated left to right, and those that are places,
@@ -55,7 +56,9 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   has its arguments evaluated then, and calls its getter, with its drops,
   when it is read. An operator, a call, a construction and `print` call
   the getters of the subscripts read late among their operands before
-  they read the others (`loadFirst`, #191); a list literal reads its
+  they read the others, but the copies into `var` parameters and into
+  struct fields of a `@fieldwise_init` construction, which come first
+  (`loadFirst`, #191); a list literal reads its
   elements in order. The operand of a unary operator, `and` or `or` is
   read at once.
   $`\mathsf{drops}(e; p^*; q^*)` evaluates $`e`, destroying the values in

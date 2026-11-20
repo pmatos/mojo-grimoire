@@ -20,7 +20,7 @@ themselves. When neither fits,
 the method of `a`'s struct is called, and the checker reports its misfit.
 A method fits only when its receiver and its other operand can be passed
 with their conventions: a `mut` parameter, `self` among them, takes only
-a place that may change;
+what may change, a place or a returned reference (`TyEnv.mutableAt`);
 with no such method, the operator stays as it is, and the checker
 reports the method that `a`'s type lacks, or the misfit of its built-in
 operator. `!=` never falls back to `__eq__`, nor `>` to `__lt__` of the
@@ -42,6 +42,66 @@ struct of its name.
 namespace MojoGrimoire.Parse
 
 open MojoGrimoire.Core MojoGrimoire.Check
+
+/-- The types of the variables in scope, innermost first, and the variables
+that may not change: `read` and `ref` parameters, and `ref` bindings that
+may not change what they point to. -/
+structure TyEnv where
+  vars : List (Name × Ty)
+  fixed : List Name := []
+
+/-- The type of the variable `x`. -/
+def TyEnv.lookup (env : TyEnv) (x : Name) : Option Ty := env.vars.lookup x
+
+/-- The variables after `x` of type `t` is declared. -/
+def TyEnv.push (env : TyEnv) (x : Name) (t : Ty) : TyEnv := { env with vars := (x, t) :: env.vars }
+
+/-- Whether the place `p` goes into a variable that may change. -/
+def TyEnv.freePlace (env : TyEnv) (p : Place) : Bool :=
+  !env.fixed.contains (splitPlace p).1 && !throughTransfer p
+
+/-- The type of the place `p`. -/
+def TyEnv.placeTy (prog : Program) (env : TyEnv) : Place → Option Ty
+  | .var x => env.lookup x
+  | .field p f => (env.placeTy prog p).bind fun t => (fieldOf prog t f).toOption
+  | .index p _ => (env.placeTy prog p).bind fun t => (elemOf t).toOption
+  | .transferred p => env.placeTy prog p
+
+mutual
+/-- Whether the operand `e` may change: a place into a variable that may, or
+a call that returns a reference whose origins are all parameters it may
+change, `mut` ones, or `ref` ones passed what may change. -/
+def TyEnv.mutableAt (prog : Program) (env : TyEnv) : Expr → Bool
+  | .place p => env.freePlace p
+  | .call f args => match callSig prog f with
+    | .ok ⟨_, prms, _, some os@(_ :: _), _⟩ => env.mutableArgs prog os prms args
+    | _ => false
+  | .method p m args =>
+    match (env.placeTy prog p).bind fun t => (methodSig prog t m args.length).toOption with
+    | some ⟨self, prms, _, some os@(_ :: _), _⟩ =>
+      (self.all fun s => !os.contains s.name || s.conv == .mutable ||
+        (s.conv == .ref && env.freePlace p)) && env.mutableArgs prog os prms args
+    | _ => false
+  | _ => false
+
+/-- Whether the arguments `as` passed to `prms` may change what a reference
+into the parameters `os` points to. -/
+def TyEnv.mutableArgs (prog : Program) (env : TyEnv) (os : List Name) :
+    List Param → List Expr → Bool
+  | prm :: prms, a :: as =>
+    (!os.contains prm.name || prm.conv == .mutable || (prm.conv == .ref && env.mutableAt prog a))
+      && env.mutableArgs prog os prms as
+  | _, _ => true
+end
+
+/-- Whether the operand `e` may be passed to the parameter `prm` with its
+convention: a `mut` parameter takes only what may change. A subscript of
+a struct with a setter is let through, for the checker to reject: its
+write-back is not yet modelled (#198). -/
+def TyEnv.canPass (prog : Program) (env : TyEnv) (e : Expr) (prm : Param) : Bool :=
+  prm.conv != .mutable || env.mutableAt prog e || match e with
+    | .call g _ => lateGetter prog g
+    | _ => false
 
 /-- The struct named by the type `t`, and its method `m`, when `t` is a
 struct that declares it. -/

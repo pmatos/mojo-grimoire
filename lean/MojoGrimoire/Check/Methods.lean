@@ -233,6 +233,20 @@ then, whatever the convention of the method's `self` (#191). -/
 def requireInPlace (f : Name) (args : List Expr) : CheckM Unit := do
   if let (true, .place p :: _) := (inPlaceCallee f, args) then requireMutable p
 
+/-- Rejects the subscript read late `a` on the left of `and` or `or` when
+its getter takes a `var` struct that its argument, a temporary or a
+transfer, gives: the compiler calls the getter twice, the second time with
+what the first consumed, and reports that use (#191). -/
+def rejectReadTwice (prog : Program) (op : BinOp) (a : Expr) : CheckM Unit := do
+  let .call g args := a | pure ()
+  unless (op == .and || op == .or) && lateGetter prog g do return
+  let .ok sig := callSig prog g | pure ()
+  for (prm, arg) in sig.params.zip args do
+    if prm.conv == .owned && prm.ty matches .struct _ && !(arg matches .place _) then
+      throw (CheckError.uninitializedUse (match arg with
+        | .transfer p => p
+        | _ => .var "(expression temporary)"))
+
 /-- The call of the getter that the subscript `p` reads, when `p` is one of
 a struct that declares `__getitem__` but not `__setitem__`. The subscript
 is the value that the getter gives, which may not change: the compiler

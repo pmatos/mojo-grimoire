@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods of operators on structs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14774758445427137949")
+:::moduleDocs (fingerprint := "15137942690536452697")
 :::
 
-:::readable MojoGrimoire.Parse.declaredMethod MojoGrimoire.Parse.reflectedMethod MojoGrimoire.Parse.inPlaceMethod MojoGrimoire.Parse.otherParam (fingerprint := "6011094076042802973")
+:::readable MojoGrimoire.Parse.declaredMethod MojoGrimoire.Parse.reflectedMethod MojoGrimoire.Parse.inPlaceMethod MojoGrimoire.Parse.otherParam (fingerprint := "14327447033417783899")
 *Definition: the methods an operator may call.* A struct type declares a
 method by its name. The reflected method of a binary operator, called on
 its right operand, is `__radd__`, `__rsub__`, `__rmul__`,
@@ -26,6 +26,24 @@ $`\ge`; and `__eq__` and `__ne__` for $`==` and $`!=`. The in-place
 method of $`p \mathrel{\mathit{op}{=}} e` is `__iadd__`, `__isub__` or
 `__imul__`. The parameter that takes a binary operator's other operand is
 the one after `self`, of a method that takes exactly one.
+:::
+
+:::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.TyEnv.lookup MojoGrimoire.Parse.TyEnv.push MojoGrimoire.Parse.TyEnv.freePlace MojoGrimoire.Parse.TyEnv.placeTy (fingerprint := "16972769437246771461")
+*Definition: the types in scope.* Inference keeps the types of the
+variables in scope, innermost first, and the variables that may not
+change: `read` and `ref` parameters, and `ref` bindings that may not
+change what they point to. A place may change when its variable may and
+it is no transfer. An operator's result has its `binaryResult`.
+:::
+
+:::readable MojoGrimoire.Parse.TyEnv.mutableAt MojoGrimoire.Parse.TyEnv.mutableArgs MojoGrimoire.Parse.TyEnv.canPass (fingerprint := "2892619099815580799")
+*Definition: what may change.* An operand may change when it is a place
+that may, or a call or a method call that returns a reference whose
+origins are all parameters it may change: `mut` ones, `self` among them,
+or `ref` ones passed what may change. Only what may change is passed to a
+`mut` parameter, which decides which method of an operator is viable
+(#191). A subscript of a struct with a setter is let through, for the
+checker to reject, since its write-back is not yet modelled (#198).
 :::
 
 :::readable MojoGrimoire.Parse.chooseBinary (fingerprint := "2002475636821204314")

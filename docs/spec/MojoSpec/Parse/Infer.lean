@@ -13,19 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10275852728830901707")
+:::moduleDocs (fingerprint := "730936465159003828")
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.TyEnv.lookup MojoGrimoire.Parse.TyEnv.push MojoGrimoire.Parse.TyEnv.fixedPlace MojoGrimoire.Parse.TyEnv.canPass (fingerprint := "16708674265126674775")
-*Definition: the types in scope.* Inference keeps the types of the
-variables in scope, innermost first, and the variables that may not
-change: `read` and `ref` parameters, and `ref` bindings into them. An
-operand may be passed to a `mut` parameter only when it is a place that
-may change, not a transfer (#191). An operator's result has its
-`binaryResult`.
-:::
-
-:::readable MojoGrimoire.Parse.eagerValue (fingerprint := "6974606055818951561")
+:::readable MojoGrimoire.Parse.eagerValue (fingerprint := "4099641442443751981")
 *Definition: the value of a setter.* The value $`v` of $`q[i] = v` is
 read as it is evaluated, before the getters of the subscripts read late
 in $`i`, as the compiler does: a subscript read late there is a call of
@@ -40,7 +31,7 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "6078439522542562581")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "15284767847718357564")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
@@ -115,7 +106,7 @@ with no signature has the type of a struct the program declares, `len`'s
 $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferTarget MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "7640768639471984940")
+:::readable MojoGrimoire.Parse.inferTarget MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "10254711807360331502")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 and `ref x = e` binds $`x` with the type of $`e`. An initial value is
 expected to have the declared type of its variable, an assigned value the
