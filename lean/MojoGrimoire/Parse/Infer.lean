@@ -50,7 +50,9 @@ that one passed `mut` or `ref` stays a temporary. Inference knows which
 variables may not change, so that a method whose `mut` parameter an
 operand cannot be passed to is not chosen: a `ref` binding may change
 what it points to when its target, once inferred, may, such as a call of
-a method that returns a reference through a `mut` parameter.
+a method that returns a reference through a `mut` parameter, or a place
+of a variable that may change, also through `q^`, whose transfer has no
+effect there, as the checker's `refTarget` reads it.
 
 Inference also gives `p^` its meaning when `p` is an `Int` or a `Bool`.
 Mojo does not move such a value: it warns that the transfer has no effect,
@@ -232,8 +234,11 @@ def inferStmt (prog : Program) (result : Ty) (env : TyEnv) : Stmt → Stmt × Ty
     (.decl x t' (init'.map (·.1)), env.push x t')
   | .refDecl x e =>
     let (e', t) := inferExpr prog env .noneType e
+    let mutable := match e' with
+      | .place p => !env.fixed.contains (splitPlace p).1
+      | e' => env.mutableAt prog e'
     (.refDecl x e', match t with
-      | some t => { env.push x t with fixed := if env.mutableAt prog e' then env.fixed else x :: env.fixed }
+      | some t => { env.push x t with fixed := if mutable then env.fixed else x :: env.fixed }
       | none => env)
   | .assign p e =>
     let (p', t) := inferPlace prog env p

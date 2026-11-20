@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7859780482388519660")
+:::moduleDocs (fingerprint := "6412586796278154283")
 :::
 
 :::readable MojoGrimoire.Parse.foldable (fingerprint := "2964211985334498850")
@@ -99,12 +99,13 @@ with no signature has the type of a struct the program declares, `len`'s
 $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "3442196247413703494")
+:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "9466830064863890229")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 and `ref x = e` binds $`x` with the type of $`e`; $`x` may change what
 it points to when $`e`, once inferred, may (`TyEnv.mutableAt`), so also
 when it is a call of a method or of `__call__` that returns a reference
-through a `mut` parameter (#191). An initial value is
+through a `mut` parameter, or a place of a variable that may change, also
+through $`q\,\hat{}`, whose transfer has no effect there (#191). An initial value is
 expected to have the declared type of its variable, an assigned value the
 type of the place it is assigned to, and a returned value the function's
 result. $`p \mathrel{\mathit{op}{=}} e` calls the in-place method of $`p`'s
