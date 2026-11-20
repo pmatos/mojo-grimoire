@@ -69,3 +69,17 @@ else. These choices hold:
   `#guard` tests and have no suite program. Their list, with the
   compiler's first errors, is on
   [conformance.md](conformance.md#rejections-made-while-parsing).
+
+## Outside the subset
+
+A program outside the subset ends with exit 3, never with a checker error
+class: a class claims that Mojo rejects the program, and the compiler may
+accept it. The human ruled this on 2026-11-20. Where only the checker can
+tell that a construct is outside the subset, the driver still exits with 3
+(#180, which tracks the checker classes that break this today).
+
+Every exclusion is temporary. The goal is a model of the whole of Mojo, so
+each excluded construct is future work, not a boundary of the design. Only
+the human adds a construct to the excluded list. An agent never excludes a
+construct to make a disagreement with the compiler go away, because the
+suite cannot compare exit 3 and would hide it.
