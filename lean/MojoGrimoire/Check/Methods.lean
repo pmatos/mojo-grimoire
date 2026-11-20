@@ -96,9 +96,10 @@ def intLiteral : Expr → Bool
 
 /-- The type of the operand `e`, found from its form and from the types
 of the places it names, without checking or reading it; `none` when that
-does not give it, or fails. A literal with no type expected has one only
-when every element's form gives the same type: one whose elements differ
-is left to checking, which reports their mismatch first. -/
+does not give it, or fails. A call of the built-in `len` gives an `Int`.
+A literal with no type expected has one only when no element's form gives
+another type than the first's: one whose elements differ is left to
+checking, which reports their mismatch first. -/
 def operandTy (prog : Program) (e : Expr) : CheckM (Option Ty) :=
   tryCatch (formTy e) fun _ => pure none
 where
@@ -110,7 +111,9 @@ where
     | .place p | .copy p | .transfer p => do pure (some (← placeTy prog p))
     | .call f _ => do
       if (← findVar f).isSome then pure none
-      else pure ((callSig prog f).toOption.map (·.result))
+      else pure (match callSig prog f with
+        | .ok sig => some sig.result
+        | .error _ => if f == "len" then some .int else none)
     | .method p m args => do
       pure ((methodSig prog (← placeTy prog p) m args.length).toOption.map (·.result))
     | .unary op _ => pure (some (if op == .neg then .int else .bool))
@@ -123,10 +126,16 @@ where
     | .listInit u _ => pure (some (.list u))
     | .withDrops e _ _ => formTy e
     | _ => pure none
-  /-- Whether the form of each of `es` gives the type `u`. -/
+  /-- Whether the form of none of `es` gives a type other than `u`: an
+  element whose form gives none is not known to differ, unless it is a
+  literal, which has none when its own elements differ. -/
   sameTy (u : Option Ty) : List Expr → CheckM Bool
     | [] => pure true
-    | e :: es => do pure ((← formTy e) == u && (← sameTy u es))
+    | e :: es => do
+      let same := match ← formTy e with
+        | some t => some t == u
+        | none => !(e matches .list ..)
+      pure (same && (← sameTy u es))
 
 /-- `missingMethod` of the type `t` and the method `m`, when `t` is known
 and lacks `m`. -/

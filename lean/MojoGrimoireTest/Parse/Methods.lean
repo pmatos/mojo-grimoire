@@ -80,6 +80,8 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 -- too.
 #guard rejects ["print(-[1, True])"] (.typeMismatch .int .bool)
 #guard rejects ["var b = True", "print(b or [1, True])"] (.typeMismatch .int .bool)
+-- A literal of `Int`s, one a call of `len`, is an array before it is read.
+#guard rejects ["var xs: List[Int]", "print(-[1, len(xs)])"] (.missingMethod (.array .int 2) "__neg__")
 #guard rejects ["var s = S(1)", "print(s + nope)"] (.unknownVariable "nope")
 #guard rejects ["print(True + (1 + True))"] (.noMatchingMethod "__add__")
 
