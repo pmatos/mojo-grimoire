@@ -24,7 +24,9 @@ namespace MojoGrimoire.Check
 open MojoGrimoire.Core
 
 /-- The type, origins and mutability of the reference that `e` names: a
-place, or a call of a function or method that returns a reference. -/
+place, or a call of a function or method that returns a reference. A call
+of a name that a variable in scope hides is checked as a call, which
+rejects it (#176). -/
 def refTarget (prog : Program) (e : Expr) : CheckM (Ty × List Place × Bool) := do
   let located : CheckM (Ty × List Place × Bool) := do
     let t ← checkExprAs prog true e
@@ -36,6 +38,7 @@ def refTarget (prog : Program) (e : Expr) : CheckM (Ty × List Place × Bool) :=
     let t ← readPlace prog p
     pure (t, resolvePlace (← get).vars p, ← placeMutable p)
   | .call f _ =>
+    if (← get).vars.any (·.name == f) then located else
     let .ok ⟨_, _, _, some _, _⟩ := callSig prog f | throw CheckError.notAReference
     located
   | .method p m args =>

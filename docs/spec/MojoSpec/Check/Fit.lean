@@ -13,17 +13,22 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7696823461128157924")
+:::moduleDocs (fingerprint := "1076147397187144410")
 :::
 
-:::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "13691362365005740179")
+:::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "12992391169544851453")
 *Definition: how a call reports a misfit.* A call of a function or a method
 reports an argument that does not fit its parameter by the error itself: a
 type mismatch, a wrong number of arguments, a value that is not a place or
 a place that may not change passed `mut`. An initializer of the type $`t`
 reports every such misfit as `noMatchingInit` $`t`, since the compiler
-tries every initializer and reports only that none fits (#46). An
-argument whose type is not its parameter's is such a misfit.
+tries every initializer and reports only that none fits (#46). A method
+or an operator $`m` with several overloads reports it, a wrong number of
+arguments included, as `noMatchingMethod` $`m`, for the same reason
+(#88), but for a literal of $`\mathsf{Int}`s of the wrong length, which
+fits the overload that takes an $`\mathsf{Int}` and fails its SIMD
+constraint once that overload is chosen: its `noMatchingInit` stays
+(#169). An argument whose type is not its parameter's is such a misfit.
 :::
 
 :::readable MojoGrimoire.Check.passValue (fingerprint := "184049633496572427")
@@ -66,7 +71,7 @@ holds one at any depth. Such an argument of the standard library's `range`
 fits none of its forms (#121).
 :::
 
-:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "15634190465506606034")
+:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "9468303853430784741")
 *Definition: what reading the arguments of a range finds.* Reading the
 arguments of `range`, once they are typed, records the errors of the
 compiler's later passes in the order it reports them: the first use of an
@@ -76,6 +81,19 @@ then the first constant index out of range. It also records the places each argu
 reads late, with its mark. Two records join, the first's errors first. An
 error of a later pass than typing is a constant index out of range,
 a nested literal's failed constraint, or else a use of a value.
+:::
+
+:::readable MojoGrimoire.Check.rangeList (fingerprint := "5393411661139869736")
+*Rule: $`\mathsf{List}[u](\mathsf{range}(e^*))`.* The arguments of
+`range` are typed first, and the state that typing leaves is dropped.
+An argument that fits no form of `range`, no argument or more than three,
+or $`u` other than $`\mathsf{Int}` is `noMatchingInit`
+$`\mathsf{List}[u]`. Then the arguments are read, and the errors of the
+later passes come in the compiler's order: a use of an uninitialized or
+invalidated value, the places read late checked again, a literal of
+$`\mathsf{Int}`s of the wrong length, `noMatchingInit`
+$`\mathsf{List}[u]`, then a constant index out of range (#121). The
+call gives a $`\mathsf{List}[\mathsf{Int}]`.
 :::
 
 :::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "5042045329698814885")

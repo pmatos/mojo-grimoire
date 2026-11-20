@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5909551615633593430")
+:::moduleDocs (fingerprint := "14219486724559156833")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkIndices MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "18219537702837666834")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "15223670341315992897")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -27,11 +27,21 @@ type:
 * $`f(e^*)` and $`p.m(e^*)` pass their arguments to the parameters of
   their signature, $`p` first, by the convention of the method's `self`,
   and have its result type; when $`f` names a struct, the call is an
-  initializer, whose misfits are `noMatchingInit`; a receiver
-  $`q\,\hat{}` of a method whose
-  `self` is `var` is not copied: once the arguments are checked and read
-  again, $`q` is transferred;
-* operators have the types above;
+  initializer, whose misfits are `noMatchingInit`; a method call is
+  checked by `methodCall`, and the misfits of `pop`, which has several
+  overloads, are `noMatchingMethod`; a receiver $`q\,\hat{}` of a method
+  whose `self` is `var` is not copied: once the arguments are checked and
+  read again, $`q` is transferred. When a variable in scope has the name
+  $`f`, the call is rejected by `rejectCalledVar`, once its arguments are
+  typed by `typeArgs` (#176);
+* operators have the types above, but a method that an operand's type
+  lacks is `missingMethod` (#176): found from the operands' types
+  (`operandTy`, `binaryMisfit`, `unaryMisfit`) before they are read, once
+  both are typed by `typeArg`, and else from their checked types. The
+  right operand of an operator whose left operand is an integer literal
+  expression (`constInt`), but `and` and `or`, is passed as to a `read`
+  $`\mathsf{Int}` parameter of a method with several overloads: one that
+  is no $`\mathsf{Int}` is `noMatchingMethod` (#88);
 * $`[e^*]_t`, with $`t` a list or an array of $`u` and $`u` a type a
   variable may have, initializes $`t`: it passes each element as to a `var`
   parameter of type $`u`, and an array must have as many elements as its
@@ -65,7 +75,7 @@ type:
 * $`\mathsf{List}[u](\mathsf{range}(e^*))`, when the program declares no
   function or struct `range` and no variable in scope is named `range`, is
   the standard library's range (#121), whose one to three arguments are
-  checked in the compiler's order of passes. First `typeRangeArgs` types
+  checked in the compiler's order of passes, as `rangeList` says. First `typeRangeArgs` types
   every argument, each in `State.typing`, and reports an unknown name or a
   misfit of a call inside any argument at once. An argument that holds a
   string or a call of `range` (`holdsStrOrRange`) is typed only in its
@@ -85,15 +95,15 @@ type:
   $`\mathsf{Int}`s, or an empty one, or one of the wrong length nested in
   an argument, is `noMatchingInit`, as the compiler
   fails only when it instantiates the call; then a constant index out of
-  range. `range` anywhere else is an unknown function: a range is not a
-  value of its own;
+  range. `range` anywhere else is an unknown function, unless a variable
+  hides it: a range is not a value of its own;
 * $`\mathsf{List}[u](e^+)` with more than one argument checks each
   argument on its own, locating a place without reading it, and is then
   rejected as `noMatchingInit` $`\mathsf{List}[u]`: no initializer of
   `List` takes its elements;
 * the methods of a list take it `mut`, so they need a list the function
   may change; `len(e)`, when the program declares no function or struct
-  `len`, takes one list or array and gives an $`\mathsf{Int}`: a place
+  `len` and no variable hides it, takes one list or array and gives an $`\mathsf{Int}`: a place
   argument, or a call that returns a reference that is a located
   operand, is read, not copied;
 * $`\mathsf{drops}(e; p^*; q^*)`, which only elaboration inserts, after
@@ -104,7 +114,11 @@ than `and` and `or`, a list literal and `print`, and the origins of an
 operand among them that is a call that returns a reference and is a
 located operand, are checked again once every operand is, by
 `recheckLocs`; then the call records what it changes.
-Every index in a place is checked first, and must be an $`\mathsf{Int}`;
+Every index in a place is checked first, and must be an $`\mathsf{Int}`:
+an index of a list or an array is an argument of `__getitem__`, which has
+several overloads, checked by `checkArg`, so that a misfit is
+`noMatchingMethod` (`checkIndex`, #169), and one of an $`\mathsf{Int}` a
+type mismatch;
 a constant index may not be negative, nor, into an array of $`n`
 elements, $`n` or more. Mojo locates $`q` in $`q[i]` before it
 evaluates $`i`, so $`i` may not invalidate $`q`. Each $`q\,\hat{}` in a
@@ -126,8 +140,9 @@ A call or a method call that returns a reference gives the value it
 points to, which must be implicitly copyable, unless the call is bound
 with `ref`, passed by reference, or read by `len` or `print`.
 
-The arguments of a call are checked in order against the parameters, after
-the exclusivity rule: a place by `passPlace`; a call that returns a
+The arguments of a call are checked in order against the parameters, each
+by `checkArg`, after the exclusivity rule; a string literal fits no
+overload. A place is passed by `passPlace`; a call that returns a
 reference and is a located operand, passed to a `read`, `mut` or `ref`
 parameter, as a location, which must be mutable for `mut`, or the call is
 $`\mathsf{immutablePlace}`, named by its first origin; and any other

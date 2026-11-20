@@ -174,6 +174,48 @@ Rejected: leaving the message unclassified, which the suite counts as a
 disagreement, so that these programs could never be compared; and letting
 one message accept several classes, which loosens the comparison.
 
+### Calls that fit no overload, and methods a type lacks
+
+The compiler gives "no matching method in call to 'NAME'" for a call of
+a method or an operator with several overloads that none fits, whatever
+the misfit, a wrong number of arguments included. On the pinned nightly
+these are an operator whose left operand is an integer literal, or an
+expression made only of them (`1 + True`, `(2 * 3) // b`, `1 + s`), an
+index of a list or an array that is no `Int` (`xs[True]`, `a[b]`, also
+as the target of an assignment), and a list's `pop` (`xs.pop(True)`,
+`xs.pop(0, 1)`). A method with one overload names the misfit, "invalid
+call ... cannot be converted", and keeps `typeMismatch`: `append`, a
+struct's method, an operator of an `Int` that is not a literal, an
+operator of a `Bool`, and an index of an `Int`. `diagnostics.json` maps
+the message, matched whole, to `noMatchingMethod`, and the model reports
+it for each of these calls. The human ruled this on 2026-11-20 (#88,
+#169), as #46 did for `noMatchingInit`. A literal of `Int`s of the wrong
+length still fails SIMD's constraint first, `noMatchingInit` (#169).
+
+The compiler gives "'T' does not implement the '__X__' method" for an
+operator whose operand's type lacks its method: `+`, `-`, `*`, `//`,
+`%` and negation of a `Bool`, of an array or of `None`; `-`, `//`, `%`,
+ordering and negation of a list; every operator of a struct that does not
+declare the method; and `__bool__` of a struct, an array or `None` under
+`not`, `and` or `or`, either operand of the last two. It gives the same
+for a call of a variable, whose type lacks `__call__`: within its scope a
+variable or a parameter named like a function, `len`, `range` or a struct
+hides it. `diagnostics.json` maps the message, matched whole, to
+`missingMethod`, and the model reports it in each of these cases. The
+human ruled this on 2026-11-20 (#176).
+
+Both patterns come first in `diagnostics.json`, since each message holds
+a name of the program's, a type or a method, that a later pattern could
+match. The compiler finds both errors when it types the operands, before
+any read: the model finds them from the operands' types before it reads
+them, once it has typed them, so that an error inside an operand comes
+first (`s + nope` is `unknownVariable`) and an uninitialized operand
+after (`var s: S; s + 1` is `missingMethod`).
+
+Rejected: mapping either message to an existing class, `noMatchingInit`,
+`typeMismatch` or `unknownAttribute`, which would merge errors that the
+compiler tells apart.
+
 ### Rejections made while parsing
 
 A program that the compiler rejects while parsing, and that the model

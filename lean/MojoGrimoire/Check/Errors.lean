@@ -20,7 +20,13 @@ arguments or a wrong one, a literal whose elements do not fit the list or
 array it initializes, or that initializes another type, and
 `List[u](e₁, …, eₙ)`. `transferFromElement` is a transfer out of an element
 of a list or an array, or through a reference bound with `ref`: the compiler
-reports both alike, as an expression with no origin of its own. -/
+reports both alike, as an expression with no origin of its own.
+`noMatchingMethod` is a call of the method or operator `method` that has
+several overloads, none of which its arguments fit, a wrong number of them
+included: the compiler reports only that none fits (#88).
+`missingMethod` is a method that an operator or a call needs and the type
+`ty` lacks: an operator's method on its operand, or `__call__` on a
+variable that is called (#176). -/
 inductive CheckError where
   | unknownVariable (name : Name)
   | unknownFunction (name : Name)
@@ -37,6 +43,8 @@ inductive CheckError where
   | stringOutsidePrint
   | arityMismatch (callee : Name) (expected actual : Nat)
   | noMatchingInit (ty : Ty)
+  | noMatchingMethod (method : Name)
+  | missingMethod (ty : Ty) (method : Name)
   | invalidConvention (name : Name)
   | invalidSelf (name : Name)
   | noInitializer (struct : Name)

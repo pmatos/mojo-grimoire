@@ -16,17 +16,19 @@ Lists, `List[T]`, follow the rules of
 - A list is copied only explicitly, with `.copy()`, and only when its
   elements can be copied.
 - The only methods modelled are `append`, `pop()`, `pop(i)` and the
-  built-in `len`, which a function named `len` hides (#40). `pop()` takes
+  built-in `len`, which a function named `len` hides (#40), and a variable
+  or a parameter in scope too (#176). `pop()` takes
   its list `mut`, removes the last element and gives it back as an owned
   value of the element type. On an empty list it fails at run time, as the
   compiler's bounds check does. `pop(i)` removes and gives back the
   element at the `Int` index `i` (#58). Its index is evaluated before the
   list is read, and is checked only at run time: a negative index, even a
   constant one, fails as out of bounds, as the stdlib's `check_bounds`
-  does. A wrong call of `pop` is an arity or a type mismatch in the model.
-  The compiler reports both as "no matching method", which no pattern of
-  the suite classifies, so only Lean tests cover them. An index must be
-  an `Int`. An index `xs[i]` made only of integer literals, negation,
+  does. `pop` has several overloads, so any wrong call of it, a wrong
+  number of arguments included, is `noMatchingMethod`, as the compiler
+  reports "no matching method" (#88, #169). An index must be an `Int`: an
+  index of a list or an array calls `__getitem__`, which has several
+  overloads too, so one that is no `Int` is `noMatchingMethod`. An index `xs[i]` made only of integer literals, negation,
   `+`, `-`, `*`, `//` and `%` is computed when the program is compiled,
   and is rejected when it is negative (`negativeIndex`). `//` and `%` round toward negative infinity
   and give 0 for a zero divisor, as the compiler does.
@@ -80,8 +82,8 @@ Lists, `List[T]`, follow the rules of
   of a function the program does not declare, though the compiler accepts
   both. A function or a struct of the program, or a variable in scope,
   named `range` is used instead; called, a variable is rejected as
-  `unknownFunction`, where the compiler reports that an `Int` cannot be
-  called, a message the suite does not classify. Any other iterable that
+  `missingMethod`, as the compiler reports that its type has no
+  `__call__` (#176). Any other iterable that
   the compiler accepts as the one argument of `List[T](…)` stays outside
   the subset. The arguments are evaluated from left to right, as `read`
   arguments of type `Int`, so a place among them is read once all are
@@ -203,7 +205,7 @@ here (#27).
   an operator other than `and` and `or`, it is a type mismatch. As the
   left operand of an arithmetic operator, `[True] + x`, or an operand of
   `and` and `or`, `x or [True]`, the compiler reports that the array has
-  no `__add__` or `__bool__`, a message the suite does not classify.
+  no `__add__` or `__bool__`, `missingMethod` (#176).
 - A literal of any length but 1 where an `Int` is expected fits no
   initializer of `Int` either, and the model rejects it in every position,
   as the pinned nightly does (#153, #154). Inference types it `Int`, and
@@ -220,7 +222,7 @@ here (#27).
   | --- | --- | --- |
   | Initializes the `Int`: a declaration, an assignment to a variable, a field or an element, a `return`, a construction `P(…)`, an element of an enclosing literal | `noMatchingInit` | `noMatchingInit`: "no matching function in initialization" |
   | Converted: an argument of a function or a method, `append`, an operand of an operator other than `and` and `or`, `+=` | `noMatchingInit` | `typeMismatch`: "cannot be converted from list literal to 'Int'" |
-  | An index, the argument of `pop` | `noMatchingInit` | unclassified: "no matching method in call to '__getitem__'", as for `xs[True]` (#169); the model reports `typeMismatch` |
+  | An index of a list or an array, the argument of `pop`, the right operand of an integer literal's operator | `noMatchingInit` | `noMatchingMethod`: "no matching method in call to '__getitem__'", as for `xs[True]` (#169) |
 
   A nested literal counts as one element: `rd([[1, True], 3])` is a type
   mismatch, `P([[1, True], 3])` and `[[1, True]]` in a declaration are
