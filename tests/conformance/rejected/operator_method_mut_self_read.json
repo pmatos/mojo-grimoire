@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "immutablePlace",
+  "diagnostic": "invalid call to '__neg__': value passed to mutable argument 'self' must be mutable"
+}

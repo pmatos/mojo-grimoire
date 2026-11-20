@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "argumentExclusivity",
+  "diagnostic": "aliasing values passed mutably to 'self' argument and passed immutably to 'o' argument in '__iadd__' call"
+}

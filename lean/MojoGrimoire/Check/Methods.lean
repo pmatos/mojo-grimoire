@@ -16,9 +16,12 @@ The methods that a trait such as `Equatable` supplies are not yet
 modelled (#194). A variable that is called is such a value too: its type
 lacks `__call__`. Inside its scope a variable, or a parameter, hides a
 function, `len`, `range`, `print` or a struct of the same name in a call,
-but not yet in a type position (#193). A variable whose struct type
-declares `__call__` does not yet hide it: the call goes to the hidden
-callee (#191).
+but not yet in a type position (#193). An operator or a call whose
+operand is a struct that declares the method is a call of the method,
+which inference makes (`MojoGrimoire.Parse.Dispatch`, #191): it reaches
+the checker as any other call, a method that a struct lacks only for
+`p += e`. Such a call of `__iadd__` needs a receiver that may change
+(`requireInPlace`).
 
 An integer literal, and an expression made only of them and of
 arithmetic (`intLiteral`), has the type `IntLiteral`, whose operators have
@@ -212,11 +215,19 @@ def rejectMisfit (misfit : Option CheckError) (typing : CheckM Unit) : CheckM Un
   | some err => rejectAfter typing err
   | none => pure ()
 
+/-- Rejects the call of the in-place method `f` of a struct, `p += e`
+(`MojoGrimoire.Core.inPlaceCallee`), whose receiver `p` may not change,
+once its indices are checked, before the method is looked up or its
+arguments checked: the compiler requires a destination that may change
+then, whatever the convention of the method's `self` (#191). -/
+def requireInPlace (f : Name) (args : List Expr) : CheckM Unit := do
+  if let (true, .place p :: _) := (inPlaceCallee f, args) then requireMutable p
+
 /-- Rejects a call of `f` when a variable in scope of that name hides the
 function, `len`, `range`, `print` or the struct `f`, and its type has no
 `__call__`, once `typing` has typed the call's arguments: the compiler
-types them first (#176). A variable whose type declares `__call__` is let
-through, and the call goes to the hidden callee, which #191 tracks. -/
+types them first (#176). A variable whose struct type declares `__call__`
+never reaches it: inference makes the call one of the method (#191). -/
 def rejectCalledVar (prog : Program) (f : Name) (typing : CheckM Unit) : CheckM Unit := do
   rejectMisfit (lacks prog "__call__" ((← findVar f).map (·.ty))) typing
 

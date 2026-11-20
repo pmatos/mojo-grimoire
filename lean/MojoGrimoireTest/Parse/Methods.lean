@@ -75,7 +75,7 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
   (.missingMethod (.list .int) "__floordiv__")
 #guard rejects ["var b = True", "print([2] + b)"] (.missingMethod (.array .int 1) "__add__")
 #guard rejects ["var a = [1]", "print(not a)"] (.missingMethod (.array .int 1) "__bool__")
-#guard rejects ["var s = S(1)", "s -= 1", "print(s.n)"] (.missingMethod (.struct "S") "__sub__")
+#guard rejects ["var s = S(1)", "s -= 1", "print(s.n)"] (.missingMethod (.struct "S") "__isub__")
 -- An error inside an operand comes first, a literal whose elements differ
 -- too.
 #guard rejects ["print(-[1, True])"] (.typeMismatch .int .bool)

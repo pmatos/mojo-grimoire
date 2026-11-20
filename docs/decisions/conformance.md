@@ -207,12 +207,21 @@ arguments are typed without the hidden function's signature.
 and the model reports it in each of these cases. The human ruled this on
 2026-11-20 (#176).
 
-The model does not yet follow three cases of the same rules. The operator
+A struct that declares the method is called instead, and so is the
+`__call__` of a variable's struct, which hides a function, `len`, `range`,
+`print` or a struct of its name (#191,
+[semantics-operators.md](semantics-operators.md)): a misfit of its
+arguments is reported as an ordinary call reports it, and the suite's
+`structs/operator_method_*`, `structs/call_method*` and
+`rejected/operator_method_*` and `rejected/call_method_*` programs pin
+it. The compiler's "missing required argument" is unclassified on the pin
+(#189), so a call of `__call__` with too few arguments has no suite
+program.
+
+The model does not yet follow two cases of the same rules. The operator
 methods that `Equatable` and `Comparable` supply by default (`a == b` on a
 struct that conforms to `Equatable`) are not modelled: the model reports
-`missingMethod` where the compiler accepts (#194). A variable whose struct
-type declares `__call__` does not yet hide a function, `len` or `print`:
-the model runs the hidden callee (#191). And hiding applies only to calls:
+`missingMethod` where the compiler accepts (#194). And hiding applies only to calls:
 a variable named like a struct in a type annotation or in `List[...]` still
 names the type in the model, where the compiler rejects it (#193).
 

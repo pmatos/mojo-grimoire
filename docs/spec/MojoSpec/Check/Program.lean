@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7685506571488810161")
+:::moduleDocs (fingerprint := "13706039531035906049")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17131055927722852879")
@@ -41,10 +41,14 @@ the result type must be $`\mathsf{None}`, and the state there is checked
 as at a return.
 :::
 
-:::readable MojoGrimoire.Check.checkFun MojoGrimoire.Check.checkMethod MojoGrimoire.Check.checkInit (fingerprint := "2391775556140320310")
+:::readable MojoGrimoire.Check.operatorArity MojoGrimoire.Check.checkFun MojoGrimoire.Check.checkMethod MojoGrimoire.Check.checkInit (fingerprint := "4673339903109587582")
 *Rule: functions, methods and initializers.* A function's body is checked.
 A method of the struct $`S` has a first parameter `self` of type $`S`,
-`read`, `mut`, `var` or `ref`. An initializer's first parameter is
+`read`, `mut`, `var` or `ref`. An operator method that inference calls
+takes as many operands, `self` among them, as its operator: two for a
+binary, reflected or in-place operator and one for `__neg__`, as the
+compiler checks when it parses the declaration; otherwise
+`arityMismatch` (#191). An initializer's first parameter is
 `out self` of type $`S`, and it returns nothing.
 :::
 

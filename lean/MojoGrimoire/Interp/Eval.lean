@@ -283,7 +283,7 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
   | 0 => fail .outOfFuel
   | n + 1 => match e with
     | .call f args =>
-      match findStruct prog f, findFun prog f, f, args with
+      match findStruct prog f, findCallee prog f, f, args with
       | some sd, _, _, _ => do
         match sd.init with
         | some fd => do

@@ -13,13 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10873102889185525487")
-:::
-
-:::readable MojoGrimoire.Parse.TyEnv (fingerprint := "8803222123172763763")
-*Definition: the types in scope.* Inference keeps the types of the
-variables in scope, innermost first. An operator's result has its
-`binaryResult`.
+:::moduleDocs (fingerprint := "6412586796278154283")
 :::
 
 :::readable MojoGrimoire.Parse.foldable (fingerprint := "2964211985334498850")
@@ -30,16 +24,7 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.keepTemporaries (fingerprint := "15308231828986963166")
-*Definition: temporaries.* Among the arguments of a call, a literal
-$`[e]` that inference replaced by $`e` is $`[e]_{\mathsf{Int}}` again when
-its parameter is `mut` or `ref`: Mojo passes a temporary there, not the
-place or the reference $`e` names, so `mut` rejects it, and `ref` gets a
-temporary filled from $`e` when the call is made, which a returned
-reference keeps, so it does not see a later change (#103).
-:::
-
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferList (fingerprint := "9497775184132414115")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "1452655154678513150")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
@@ -52,7 +37,13 @@ gives an $`\mathsf{Int}`. A call of `range`, when the program declares no
 function or struct `range`, expects an $`\mathsf{Int}` of each argument, by
 `rangeParams` (#121). A call of a name that a variable in scope hides
 follows no signature and has no type, so that the checker rejects it
-(#176). Any other call with no signature has no type. A literal left open takes the type expected where
+(#176), unless the variable's struct declares `__call__`. An operator and
+a call whose operand is a struct that declares the method are calls of
+the method that `chooseBinary` and `declaredMethod` pick, with the type
+of its result; an
+operand that is a literal is inferred as an argument of the method's
+other parameter, by `inferArg`, so that one passed `mut` or `ref` stays a
+temporary (#191). Any other call with no signature has no type. A literal left open takes the type expected where
 it stands, a list type or an array type, and the checker compares an
 array's size with the literal's length. With no list or array expected, it is
 an array of its elements, of the type of the first: Mojo's
@@ -62,9 +53,13 @@ tells it from a literal that initializes an expected type (#46).
 A literal $`[e]` left open where an $`\mathsf{Int}` is expected, whose one
 element has the type $`\mathsf{Int}` when it is expected to, is an
 $`\mathsf{Int}` (#103): $`e` itself, which Mojo reads as that operand, or,
-when $`e` is `foldable`, $`[e]_{\mathsf{Int}}`. The arguments of a call keep
-a literal passed `mut` or `ref` as $`[e]_{\mathsf{Int}}`, by
-`keepTemporaries`: Mojo passes a temporary there. A literal of any other
+when $`e` is `foldable`, $`[e]_{\mathsf{Int}}`. The arguments of a call,
+by `inferArgs`, keep a literal passed `mut` or `ref` as
+$`[e]_{\mathsf{Int}}`: Mojo passes a temporary there, not the place or the
+reference $`e` names, so `mut` rejects it, and `ref` gets a temporary
+filled from $`e` when the call is made, which a returned reference keeps,
+so it does not see a later change (#103). A place passed `mut` or `ref`
+stays a place. A literal of any other
 length left open where an $`\mathsf{Int}` is expected is
 $`[e^*]_{\mathsf{Int}}`, of type $`\mathsf{Int}`, with an
 $`\mathsf{Int}` expected of each element, as SIMD's initializer takes
@@ -91,7 +86,7 @@ value, wherever $`p` is: also an element of a list or an array, or a field
 of one.
 :::
 
-:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.paramTys MojoGrimoire.Parse.unsignedResult (fingerprint := "18258247691432712068")
+:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.unsignedResult (fingerprint := "4286700661354665780")
 *Definition: expected types.* A literal expected to have a list type or an
 array type has that type, which the checker compares with its elements;
 otherwise its elements decide. Its elements are expected to have its
@@ -104,20 +99,29 @@ with no signature has the type of a struct the program declares, `len`'s
 $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "10921922806685892226")
+:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "9466830064863890229")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
-and `ref x = e` binds $`x` with the type of $`e`. An initial value is
+and `ref x = e` binds $`x` with the type of $`e`; $`x` may change what
+it points to when $`e`, once inferred, may (`TyEnv.mutableAt`), so also
+when it is a call of a method or of `__call__` that returns a reference
+through a `mut` parameter, or a place of a variable that may change, also
+through $`q\,\hat{}`, whose transfer has no effect there (#191). An initial value is
 expected to have the declared type of its variable, an assigned value the
 type of the place it is assigned to, and a returned value the function's
-result. A block is
+result. $`p \mathrel{\mathit{op}{=}} e` calls the in-place method of $`p`'s
+struct (`inPlaceMethod`), which the checker reports when the struct lacks
+it, and is otherwise `p = p op e`, with no method of $`e`'s struct
+reflected. `print(…)` calls the `__call__` of a variable named `print`
+whose struct declares one (#191). A block is
 inferred in order, each statement seeing the variables declared before it;
 the variables of an inner block do not leave it.
 :::
 
-:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.parse (fingerprint := "10888379200063602025")
+:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.parse (fingerprint := "4117428577163560014")
 *Definition: parsing a program.* Inference starts each function from its
 parameters, and each destructor from `self`. The values a function returns
 are expected to have its result type, unless it returns a reference: then
 none is expected, since a literal is no place. Parsing a program lexes and
-parses its text, and then infers inside every declaration.
+parses its text, replaces `Self` in each struct's methods
+(`resolveSelf`), and then infers inside every declaration.
 :::

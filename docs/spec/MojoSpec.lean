@@ -142,6 +142,10 @@ line, as the compiler's `mojo run` does.
 
 {includeReadable "." MojoGrimoire.Parse.Stmt "Statements and declarations" MojoSpec.Parse.Stmt (level := 2)}
 
+{includeReadable "." MojoGrimoire.Parse.SelfType "Self in methods" MojoSpec.Parse.SelfType (level := 2)}
+
+{includeReadable "." MojoGrimoire.Parse.Dispatch "Methods of operators on structs" MojoSpec.Parse.Dispatch (level := 2)}
+
 {includeReadable "." MojoGrimoire.Parse.Infer "Type inference" MojoSpec.Parse.Infer (level := 2)}
 
 {includeReadable "." MojoGrimoire.Driver.Main "The command-line driver" MojoSpec.Driver.Main (level := 2)}
