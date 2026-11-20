@@ -42,6 +42,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     if copyingOf prog t == .none then throw (CheckError.notCopyable t)
     pure t
   | .call f args => do
+    requireInPlace f args
     rejectCalledVar prog f (typeArgs prog args)
     match callSig prog f with
     | .ok sig =>
@@ -49,7 +50,6 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       let fit := if (findStruct prog f).isSome then Fit.init (.struct f) else .call
       checkExclusive (← locationArgs prog params args)
       recheckLocs prog (← checkArgs prog fit f params args params.length args.length)
-      requireInPlace f args
       for q in ← changedArgs prog params args do changePlace prog q
       refResult prog asRef sig
     | .error err =>

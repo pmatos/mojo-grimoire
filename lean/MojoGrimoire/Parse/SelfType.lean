@@ -6,12 +6,12 @@ import MojoGrimoire.Parse.Stmt
 Inside a struct's methods, its initializer and its destructor, the type
 `Self` is the struct itself: in the types of parameters and results, of
 the variables declared and of the literals `List[Self]()` and
-`List[Self](…)`. The parser reads `Self` as the name of a struct, and this
-pass replaces it, before inference. The ruling on #191 brings `Self` as a
-parameter type into the model, which every operator method that takes
-another value of its struct needs. `Self` as the type of a field, and
-outside a struct, is left as it is: the checker rejects the struct that
-no program declares.
+`List[Self](…)`, and `Self(…)` constructs the struct. The parser reads
+`Self` as the name of a struct, and this pass replaces it, before
+inference. The ruling on #191 brings `Self` as a parameter type into the
+model, which every operator method that takes another value of its struct
+needs. `Self` as the type of a field, and outside a struct, is left as it
+is: the checker rejects the struct that no program declares (#203).
 -/
 
 namespace MojoGrimoire.Parse
@@ -38,7 +38,7 @@ def Expr.withSelf (s : Name) : Expr → Expr
   | .place p => .place (Place.withSelf s p)
   | .transfer p => .transfer (Place.withSelf s p)
   | .copy p => .copy (Place.withSelf s p)
-  | .call f args => .call f (Expr.listWithSelf s args)
+  | .call f args => .call (if f == "Self" then s else f) (Expr.listWithSelf s args)
   | .method p m args => .method (Place.withSelf s p) m (Expr.listWithSelf s args)
   | .unary op a => .unary op (Expr.withSelf s a)
   | .binary op a b => .binary op (Expr.withSelf s a) (Expr.withSelf s b)

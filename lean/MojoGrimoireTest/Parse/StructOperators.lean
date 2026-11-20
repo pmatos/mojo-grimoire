@@ -83,6 +83,9 @@ private def m (name ps r ret : String) : List String :=
     ["def g(t: T):", "    t += 1"]) == some (.rejected ⟨"g", .immutablePlace (.var "t")⟩)
 #guard rejects [["def __iadd__(mut self, o: Self):", "    pass"]] ["var t = T(1)", "t += t"]
   (.argumentExclusivity (.var "t"))
+-- The destination may change, checked before the method is looked up.
+#guard runLines (withT [] ["g(T(1))"] ++ ["def g(t: T):", "    t += True"]) ==
+  some (.rejected ⟨"g", .immutablePlace (.var "t")⟩)
 
 -- `not`, `and` and `or`: a struct operand is converted with `__bool__`,
 -- unless both have its type.
@@ -108,6 +111,10 @@ private def bump : List String := ["def bump(mut t: T) -> Int:", "    t.n += 10"
 #guard rejects [getter] ["var t = T(1)", "t[0] = 2"]
   (.immutablePlace (.index (.var "t") (.int 0)))
 #guard rejects [getter] ["var t = T(1)", "print(t[True])"] (.typeMismatch .int .bool)
+-- Assigning it checks the getter's call first, and never the value.
+#guard rejects [getter] ["var t = T(1)", "t[True] = 2"] (.typeMismatch .int .bool)
+#guard rejects [getter] ["var t = T(1)", "t[0] = nope"]
+  (.immutablePlace (.index (.var "t") (.int 0)))
 
 -- Calls of a variable whose struct declares `__call__`, which hides the
 -- function, `len`, `print` or struct of its name.
@@ -128,5 +135,7 @@ private def call : List String := m "__call__" ", k: Int" "Int" "self.n + k"
 -- `Self` in a method is its struct.
 #guard prints [m "same" ", o: Self" "Bool" "self.n == o.n"]
   ["var t = T(1)", "var u = T(1)", "print(t.same(u))"] ["True"]
+#guard prints [m "__neg__" "" "Self" "Self(-self.n)"] ["var t = T(5)", "var u = -t", "print(u.n)"]
+  ["-5"]
 
 end MojoGrimoireTest.Parse.StructOperators

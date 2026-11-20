@@ -22,7 +22,7 @@ method, which inference makes (`MojoGrimoire.Parse.Dispatch`, #191): it
 reaches the checker as any other call, a method that a struct lacks only
 for `p += e`. Such a call of `__iadd__` needs a receiver that may change
 (`requireInPlace`), and a subscript of a struct with a getter and no
-setter may not be assigned (`rejectValueSubscript`).
+setter may not be assigned (`valueSubscript`).
 
 An integer literal, and an expression made only of them and of
 arithmetic (`intLiteral`), has the type `IntLiteral`, whose operators have
@@ -226,20 +226,24 @@ def rejectMisfit (misfit : Option CheckError) (typing : CheckM Unit) : CheckM Un
 
 /-- Rejects the call of the in-place method `f` of a struct, `p += e`
 (`MojoGrimoire.Core.inPlaceCallee`), whose receiver `p` may not change,
-once its arguments are checked: the compiler requires a destination that
-may change, whatever the convention of the method's `self` (#191). -/
+before the method is looked up or its arguments checked: the compiler
+requires a destination that may change first, whatever the convention of
+the method's `self` (#191). -/
 def requireInPlace (f : Name) (args : List Expr) : CheckM Unit := do
   if let (true, .place p :: _) := (inPlaceCallee f, args) then requireMutable p
 
-/-- Rejects an assignment to the subscript `p` of a struct that declares
-`__getitem__` but not `__setitem__`: the subscript is the value that the
-getter gives, which may not change, as the compiler reports it (#191). -/
-def rejectValueSubscript (prog : Program) (p : Place) : CheckM Unit := do
-  if let .index q _ := p then
+/-- The call of the getter that the subscript `p` reads, when `p` is one of
+a struct that declares `__getitem__` but not `__setitem__`. The subscript
+is the value that the getter gives, which may not change: the compiler
+rejects an assignment to it once it has checked the call, before the
+value assigned (#191). -/
+def valueSubscript (prog : Program) (p : Place) : CheckM (Option Expr) := do
+  if let .index q i := p then
     if let .struct s ← placeTy prog q then
       if (findStruct prog s).any fun sd =>
           (findMethod sd "__getitem__").isSome && (findMethod sd "__setitem__").isNone then
-        throw (CheckError.immutablePlace p)
+        return some (.call (methodCallee s "__getitem__") [.place q, i])
+  pure none
 
 /-- Rejects a call of `f` when a variable in scope of that name hides the
 function, `len`, `range`, `print` or the struct `f`, and its type has no

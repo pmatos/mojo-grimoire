@@ -19,7 +19,7 @@ then. So inference puts `e` in its stead, unless `e` is made only of
 literals and operators: that literal stays, typed `Int`, since Mojo does
 not compute an index that holds it when it compiles the program. Passed
 `mut` or `ref`, the literal is a temporary, so it stays too
-(`keepTemporaries`), and a function that returns a reference expects no
+(`inferArg`), and a function that returns a reference expects no
 `Int` of what it returns, which must be a place. A literal of any other
 length where an `Int` is expected is typed `Int` too, and so is each of
 its elements, as SIMD's initializer takes them; the checker rejects it
@@ -73,11 +73,6 @@ def openLiteralTy : Ty → Ty
 /-- The type that the elements of a literal of type `t` are expected to
 have. -/
 def elemExpected (t : Ty) : Ty := (elemOf t).toOption.getD .noneType
-
-/-- The types of the parameters of the signature `sig`, when there is one,
-which the arguments of a call are expected to have. -/
-def paramTys (sig : Option Signature) : List Ty :=
-  sig.elim [] (·.params.map (·.ty))
 
 /-- The type of a call of `f` with no signature: a struct's, even when it
 cannot be built, so that the checker reports why; `len`'s `Int`; and
@@ -173,12 +168,10 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
       (.call (methodCallee s m reflected) [a', b'], some fd.result)
     | none =>
     let (a', ta) := if a matches .list .. then
-        inferExpr prog env (if tb₀ == some .int && op != .and && op != .or then .int
-          else .noneType) a
+        inferExpr prog env (if tb₀ == some .int then .int else .noneType) a
       else (a₀, ta₀)
     let b' := if b matches .list .. then
-        (inferExpr prog env (if ta == some .int && op != .and && op != .or then .int
-          else .noneType) b).1
+        (inferExpr prog env (if ta == some .int then .int else .noneType) b).1
       else b₀
     (.binary op a' b', some (binaryResult op))
   | .list t es =>

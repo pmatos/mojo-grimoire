@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Self in methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8884690138802357217")
+:::moduleDocs (fingerprint := "12838982697941082199")
 :::
 
-:::readable MojoGrimoire.Parse.Ty.withSelf MojoGrimoire.Parse.Place.withSelf MojoGrimoire.Parse.Expr.withSelf MojoGrimoire.Parse.Expr.listWithSelf MojoGrimoire.Parse.Stmt.withSelf MojoGrimoire.Parse.Stmt.blockWithSelf (fingerprint := "1496505879312861720")
+:::readable MojoGrimoire.Parse.Ty.withSelf MojoGrimoire.Parse.Place.withSelf MojoGrimoire.Parse.Expr.withSelf MojoGrimoire.Parse.Expr.listWithSelf MojoGrimoire.Parse.Stmt.withSelf MojoGrimoire.Parse.Stmt.blockWithSelf (fingerprint := "5992785048700484030")
 *Definition: replacing Self.* `Self` is replaced by the struct $`S` in a
 type, also inside a list or an array type, and in every type that a
 place, an expression or a statement holds: the type of a declared

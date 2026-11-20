@@ -23,7 +23,8 @@ else. These choices hold:
   ([semantics-operators.md](semantics-operators.md), #191); `print(...)`
   on a line of its own is the print statement, or a call of a variable
   named `print`; docstrings are skipped. Inside a struct's methods, `Self`
-  is the struct.
+  is the struct, also as the constructor `Self(…)`; not yet as a field's
+  type (#203).
 - `^` after a term is binary XOR, as in the compiler's postfix loop
   (`ParserExprs.cpp`), when the next token can start an expression
   (`isPrimaryExprStart`), is not `.`, and lies in the same statement. XOR is

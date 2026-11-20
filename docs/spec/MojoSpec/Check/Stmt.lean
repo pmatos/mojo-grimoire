@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6745003431893660700")
+:::moduleDocs (fingerprint := "13155760122894128179")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -133,7 +133,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "8199366765924228578")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "14734628613027596053")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
@@ -144,9 +144,9 @@ an expression, so a place is copied implicitly.
   compiler does (#123);
 * $`\mathsf{ref}~x = e` binds $`x` to a reference, as the next section
   says; $`x` may not hide a variable in scope either;
-* $`p = e` checks $`e` first, then the indices of $`p`, then rejects a
-  subscript of a struct that has a getter and no setter
-  (`rejectValueSubscript`, #191), then needs $`p` of $`e`'s type, then that $`e` does not build its result into $`p`
+* $`p = e` rejects a subscript of a struct that has a getter and no
+  setter once its getter call is checked (`valueSubscript`, #191); else
+  it checks $`e` first, then the indices of $`p`, then needs $`p` of $`e`'s type, then that $`e` does not build its result into $`p`
   while changing the list that holds it, then needs a place the function may change; $`p` is changed as a
   whole, its old value ends, and $`p` is initialized. The old value may
   not end, as at the end of a variable, with the parts of $`p` taken as

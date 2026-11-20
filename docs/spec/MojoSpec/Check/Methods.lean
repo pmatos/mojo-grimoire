@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5145328346489251669")
+:::moduleDocs (fingerprint := "16749364441113177494")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -120,14 +120,15 @@ the call one of the method (#191).
 *Rule: an in-place operator on a struct.* A call of a struct's
 `__iadd__`, `__isub__` or `__imul__`, which inference makes of
 $`p \mathrel{+}= e`, $`p \mathrel{-}= e` or $`p \mathrel{\times}= e`,
-needs a receiver $`p` that may change, once the arguments are checked,
-whatever the convention of the method's `self`: `immutablePlace`
-otherwise, as the compiler reports it (#191).
+needs a receiver $`p` that may change, before the method is looked up and
+its arguments checked, whatever the convention of the method's `self`:
+`immutablePlace` otherwise, as the compiler reports it (#191).
 :::
 
-:::readable MojoGrimoire.Check.rejectValueSubscript (fingerprint := "5025898597801913121")
+:::readable MojoGrimoire.Check.valueSubscript (fingerprint := "7094260322137169490")
 *Rule: assigning a subscript that is a value.* $`q[i] = e`, where $`q`
 is a struct that declares `__getitem__` and not `__setitem__`, assigns
-the value that the getter gives, which may not change: `immutablePlace`
-(#191).
+the value that the getter gives, which may not change: once the call
+of the getter $`q[i]` is checked, before $`e`, `immutablePlace`, as the
+compiler reports it (#191).
 :::

@@ -270,13 +270,15 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let (t, origins, m) ← refTarget prog e
     modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
+    if let some g ← valueSubscript prog p then
+      let _ ← checkExpr prog g
+      throw (CheckError.immutablePlace p)
     let t ← if e matches .list .noneType _ || (wrongIntLiteral e).isSome then do
         let u ← placeTy prog p
         checkInitValue prog u e (checkExpr prog e)
         pure u
       else checkExpr prog e
     checkIndices prog p
-    rejectValueSubscript prog p
     expect (← placeTy prog p) t
     checkConstructed prog p e
     requireMutable p

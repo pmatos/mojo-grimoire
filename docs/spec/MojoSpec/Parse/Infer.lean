@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12733262192914515240")
+:::moduleDocs (fingerprint := "7596071823711709946")
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv (fingerprint := "8803222123172763763")
@@ -30,7 +30,7 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "5694553665115527662")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "6958775715477405588")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
@@ -92,7 +92,7 @@ value, wherever $`p` is: also an element of a list or an array, or a field
 of one.
 :::
 
-:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.paramTys MojoGrimoire.Parse.unsignedResult (fingerprint := "18258247691432712068")
+:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.unsignedResult (fingerprint := "4286700661354665780")
 *Definition: expected types.* A literal expected to have a list type or an
 array type has that type, which the checker compares with its elements;
 otherwise its elements decide. Its elements are expected to have its

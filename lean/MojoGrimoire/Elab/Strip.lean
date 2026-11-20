@@ -105,7 +105,8 @@ theorem stripExpr_elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Pla
     simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
   | .binary op a b =>
     simp only [elabExpr]
-    split <;> simp [stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
+    split <;> simp [stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr] <;> split <;>
+      simp [stripExpr, stripExpr_elabExpr]
   | .unary op a => simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
   | .list t es =>
     simp only [elabExpr]
@@ -116,12 +117,15 @@ theorem stripExpr_elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Pla
     simp [elabExpr]
 
 /-- Elaborating operands only inserts drops. -/
-theorem stripExprs_elabOps (ctx : Ctx) (es : List Expr) (after : List Place) :
-    stripExprs (elabOps ctx es after) = stripExprs es := by
+theorem stripExprs_elabOps (ctx : Ctx) (es : List Expr) (after held : List Place) :
+    stripExprs (elabOps ctx es after held) = stripExprs es := by
   match es with
   | [] => simp [elabOps, stripExprs]
   | e :: rest =>
-    simp [elabOps, stripExprs, stripExpr_elabExpr, stripExprs_elabOps ctx rest after]
+    simp only [elabOps]
+    split
+    · simp [stripExprs, stripExpr_elabExpr, stripExprs_elabOps ctx rest after]
+    · simp [stripExprs, stripExpr_elabExpr, stripExprs_elabOps ctx rest after held]
 end
 
 /-- Elaborating the operands of `print` only inserts drops. -/

@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5966986195970681764")
+:::moduleDocs (fingerprint := "10153007699324752309")
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalValue MojoGrimoire.Interp.evalGetter MojoGrimoire.Interp.loadOperand MojoGrimoire.Interp.loadArgs MojoGrimoire.Interp.evalLogic MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.evalPassed MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "16596576710604272336")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalValue MojoGrimoire.Interp.evalGetter MojoGrimoire.Interp.loadOperand MojoGrimoire.Interp.loadArgs MojoGrimoire.Interp.evalLogic MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.evalPassed MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "4648917178911872789")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -40,7 +40,10 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   operands of a struct type they call its `__bool__` on the left one, by
   reference, and give the one that decides: the left one copied, or moved
   out of its temporary, which is destroyed when the right one decides
-  (#191).
+  (#191). Under $`\mathsf{drops}(e; p^*; q^*)`, the values in $`p^*`,
+  which the left operand last uses, are destroyed once it is tested,
+  after those in $`q^*` when it decides; the right operand destroys what
+  it uses itself when it runs.
   The operands of an operator, the elements of a list literal and the
   values printed are evaluated left to right, and those that are places,
   or calls that return a reference, are read after the last one is

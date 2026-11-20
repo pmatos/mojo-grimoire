@@ -52,6 +52,14 @@ inductive Pending where
   | temp (o : Operand)
 end
 
+/-- The getter, its arguments and its drops, of the operand `e` when it is
+a subscript read late (`MojoGrimoire.Check.lateGetter`). -/
+def lateCall (prog : Program) : Expr → Option (Name × List Expr × List Place × List Place)
+  | .call f args => if lateGetter prog f then some (f, args, [], []) else none
+  | .withDrops (.call f args) pre post =>
+    if lateGetter prog f then some (f, args, pre, post) else none
+  | _ => none
+
 /-- The variables a function starts with: its parameters bound to the
 arguments, each owned when it is passed `var`. The temporaries are given
 locations of their own. -/
@@ -100,8 +108,10 @@ def listMethodOn (r : Ref) (m : Name) (vs : List Value) : EvalM Result := do
     pure (.value v)
   | _, _ => stuck s!"unknown list method {m}"
 
-/-- The list that the standard library's `range` gives for the arguments
-`args`, its `Int`s read by value, with `fuel` the fuel left at the call. -/
+/-- The list that the standard library's `range`, which only `List[u](…)`
+takes (#121), gives for the arguments `args`, its `Int`s read by value as
+a call reads `read` arguments. The fuel left at the call, `fuel`, bounds
+its length: a longer range runs out of fuel before the list is built. -/
 def rangeOf (fuel : Nat) (args : List Arg) : EvalM Value := do
   let ks ← args.mapM fun
     | .value v | .temp v => asInt v

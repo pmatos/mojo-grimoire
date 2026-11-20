@@ -1,0 +1,24 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "rd 1",
+    "get 1 0",
+    "del W 1",
+    "get 2 1",
+    "del W 2",
+    "3",
+    "get 3 0",
+    "del W 3",
+    "get 4 1",
+    "del W 4",
+    "del W 7",
+    "15",
+    "get 5 0",
+    "del W 5",
+    "del W 6",
+    "11",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

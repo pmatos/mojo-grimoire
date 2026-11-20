@@ -1,4 +1,4 @@
-import MojoGrimoire.Elab.Origins
+import MojoGrimoire.Elab.Late
 
 /-!
 ASAP elaboration: the insertion of an explicit `drop` wherever Mojo destroys
@@ -32,9 +32,10 @@ value, it uses them until the operation's operands are read, since Mojo
 reads the reference only then, and those that die then are destroyed the
 last declared first. The value of a `return` uses them until it is read.
 A subscript of a struct that Mojo reads late (#191) uses the places among
-its getter's arguments as a place operand read by value does: they live
-until the operands are read, when the getter is called, and under `print`
-they die right after the getter, before `print` writes.
+its getter's arguments: they live until the operands are read, when the
+getter is called, and a getter that returns a value destroys what it last
+uses right after it (`MojoGrimoire.Elab.Late`), also under `print`,
+before `print` writes.
 Inside `__deinit__(deinit self)`, each field of `self` is destroyed on its own,
 at the same points, so a field the body never uses is destroyed before the
 body runs.
@@ -133,19 +134,12 @@ def consumedList (ctx : Ctx) : List Expr → List Place
   | e :: es => union (consumedIn ctx e) (consumedList ctx es)
 end
 
-/-- The slots that the places among the arguments `args` use where they
-are, with those of their indices. -/
-def placeSlots (sl : Slots) : List Expr → List Place
-  | [] => []
-  | .place p :: es => union (union (sl.of p) (indexUses sl p)) (placeSlots sl es)
-  | _ :: es => placeSlots sl es
-
-/-- Whether `e` is a subscript that Mojo reads late, a call of a getter
-that it makes when it reads the operand (`MojoGrimoire.Check.lateGetter`). -/
-def isGetter (prog : Program) (e : Expr) : Bool :=
-  match e with
-  | .call f _ => lateGetter prog f
-  | _ => false
+/-- The slots that the operand `e`, neither a place, a literal of type
+`Int` nor a subscript read late, uses directly, with whether it is passed
+by value `m` (`directOf`). -/
+def locOperand (ctx : Ctx) (e : Expr) (m : Bool) : List Place × Bool :=
+  let ls := locSlots ctx.prog ctx.sl ctx.env e
+  (if m then ctx.owned.filter (ls.contains ·) else ls, m)
 
 /-- The slots that the operand `e` uses directly, with whether it is passed
 by value `m`. A literal `[e]` of type `Int` uses those of `e`, read by
@@ -156,23 +150,34 @@ by reference, they live until the operation is done; passed by value, until
 the operands are read, since Mojo reads the reference then, and those the
 function owns die then in the order of `owned`. A subscript that Mojo
 reads late uses the places among its getter's arguments, read by value:
-the getter is called once the operands are read. -/
+the getter is called once the operands are read; a getter that returns a
+reference uses them as the operand is passed, as a call that returns one
+does. -/
 def directOf (ctx : Ctx) (e : Expr) (m : Bool) : List Place × Bool :=
   match e with
   | .place p => (union (ctx.sl.of p) (indexUses ctx.sl p), m)
   | .list .int [x] => directOf ctx x true
   | e =>
-    if let .call _ args := e then if isGetter ctx.prog e then (placeSlots ctx.sl args, true) else
-      let ls := locSlots ctx.prog ctx.sl ctx.env e
-      (if m then ctx.owned.filter (ls.contains ·) else ls, m)
-    else
-      let ls := locSlots ctx.prog ctx.sl ctx.env e
-      (if m then ctx.owned.filter (ls.contains ·) else ls, m)
+    match e with
+    | .call f args =>
+      if lateGetter ctx.prog f then
+        (placeSlots ctx.prog ctx.sl args, m || !(callSig ctx.prog f).toOption.any (·.origin.isSome))
+      else locOperand ctx e m
+    | e => locOperand ctx e m
 
-/-- The direct uses of the operands `es`, passed by value as `ms` says. -/
+/-- The direct uses of the operands `es`, passed by value as `ms` says. A
+subscript read late that gives a value has none: its getter destroys what
+it last uses (`lateValue`). -/
 def directArgs (ctx : Ctx) : List Expr → List Bool → List (List Place × Bool)
   | [], _ => []
-  | e :: es, ms => directOf ctx e (ms.headD false) :: directArgs ctx es ms.tail
+  | e :: es, ms =>
+    (if lateValue ctx.prog e then ([], true) else directOf ctx e (ms.headD false)) ::
+      directArgs ctx es ms.tail
+
+/-- The slots that the operands `es`, read by reference, use directly. -/
+def placeUses (ctx : Ctx) : List Expr → List Place
+  | [] => []
+  | e :: es => union (directOf ctx e false).1 (placeUses ctx es)
 
 /-- The values that an operation destroys, given the direct uses of its
 operands, `direct`, and the slots live once it is done, `after`: those read
@@ -194,57 +199,6 @@ def withDropsOf (e : Expr) (pre post : List Place) : Expr :=
   if pre.isEmpty && post.isEmpty then e else .withDrops e pre post
 
 mutual
-/-- Elaborates the expression `e`, given the slots live once it is
-evaluated, `after`: each operation in it destroys the values whose last use
-it is, and a place is left as it is, for the operation or the statement
-that uses it. At the top of a statement, `top`, an operation leaves what
-dies once it is done to the statement, which destroys it with the
-statement's other values. The right operand of `and` and `or` may not run,
-so the operation destroys what it uses. -/
-def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Expr :=
-  match e with
-  | .call f args =>
-    let d := opDrops ctx.owned (directArgs ctx args (callModes ctx.prog f)) after
-    withDropsOf (.call f (elabOps ctx args d.2.2)) d.1 (if top then [] else d.2.1)
-  | .method p m args =>
-    let ms := methodModes ctx.prog ctx.env p m args.length
-    let d := opDrops ctx.owned (directOf ctx (.place p) ms.1 :: directArgs ctx args ms.2)
-      after
-    let gone := consumedSlot ctx p m args.length
-    withDropsOf (.method p m (elabOps ctx args d.2.2)) (diff d.1 gone)
-      (if top then [] else diff d.2.1 gone)
-  | .binary op a b =>
-    if op == .and || op == .or then
-      let d := opDrops ctx.owned [directOf ctx a true, (uses ctx.sl b, false)] after
-      withDropsOf (.binary op (elabExpr ctx false a d.2.2) b) d.1 (if top then [] else d.2.1)
-    else
-      let d := opDrops ctx.owned (directArgs ctx [a, b] [true, true]) after
-      withDropsOf (.binary op (elabExpr ctx false a (union d.2.2 (uses ctx.sl b)))
-        (elabExpr ctx false b d.2.2)) d.1 (if top then [] else d.2.1)
-  | .unary op a =>
-    let d := opDrops ctx.owned [directOf ctx a true] after
-    withDropsOf (.unary op (elabExpr ctx false a d.2.2)) d.1 (if top then [] else d.2.1)
-  | .list t es =>
-    if t == .int then .list t (elabOps ctx es after) else
-    let d := opDrops ctx.owned (directArgs ctx es (es.map fun _ => true)) after
-    withDropsOf (.list t (elabOps ctx es d.2.2)) d.1 (if top then [] else d.2.1)
-  | .listInit u es =>
-    let d := opDrops ctx.owned (directArgs ctx es []) after
-    withDropsOf (.listInit u (elabOps ctx es d.2.2)) d.1 (if top then [] else d.2.1)
-  | .copy p =>
-    let d := opDrops ctx.owned [directOf ctx (.place p) false] after
-    withDropsOf (.copy p) d.1 (if top then [] else d.2.1)
-  | e => e
-
-/-- Elaborates the operands `es`, evaluated in order, given the slots live
-once the last is evaluated. -/
-def elabOps (ctx : Ctx) (es : List Expr) (after : List Place) : List Expr :=
-  match es with
-  | [] => []
-  | e :: rest => elabExpr ctx false e (union after (usesList ctx.sl rest)) :: elabOps ctx rest after
-end
-
-mutual
 /-- The slots that the elaborated expression `e` destroys. -/
 def droppedIn : Expr → List Place
   | .withDrops e pre post => pre ++ post ++ droppedIn e
@@ -259,15 +213,79 @@ def droppedList : List Expr → List Place
   | e :: es => droppedIn e ++ droppedList es
 end
 
+mutual
+/-- Elaborates the expression `e`, given the slots live once it is
+evaluated, `after`: each operation in it destroys the values whose last use
+it is, and a place is left as it is, for the operation or the statement
+that uses it. At the top of a statement, `top`, an operation leaves what
+dies once it is done to the statement, which destroys it with the
+statement's other values. The right operand of `and` and `or` may not run:
+it destroys what it uses once it is read when it runs, and the operation
+when it does not, before what the left one last uses, which dies once it
+is tested. -/
+def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Expr :=
+  match e with
+  | .call f args =>
+    let d := opDrops ctx.owned (directArgs ctx args (callModes ctx.prog f)) after
+    withDropsOf (.call f (elabOps ctx args d.2.2 [])) d.1 (if top then [] else d.2.1)
+  | .method p m args =>
+    let ms := methodModes ctx.prog ctx.env p m args.length
+    let d := opDrops ctx.owned (directOf ctx (.place p) ms.1 :: directArgs ctx args ms.2)
+      after
+    let gone := consumedSlot ctx p m args.length
+    withDropsOf (.method p m (elabOps ctx args d.2.2 [])) (diff d.1 gone)
+      (if top then [] else diff d.2.1 gone)
+  | .binary op a b =>
+    if op == .and || op == .or then
+      let d := opDrops ctx.owned [directOf ctx a true, (uses ctx.sl b, false)] after
+      let b' := elabExpr ctx false b (union after (directOf ctx b true).1)
+      let rest := diff d.2.1 (droppedIn b')
+      let b'' := if rest.isEmpty then b' else .withDrops (.withDrops b' [] []) [] rest
+      withDropsOf (.binary op (elabExpr ctx false a d.2.2) b'') d.1 d.2.1
+    else
+      let d := opDrops ctx.owned (directArgs ctx [a, b] [true, true]) after
+      let late := lateValue ctx.prog
+      let a' := elabExpr ctx false a (union d.2.2
+        (if late a then placeUses ctx ([b].filter late) else uses ctx.sl b))
+      let b' := elabExpr ctx false b
+        (if late a && !late b then union d.2.2 (placeUses ctx [a]) else d.2.2)
+      withDropsOf (.binary op a' b') d.1 (if top then [] else d.2.1)
+  | .unary op a =>
+    let d := opDrops ctx.owned (directArgs ctx [a] [true]) after
+    withDropsOf (.unary op (elabExpr ctx false a d.2.2)) d.1 (if top then [] else d.2.1)
+  | .list t es =>
+    if t == .int then .list t (elabOps ctx es after []) else
+    let d := opDrops ctx.owned (directArgs ctx es (es.map fun _ => true)) after
+    withDropsOf (.list t (elabOps ctx es d.2.2 [])) d.1 (if top then [] else d.2.1)
+  | .listInit u es =>
+    let d := opDrops ctx.owned (directArgs ctx es []) after
+    withDropsOf (.listInit u (elabOps ctx es d.2.2 [])) d.1 (if top then [] else d.2.1)
+  | .copy p =>
+    let d := opDrops ctx.owned [directOf ctx (.place p) false] after
+    withDropsOf (.copy p) d.1 (if top then [] else d.2.1)
+  | e => e
+
+/-- Elaborates the operands `es`, evaluated in order, given the slots live
+once they are read, `after`, and those that the subscripts read late
+before them use, `held`. Each is evaluated while those and what the
+operands after it use live; a subscript read late that gives a value is
+read later, while what those after it use lives. -/
+def elabOps (ctx : Ctx) (es : List Expr) (after held : List Place) : List Expr :=
+  match es with
+  | [] => []
+  | e :: rest =>
+    if lateValue ctx.prog e then
+      elabExpr ctx false e (union after (placeUses ctx (rest.filter (lateValue ctx.prog)))) ::
+        elabOps ctx rest after (union held (placeUses ctx [e]))
+    else
+      elabExpr ctx false e (union (union after held) (usesList ctx.sl rest)) ::
+        elabOps ctx rest after held
+end
+
 /-- The slots that the elaborated optional expression `e` destroys. -/
 def droppedOpt : Option Expr → List Place
   | some e => droppedIn e
   | none => []
-
-/-- The slots that the operands `es`, read by reference, use directly. -/
-def placeUses (ctx : Ctx) : List Expr → List Place
-  | [] => []
-  | e :: es => union (directOf ctx e false).1 (placeUses ctx es)
 
 /-- Elaborates the operands `es`, the last of the operands `args` of
 `print`, given the slots `atLoad` live once `print` has read them, but

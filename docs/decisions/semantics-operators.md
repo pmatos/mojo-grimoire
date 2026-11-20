@@ -42,31 +42,37 @@ is: `t < u` may give an `Int`.
   struct that is not `ImplicitlyCopyable` is `implicitCopy`; a
   temporary left operand is moved out when it decides, and destroyed when
   the right one does. The right operand is evaluated only when the left
-  one does not decide.
+  one does not decide. What the left operand last uses dies once it is
+  tested, before the right one runs; when the left one decides, what the
+  right one would have used dies first. `Bool` operands follow the same
+  order.
 - `p += e`, `p -= e` and `p *= e` on a struct call `__iadd__`, `__isub__`
   and `__imul__`, with no fallback to `__add__`: a struct that lacks the
   method is `missingMethod`. The destination must be a place that may
   change, whatever the convention of the method's `self`
-  (`immutablePlace`). On any other type, `p op= e` is `p = p op e`, with
-  no reflected method.
+  (`immutablePlace`), which the compiler checks before it looks the
+  method up or checks `e`. On any other type, `p op= e` is `p = p op e`,
+  with no reflected method.
 - A subscript `p[i]` read as a value calls `__getitem__`. When the struct
   also declares `__setitem__`, the subscript is a place: Mojo locates `p`
   and evaluates `i` in order, but calls the getter only when it reads the
   operand, once every operand of its operation is evaluated, so a later
-  operand that changes or moves `p` comes first, and what the getter last
-  uses dies right after it. With no setter it is a value, and the getter
-  is called in order. `p[i] = v` calls `__setitem__` when the struct
-  declares both, evaluating `i` before `v`; with a getter and no setter it
-  is `immutablePlace`.
+  operand that changes or moves `p` comes first. A getter that returns a
+  value destroys what it last uses right after it, in any operation; one
+  that returns a reference leaves that to the operation. With no setter
+  it is a value, and the getter is called in order. `p[i] = v` calls
+  `__setitem__` when the struct declares both, evaluating `i` before `v`;
+  with a getter and no setter it is `immutablePlace`, reported once the
+  getter call `p[i]` is checked and before `v` is.
 - A call `f(…)` of a variable or a parameter `f` whose struct declares
   `__call__` calls it. The variable hides a function, `len`, `range`,
   `print` or a struct of its name, also as `print(…)` on a line of its
   own; a variable whose type lacks `__call__` is `missingMethod`, as
   [semantics.md](semantics.md#the-static-checker) says.
 - Inside a struct's methods, `Self` is the struct, in the types of
-  parameters, results, variables and list literals. As the type of a field,
-  or outside a struct, it is left as the name of a struct that no program
-  declares.
+  parameters, results, variables and list literals, and `Self(…)` builds
+  it. As the type of a field, or outside a struct, it is left as the name
+  of a struct that no program declares (#203).
 
 ## What is not yet modelled
 
@@ -86,5 +92,7 @@ Each of these keeps the result the model gave before #191:
   receiver comes before an argument's type error in the model (#96), and
   a temporary receiver passed to `mut self` is `notAPlace` (#81).
 - The order in which a call's temporaries are destroyed (#199), an
-  in-place method whose result is not `None` (#200), and a missing argument
-  reported before a misfit of the others (#201).
+  in-place method whose result is not `None` (#200), a missing argument
+  reported before a misfit of the others (#201), and the destination of
+  `p op= e` on a type that is not a struct, which the model checks after
+  `e` (#204).

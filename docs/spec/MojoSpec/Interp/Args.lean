@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments and operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15727505674955514950")
+:::moduleDocs (fingerprint := "6185030518014435243")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "14136961392570647166")
@@ -37,6 +37,13 @@ and `__setitem__` is an operand of its own: its receiver is located and
 its index evaluated in order, and its getter is called, with the drops
 that elaboration gave it, when it is read (#191). A pending argument read
 into a temporary is passed to a borrowing parameter.
+:::
+
+:::readable MojoGrimoire.Interp.lateCall (fingerprint := "4828782437804165570")
+*Definition: the getter of an operand.* An operand that is a subscript
+read late is a call of its getter, wrapped or not with the drops that
+elaboration gave it (`lateGetter`, #191): the getter, its arguments and
+those drops.
 :::
 
 :::readable MojoGrimoire.Interp.asInt MojoGrimoire.Interp.asBool MojoGrimoire.Interp.lookupVar (fingerprint := "2000511689573242902")
