@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4666717261713819234")
+:::moduleDocs (fingerprint := "7859780482388519660")
 :::
 
 :::readable MojoGrimoire.Parse.foldable (fingerprint := "2964211985334498850")
@@ -24,7 +24,7 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "11532549498691655683")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "1452655154678513150")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
@@ -41,8 +41,9 @@ follows no signature and has no type, so that the checker rejects it
 a call whose operand is a struct that declares the method are calls of
 the method that `chooseBinary` and `declaredMethod` pick, with the type
 of its result; an
-operand that is a literal is expected to have the type of the method's
-parameter (#191). Any other call with no signature has no type. A literal left open takes the type expected where
+operand that is a literal is inferred as an argument of the method's
+other parameter, by `inferArg`, so that one passed `mut` or `ref` stays a
+temporary (#191). Any other call with no signature has no type. A literal left open takes the type expected where
 it stands, a list type or an array type, and the checker compares an
 array's size with the literal's length. With no list or array expected, it is
 an array of its elements, of the type of the first: Mojo's
@@ -98,9 +99,12 @@ with no signature has the type of a struct the program declares, `len`'s
 $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "11582520014983430849")
+:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "3442196247413703494")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
-and `ref x = e` binds $`x` with the type of $`e`. An initial value is
+and `ref x = e` binds $`x` with the type of $`e`; $`x` may change what
+it points to when $`e`, once inferred, may (`TyEnv.mutableAt`), so also
+when it is a call of a method or of `__call__` that returns a reference
+through a `mut` parameter (#191). An initial value is
 expected to have the declared type of its variable, an assigned value the
 type of the place it is assigned to, and a returned value the function's
 result. $`p \mathrel{\mathit{op}{=}} e` calls the in-place method of $`p`'s

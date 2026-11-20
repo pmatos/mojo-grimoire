@@ -7,7 +7,8 @@ function, method, initializer and destructor.
 A program is accepted when its names are declared once, its types are
 those it declares, no struct lies on a cycle of fields that the fixed compiler
 rejects, every function and method has parameters of the conventions its
-kind allows, every body is accepted, and it has a `main` that takes
+kind allows, every operator method that inference calls takes as many
+operands as its operator, every body is accepted, and it has a `main` that takes
 nothing and returns nothing. A rejection names the first error found, and
 where.
 -/
@@ -60,9 +61,23 @@ def checkFun (prog : Program) (fd : FunDecl) : Except CheckError Unit := do
   checkConventions fd.name fd.params
   checkBody prog fd
 
-/-- Checks a method of the struct `s`: its first parameter is `self`, of the
+/-- The number of operands, `self` among them, that the operator method
+`m` takes, for the operator methods that inference calls (#191): two for
+a binary, reflected or in-place operator, one for `__neg__`. -/
+def operatorArity (m : Name) : Option Nat :=
+  if m == "__neg__" then some 1
+  else if ["__add__", "__sub__", "__mul__", "__floordiv__", "__mod__", "__lt__", "__le__",
+      "__gt__", "__ge__", "__eq__", "__ne__", "__radd__", "__rsub__", "__rmul__",
+      "__rfloordiv__", "__rmod__", "__iadd__", "__isub__", "__imul__"].contains m then some 2
+  else none
+
+/-- Checks a method of the struct `s`: an operator method takes as many
+operands as its operator, which the compiler checks when it parses the
+declaration (`operatorArity`); its first parameter is `self`, of the
 struct's type, with the convention `read`, `mut`, `var` or `ref`. -/
 def checkMethod (prog : Program) (s : Name) (fd : FunDecl) : Except CheckError Unit := do
+  if let some n := operatorArity fd.name then
+    unless fd.params.length == n do throw (.arityMismatch fd.name n fd.params.length)
   let some self := fd.params.head? | throw (.invalidSelf fd.name)
   unless self.name == "self" && self.ty == .struct s do throw (.invalidSelf fd.name)
   if self.conv == .out || self.conv == .deinit then throw (.invalidSelf fd.name)

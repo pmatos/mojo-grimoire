@@ -89,6 +89,14 @@ private def m (name ps r ret : String) : List String :=
     ["def g(t: T):", "    t += 1"]) == some (.rejected ⟨"g", .immutablePlace (.var "t")⟩)
 #guard rejects [["def __iadd__(mut self, o: Self):", "    pass"]] ["var t = T(1)", "t += t"]
   (.argumentExclusivity (.var "t"))
+-- An operator method takes as many operands as its operator.
+#guard runLines (withT [m "__add__" "" "Int" "1"] ["var t = T(1)", "print(t.n)"]) ==
+  some (.rejected ⟨"T.__add__", .arityMismatch "__add__" 2 1⟩)
+#guard runLines (withT [m "__neg__" ", k: Int" "Int" "1"] ["var t = T(1)", "print(t.n)"]) ==
+  some (.rejected ⟨"T.__neg__", .arityMismatch "__neg__" 1 2⟩)
+-- A literal passed `ref` to an operator method is a temporary.
+#guard prints [["def __add__(mut self, ref o: Int) -> Int:", "    self.n += 1", "    return o"]]
+  ["var t = T(2)", "print(t + [t.n])", "print(t.n)"] ["2", "3"]
 -- The destination may change, checked before the method is looked up.
 #guard runLines (withT [] ["g(T(1))"] ++ ["def g(t: T):", "    t += True"]) ==
   some (.rejected ⟨"g", .immutablePlace (.var "t")⟩)

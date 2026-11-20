@@ -44,10 +44,13 @@ variable's struct declares `__call__`.
 
 An operator, an in-place operator and a call whose operand is a struct
 that declares the method become calls of the method, as
-`MojoGrimoire.Parse.Dispatch` decides (#191); the operand that fits a
-parameter of the method is inferred against its type. Inference knows
-which variables may not change, so that a method whose `mut` parameter an
-operand cannot be passed to is not chosen.
+`MojoGrimoire.Parse.Dispatch` decides (#191); a literal operand is
+inferred as an argument of the method's other parameter (`inferArg`), so
+that one passed `mut` or `ref` stays a temporary. Inference knows which
+variables may not change, so that a method whose `mut` parameter an
+operand cannot be passed to is not chosen: a `ref` binding may change
+what it points to when its target, once inferred, may, such as a call of
+a method that returns a reference through a `mut` parameter.
 
 Inference also gives `p^` its meaning when `p` is an `Int` or a `Bool`.
 Mojo does not move such a value: it warns that the transfer has no effect,
@@ -149,9 +152,9 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
       (env.canPass prog a₀) (env.canPass prog b₀)
     with
     | some (s, fd, reflected) =>
-      let u := ((otherParam fd).map (·.ty)).getD .noneType
-      let a' := if a matches .list .. then (inferExpr prog env u a).1 else a₀
-      let b' := if b matches .list .. then (inferExpr prog env u b).1 else b₀
+      let prm := (otherParam fd).getD ⟨.read, "", .noneType⟩
+      let a' := if a matches .list .. then inferArg prog env prm a else a₀
+      let b' := if b matches .list .. then inferArg prog env prm b else b₀
       let m := if reflected then reflectedMethod op else binaryMethod op
       (.call (methodCallee s m reflected) [a', b'], some fd.result)
     | none =>
@@ -230,7 +233,7 @@ def inferStmt (prog : Program) (result : Ty) (env : TyEnv) : Stmt → Stmt × Ty
   | .refDecl x e =>
     let (e', t) := inferExpr prog env .noneType e
     (.refDecl x e', match t with
-      | some t => { env.push x t with fixed := if env.mutableAt prog e then env.fixed else x :: env.fixed }
+      | some t => { env.push x t with fixed := if env.mutableAt prog e' then env.fixed else x :: env.fixed }
       | none => env)
   | .assign p e =>
     let (p', t) := inferPlace prog env p

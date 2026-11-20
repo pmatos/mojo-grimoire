@@ -28,7 +28,10 @@ is: `t < u` may give an `Int`.
   it may change through, so `1 + t` on a read-only or temporary `t` whose
   `__radd__` takes `mut self` is the left operand's `noMatchingMethod`. A
   `ref` binding may change what it points to as the reference it is bound
-  to may. The reflected methods are `__radd__`, `__rsub__`, `__rmul__`,
+  to may, also when that is the result of an operator or of `__call__`,
+  which returns a reference through a `mut` parameter. A list literal
+  operand is passed to the method as a call passes it: to a `mut` or
+  `ref` parameter as a temporary, never as the place it holds. The reflected methods are `__radd__`, `__rsub__`, `__rmul__`,
   `__rfloordiv__` and `__rmod__` for arithmetic; `__gt__`, `__ge__`,
   `__lt__` and `__le__` for `<`, `<=`, `>` and `>=`; and `__eq__` and
   `__ne__` for themselves. The reflected method is tried whatever `a` is: an `Int`, a
@@ -42,6 +45,15 @@ is: `t < u` may give an `Int`.
   (`1 + t` is `noMatchingMethod`). `!=` never falls back to `__eq__`, nor
   any operator to another of the left operand's methods.
 - `-a` calls `__neg__`.
+- An operator method that inference calls must take as many operands,
+  `self` among them, as its operator: two for a binary, reflected or
+  in-place operator and one for `__neg__`. The compiler rejects such a
+  declaration when it parses it ("'__add__' requires 2 operands"), used or
+  not; the model rejects it as `arityMismatch`. Which class this message
+  maps to is not yet settled, so no pattern matches it and no suite
+  program pins it. The other operator methods that the compiler checks
+  in the same way, such as `__truediv__` or `__bool__`, are not yet
+  checked.
 - `p += e`, `p -= e` and `p *= e` on a struct call `__iadd__`, `__isub__`
   and `__imul__`, with no fallback to `__add__`: a struct that lacks the
   method is `missingMethod`. The destination must be a place that may
