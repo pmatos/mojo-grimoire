@@ -13,35 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11296488422048341989")
+:::moduleDocs (fingerprint := "5966986195970681764")
 :::
 
-:::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "14136961392570647166")
-*Definition: arguments.* A call receives each argument as a place, passed
-by reference to a `read`, `mut`, `ref` or `out` parameter; as a value,
-moved or copied into a `var` parameter, which the callee owns, or copied
-into a `read` parameter of type $`\mathsf{Int}` or $`\mathsf{Bool}`; or
-as a temporary, a value passed to a borrowing parameter, which the caller
-destroys after the call. The callee's parameters are bound to them, each
-value at a new location.
-:::
-
-:::readable MojoGrimoire.Interp.Operand MojoGrimoire.Interp.Operand.load MojoGrimoire.Interp.Pending MojoGrimoire.Interp.Pending.loadAll (fingerprint := "3189860708977689654")
-*Definition: operands read late.* An operand that is a place passed by
-value, or the reference that a call returns, is first only located; it is read once every operand of its
-operation has been evaluated, as Mojo does. A call's arguments wait in
-the same way: those passed by value are read when the call is made. An
-$`\mathsf{Int}` or a $`\mathsf{Bool}` passed to a `read` parameter is
-passed by value.
-:::
-
-:::readable MojoGrimoire.Interp.asInt MojoGrimoire.Interp.asBool MojoGrimoire.Interp.lookupVar (fingerprint := "2000511689573242902")
-*Definition: helpers.* An index is an $`\mathsf{Int}`, a condition a
-$`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
-stuck.
-:::
-
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "5594273983289960036")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalValue MojoGrimoire.Interp.evalGetter MojoGrimoire.Interp.loadOperand MojoGrimoire.Interp.loadArgs MojoGrimoire.Interp.evalLogic MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.evalPassed MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "16596576710604272336")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -61,12 +36,18 @@ unit at each step; with none left, the run stops with `outOfFuel`.
 - *Expressions.* Literals are values, and $`[e]_{\mathsf{Int}}` is the value
   of $`e`; a place is read, a transfer takes its value out, leaving its
   blank behind, and `.copy()` reads it. `and` and `or`
-  evaluate their right operand only when the left does not decide.
+  evaluate their right operand only when the left does not decide; on
+  operands of a struct type they call its `__bool__` on the left one, by
+  reference, and give the one that decides: the left one copied, or moved
+  out of its temporary, which is destroyed when the right one decides
+  (#191).
   The operands of an operator, the elements of a list literal and the
   values printed are evaluated left to right, and those that are places,
   or calls that return a reference, are read after the last one is
-  evaluated. The operand of a unary operator, `and` or `or` is read at
-  once.
+  evaluated; a subscript of a struct that is read late (`lateGetter`)
+  has its arguments evaluated then, and calls its getter, with its drops,
+  when it is read. The operand of a unary operator, `and` or `or` is read
+  at once.
   $`\mathsf{drops}(e; p^*; q^*)` evaluates $`e`, destroying the values in
   $`p^*` once a call's arguments are read, before it is made, and those in
   $`q^*` once $`e` is done; for an operation that is not a call, both once
@@ -82,14 +63,17 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   third argument gives it (#121).
 - *Calls.* A struct with `__init__` is built in a location holding the
   struct with blank fields, passed as `out self`; a `@fieldwise_init` struct from its
-  arguments. A function's arguments are evaluated left to right by their
+  arguments. A method callee $`S.m` runs the method $`m` of $`S` as a
+  function, its receiver first, its first two parameters swapped when it
+  is reflected (`findCallee`, #191). A function's arguments are evaluated left to right by their
   parameters' conventions, and those passed by value are read when the
   call is made; the reference that a call returns is passed by reference
   to a `read`, `mut` or `ref` parameter, except an $`\mathsf{Int}` or a
   $`\mathsf{Bool}` passed `read`, which is read when the call is made, as
   it is for a `var` parameter, and a literal $`[e]_{\mathsf{Int}}` passed
   to any other parameter is $`e` passed by value, read when the call is
-  made, into a temporary (#103); temporaries are
+  made, into a temporary (#103); a subscript read late is read when the
+  call is made, by value or into a temporary; temporaries are
   destroyed after the call. `append` adds a
   value at the end of a list, `pop()` removes the last element and gives
   it back, failing with $`\mathsf{indexOutOfBounds}` on an empty list,

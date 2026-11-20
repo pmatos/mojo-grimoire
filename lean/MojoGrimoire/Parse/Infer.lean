@@ -1,6 +1,4 @@
-import MojoGrimoire.Parse.Stmt
-import MojoGrimoire.Check.State
-import MojoGrimoire.Check.Operators
+import MojoGrimoire.Parse.Dispatch
 
 /-!
 Type inference for what the parser leaves open: the type of a variable
@@ -41,7 +39,15 @@ arguments. With one argument, `e`, Mojo takes it by `ref`, which borrows
 `range` that the program does not declare expects an `Int` of each of its
 arguments, as the standard library's `range` does (#121). A call of a name
 that a variable in scope hides follows no signature and has no type: the
-checker rejects it, once it has typed the arguments (#176).
+checker rejects it, once it has typed the arguments (#176), unless the
+variable's struct declares `__call__`.
+
+An operator, a subscript read or assigned, an in-place operator and a call
+whose operand is a struct that declares the method become calls of the
+method, as `MojoGrimoire.Parse.Dispatch` decides (#191); the operand that
+fits a parameter of the method is inferred against its type. A subscript
+passed `mut` or `ref`, bound with `ref` or returned as a reference stays
+a place, which the model does not yet read through a getter (#198).
 
 Inference also gives `p^` its meaning when `p` is an `Int` or a `Bool`.
 Mojo does not move such a value: it warns that the transfer has no effect,
@@ -92,17 +98,6 @@ def foldable : Expr → Bool
   | .list .int [a] => foldable a
   | _ => false
 
-/-- The arguments `args'` that inference gives for the arguments `args` of
-a call, passed to the parameters `params`. A literal `[e]` that inference
-replaced by `e` is a literal again when it is passed `mut` or `ref`: Mojo
-passes a temporary there, not the place or the reference `e` names. -/
-def keepTemporaries : List Param → List Expr → List Expr → List Expr
-  | prm :: prms, a :: as, e :: es =>
-    let replaced := (a matches .list ..) && !(e matches .list ..)
-    (if replaced && (prm.conv == .mutable || prm.conv == .ref) then .list .int [e] else e) ::
-      keepTemporaries prms as es
-  | _, _, es => es
-
 mutual
 /-- Infers inside the place `p`, and gives its type, if it has one. -/
 def inferPlace (prog : Program) (env : TyEnv) : Place → Place × Option Ty
@@ -114,6 +109,7 @@ def inferPlace (prog : Program) (env : TyEnv) : Place → Place × Option Ty
     let (p', t) := inferPlace prog env p
     (.index p' (inferExpr prog env .int i).1, t.bind fun t => (elemOf t).toOption)
   | .transferred p => let (p', t) := inferPlace prog env p; (.transferred p', t)
+  termination_by p => (sizeOf p, 0)
 
 /-- Infers inside the expression `e`, expected to have the type `exp`
 (`None` when nothing is expected), and gives its type, if it has one. -/
@@ -121,29 +117,61 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
   | .int k => (.int k, some .int)
   | .bool b => (.bool b, some .bool)
   | .str s => (.str s, some .str)
+  | .place (.index q i) =>
+    let (q', qt) := inferPlace prog env q
+    match declaredMethod prog qt "__getitem__" with
+    | some (s, fd) =>
+      let i' := (inferExpr prog env (((otherParam fd).map (·.ty)).getD .noneType) i).1
+      (.call (methodCallee s "__getitem__") [.place q', i'], some fd.result)
+    | none =>
+      (.place (.index q' (inferExpr prog env .int i).1), qt.bind fun t => (elemOf t).toOption)
   | .place p => let (p', t) := inferPlace prog env p; (.place p', t)
   | .transfer p =>
     let (p', t) := inferPlace prog env p
     if t.any Ty.byValue then (.place p', t) else (.transfer p', t)
   | .copy p => let (p', t) := inferPlace prog env p; (.copy p', t)
   | .call f args =>
-    let hidden := (env.lookup f).isSome
-    let sig := if hidden then none else (callSig prog f).toOption
-    let params := sig.elim
-      (if builtinRange prog f && !hidden then rangeParams args.length else []) (·.params)
-    let args' := (inferList prog env (params.map (·.ty)) args).map (·.1)
-    (.call f (keepTemporaries params args args'),
-      if hidden then none else sig.elim (unsignedResult prog f) (some ·.result))
+    match declaredMethod prog (env.lookup f) "__call__" with
+    | some (s, fd) =>
+      (.call (methodCallee s "__call__") (.place (.var f) :: inferArgs prog env fd.params.tail args),
+        some fd.result)
+    | none =>
+      let hidden := (env.lookup f).isSome
+      let sig := if hidden then none else (callSig prog f).toOption
+      let params := sig.elim
+        (if builtinRange prog f && !hidden then rangeParams args.length else []) (·.params)
+      (.call f (inferArgs prog env params args),
+        if hidden then none else sig.elim (unsignedResult prog f) (some ·.result))
   | .method p m args =>
     let (p', pt) := inferPlace prog env p
     let sig := pt.bind fun t => (methodSig prog t m args.length).toOption
-    let args' := (inferList prog env (paramTys sig) args).map (·.1)
-    (.method p' m (keepTemporaries (sig.elim [] (·.params)) args args'), sig.map (·.result))
+    (.method p' m (inferArgs prog env (sig.elim [] (·.params)) args), sig.map (·.result))
   | .unary op a =>
-    (.unary op (inferExpr prog env .noneType a).1, some (if op == .neg then .int else .bool))
+    let (a', ta) := inferExpr prog env .noneType a
+    match declaredMethod prog ta (unaryMethod op), op with
+    | some (s, fd), .neg => (.call (methodCallee s "__neg__") [a'], some fd.result)
+    | some (s, _), .not => (.unary .not (.call (methodCallee s "__bool__") [a']), some .bool)
+    | none, _ => (.unary op a', some (if op == .neg then .int else .bool))
   | .binary op a b =>
     let (a₀, ta₀) := if a matches .list .. then (a, none) else inferExpr prog env .noneType a
     let (b₀, tb₀) := if b matches .list .. then (b, none) else inferExpr prog env .noneType b
+    if op == .and || op == .or then
+      let (a', ta) := if a matches .list .. then inferExpr prog env .noneType a else (a₀, ta₀)
+      let (b', tb) := if b matches .list .. then inferExpr prog env .noneType b else (b₀, tb₀)
+      if ta == tb && ta matches some (.struct _) then (.binary op a' b', ta)
+      else (.binary op (toBool prog a' ta) (toBool prog b' tb), some .bool)
+    else
+    match chooseBinary prog op ta₀ tb₀
+      (fun prm => (if a matches .list .. then (inferExpr prog env prm.ty a).2 else ta₀) == some prm.ty)
+      (fun prm => (if b matches .list .. then (inferExpr prog env prm.ty b).2 else tb₀) == some prm.ty)
+    with
+    | some (s, fd, reflected) =>
+      let u := ((otherParam fd).map (·.ty)).getD .noneType
+      let a' := if a matches .list .. then (inferExpr prog env u a).1 else a₀
+      let b' := if b matches .list .. then (inferExpr prog env u b).1 else b₀
+      let m := if reflected then reflectedMethod op else binaryMethod op
+      (.call (methodCallee s m reflected) [a', b'], some fd.result)
+    | none =>
     let (a', ta) := if a matches .list .. then
         inferExpr prog env (if tb₀ == some .int && op != .and && op != .or then .int
           else .noneType) a
@@ -176,6 +204,32 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
   | .withDrops e pre post =>
     let (e', t) := inferExpr prog env exp e
     (.withDrops e' pre post, t)
+  termination_by e => (sizeOf e, 0)
+
+/-- Infers inside the arguments `args` of a call, passed to the parameters
+`params` in order, or with no type expected past their end. A place
+passed `mut` or `ref` stays a place: a subscript of a struct there is not
+read through its getter, which the model does not yet write back (#198).
+A literal `[e]` that inference replaced by `e` is a literal again when
+it is passed `mut` or `ref`: Mojo passes a temporary there, not the place
+or the reference `e` names. -/
+def inferArgs (prog : Program) (env : TyEnv) : List Param → List Expr → List Expr
+  | prm :: prms, a :: args => inferArg prog env prm a :: inferArgs prog env prms args
+  | [], args => (inferList prog env [] args).map (·.1)
+  | _ :: _, [] => []
+  termination_by _ args => (sizeOf args, 3)
+
+/-- Infers inside the argument `a` passed to the parameter `prm`
+(`inferArgs`). -/
+def inferArg (prog : Program) (env : TyEnv) (prm : Param) : Expr → Expr
+  | .place p =>
+    if prm.conv == .mutable || prm.conv == .ref then .place (inferPlace prog env p).1
+    else (inferExpr prog env prm.ty (.place p)).1
+  | a =>
+    let a' := (inferExpr prog env prm.ty a).1
+    if (prm.conv == .mutable || prm.conv == .ref) && (a matches .list ..) && !(a' matches .list ..)
+    then .list .int [a'] else a'
+  termination_by a => (sizeOf a, 1)
 
 /-- Infers inside each of the expressions `es`, expected to have the types
 `exps` in order, or `None` past their end. -/
@@ -183,7 +237,16 @@ def inferList (prog : Program) (env : TyEnv) (exps : List Ty) :
     List Expr → List (Expr × Option Ty)
   | [] => []
   | e :: es => inferExpr prog env (exps.headD .noneType) e :: inferList prog env exps.tail es
+  termination_by es => (sizeOf es, 2)
 end
+
+/-- Infers inside the expression `e`, expected to have the type `exp`, that
+a `ref` binds or a function that returns a reference returns: a place
+stays a place, so a subscript of a struct is not read through its getter. -/
+def inferTarget (prog : Program) (env : TyEnv) (exp : Ty) (e : Expr) : Expr × Option Ty :=
+  match e with
+  | .place p => let (p', t) := inferPlace prog env p; (.place p', t)
+  | e => inferExpr prog env exp e
 
 mutual
 /-- Infers inside the statement `s` of a function whose result type is
@@ -194,19 +257,48 @@ def inferStmt (prog : Program) (result : Ty) (env : TyEnv) : Stmt → Stmt × Ty
     let t' := if t == .noneType then ((init'.bind (·.2)).getD .noneType) else t
     (.decl x t' (init'.map (·.1)), (x, t') :: env)
   | .refDecl x e =>
-    let (e', t) := inferExpr prog env .noneType e
+    let (e', t) := inferTarget prog env .noneType e
     (.refDecl x e', match t with | some t => (x, t) :: env | none => env)
+  | .assign (.index q i) e =>
+    let (q', qt) := inferPlace prog env q
+    match declaredMethod prog qt "__getitem__", declaredMethod prog qt "__setitem__" with
+    | some _, some (s, fd) =>
+      (.expr (.call (methodCallee s "__setitem__") (.place q' :: inferArgs prog env fd.params.tail [i, e])),
+        env)
+    | _, _ =>
+      let (p', t) := inferPlace prog env (.index q i)
+      (.assign p' (inferExpr prog env (t.getD .noneType) e).1, env)
   | .assign p e =>
     let (p', t) := inferPlace prog env p
     (.assign p' (inferExpr prog env (t.getD .noneType) e).1, env)
+  | .expr (.call f [.place p, e]) =>
+    match augOps.find? (·.1 == f) with
+    | some (_, op) =>
+      let (p', t) := inferPlace prog env p
+      match t with
+      | some (.struct s) =>
+        let m := inPlaceMethod op
+        let prms := ((declaredMethod prog t m).map (·.2.params.tail)).getD []
+        (.expr (.call (methodCallee s m) (.place p' :: inferArgs prog env prms [e])), env)
+      | _ =>
+        let u := if t == some .int && e matches .list .. then .int else .noneType
+        (.assign p' (.binary op (.place p') (inferExpr prog env u e).1), env)
+    | none => (.expr (inferExpr prog env .noneType (.call f [.place p, e])).1, env)
   | .expr e => (.expr (inferExpr prog env .noneType e).1, env)
-  | .print args => (.print ((inferList prog env [] args).map (·.1)), env)
+  | .print args =>
+    match declaredMethod prog (env.lookup "print") "__call__" with
+    | some (s, fd) =>
+      (.expr (.call (methodCallee s "__call__") (.place (.var "print") :: inferArgs prog env fd.params.tail args)),
+        env)
+    | none => (.print ((inferList prog env [] args).map (·.1)), env)
   | .ifElse c a b =>
     (.ifElse (inferExpr prog env .noneType c).1 (inferBlock prog result env a)
       (inferBlock prog result env b), env)
   | .whileLoop c body =>
     (.whileLoop (inferExpr prog env .noneType c).1 (inferBlock prog result env body), env)
-  | .ret value => (.ret (value.map fun e => (inferExpr prog env result e).1), env)
+  | .ret value =>
+    (.ret (value.map fun e => (if result == .noneType then inferTarget prog env result e
+      else inferExpr prog env result e).1), env)
   | .pass => (.pass, env)
   | .drop p => (.drop p, env)
 
@@ -238,6 +330,6 @@ def inferProgram (prog : Program) : Program :=
 
 /-- Parses the text of a `.mojo` file into a program of the core calculus. -/
 def parse (source : String) : Except SyntaxError Program := do
-  pure (inferProgram (← parseRaw source))
+  pure (inferProgram (resolveSelf (← parseRaw source)))
 
 end MojoGrimoire.Parse

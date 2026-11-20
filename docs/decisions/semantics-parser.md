@@ -18,8 +18,12 @@ else. These choices hold:
   type. As in the compiler, `read` where a parameter starts, `imm` with no
   name after it, and `owned xs: T` are syntax errors, and `imm`, `read` and
   `owned` are names elsewhere (#68).
-- `p += e`, `-=` and `*=` are `p = p op e`; `print(...)` on a line of its
-  own is the print statement; docstrings are skipped.
+- `p += e`, `-=` and `*=` are `p = p op e`, or, when `p` is a struct, a
+  call of its `__iadd__`, `__isub__` or `__imul__`, as inference decides
+  ([semantics-operators.md](semantics-operators.md), #191); `print(...)`
+  on a line of its own is the print statement, or a call of a variable
+  named `print`; docstrings are skipped. Inside a struct's methods, `Self`
+  is the struct.
 - `^` after a term is binary XOR, as in the compiler's postfix loop
   (`ParserExprs.cpp`), when the next token can start an expression
   (`isPrimaryExprStart`), is not `.`, and lies in the same statement. XOR is

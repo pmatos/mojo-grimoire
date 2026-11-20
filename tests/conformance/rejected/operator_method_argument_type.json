@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "invalid call to '__add__': value passed to 'k' cannot be converted from 'Bool' to 'Int'"
+}

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9141360601481084344")
+:::moduleDocs (fingerprint := "3146091357321888730")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
@@ -30,21 +30,6 @@ compiler destroys values that die at once: its `var` parameters, then its
 local variables, each the last declared first; in `__deinit__`, the fields
 of `self` in their order. A slot the function does not own, such as a
 borrowed parameter, is never dropped.
-:::
-
-:::readable MojoGrimoire.Elab.defs MojoGrimoire.Elab.usesStmt MojoGrimoire.Elab.movesStmt MojoGrimoire.Elab.dying (fingerprint := "1628413221074025610")
-*Definition: what dies at a simple statement.* A declaration, `ref`
-binding, assignment, expression or `print` uses, moves and defines slots as its parts do; an
-assignment to a part of a slot, such as an element or a field, uses the
-slot that holds it, and one through a reference the slots it may point
-into. The
-slots that die right after it are those it uses but neither moves away nor
-destroys or consumes in its expressions, and those it defines, unless they
-are live after it. A value defined and never used dies right after its
-definition, even when the expression that gives it destroys or consumes
-the old value of the same slot, as `s = s^.consume()` does: what the
-expression destroys or consumes dies before the statement defines
-anything.
 :::
 
 :::readable MojoGrimoire.Elab.declared MojoGrimoire.Elab.declaredBlock (fingerprint := "17446437079533637378")
@@ -68,7 +53,7 @@ to a `var self`; the receiver's type, from the variables declared so far,
 gives the method.
 :::
 
-:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "12999806906914342393")
+:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.placeSlots MojoGrimoire.Elab.isGetter MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "17547371827791451558")
 *Definition: what an operation destroys.* Inside a function, elaboration
 knows the program, the slots, the slots the function owns in the order they
 die, and the types of the variables declared so far. An operation uses
@@ -79,7 +64,10 @@ a reference passed by reference points into, so that they outlive it:
 owned slots that such a call read by value points into, in the order of
 the owned slots, since Mojo reads the reference only once every operand
 is evaluated. A literal $`[e]_{\mathsf{Int}}` uses what $`e` uses, by
-value, since Mojo reads it as it reads $`e` (#103). Its other operands
+value, since Mojo reads it as it reads $`e` (#103). A subscript of a
+struct that Mojo reads late (`lateGetter`) uses the places among its
+getter's arguments, its receiver among them, by value, since the getter
+is called once the operands are read (#191). Its other operands
 are operations of their own. Given the slots live once it is done, the
 slots it uses by value and nowhere later die once its operands are read,
 in the order they are read; those it uses by reference and nowhere later
@@ -120,12 +108,25 @@ the variables after a statement, which a declaration or a `ref` binding
 extends.
 :::
 
-:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "6989357578241574068")
+:::readable MojoGrimoire.Elab.elabPrintOps MojoGrimoire.Elab.elabPrintArgs (fingerprint := "17988655151510765934")
+*Definition: the operands of print.* `print` reads its operands once every
+operand is evaluated, and a place operand lives until it is done: each
+operand is elaborated with the slots live after `print`, those of its
+place operands and those that the later operands use live after it. A
+subscript that Mojo reads late calls its getter when `print` reads it, so
+it is elaborated with only the slots live once `print` has read its
+operands, and those of the subscripts read after it: what its getter last
+uses dies right after the getter, before `print` writes, and every other
+operand keeps the getter's places alive until then (#191).
+:::
+
+:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "4884552132010760829")
 *Definition: elaboration.* Given the slots live after a statement:
 
 - a simple statement's expressions are elaborated, and the statement is
   followed by the drops of the slots that die at it, given what its
-  expressions destroy or consume;
+  expressions destroy or consume; the operands of `print` are elaborated
+  by `elabPrintArgs`;
 - the test of an `if` is elaborated with the slots live at the start of
   either branch live after it, and each branch starts with the drops of
   the slots live before the `if` that the test neither moves, destroys nor

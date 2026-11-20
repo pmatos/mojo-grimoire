@@ -49,6 +49,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       let fit := if (findStruct prog f).isSome then Fit.init (.struct f) else .call
       checkExclusive (← locationArgs prog params args)
       recheckLocs prog (← checkArgs prog fit f params args params.length args.length)
+      requireInPlace f args
       for q in ← changedArgs prog params args do changePlace prog q
       refResult prog asRef sig
     | .error err =>
@@ -59,6 +60,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
           | e => do checkExprAs prog (← locOf prog e).isSome e))
         pure .int
       | "len", _, .unknownFunction _ => throw (CheckError.arityMismatch f 1 args.length)
+      | _, _, .missingMethod .. => rejectAfter (typeArgs prog args) err
       | _, _, _ => throw err
   | .method p m args => do
     checkIndices prog p

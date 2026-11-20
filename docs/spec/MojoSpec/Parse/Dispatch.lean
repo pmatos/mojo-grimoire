@@ -1,0 +1,45 @@
+import VersoManual
+import MojoGrimoire.Parse.Dispatch
+import MojoSpecSite.ReadableElab
+
+open Verso.Genre Manual
+open MojoSpecSite
+
+/-!
+The readable blocks of the section that renders `MojoGrimoire.Parse.Dispatch`
+(ADR-2026-11-15-2030). Each block explains declarations of that module and
+pins their fingerprint; the build fails when the Lean changes under it.
+-/
+
+#doc (Manual) "Methods of operators on structs: readable blocks" =>
+
+:::moduleDocs (fingerprint := "11850075084399905065")
+:::
+
+:::readable MojoGrimoire.Parse.declaredMethod MojoGrimoire.Parse.reflectedMethod MojoGrimoire.Parse.inPlaceMethod MojoGrimoire.Parse.otherParam (fingerprint := "6011094076042802973")
+*Definition: the methods an operator may call.* A struct type declares a
+method by its name. The reflected method of a binary operator, called on
+its right operand, is `__radd__`, `__rsub__`, `__rmul__`,
+`__rfloordiv__` and `__rmod__` for $`+`, $`-`, $`\times`, `//` and `%`;
+`__gt__`, `__ge__`, `__lt__` and `__le__` for $`<`, $`\le`, $`>` and
+$`\ge`; and `__eq__` and `__ne__` for $`==` and $`!=`. The in-place
+method of $`p \mathrel{\mathit{op}{=}} e` is `__iadd__`, `__isub__` or
+`__imul__`. The parameter that takes a binary operator's other operand is
+the one after `self`, of a method that takes exactly one.
+:::
+
+:::readable MojoGrimoire.Parse.chooseBinary (fingerprint := "9438965039999460958")
+*Rule: the method of a binary operator.* $`a \mathbin{\mathit{op}} b`
+calls the method of $`a`'s struct that $`\mathit{op}` names when $`b`
+fits its parameter, else the reflected method of $`b`'s struct when $`a`
+fits its parameter, whatever $`a`'s type, its own included, else the
+method of $`a`'s struct, whose misfit the checker reports; with no
+method of $`a`'s struct and no reflected method that fits, the operator
+stays as it is (#191).
+:::
+
+:::readable MojoGrimoire.Parse.toBool (fingerprint := "6158316062790451282")
+*Definition: converting to a Bool.* An operand of $`\mathsf{not}`,
+$`\mathsf{and}` or $`\mathsf{or}` whose struct declares `__bool__` is the
+call of it.
+:::

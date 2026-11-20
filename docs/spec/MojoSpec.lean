@@ -122,6 +122,8 @@ with the compiler.
 
 {includeReadable "." MojoGrimoire.Interp.Machine "The machine" MojoSpec.Interp.Machine (level := 2)}
 
+{includeReadable "." MojoGrimoire.Interp.Args "Arguments and operands" MojoSpec.Interp.Args (level := 2)}
+
 {includeReadable "." MojoGrimoire.Interp.Eval "Evaluation" MojoSpec.Interp.Eval (level := 2)}
 
 {includeReadable "." MojoGrimoire.Interp.Run "Running a program" MojoSpec.Interp.Run (level := 2)}
@@ -141,6 +143,10 @@ line, as the compiler's `mojo run` does.
 {includeReadable "." MojoGrimoire.Parse.Expr "Expressions" MojoSpec.Parse.Expr (level := 2)}
 
 {includeReadable "." MojoGrimoire.Parse.Stmt "Statements and declarations" MojoSpec.Parse.Stmt (level := 2)}
+
+{includeReadable "." MojoGrimoire.Parse.SelfType "Self in methods" MojoSpec.Parse.SelfType (level := 2)}
+
+{includeReadable "." MojoGrimoire.Parse.Dispatch "Methods of operators on structs" MojoSpec.Parse.Dispatch (level := 2)}
 
 {includeReadable "." MojoGrimoire.Parse.Infer "Type inference" MojoSpec.Parse.Infer (level := 2)}
 

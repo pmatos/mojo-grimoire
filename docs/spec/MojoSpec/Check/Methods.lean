@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3964326805347762093")
+:::moduleDocs (fingerprint := "5145328346489251669")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -46,12 +46,14 @@ them, negation and arithmetic, has the type `IntLiteral`, whose operators
 have several overloads too.
 :::
 
-:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "16790746705646846013")
+:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "9964739256265238983")
 *Definition: the type of an operand from its form.* The type of an
 operand is found, without checking or reading it, from its form: a
 literal's, a place's type, the result of the function, struct or method
 it calls, an $`\mathsf{Int}` for the built-in `len` that nothing hides,
-the result of its operator, an array of its first element's type for a
+the result of its operator, or, for $`\mathsf{and}` and $`\mathsf{or}`
+on operands whose forms give the same struct type, that type (#191), an
+array of its first element's type for a
 literal with no type expected each of whose elements' forms gives that
 type (one whose element's form gives none, or another type, is left to
 checking), a list or an array literal's type, an $`\mathsf{Int}` for $`[e]` of type $`\mathsf{Int}`, and
@@ -68,7 +70,7 @@ $`\mathsf{or}`, so is a right operand whose type lacks `__bool__`, and
 for a unary operator its operand's (#176).
 :::
 
-:::readable MojoGrimoire.Check.methodCall (fingerprint := "3090070374288288694")
+:::readable MojoGrimoire.Check.methodCall (fingerprint := "2434875068271427949")
 *Rule: a method call.* A call $`p.m(e^*)` of a method of signature
 $`\mathit{sig}`, once the indices of $`p` are checked, takes the method's
 receiver by its convention: $`p` is passed as a place, or, when $`p` is
@@ -86,14 +88,16 @@ receiver and the arguments are checked again once all are read, the
 places the call changes are changed, and the call gives its result.
 :::
 
-:::readable MojoGrimoire.Check.methodBinaryTy MojoGrimoire.Check.methodUnaryTy (fingerprint := "5771276043216569838")
+:::readable MojoGrimoire.Check.methodBinaryTy MojoGrimoire.Check.methodUnaryTy (fingerprint := "17816068943956414072")
 *Rule: the result of an operator, once its operands are checked.* A
 method that an operand's type lacks is `missingMethod`, found again from
 the checked types; otherwise the operator's result is `binaryTy`'s or
-`unaryTy`'s.
+`unaryTy`'s, but $`\mathsf{and}` and $`\mathsf{or}` on operands of the
+same struct type give the operand that decides, of that type: each place
+operand was copied, implicitly (#191).
 :::
 
-:::readable MojoGrimoire.Check.rejectAfter MojoGrimoire.Check.rejectMisfit (fingerprint := "6081766398198932002")
+:::readable MojoGrimoire.Check.rejectAfter MojoGrimoire.Check.rejectMisfit (fingerprint := "12432135106144949690")
 *Rule: an error found from types.* An error found from the types of
 operands, before they are read, is reported once the operands are typed
 in `State.typing`: an error inside an operand, which the compiler finds as
@@ -108,6 +112,22 @@ call $`f(e^*)` where $`f` names one hides the function, `len`, `range`,
 `print` or the struct $`f`. A variable whose type has no `__call__` cannot be
 called: `missingMethod` of its type and `__call__`, once the arguments
 are typed, since the compiler types them first (#176). A variable whose
-type declares `__call__` is not yet modelled: the call goes on to the
-hidden callee (#191).
+struct type declares `__call__` never reaches this rule: inference makes
+the call one of the method (#191).
+:::
+
+:::readable MojoGrimoire.Check.requireInPlace (fingerprint := "2635740280216961138")
+*Rule: an in-place operator on a struct.* A call of a struct's
+`__iadd__`, `__isub__` or `__imul__`, which inference makes of
+$`p \mathrel{+}= e`, $`p \mathrel{-}= e` or $`p \mathrel{\times}= e`,
+needs a receiver $`p` that may change, once the arguments are checked,
+whatever the convention of the method's `self`: `immutablePlace`
+otherwise, as the compiler reports it (#191).
+:::
+
+:::readable MojoGrimoire.Check.rejectValueSubscript (fingerprint := "5025898597801913121")
+*Rule: assigning a subscript that is a value.* $`q[i] = e`, where $`q`
+is a struct that declares `__getitem__` and not `__setitem__`, assigns
+the value that the getter gives, which may not change: `immutablePlace`
+(#191).
 :::

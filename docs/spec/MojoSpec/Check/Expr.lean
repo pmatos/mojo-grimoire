@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15408078494773314849")
+:::moduleDocs (fingerprint := "6724861322772876891")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "3293089607273910573")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "17197954122786870435")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -33,7 +33,12 @@ type:
   whose `self` is `var` is not copied: once the arguments are checked and
   read again, $`q` is transferred. When a variable in scope has the name
   $`f` and its type has no `__call__`, the call is rejected by
-  `rejectCalledVar`, once its arguments are typed by `typeArgs` (#176);
+  `rejectCalledVar`, once its arguments are typed by `typeArgs` (#176).
+  A call of a method callee $`S.m`, which inference makes of an operator,
+  a subscript or a call on a struct (#191), passes its receiver as its
+  first argument; one of an in-place method needs a receiver that may
+  change (`requireInPlace`), and one whose struct lacks the method is
+  `missingMethod`, once its arguments are typed;
 * operators have the types above, but a method that an operand's type
   lacks is `missingMethod` (#176): found from the operands' types
   (`operandTy`, `binaryMisfit`, `unaryMisfit`) before they are read, once

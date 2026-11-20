@@ -1,0 +1,15 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "mk 2",
+    "pr 1",
+    "add 2",
+    "del T 2",
+    "3",
+    "del T 5",
+    "4",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

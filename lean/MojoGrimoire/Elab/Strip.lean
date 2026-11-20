@@ -124,6 +124,13 @@ theorem stripExprs_elabOps (ctx : Ctx) (es : List Expr) (after : List Place) :
     simp [elabOps, stripExprs, stripExpr_elabExpr, stripExprs_elabOps ctx rest after]
 end
 
+/-- Elaborating the operands of `print` only inserts drops. -/
+theorem stripExprs_elabPrintOps (ctx : Ctx) (args : List Expr) (atLoad : List Place)
+    (es : List Expr) : stripExprs (elabPrintOps ctx args atLoad es) = stripExprs es := by
+  induction es with
+  | nil => simp [elabPrintOps, stripExprs]
+  | cons e rest ih => simp [elabPrintOps, stripExprs, stripExpr_elabExpr, ih]
+
 /-- Elaborating the value of a `return` only inserts drops. -/
 theorem stripExpr_elabReturn (ctx : Ctx) (e : Expr) :
     stripExpr (elabReturn ctx e) = stripExpr e := by
@@ -150,7 +157,8 @@ theorem stripBlock_elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) :
   | .refDecl .. | .assign .. | .expr _ =>
     simp [elabStmt, stripBlock, stripStmt, stripBlock_drops, stripExpr_elabExpr]
   | .print _ =>
-    simp [elabStmt, stripBlock, stripStmt, stripBlock_drops, stripExprs_elabOps]
+    simp [elabStmt, elabPrintArgs, stripBlock, stripStmt, stripBlock_drops,
+      stripExprs_elabPrintOps]
 
 /-- Elaborating a block only inserts drops. -/
 theorem stripBlock_elabBlock (ctx : Ctx) (b : List Stmt) (after : List Place) :

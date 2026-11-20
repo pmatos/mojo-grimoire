@@ -5,9 +5,12 @@ The parsing of statements, blocks, functions, structs and programs.
 
 A block follows a `:`: either one simple statement on the same line, or
 statements on the lines after it, indented further. `elif` is an `if` in
-the `else` block. `print(…)` is a statement of its own, and `x += e` is
-`x = x + e`. A string literal on a line of its own, a docstring, is
-skipped.
+the `else` block. `print(…)` is a statement of its own, and `x += e`,
+`x -= e` and `x *= e` are calls of the callees `+=`, `-=` and `*=` with
+`x` and `e`, which inference replaces: by `x.__iadd__(e)` when `x` is a
+struct, and otherwise by `x = x + e`, `x = x - e` or `x = x * e` (#191).
+No name of a program is such a callee. A string literal on a line of its
+own, a docstring, is skipped.
 
 A struct's `self` parameters may be written without a type: the struct is
 their type. A struct's conformances say how it is copied:
@@ -21,6 +24,11 @@ open MojoGrimoire.Core
 
 /-- The augmented assignment operators. -/
 def augOps : List (String × BinOp) := [("+=", .add), ("-=", .sub), ("*=", .mul)]
+
+/-- The callee of the augmented assignment of the operator `op`, as the
+parser reads it, for inference to replace. -/
+def augCallee (op : BinOp) : Name :=
+  ((augOps.find? (·.2 == op)).map (·.1)).getD "+="
 
 /-- The statement that an expression on a line of its own stands for: a
 call of `print` is a `print` statement. -/
@@ -52,7 +60,7 @@ def simpleStmt (fuel : Nat) : P Stmt :=
       | .place lhs => do
         if ← acceptSym "=" then pure (.assign lhs (← expr n))
         else match ← acceptOp augOps with
-          | some op => pure (.assign lhs (.binary op (.place lhs) (← expr n)))
+          | some op => pure (.expr (.call (augCallee op) [.place lhs, ← expr n]))
           | none => pure (exprStmt (← exprTail n (.place lhs)))
 
 /-- Reads the rest of an expression whose first postfix chain is `e`. -/

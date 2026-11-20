@@ -31,6 +31,10 @@ into the same way, so they live until that operation is done; read by
 value, it uses them until the operation's operands are read, since Mojo
 reads the reference only then, and those that die then are destroyed the
 last declared first. The value of a `return` uses them until it is read.
+A subscript of a struct that Mojo reads late (#191) uses the places among
+its getter's arguments as a place operand read by value does: they live
+until the operands are read, when the getter is called, and under `print`
+they die right after the getter, before `print` writes.
 Inside `__deinit__(deinit self)`, each field of `self` is destroyed on its own,
 at the same points, so a field the body never uses is destroyed before the
 body runs.
@@ -61,41 +65,6 @@ slot that the function does not own, such as a borrowed parameter, is never
 dropped. -/
 def drops (owned d : List Place) : List Stmt :=
   (owned.filter (d.contains ·)).map .drop
-
-/-- The slots that the simple statement `s` defines: a declaration with an
-initial value, or an assignment to a whole slot. -/
-def defs (sl : Slots) : Stmt → List Place
-  | .decl x _ (some _) => [.var x]
-  | .assign p _ => if sl.isSlot p then [p] else []
-  | _ => []
-
-/-- The slots that the simple statement `s` uses. An assignment to a part of
-a slot uses the slot. -/
-def usesStmt (sl : Slots) : Stmt → List Place
-  | .decl _ _ init => usesOpt sl init
-  | .refDecl _ e => uses sl e
-  | .assign p e =>
-    if sl.isSlot p then uses sl e else union (uses sl e) (union (sl.of p) (indexUses sl p))
-  | .expr e => uses sl e
-  | .print args => usesList sl args
-  | _ => []
-
-/-- The slots that the simple statement `s` moves away whole. -/
-def movesStmt (sl : Slots) : Stmt → List Place
-  | .decl _ _ (some e) | .refDecl _ e | .expr e => moves sl e
-  | .assign p e => union (moves sl e) (indexMoves sl p)
-  | .print args => movesList sl args
-  | _ => []
-
-/-- The slots that die right after the simple statement `s`, given the
-slots `gone` that its expressions destroy or consume, and the slots `after`
-live after it: those it uses but neither moves away nor leaves in `gone`,
-and those it defines, unless they are live. `gone` holds values that die
-before `s` defines anything, so it never holds the value that `s` defines,
-even when an assignment destroys or consumes the old value of the slot it
-assigns. -/
-def dying (sl : Slots) (s : Stmt) (gone after : List Place) : List Place :=
-  diff (union (diff (usesStmt sl s) (union (movesStmt sl s) gone)) (defs sl s)) after
 
 mutual
 /-- The local variables whose values are dropped that the statement `s`
@@ -164,6 +133,20 @@ def consumedList (ctx : Ctx) : List Expr → List Place
   | e :: es => union (consumedIn ctx e) (consumedList ctx es)
 end
 
+/-- The slots that the places among the arguments `args` use where they
+are, with those of their indices. -/
+def placeSlots (sl : Slots) : List Expr → List Place
+  | [] => []
+  | .place p :: es => union (union (sl.of p) (indexUses sl p)) (placeSlots sl es)
+  | _ :: es => placeSlots sl es
+
+/-- Whether `e` is a subscript that Mojo reads late, a call of a getter
+that it makes when it reads the operand (`MojoGrimoire.Check.lateGetter`). -/
+def isGetter (prog : Program) (e : Expr) : Bool :=
+  match e with
+  | .call f _ => lateGetter prog f
+  | _ => false
+
 /-- The slots that the operand `e` uses directly, with whether it is passed
 by value `m`. A literal `[e]` of type `Int` uses those of `e`, read by
 value: a place uses its slots and those of its indices; any other
@@ -171,14 +154,20 @@ operand is an operation of its own, which destroys what it last uses. A
 call that returns a reference also uses the slots it points into: passed
 by reference, they live until the operation is done; passed by value, until
 the operands are read, since Mojo reads the reference then, and those the
-function owns die then in the order of `owned`. -/
+function owns die then in the order of `owned`. A subscript that Mojo
+reads late uses the places among its getter's arguments, read by value:
+the getter is called once the operands are read. -/
 def directOf (ctx : Ctx) (e : Expr) (m : Bool) : List Place × Bool :=
   match e with
   | .place p => (union (ctx.sl.of p) (indexUses ctx.sl p), m)
   | .list .int [x] => directOf ctx x true
   | e =>
-    let ls := locSlots ctx.prog ctx.sl ctx.env e
-    (if m then ctx.owned.filter (ls.contains ·) else ls, m)
+    if let .call _ args := e then if isGetter ctx.prog e then (placeSlots ctx.sl args, true) else
+      let ls := locSlots ctx.prog ctx.sl ctx.env e
+      (if m then ctx.owned.filter (ls.contains ·) else ls, m)
+    else
+      let ls := locSlots ctx.prog ctx.sl ctx.env e
+      (if m then ctx.owned.filter (ls.contains ·) else ls, m)
 
 /-- The direct uses of the operands `es`, passed by value as `ms` says. -/
 def directArgs (ctx : Ctx) : List Expr → List Bool → List (List Place × Bool)
@@ -280,6 +269,25 @@ def placeUses (ctx : Ctx) : List Expr → List Place
   | [] => []
   | e :: es => union (directOf ctx e false).1 (placeUses ctx es)
 
+/-- Elaborates the operands `es`, the last of the operands `args` of
+`print`, given the slots `atLoad` live once `print` has read them, but
+those of its subscripts. `print` reads its operands once every operand is
+evaluated, and a place operand lives until it is done. A subscript that
+Mojo reads late calls its getter then, so what the getter last uses dies
+right after it, before `print` writes, and lives until then. -/
+def elabPrintOps (ctx : Ctx) (args : List Expr) (atLoad : List Place) : List Expr → List Expr
+  | [] => []
+  | e :: rest =>
+    let late := isGetter ctx.prog e
+    let live := union atLoad (placeUses ctx ((if late then rest else args).filter (isGetter ctx.prog)))
+    elabExpr ctx false e (if late then live else union live (usesList ctx.sl rest)) ::
+      elabPrintOps ctx args atLoad rest
+
+/-- Elaborates the operands `args` of `print`, given the slots live after
+it (`elabPrintOps`). -/
+def elabPrintArgs (ctx : Ctx) (args : List Expr) (after : List Place) : List Expr :=
+  elabPrintOps ctx args (union after (placeUses ctx (args.filter (!isGetter ctx.prog ·)))) args
+
 /-- Elaborates the value `e` of a `return`. A call that returns a reference
 is read once it is done, so the values it points into that the function
 owns live until then, and die then in the order of `owned`. The inner
@@ -337,7 +345,7 @@ def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
     let e' := elabExpr ctx true e after
     rest (.expr e') (droppedIn e' ++ consumedIn ctx e)
   | .print args =>
-    let args' := elabOps ctx args (union after (placeUses ctx args))
+    let args' := elabPrintArgs ctx args after
     rest (.print args') (droppedList args' ++ consumedList ctx args)
 
 /-- Elaborates the block `b`, given the slots live after it. -/

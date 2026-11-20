@@ -13,17 +13,19 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and declarations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10198029768467058689")
+:::moduleDocs (fingerprint := "17932044053658070223")
 :::
 
-:::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.exprStmt (fingerprint := "16795075977046820149")
-*Definition: sugar.* `p += e`, `p -= e` and `p *= e` are `p = p + e`,
-`p = p - e` and `p = p * e`. A call of `print` on a line of its own is the
-$`\mathsf{print}` statement; any other expression there is evaluated and
-its value discarded.
+:::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.augCallee MojoGrimoire.Parse.exprStmt (fingerprint := "14674107341489909627")
+*Definition: sugar.* `p += e`, `p -= e` and `p *= e` are read as calls of
+the callees `+=`, `-=` and `*=` with $`p` and $`e`, which no name of a
+program is: inference replaces each with a call of the in-place method of
+$`p`'s struct, or with `p = p + e`, `p = p - e` or `p = p * e` (#191). A
+call of `print` on a line of its own is the $`\mathsf{print}` statement;
+any other expression there is evaluated and its value discarded.
 :::
 
-:::readable MojoGrimoire.Parse.simpleStmt MojoGrimoire.Parse.exprTail MojoGrimoire.Parse.stmt MojoGrimoire.Parse.ifRest MojoGrimoire.Parse.block MojoGrimoire.Parse.stmts (fingerprint := "581247963703489719")
+:::readable MojoGrimoire.Parse.simpleStmt MojoGrimoire.Parse.exprTail MojoGrimoire.Parse.stmt MojoGrimoire.Parse.ifRest MojoGrimoire.Parse.block MojoGrimoire.Parse.stmts (fingerprint := "14651038116504327955")
 *Definition: statements and blocks.*
 
 $$`\begin{array}{lcl}
@@ -39,8 +41,9 @@ A block follows a `:`: one simple statement on the same line, or an
 indented sequence of statements. `elif` is an `if` alone in the `else`
 block. A string literal alone on a line, a docstring, is skipped. A
 statement that starts with a postfix chain is an assignment when the chain
-is a place followed by `=` or an augmented operator, and otherwise an
-expression whose first operand is that chain.
+is a place followed by `=`, an augmented assignment, read as a call of
+its callee (`augCallee`), when it is followed by an augmented operator,
+and otherwise an expression whose first operand is that chain.
 :::
 
 :::readable MojoGrimoire.Parse.conv MojoGrimoire.Parse.params MojoGrimoire.Parse.originNames MojoGrimoire.Parse.funDecl (fingerprint := "13064837100808414567")
