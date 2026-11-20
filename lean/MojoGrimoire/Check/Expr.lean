@@ -74,7 +74,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       (do let _ ← typeArg prog a; let _ ← typeArg prog b)
     let ta ← checkExprAs prog false a
     let ka ← mark
-    let tb ← if (constInt a).isSome && op != .and && op != .or then do
+    let tb ← if intLiteral a && op != .and && op != .or then do
         let m := binaryMethod op
         let _ ← checkArg prog (.overload m) m ⟨.read, "rhs", .int⟩ b
         pure .int
@@ -110,7 +110,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         let t ← match e with
           | .list .noneType es => do iterableLiteralTy prog u (← checkIterableElems prog u es)
           | .call f args =>
-            if builtinRange prog f && !(← get).vars.any (·.name == f) then
+            if builtinRange prog f && (← findVar f).isNone then
               rangeList prog u args.length (typeRangeArgs prog true args) (readRangeArgs prog args)
             else do checkExprAs prog (← locOf prog (.call f args)).isSome (.call f args)
           | e => do checkExprAs prog (← locOf prog e).isSome e
@@ -176,14 +176,15 @@ def typeLiteral (prog : Program) : List Expr → CheckM (Bool × Bool)
 
 /-- The type of the argument `e` of `range`, or of an element of one, as
 the compiler types it before it finds the form of `range` that fits. One
-that holds a string or a call of `range` (`holdsStrOrRange`) fits none: it
+that holds a string or a call of the standard library's `range`
+(`holdsStrOrRange`) fits none: it
 is typed only in its other parts, and has no type here, `None`. So has a
 literal in it. A place is typed by `typePlace`. One whose check gives an
 error that the compiler reports after its types, or after the misfit, a
 call's implicit copy of the value it returns a reference to, has its
 `lateElemTy`. -/
 def typeArg (prog : Program) (e : Expr) : CheckM Ty :=
-  if holdsStrOrRange e then do
+  if holdsStrOrRange prog e then do
     match e with
     | .call _ es | .list _ es => typeArgs prog es
     | .unary _ a => let _ ← typeArg prog a
@@ -283,7 +284,7 @@ def checkIndices (prog : Program) : Place → CheckM Unit
   | .index p i => do
     checkIndices prog p
     let k ← mark
-    checkIndex prog (← tryCatch (some <$> placeTy prog p) fun _ => pure none) i
+    checkIndex prog (← operandTy prog (.place p)) i
     requireUnchanged prog p k
     if let some k := constInt i then
       if k < 0 then throw (CheckError.negativeIndex (.index p i))
@@ -297,11 +298,11 @@ def checkIndices (prog : Program) : Place → CheckM Unit
 
 /-- Checks the index `i` of a place of type `base`, an `Int`. An index of a
 list or an array is an argument of `__getitem__`, which has several
-overloads (`indexFit`). -/
+overloads (`overloaded`). -/
 def checkIndex (prog : Program) (base : Option Ty) (i : Expr) : CheckM Unit :=
-  match indexFit base with
-  | .overload m => do let _ ← checkArg prog (.overload m) m ⟨.read, "idx", .int⟩ i
-  | _ => do expect .int (← checkExprAs prog false i)
+  let m := "__getitem__"
+  if base.any (overloaded · m) then do let _ ← checkArg prog (.overload m) m ⟨.read, "idx", .int⟩ i
+  else do expect .int (← checkExprAs prog false i)
   termination_by (sizeOf i, 4)
 
 /-- Rejects `p^` when the value in `p` has no origin of its own

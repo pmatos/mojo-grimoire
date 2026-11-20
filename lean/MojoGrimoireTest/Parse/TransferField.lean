@@ -173,9 +173,9 @@ private def sT : Place := .transferred s
 #guard inMain ["    var t = T(S(Res(1), 7), 3)", "    t^.s.bump()"] ==
   rejects (.immutablePlace (.field (.transferred (.var "t")) "s"))
 -- For `xs^.pop()` the compiler finds no `pop` that applies, with the note that
--- the mutating method is used on an rvalue.
+-- the mutating method is used on an rvalue: `pop` has several overloads (#88).
 #guard inMain ["    var xs: List[Int] = [1, 2]", "    print(xs^.pop())"] ==
-  rejects (.immutablePlace (.transferred (.var "xs")))
+  rejects (.noMatchingMethod "pop")
 
 -- A field read through `s^` is copied implicitly, so it must be implicitly
 -- copyable, and so is a receiver below `s^` taken by `var self`.

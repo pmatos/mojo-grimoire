@@ -7,7 +7,8 @@ passed by reference passes as it is, without copying it.
 A located operand is a place, or a call of a function or a method that
 returns a reference, whose origin arguments are located operands in turn:
 `len(first(xs))` and `first(first(xs))` read `xs` where it is. A call of
-a name that a variable in scope hides is not one (#176). Its origins
+a name that a variable in scope hides is one with no origins, so that
+checking it as a call rejects it (#176). Its origins
 are the places it may point into: the place itself, or the same place in
 each origin of the reference it starts from, or the origins of the arguments
 that a call passes to the parameters its origin names, the receiver of a
@@ -63,13 +64,14 @@ def passOn (c : Conv) (m : Bool) : Bool :=
 mutual
 /-- The origins of the located operand `e`, and whether it may be changed
 through; `none` when `e` is not one, or is a call with an origin argument
-that is not one, or of a name that a variable in scope hides (#176). Unless `strict` holds, such an argument, a temporary, is
+that is not one. A call of a name that a variable in scope hides is one,
+with no origins, so that checking it as a call rejects it (#176). Unless `strict` holds, such an argument, a temporary, is
 skipped instead: the call then gives the origins of its other origin
 arguments, and may not be changed through. -/
 def locOfAs (prog : Program) (strict : Bool) : Expr → CheckM (Option (List Place × Bool))
   | .place p => do pure (some (resolvePlace (← get).vars p, ← passedMutable p))
   | .call f args => do
-    if (← get).vars.any (·.name == f) then pure none else
+    if (← findVar f).isSome then pure (some ([], false)) else
     match callSig prog f with
     | .ok ⟨_, params, _, some os, _⟩ => originsOf prog strict os params args
     | _ => pure none

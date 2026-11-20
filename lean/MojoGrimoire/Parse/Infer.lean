@@ -39,7 +39,9 @@ it has checked the initializer, whose own error comes first (#123).
 arguments. With one argument, `e`, Mojo takes it by `ref`, which borrows
 `p^`: inference gives it the place `transferred p` (#103). A call of
 `range` that the program does not declare expects an `Int` of each of its
-arguments, as the standard library's `range` does (#121).
+arguments, as the standard library's `range` does (#121). A call of a name
+that a variable in scope hides follows no signature and has no type: the
+checker rejects it, once it has typed the arguments (#176).
 
 Inference also gives `p^` its meaning when `p` is an `Int` or a `Bool`.
 Mojo does not move such a value: it warns that the transfer has no effect,
@@ -125,12 +127,13 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
     if t.any Ty.byValue then (.place p', t) else (.transfer p', t)
   | .copy p => let (p', t) := inferPlace prog env p; (.copy p', t)
   | .call f args =>
-    let sig := (callSig prog f).toOption
+    let hidden := (env.lookup f).isSome
+    let sig := if hidden then none else (callSig prog f).toOption
     let params := sig.elim
-      (if builtinRange prog f then rangeParams args.length else []) (·.params)
+      (if builtinRange prog f && !hidden then rangeParams args.length else []) (·.params)
     let args' := (inferList prog env (params.map (·.ty)) args).map (·.1)
     (.call f (keepTemporaries params args args'),
-      sig.elim (unsignedResult prog f) (some ·.result))
+      if hidden then none else sig.elim (unsignedResult prog f) (some ·.result))
   | .method p m args =>
     let (p', pt) := inferPlace prog env p
     let sig := pt.bind fun t => (methodSig prog t m args.length).toOption

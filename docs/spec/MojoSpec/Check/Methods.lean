@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3924985655286329482")
+:::moduleDocs (fingerprint := "12487509247907205991")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -35,15 +35,17 @@ it declares, and `None` none. A string literal, which is only printed, is
 taken to have them all: the model claims nothing of it.
 :::
 
-:::readable MojoGrimoire.Check.overloaded MojoGrimoire.Check.indexFit (fingerprint := "18065038038425213270")
+:::readable MojoGrimoire.Check.overloaded MojoGrimoire.Check.intLiteral (fingerprint := "9175153237094737598")
 *Definition: methods with several overloads.* Of the methods the model
 calls, a list's `pop` has several overloads, and so has `__getitem__`
 of a list or an array, which an index calls. Their misfits are
-`noMatchingMethod`. An index of an $`\mathsf{Int}`, or of a place whose
-type is not known, reports its misfit as an ordinary call does.
+`noMatchingMethod`. An index of an $`\mathsf{Int}` reports its misfit as
+an ordinary call does. An integer literal, or an expression made only of
+them, negation and arithmetic, has the type `IntLiteral`, whose operators
+have several overloads too.
 :::
 
-:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy (fingerprint := "8990448808174618914")
+:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy (fingerprint := "8888595506646022763")
 *Definition: the type of an operand from its form.* The type of an
 operand is found, without checking or reading it, from its form: a
 literal's, a place's type, the result of the function, struct or method
@@ -55,7 +57,7 @@ that a variable hides, and any other form, gives none, and so does a
 lookup that fails: checking the operand then reports why.
 :::
 
-:::readable MojoGrimoire.Check.binaryMisfit MojoGrimoire.Check.unaryMisfit (fingerprint := "3442523153757399565")
+:::readable MojoGrimoire.Check.lacks MojoGrimoire.Check.binaryMisfit MojoGrimoire.Check.unaryMisfit (fingerprint := "15222351421749146837")
 *Rule: a method that an operand's type lacks.* An operator whose left
 operand's type is known and lacks the operator's method is
 `missingMethod` of that type and method. For $`\mathsf{and}` and
@@ -63,16 +65,17 @@ $`\mathsf{or}`, so is a right operand whose type lacks `__bool__`, and
 for a unary operator its operand's (#176).
 :::
 
-:::readable MojoGrimoire.Check.methodCall (fingerprint := "9395102453006235025")
+:::readable MojoGrimoire.Check.methodCall (fingerprint := "10455306421872178154")
 *Rule: a method call.* A call $`p.m(e^*)` of a method of signature
 $`\mathit{sig}`, once the indices of $`p` are checked, takes the method's
 receiver by its convention: $`p` is passed as a place, or, when $`p` is
 $`q\hat{}` and `self` is `var`, $`q` is consumed once the arguments are
 read. The receiver and the location arguments must not alias a mutable
-one. The arguments are checked against the parameters with the fit
+one. The receiver and the arguments are checked with the fit
 `overload m` when the method has several overloads, `pop` of a list, so
-that every misfit, a wrong number of arguments included, is
-`noMatchingMethod` (#88, #169), and as an ordinary call otherwise. The
+that every misfit, a wrong number of arguments or a receiver that may not
+change included, is `noMatchingMethod` (#88, #169), and as an ordinary
+call otherwise. The
 receiver and the arguments are checked again once all are read, the
 places the call changes are changed, and the call gives its result.
 :::
@@ -92,11 +95,11 @@ it types it, comes first, and an error of a later pass than typing, such
 as a read of an uninitialized value, comes after it.
 :::
 
-:::readable MojoGrimoire.Check.rejectCalledVar (fingerprint := "14820523099220724457")
+:::readable MojoGrimoire.Check.rejectCalledVar (fingerprint := "3043078157478825986")
 *Rule: a called variable.* Within the scope of a variable or a
 parameter, its name is the variable, also before it is initialized: a
-call $`f(e^*)` where $`f` names one hides the function, `len`, `range`
-or the struct $`f`. A variable whose type has no `__call__` cannot be
+call $`f(e^*)` where $`f` names one hides the function, `len`, `range`,
+`print` or the struct $`f`. A variable whose type has no `__call__` cannot be
 called: `missingMethod` of its type and `__call__`, once the arguments
 are typed, since the compiler types them first (#176).
 :::

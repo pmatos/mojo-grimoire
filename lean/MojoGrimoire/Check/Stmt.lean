@@ -5,7 +5,8 @@ The checking of statements and blocks.
 
 A block is a scope: the variables it declares end with it. A declaration
 may not reuse the name of a variable in scope, so no variable hides
-another, though sibling blocks may reuse a name. When inference could not
+another, though sibling blocks may reuse a name; a variable named `print`
+hides it, and printing is then a call of the variable (#176). When inference could not
 find a declaration's type, the checker checks its initializer before it
 rejects the declaration, so that the initializer's own error is reported,
 as the compiler does (#123).
@@ -295,6 +296,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
                     pieces := if whole then pieces.filter (!·.isEmpty) else pieces }
   | .expr e => do let _ ← checkExpr prog e
   | .print args => do
+    rejectCalledVar prog "print" (typeArgs prog args)
     let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark
     recheckPlaces prog args ks
   | .ifElse c thenBlock elseBlock => do

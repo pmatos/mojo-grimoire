@@ -38,7 +38,7 @@ def refTarget (prog : Program) (e : Expr) : CheckM (Ty × List Place × Bool) :=
     let t ← readPlace prog p
     pure (t, resolvePlace (← get).vars p, ← placeMutable p)
   | .call f _ =>
-    if (← get).vars.any (·.name == f) then located else
+    if (← findVar f).isSome then located else
     let .ok ⟨_, _, _, some _, _⟩ := callSig prog f | throw CheckError.notAReference
     located
   | .method p m args =>

@@ -53,6 +53,9 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["var xs: List[Int] = [1]", "print(xs[[0, 1]])"] (.noMatchingInit .int)
 #guard rejects ["var xs: List[Int] = [1]", "print(xs.pop(0, True))"] (.noMatchingMethod "pop")
 #guard rejects ["var xs: List[Int] = [1]", "print(xs.pop([0, 1]))"] (.noMatchingInit .int)
+-- A list that may not change fits no overload of `pop` either.
+#guard runLines ["def f(xs: List[Int]):", "    print(xs.pop(0))", "def main():",
+  "    var xs: List[Int] = [1]", "    f(xs)"] == some (.rejected ⟨"f", .noMatchingMethod "pop"⟩)
 -- `append` has one overload: its misfit is named.
 #guard rejects ["var xs: List[Int] = [1]", "xs.append(True)", "print(len(xs))"]
   (.typeMismatch .int .bool)
@@ -80,6 +83,20 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["var S = True", "var s = S(1)", "print(s.n)"] (.missingMethod .bool "__call__")
 #guard rejects ["var range = 5", "print(range(3))"] (.missingMethod .int "__call__")
 #guard rejects ["var len = 5", "print(len(nope))"] (.unknownVariable "nope")
+#guard rejects ["var print = 3", "print(5)"] (.missingMethod .int "__call__")
+-- A hidden call passed `mut` is still checked as a call.
+#guard runLines ["def g(mut k: Int):", "    k = 1", "def f() -> Int:", "    return 1",
+  "def main():", "    var f = 1", "    g(f())"] ==
+  some (.rejected ⟨"main", .missingMethod .int "__call__"⟩)
+-- The hidden function's signature types no argument: `[True]` stays an array.
+#guard runLines ["def f(xs: List[Int]) -> Int:", "    return len(xs)", "def main():",
+  "    var f = 1", "    print(f([True]))"] ==
+  some (.rejected ⟨"main", .missingMethod .int "__call__"⟩)
+-- A function of the program named `range` is typed as any other: the error
+-- inside the operand comes first.
+#guard runLines ["def range(n: List[Int]) -> Int:", "    return 1", "def main():",
+  "    var b = True", "    print(b + range(1))"] ==
+  some (.rejected ⟨"main", .typeMismatch (.list .int) .int⟩)
 #guard runLines ["def f(k: Int) -> Int:", "    return k", "def g(f: Int) -> Int:",
   "    return f(f)", "def main():", "    print(g(1))"] ==
   some (.rejected ⟨"g", .missingMethod .int "__call__"⟩)

@@ -208,9 +208,13 @@ def initPart (prog : Program) (us : List Path) (t : Ty) (q : Path) : List Path :
   | some u =>
     us.erase u ++ (remainder prog (partTy prog t u) (q.drop u.length)).map (u ++ ·)
 
+/-- The variable named `x` that is innermost in scope, if there is one. -/
+def findVar (x : Name) : CheckM (Option VarState) := do
+  pure ((← get).vars.find? (·.name == x))
+
 /-- The variable named `x` that is innermost in scope. -/
 def lookup (x : Name) : CheckM VarState := do
-  let some v := (← get).vars.find? (·.name == x) | throw (CheckError.unknownVariable x)
+  let some v ← findVar x | throw (CheckError.unknownVariable x)
   pure v
 
 /-- Replaces the innermost variable named as `v` by `v`. -/

@@ -206,8 +206,8 @@ where the compiler and the manual disagree, the model follows the compiler.
   `missingMethod`: an operator's on its operand's type, such as `+` on a
   `Bool`, a struct or an array, and `__call__` on a variable that is
   called. Within its scope a variable or a parameter hides a function,
-  `len`, `range` or a struct of its name, also before it is initialized
-  (#176). The checker finds both from the operands' types before it reads
+  `len`, `range`, `print` or a struct of its name, also before it is
+  initialized (#176). The checker finds both from the operands' types before it reads
   them, as the compiler does
   ([conformance.md](conformance.md#calls-that-fit-no-overload-and-methods-a-type-lacks)).
 - A struct may not lie on a cycle of fields with no field that holds the

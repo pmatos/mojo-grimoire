@@ -24,11 +24,14 @@ Lists, `List[T]`, follow the rules of
   element at the `Int` index `i` (#58). Its index is evaluated before the
   list is read, and is checked only at run time: a negative index, even a
   constant one, fails as out of bounds, as the stdlib's `check_bounds`
-  does. `pop` has several overloads, so any wrong call of it, a wrong
-  number of arguments included, is `noMatchingMethod`, as the compiler
-  reports "no matching method" (#88, #169). An index must be an `Int`: an
-  index of a list or an array calls `__getitem__`, which has several
-  overloads too, so one that is no `Int` is `noMatchingMethod`. An index `xs[i]` made only of integer literals, negation,
+  does. `pop` has several overloads, so a wrong call of it, a wrong number
+  of arguments or a list that may not change included, is
+  `noMatchingMethod`, as the compiler reports "no matching method" (#88,
+  #169). An index must be an `Int`: an index of a list or an array calls
+  `__getitem__`, which has several overloads too, so one that is no `Int`
+  is `noMatchingMethod`. A literal of `Int`s of the wrong length, as an
+  index or the argument of `pop`, still fails SIMD's constraint
+  (`noMatchingInit`, see below). An index `xs[i]` made only of integer literals, negation,
   `+`, `-`, `*`, `//` and `%` is computed when the program is compiled,
   and is rejected when it is negative (`negativeIndex`). `//` and `%` round toward negative infinity
   and give 0 for a zero divisor, as the compiler does.
@@ -202,7 +205,9 @@ here (#27).
   so `xs[[-1]]` and `arr[[2]]` fail only at run time.
 - An element that is not an `Int`, `[True]`, fits no initializer of `Int`
   (`noMatchingInit`), and passed to a function, or as the right operand of
-  an operator other than `and` and `or`, it is a type mismatch. As the
+  an operator other than `and` and `or`, it is a type mismatch, but for
+  an integer literal's operator, whose overloads none fits
+  (`noMatchingMethod`, #88). As the
   left operand of an arithmetic operator, `[True] + x`, or an operand of
   `and` and `or`, `x or [True]`, the compiler reports that the array has
   no `__add__` or `__bool__`, `missingMethod` (#176).
@@ -221,7 +226,7 @@ here (#27).
   | Position | No misfit, `[1, 2]`, `[]`, `[[1], [2]]`, `[x, x]` | Misfit, `[1, True]`, `[[1], True]`, `[True, False]` |
   | --- | --- | --- |
   | Initializes the `Int`: a declaration, an assignment to a variable, a field or an element, a `return`, a construction `P(…)`, an element of an enclosing literal | `noMatchingInit` | `noMatchingInit`: "no matching function in initialization" |
-  | Converted: an argument of a function or a method, `append`, an operand of an operator other than `and` and `or`, `+=` | `noMatchingInit` | `typeMismatch`: "cannot be converted from list literal to 'Int'" |
+  | Converted: an argument of a function or a method, `append`, an operand of an operator other than `and` and `or` whose left operand is no integer literal, `+=` | `noMatchingInit` | `typeMismatch`: "cannot be converted from list literal to 'Int'" |
   | An index of a list or an array, the argument of `pop`, the right operand of an integer literal's operator | `noMatchingInit` | `noMatchingMethod`: "no matching method in call to '__getitem__'", as for `xs[True]` (#169) |
 
   A nested literal counts as one element: `rd([[1, True], 3])` is a type

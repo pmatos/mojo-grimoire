@@ -183,7 +183,8 @@ these are an operator whose left operand is an integer literal, or an
 expression made only of them (`1 + True`, `(2 * 3) // b`, `1 + s`), an
 index of a list or an array that is no `Int` (`xs[True]`, `a[b]`, also
 as the target of an assignment), and a list's `pop` (`xs.pop(True)`,
-`xs.pop(0, 1)`). A method with one overload names the misfit, "invalid
+`xs.pop(0, 1)`, and `pop` of a list that may not change, such as a `read`
+parameter or `xs^`). A method with one overload names the misfit, "invalid
 call ... cannot be converted", and keeps `typeMismatch`: `append`, a
 struct's method, an operator of an `Int` that is not a literal, an
 operator of a `Bool`, and an index of an `Int`. `diagnostics.json` maps
@@ -199,8 +200,9 @@ ordering and negation of a list; every operator of a struct that does not
 declare the method; and `__bool__` of a struct, an array or `None` under
 `not`, `and` or `or`, either operand of the last two. It gives the same
 for a call of a variable, whose type lacks `__call__`: within its scope a
-variable or a parameter named like a function, `len`, `range` or a struct
-hides it. `diagnostics.json` maps the message, matched whole, to
+variable or a parameter named like a function, `len`, `range`, `print` or
+a struct hides it, and the arguments are typed without the hidden
+function's signature. `diagnostics.json` maps the message, matched whole, to
 `missingMethod`, and the model reports it in each of these cases. The
 human ruled this on 2026-11-20 (#176).
 

@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14219486724559156833")
+:::moduleDocs (fingerprint := "9653931266822242102")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "15223670341315992897")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "229521319139298162")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -32,14 +32,14 @@ type:
   overloads, are `noMatchingMethod`; a receiver $`q\,\hat{}` of a method
   whose `self` is `var` is not copied: once the arguments are checked and
   read again, $`q` is transferred. When a variable in scope has the name
-  $`f`, the call is rejected by `rejectCalledVar`, once its arguments are
-  typed by `typeArgs` (#176);
+  $`f` and its type has no `__call__`, the call is rejected by
+  `rejectCalledVar`, once its arguments are typed by `typeArgs` (#176);
 * operators have the types above, but a method that an operand's type
   lacks is `missingMethod` (#176): found from the operands' types
   (`operandTy`, `binaryMisfit`, `unaryMisfit`) before they are read, once
   both are typed by `typeArg`, and else from their checked types. The
   right operand of an operator whose left operand is an integer literal
-  expression (`constInt`), but `and` and `or`, is passed as to a `read`
+  expression (`intLiteral`), but `and` and `or`, is passed as to a `read`
   $`\mathsf{Int}` parameter of a method with several overloads: one that
   is no $`\mathsf{Int}` is `noMatchingMethod` (#88);
 * $`[e^*]_t`, with $`t` a list or an array of $`u` and $`u` a type a
@@ -75,7 +75,8 @@ type:
 * $`\mathsf{List}[u](\mathsf{range}(e^*))`, when the program declares no
   function or struct `range` and no variable in scope is named `range`, is
   the standard library's range (#121), whose one to three arguments are
-  checked in the compiler's order of passes, as `rangeList` says. First `typeRangeArgs` types
+  checked in the compiler's order of passes, as `rangeList` says; a
+  function of the program named `range` is typed as any other. First `typeRangeArgs` types
   every argument, each in `State.typing`, and reports an unknown name or a
   misfit of a call inside any argument at once. An argument that holds a
   string or a call of `range` (`holdsStrOrRange`) is typed only in its

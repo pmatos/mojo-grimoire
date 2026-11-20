@@ -14,10 +14,10 @@ is the compiler's error "'T' does not implement the '__X__' method",
 or `__bool__`, a struct only the methods it declares, and `None` none.
 A variable that is called is such a value too: its type lacks
 `__call__`. Inside its scope a variable, or a parameter, hides a function,
-`len`, `range` or a struct of the same name.
+`len`, `range`, `print` or a struct of the same name.
 
 An integer literal, and an expression made only of them and of
-arithmetic (`constInt`), has the type `IntLiteral`, whose operators have
+arithmetic (`intLiteral`), has the type `IntLiteral`, whose operators have
 several overloads: a right operand that is no `Int` fits none, and the
 compiler reports only that, `noMatchingMethod`. So does an index of a
 list or an array that is no `Int`, and any misfit of a list's `pop`,
@@ -71,16 +71,19 @@ def hasMethod (prog : Program) (t : Ty) (m : Name) : Bool :=
   | .str => true
 
 /-- Whether the method `m` of a value of type `t` has several overloads,
-of the methods that the model calls: a list's `pop`. -/
+of the methods that the model calls: a list's `pop`, and `__getitem__`
+of a list or an array, which an index calls. -/
 def overloaded (t : Ty) (m : Name) : Bool :=
-  t matches .list _ && m == "pop"
+  t matches .list _ && m == "pop" || t matches .list _ | .array .. && m == "__getitem__"
 
-/-- How an index of a place of type `base` reports a misfit: an index of
-a list or an array has several overloads, and one of an `Int` one. A
-`base` that is not known reports it as an ordinary call does. -/
-def indexFit : Option Ty → Fit
-  | some (.list _) | some (.array ..) => .overload "__getitem__"
-  | _ => .call
+/-- Whether the expression `e` is an integer literal, or is made only of
+them, negation and arithmetic (`constInt`): its type is `IntLiteral`,
+whose operators have several overloads. -/
+def intLiteral : Expr → Bool
+  | .int _ => true
+  | .unary .neg a => intLiteral a
+  | .binary op a b => op.arith.isSome && intLiteral a && intLiteral b
+  | _ => false
 
 /-- The type of the operand `e`, found from its form and from the types
 of the places it names, without checking or reading it; `none` when that
@@ -95,7 +98,7 @@ where
     | .str _ => pure (some .str)
     | .place p | .copy p | .transfer p => do pure (some (← placeTy prog p))
     | .call f _ => do
-      if (← get).vars.any (·.name == f) then pure none
+      if (← findVar f).isSome then pure none
       else pure ((callSig prog f).toOption.map (·.result))
     | .method p m args => do
       pure ((methodSig prog (← placeTy prog p) m args.length).toOption.map (·.result))
@@ -108,41 +111,45 @@ where
     | .withDrops e _ _ => formTy e
     | _ => pure none
 
+/-- `missingMethod` of the type `t` and the method `m`, when `t` is known
+and lacks `m`. -/
+def lacks (prog : Program) (m : Name) : Option Ty → Option CheckError
+  | some t => if hasMethod prog t m then none else some (.missingMethod t m)
+  | none => none
+
 /-- The error of the operator `op` that the types `ta` and `tb` of its
 operands give, when they are known: the method that the left operand's
 type lacks, or, for `and` and `or`, `__bool__` that the right one's
 lacks. -/
 def binaryMisfit (prog : Program) (op : BinOp) (ta tb : Option Ty) : Option CheckError :=
-  let lacks : Option Ty → Option CheckError
-    | some t => if hasMethod prog t (binaryMethod op) then none
-      else some (.missingMethod t (binaryMethod op))
-    | none => none
-  lacks ta <|> if op == .and || op == .or then lacks tb else none
+  lacks prog (binaryMethod op) ta <|>
+    if op == .and || op == .or then lacks prog (binaryMethod op) tb else none
 
 /-- The error of the operator `op` that the type `ta` of its operand
 gives, when it is known: the method that the type lacks. -/
-def unaryMisfit (prog : Program) (op : UnOp) : Option Ty → Option CheckError
-  | some t => if hasMethod prog t (unaryMethod op) then none else some (.missingMethod t (unaryMethod op))
-  | none => none
+def unaryMisfit (prog : Program) (op : UnOp) (ta : Option Ty) : Option CheckError :=
+  lacks prog (unaryMethod op) ta
 
 /-- Checks the call of the method `m`, of signature `sig`, on the place `p`
 of type `t`, whose indices are checked, with the arguments `args`, which
 `check` checks against `sig`'s parameters as a call of the fit it is
 given does: a method with several overloads reports every misfit as
-`noMatchingMethod`. The receiver is passed by its convention, but when
+`noMatchingMethod`, of its receiver too, such as a list that may not
+change for `pop`. The receiver is passed by its convention, but when
 it is `q^` and `self` is `var`: then `q` is consumed once the arguments
 are read. -/
 def methodCall (prog : Program) (asRef : Bool) (p : Place) (t : Ty) (m : Name) (args : List Expr)
     (sig : Signature) (check : Fit → CheckM (List (List Place × Nat))) : CheckM Ty := do
   let some self := sig.self | throw (CheckError.invalidSelf m)
+  let fit := if overloaded t m then Fit.overload m else .call
   let consumed := consumedReceiver self.conv p
   let recv ← match consumed with
     | some q => do pure [← passedPlace .mutable q]
     | none => if self.conv == .owned then pure [] else do pure [← passedPlace self.conv p]
   checkExclusive (recv ++ (← locationArgs prog sig.params args))
-  if consumed.isNone then passPlace prog .call m self.conv t p
+  if consumed.isNone then passPlace prog fit m self.conv t p
   let k ← mark
-  let ks ← check (if overloaded t m then .overload m else .call)
+  let ks ← check fit
   recheckLocs prog (([p], k) :: ks)
   if let some q := consumed then let _ ← transferPlace prog q
   for q in ← changedArgs prog sig.allParams (.place p :: args) do changePlace prog q
@@ -182,7 +189,6 @@ function, `len`, `range` or the struct `f`, and its type has no
 `__call__`, once `typing` has typed the call's arguments: the compiler
 types them first (#176). -/
 def rejectCalledVar (prog : Program) (f : Name) (typing : CheckM Unit) : CheckM Unit := do
-  if let some v := (← get).vars.find? (·.name == f) then
-    unless hasMethod prog v.ty "__call__" do rejectAfter typing (.missingMethod v.ty "__call__")
+  rejectMisfit (lacks prog "__call__" ((← findVar f).map (·.ty))) typing
 
 end MojoGrimoire.Check
