@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6735550557082153985")
+:::moduleDocs (fingerprint := "3964326805347762093")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -46,22 +46,21 @@ them, negation and arithmetic, has the type `IntLiteral`, whose operators
 have several overloads too.
 :::
 
-:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "789794050192247607")
+:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "16790746705646846013")
 *Definition: the type of an operand from its form.* The type of an
 operand is found, without checking or reading it, from its form: a
 literal's, a place's type, the result of the function, struct or method
-it calls, an $`\mathsf{Int}` for the built-in `len`, the result of its
-operator, an array of its first element's type for a literal with no type
-expected none of whose elements' forms gives another type (an element
-whose form gives none is not known to differ, unless it is a literal,
-whose own elements differ), a list or an array literal's
-type, an $`\mathsf{Int}` for $`[e]` of type $`\mathsf{Int}`, and
+it calls, an $`\mathsf{Int}` for the built-in `len` that nothing hides,
+the result of its operator, an array of its first element's type for a
+literal with no type expected each of whose elements' forms gives that
+type (one whose element's form gives none, or another type, is left to
+checking), a list or an array literal's type, an $`\mathsf{Int}` for $`[e]` of type $`\mathsf{Int}`, and
 $`\mathsf{List}[u]` for $`\mathsf{List}[u](\ldots)`. A call of a name
 that a variable hides, and any other form, gives none, and so does a
 lookup that fails: checking the operand then reports why.
 :::
 
-:::readable MojoGrimoire.Check.lacks MojoGrimoire.Check.binaryMisfit MojoGrimoire.Check.unaryMisfit (fingerprint := "17278766136287853547")
+:::readable MojoGrimoire.Check.lacks MojoGrimoire.Check.binaryMisfit MojoGrimoire.Check.unaryMisfit (fingerprint := "15222351421749146837")
 *Rule: a method that an operand's type lacks.* An operator whose left
 operand's type is known and lacks the operator's method is
 `missingMethod` of that type and method. For $`\mathsf{and}` and

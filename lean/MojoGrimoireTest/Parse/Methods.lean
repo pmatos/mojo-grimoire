@@ -82,6 +82,11 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["var b = True", "print(b or [1, True])"] (.typeMismatch .int .bool)
 -- A literal of `Int`s, one a call of `len`, is an array before it is read.
 #guard rejects ["var xs: List[Int]", "print(-[1, len(xs)])"] (.missingMethod (.array .int 2) "__neg__")
+-- A call of a variable gives no type: the literal is left to checking.
+#guard runLines ["@fieldwise_init", "struct C(Copyable):", "    var a: Int",
+  "    def __call__(self, x: List[Int]) -> Int:", "        return 1", "def main():",
+  "    var len = C(1)", "    var xs: List[Int] = [1]", "    print(-[True, len(xs)])"] ==
+  some (.rejected ⟨"main", .typeMismatch .bool .int⟩)
 #guard rejects ["var s = S(1)", "print(s + nope)"] (.unknownVariable "nope")
 #guard rejects ["print(True + (1 + True))"] (.noMatchingMethod "__add__")
 

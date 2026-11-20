@@ -1,0 +1,16 @@
+@fieldwise_init
+struct C(Copyable):
+    var a: Int
+
+    def __call__(self, x: List[Int]) -> Int:
+        return 1
+
+
+def g(x: List[Int]) -> Int:
+    return 2
+
+
+def main():
+    var g = C(1)
+    var xs: List[Int] = [1]
+    print(-[True, g(xs)])
