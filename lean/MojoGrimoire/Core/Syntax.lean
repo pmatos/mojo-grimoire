@@ -87,4 +87,30 @@ inductive Stmt where
   | ret (value : Option Expr)
   | drop (p : Place)
 
+/-- The callee of a call of the method `m` of the struct `s` as a
+function, written `s.m`, which takes the receiver as its first argument,
+as Mojo's `S.m(r, …)` does. Inference makes such a call of an operator
+or a call whose operand is a struct that declares the method (#191). With `reflected`, written `~s.m`, its first two
+parameters are swapped: a reflected operator, such as `a + b` that
+calls `b.__radd__(a)`, evaluates its operands left to right and passes
+the right one as the receiver. No name of a program holds `.` or `~`,
+so no such callee names a function or a struct. -/
+def methodCallee (s m : Name) (reflected : Bool := false) : Name :=
+  (if reflected then "~" else "") ++ s ++ "." ++ m
+
+/-- The struct and the method that the callee `f` names, and whether it is
+reflected, when it is a `methodCallee`. -/
+def calleeMethod (f : Name) : Option (Name × Name × Bool) :=
+  let (reflected, g) := if f.startsWith "~" then (true, (f.drop 1).toString) else (false, f)
+  match g.splitOn "." with
+  | [s, m] => some (s, m, reflected)
+  | _ => none
+
+/-- Whether the callee `f` is the in-place method of a struct that `p += e`,
+`p -= e` or `p *= e` calls: its receiver must be a place that may
+change, whatever the convention of its `self`. -/
+def inPlaceCallee (f : Name) : Bool :=
+  (calleeMethod f).any fun (_, m, reflected) =>
+    ["__iadd__", "__isub__", "__imul__"].contains m && !reflected
+
 end MojoGrimoire.Core

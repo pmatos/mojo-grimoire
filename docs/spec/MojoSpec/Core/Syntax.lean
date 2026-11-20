@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Places, expressions and statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7137499917617355434")
+:::moduleDocs (fingerprint := "16043484851213067175")
 :::
 
 :::readable MojoGrimoire.Core.Place MojoGrimoire.Core.Expr (fingerprint := "519563516514138862")
@@ -110,4 +110,19 @@ $`\mathsf{drop}~p` destroys the value in $`p`. No Mojo program contains it:
 Mojo destroys each value as soon as possible, after its last use, and
 elaboration makes this explicit by inserting $`\mathsf{drop}`, so that a run
 never has to find a value's last use.
+:::
+
+:::readable MojoGrimoire.Core.methodCallee MojoGrimoire.Core.calleeMethod MojoGrimoire.Core.inPlaceCallee (fingerprint := "7234313423533500430")
+*Definition: method callees.* A call may name the method $`m` of the
+struct $`S` as a function, $`S.m`, which takes the receiver as its first
+argument, as Mojo's $`S.m(r, \ldots)` does: inference makes such a call of
+an operator or a call whose operand is a struct that declares the
+method (#191). A reflected callee $`{\sim}S.m` swaps the
+method's first two parameters: a reflected operator, such as $`a + b`
+that calls $`b.\mathtt{\_\_radd\_\_}(a)`, evaluates its operands left to
+right and passes the right one as the receiver. No name of a program
+holds `.` or `~`, so no such callee names a function or a struct. The
+in-place callees, of `__iadd__`, `__isub__` and `__imul__`, are those
+that $`p \mathrel{+}= e`, $`p \mathrel{-}= e` and $`p \mathrel{\times}= e`
+call.
 :::

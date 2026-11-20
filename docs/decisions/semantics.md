@@ -4,8 +4,9 @@ This page says what holds today for what Mojo means in this project and what
 the model takes as its reference.
 [semantics-references.md](semantics-references.md) continues it with
 references, [semantics-lists.md](semantics-lists.md) with lists and
-arrays, and [semantics-parser.md](semantics-parser.md) with the parser and
-the driver.
+arrays, [semantics-operators.md](semantics-operators.md) with operators
+and calls on structs, and [semantics-parser.md](semantics-parser.md) with
+the parser and the driver.
 
 ## The reference
 
@@ -207,9 +208,11 @@ where the compiler and the manual disagree, the model follows the compiler.
   `Bool`, a struct or an array, and `__call__` on a variable that is
   called. Within its scope a variable or a parameter hides, in a call, a
   function, `len`, `range`, `print` or a struct of its name, also before
-  it is initialized (#176); not yet when its struct type declares
-  `__call__` (#191), nor in a type position (#193). Operator methods that
-  a trait supplies are not yet modelled (#194). The checker finds a missing method from the
+  it is initialized (#176), and calls the struct's `__call__` when it
+  declares one, but not yet in a type position (#193). An operator or a
+  call on a struct calls the method it declares
+  ([semantics-operators.md](semantics-operators.md), #191); operator
+  methods that a trait supplies are not yet modelled (#194). The checker finds a missing method from the
   operands' types before it reads them, as the compiler does; a misfit of
   an overload set is found once the argument is read, as for any call
   (#96)

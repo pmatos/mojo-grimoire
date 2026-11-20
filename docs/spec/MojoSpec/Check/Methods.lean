@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3964326805347762093")
+:::moduleDocs (fingerprint := "11861127469728064369")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -108,6 +108,16 @@ call $`f(e^*)` where $`f` names one hides the function, `len`, `range`,
 `print` or the struct $`f`. A variable whose type has no `__call__` cannot be
 called: `missingMethod` of its type and `__call__`, once the arguments
 are typed, since the compiler types them first (#176). A variable whose
-type declares `__call__` is not yet modelled: the call goes on to the
-hidden callee (#191).
+struct type declares `__call__` never reaches this rule: inference makes
+the call one of the method (#191).
+:::
+
+:::readable MojoGrimoire.Check.requireInPlace (fingerprint := "18000915414203633187")
+*Rule: an in-place operator on a struct.* A call of a struct's
+`__iadd__`, `__isub__` or `__imul__`, which inference makes of
+$`p \mathrel{+}= e`, $`p \mathrel{-}= e` or $`p \mathrel{\times}= e`,
+needs a receiver $`p` that may change, once its indices are typed, before
+the method is looked up and its arguments checked, whatever the convention
+of the method's `self`:
+`immutablePlace` otherwise, as the compiler reports it (#191).
 :::

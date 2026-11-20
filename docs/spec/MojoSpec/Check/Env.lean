@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15823403029666353533")
+:::moduleDocs (fingerprint := "5458553760525548020")
 :::
 
 :::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "1921251147877829779")
@@ -53,12 +53,24 @@ its parameters, names the type in an error about its methods or about
 the elements of a list literal of that type.
 :::
 
-:::readable MojoGrimoire.Check.callSig MojoGrimoire.Check.methodSig (fingerprint := "13319122873340366001")
+:::readable MojoGrimoire.Check.asCallee MojoGrimoire.Check.findCallee (fingerprint := "2476315838996834988")
+*Definition: the function a call runs.* A call of $`f` runs the function
+$`f`, or, when $`f` is a method callee $`S.m`, the method $`m` of the
+struct $`S` as a function, its receiver its first argument; a reflected
+callee $`{\sim}S.m` swaps its first two parameters, so that the
+reflected operator's operands, evaluated left to right, bind the right
+one to `self` (#191).
+:::
+
+:::readable MojoGrimoire.Check.callSig MojoGrimoire.Check.methodSig (fingerprint := "12234308884261720347")
 *Definition: the signature of a call.* $`f(e^*)` constructs the struct
 $`f`, when the program declares one, with the parameters of its `__init__`
 after `self`, or with one `var` parameter per field if it is
 `@fieldwise_init`, and is rejected if it has neither; otherwise it calls
-the function $`f`. `len` has no signature, since it takes a list or an
+the function $`f`, or the method that the callee $`f` names, with its
+receiver as its first argument. A method callee whose struct lacks the
+method is `missingMethod`: inference makes one only of $`p \mathrel{+}= e`
+on a struct that lacks `__iadd__`. `len` has no signature, since it takes a list or an
 array of any type. $`p.m(e^*)` calls a method of the type of $`p`: one of
 a list's methods, or a method of a struct, whose `self` takes $`p`; a
 method of a struct with no parameter at all is rejected. An array has no
