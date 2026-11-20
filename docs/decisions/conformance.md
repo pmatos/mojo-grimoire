@@ -266,7 +266,11 @@ missing return, and before a missing `main`. The model checks the fields
 after every body and `main`'s signature. A later pass's error in a body
 still comes first in the model, so such a program is `uninitializedUse`
 or `missingReturn` in the model and `uncopyableField` in the compiler.
-That order across the compiler's passes is left to #96.
+That order across the compiler's passes is left to #96. The compiler
+also orders "attempt to resolve a recursive reference to declaration" with
+this error by declaration, where the model reports `recursiveStruct`
+before it: a bad copyable struct declared before a struct that holds
+itself is `recursiveStruct` in the model, also left to #96.
 
 Rejected: an existing class, `notCopyable` or `implicitCopy`, which would
 merge an error at a struct's declaration with an error at a copy.

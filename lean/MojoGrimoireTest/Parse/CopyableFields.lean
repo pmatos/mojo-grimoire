@@ -76,8 +76,8 @@ private def res : Ty := .struct "Res"
 
 -- A struct declared copyable is copyable to the structs that hold it, even
 -- when its own fields are the error.
-#guard runLines (decls ++ ["@fieldwise_init", "struct Inner(Copyable):", "    var r: Res",
-    "@fieldwise_init", "struct Outer(Copyable):", "    var i: Inner", "def main():",
+#guard runLines (decls ++ ["@fieldwise_init", "struct Outer(Copyable):", "    var i: Inner",
+    "@fieldwise_init", "struct Inner(Copyable):", "    var r: Res", "def main():",
     "    print(1)"]) == some (.rejected ⟨"Inner", .uncopyableField "Inner" "r" res⟩)
 -- A field's struct may be declared after it.
 #guard runLines (["@fieldwise_init", "struct Outer(Copyable):", "    var i: Inner",

@@ -12,14 +12,6 @@ operands as its operator, every body is accepted, every field of a struct that d
 or `ImplicitlyCopyable` can be copied so, and it has a `main` that takes
 nothing and returns nothing. A rejection names the first error found, and
 where.
-
-The compiler checks the fields of a copyable struct when it synthesizes
-the struct's copy initializer, after it has checked every body of the
-program for the errors it reports while parsing, and before the errors it
-reports in later passes, such as a use of an uninitialized value
-(#164). The checker checks them after every body, so an error in any body
-comes first; that the compiler reports this one before a later pass's
-error in a body is left to #96.
 -/
 
 namespace MojoGrimoire.Check
