@@ -22,7 +22,11 @@ is: `t < u` may give an `Int`.
   names (`__add__`, `__sub__`, `__mul__`, `__floordiv__`, `__mod__`,
   `__lt__`, `__le__`, `__gt__`, `__ge__`, `__eq__`, `__ne__`) when `b`
   fits its parameter. Otherwise it calls the reflected method of `b`'s
-  struct when `a` fits it: `__radd__`, `__rsub__`, `__rmul__`,
+  struct when `a` fits it. A method fits only when its operands can also
+  be passed with their conventions: a `mut` parameter, `self` among them,
+  takes only a place that may change, so `1 + t` on a read-only or
+  temporary `t` whose `__radd__` takes `mut self` is the left operand's
+  `noMatchingMethod`. The reflected methods are `__radd__`, `__rsub__`, `__rmul__`,
   `__rfloordiv__` and `__rmod__` for arithmetic; `__gt__`, `__ge__`,
   `__lt__` and `__le__` for `<`, `<=`, `>` and `>=`; and `__eq__` and
   `__ne__` for themselves. The reflected method is tried whatever `a` is: an `Int`, a
@@ -45,25 +49,36 @@ is: `t < u` may give an `Int`.
   one does not decide. What the left operand last uses dies once it is
   tested, before the right one runs; when the left one decides, what the
   right one would have used dies first. `Bool` operands follow the same
-  order.
+  order. A subscript read late on the left is tested by reference,
+  destroying nothing, and when it decides its getter is called again, with
+  the getters of the subscripts read late among its arguments, for the
+  result, after what the right one would have used dies; its index is not
+  evaluated again.
 - `p += e`, `p -= e` and `p *= e` on a struct call `__iadd__`, `__isub__`
   and `__imul__`, with no fallback to `__add__`: a struct that lacks the
   method is `missingMethod`. The destination must be a place that may
   change, whatever the convention of the method's `self`
-  (`immutablePlace`), which the compiler checks before it looks the
-  method up or checks `e`. On any other type, `p op= e` is `p = p op e`,
+  (`immutablePlace`), which the compiler checks once it has typed the
+  destination's indices, before it looks the method up or checks `e`. On any other type, `p op= e` is `p = p op e`,
   with no reflected method.
 - A subscript `p[i]` read as a value calls `__getitem__`. When the struct
   also declares `__setitem__`, the subscript is a place: Mojo locates `p`
   and evaluates `i` in order, but calls the getter only when it reads the
   operand, once every operand of its operation is evaluated, so a later
-  operand that changes or moves `p` comes first. A getter that returns a
-  value destroys what it last uses right after it, in any operation; one
-  that returns a reference leaves that to the operation. With no setter
-  it is a value, and the getter is called in order. `p[i] = v` calls
-  `__setitem__` when the struct declares both, evaluating `i` before `v`;
-  with a getter and no setter it is `immutablePlace`, reported once the
-  getter call `p[i]` is checked and before `v` is.
+  operand that changes or moves `p` comes first. The getters are called
+  before the operation reads its other operands, so `print(x.n, x[0])`
+  with a getter that changes `x` prints the changed `x.n`; a list
+  literal reads its elements in order. A getter that returns a value
+  destroys what it last uses right after it, in any operation and in a
+  `return`; one that returns a reference leaves that to the operation.
+  With no setter it is a value, and the getter is called in order.
+  `p[i] = v` calls `__setitem__` when the struct declares both, evaluating
+  `i` before `v`. The compiler first checks the getter call `p[i]`, then
+  `v` against the getter's result, then the setter call; the getter is
+  not run. `v` is read as it is evaluated: a subscript read late there
+  calls its getter before those in `i`. With a getter and no setter
+  `p[i] = v` is `immutablePlace`, reported once the getter call `p[i]` is
+  checked and before `v` is.
 - A call `f(…)` of a variable or a parameter `f` whose struct declares
   `__call__` calls it. The variable hides a function, `len`, `range`,
   `print` or a struct of its name, also as `print(…)` on a line of its

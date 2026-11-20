@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16749364441113177494")
+:::moduleDocs (fingerprint := "9624399355942652456")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -46,7 +46,7 @@ them, negation and arithmetic, has the type `IntLiteral`, whose operators
 have several overloads too.
 :::
 
-:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "9964739256265238983")
+:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "9758665499122695585")
 *Definition: the type of an operand from its form.* The type of an
 operand is found, without checking or reading it, from its form: a
 literal's, a place's type, the result of the function, struct or method
@@ -120,8 +120,9 @@ the call one of the method (#191).
 *Rule: an in-place operator on a struct.* A call of a struct's
 `__iadd__`, `__isub__` or `__imul__`, which inference makes of
 $`p \mathrel{+}= e`, $`p \mathrel{-}= e` or $`p \mathrel{\times}= e`,
-needs a receiver $`p` that may change, before the method is looked up and
-its arguments checked, whatever the convention of the method's `self`:
+needs a receiver $`p` that may change, once its indices are typed, before
+the method is looked up and its arguments checked, whatever the convention
+of the method's `self`:
 `immutablePlace` otherwise, as the compiler reports it (#191).
 :::
 

@@ -11,7 +11,10 @@ inference makes a call of its `__call__` when its struct declares one
 (#191). When inference could not
 find a declaration's type, the checker checks its initializer before it
 rejects the declaration, so that the initializer's own error is reported,
-as the compiler does (#123).
+as the compiler does (#123). An assignment through a setter, which
+inference makes a call, first has the getter call and the value checked
+against the getter's result, without changing the state (`checkSetter`,
+#191).
 After an `if`, a part of a variable is
 initialized only when both branches leave it initialized, and a branch that
 returns does not count. A loop body that can reach its end must leave
@@ -250,6 +253,21 @@ def checkReturnValue (prog : Program) : Expr → CheckM Ty
     if v.access == .owned then transferPlace prog (.var x) else copyPlace prog (.var x)
   | e => checkExpr prog e
 
+/-- Checks what the compiler checks of `q[i] = v` before it calls the
+setter, when `e` is the call `S.__setitem__(q, i, v)` that inference makes
+of it (#191): the call of the getter `q[i]`, then `v` against what the
+getter gives, without changing what the state holds. -/
+def checkSetter (prog : Program) (e : Expr) : CheckM Unit := do
+  let .call f (.place q :: args) := e | pure ()
+  let some (s, "__setitem__", false) := calleeMethod f | pure ()
+  let some v := args.getLast? | pure ()
+  let s0 ← get
+  let u ← checkExpr prog (.call (methodCallee s "__getitem__") (.place q :: args.dropLast))
+  if v matches .list .noneType _ || (wrongIntLiteral v).isSome then
+    checkInitValue prog u v (checkExpr prog v)
+  else expect u (← checkExpr prog v)
+  set s0
+
 mutual
 /-- Checks the statement `s` of the function `sig`, whose name, result type
 and origin a `return` is checked against. -/
@@ -299,7 +317,9 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     setVar { v with uninit, moved := outside v.moved, held := uninitialize v.held path,
                     touched := union (outside v.touched) (above path v.held),
                     pieces := if whole then pieces.filter (!·.isEmpty) else pieces }
-  | .expr e => do let _ ← checkExpr prog e
+  | .expr e => do
+    checkSetter prog e
+    let _ ← checkExpr prog e
   | .print args => do
     rejectCalledVar prog "print" (typeArgs prog args)
     let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark

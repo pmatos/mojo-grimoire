@@ -17,7 +17,10 @@ Otherwise it calls the reflected method of `b`'s struct, such as
 also when `a` is an `Int`, a `Bool`, a list or an array, or a struct that
 lacks the method, of any type, its own too; `==` and `!=` reflect to
 themselves. When neither fits,
-the method of `a`'s struct is called, and the checker reports its misfit;
+the method of `a`'s struct is called, and the checker reports its misfit.
+A method fits only when its receiver and its other operand can be passed
+with their conventions: a `mut` parameter, `self` among them, takes only
+a place that may change;
 with no such method, the operator stays as it is, and the checker
 reports the method that `a`'s type lacks, or the misfit of its built-in
 operator. `!=` never falls back to `__eq__`, nor `>` to `__lt__` of the
@@ -78,16 +81,21 @@ def otherParam (fd : FunDecl) : Option Param :=
 
 /-- The method that the binary operator `op` calls on operands of types
 `ta` and `tb`: its struct, the method, and whether it is reflected.
-`fitsA prm` and `fitsB prm` say whether the left and the right operand fit
-the parameter `prm`. `none` leaves the operator as it is. -/
+`fitsA prm` and `fitsB prm` say whether the type of the left and the right
+operand fits the parameter `prm`, and `canA prm` and `canB prm` whether
+the operand may be passed with its convention: a `mut` parameter, `self`
+among them, takes only a place that may change. A method that its
+receiver or its other operand cannot be passed to is not viable, as in
+the compiler. `none` leaves the operator as it is. -/
 def chooseBinary (prog : Program) (op : BinOp) (ta tb : Option Ty)
-    (fitsA fitsB : Param → Bool) : Option (Name × FunDecl × Bool) :=
+    (fitsA fitsB canA canB : Param → Bool) : Option (Name × FunDecl × Bool) :=
   let forward := declaredMethod prog ta (binaryMethod op)
   let reflected := declaredMethod prog tb (reflectedMethod op)
-  let fits (fits : Param → Bool) (m : Option (Name × FunDecl)) :=
-    m.any fun (_, fd) => (otherParam fd).any fits
-  if fits fitsB forward then forward.map fun (s, fd) => (s, fd, false)
-  else if fits fitsA reflected then reflected.map fun (s, fd) => (s, fd, true)
+  let viable (self other : Param → Bool) (m : Option (Name × FunDecl)) :=
+    m.any fun (_, fd) => fd.params.head?.all self && (otherParam fd).any other
+  if viable canA (fun p => fitsB p && canB p) forward then forward.map fun (s, fd) => (s, fd, false)
+  else if viable canB (fun p => fitsA p && canA p) reflected then
+    reflected.map fun (s, fd) => (s, fd, true)
   else forward.map fun (s, fd) => (s, fd, false)
 
 /-- The operand `e` of type `t` of `and`, `or` or `not`, converted with

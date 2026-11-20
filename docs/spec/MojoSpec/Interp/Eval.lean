@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10153007699324752309")
+:::moduleDocs (fingerprint := "12753448479466747151")
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalValue MojoGrimoire.Interp.evalGetter MojoGrimoire.Interp.loadOperand MojoGrimoire.Interp.loadArgs MojoGrimoire.Interp.evalLogic MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.evalPassed MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "4648917178911872789")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.loadOperand MojoGrimoire.Interp.loadArgs MojoGrimoire.Interp.loadArg MojoGrimoire.Interp.evalLogic MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.evalPassed MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "13962923493979800499")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -43,14 +43,21 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   (#191). Under $`\mathsf{drops}(e; p^*; q^*)`, the values in $`p^*`,
   which the left operand last uses, are destroyed once it is tested,
   after those in $`q^*` when it decides; the right operand destroys what
-  it uses itself when it runs.
+  it uses itself when it runs. A subscript read late on the left is tested
+  with no drops, which follow when it does not decide; when it decides,
+  its getter is called again, with them, for the result, before the
+  values in $`q^*` that its arguments use. A value that is no struct is
+  tested where it is, with no new location.
   The operands of an operator, the elements of a list literal and the
   values printed are evaluated left to right, and those that are places,
   or calls that return a reference, are read after the last one is
   evaluated; a subscript of a struct that is read late (`lateGetter`)
   has its arguments evaluated then, and calls its getter, with its drops,
-  when it is read. The operand of a unary operator, `and` or `or` is read
-  at once.
+  when it is read. An operator, a call, a construction and `print` call
+  the getters of the subscripts read late among their operands before
+  they read the others (`loadFirst`, #191); a list literal reads its
+  elements in order. The operand of a unary operator, `and` or `or` is
+  read at once.
   $`\mathsf{drops}(e; p^*; q^*)` evaluates $`e`, destroying the values in
   $`p^*` once a call's arguments are read, before it is made, and those in
   $`q^*` once $`e` is done; for an operation that is not a call, both once

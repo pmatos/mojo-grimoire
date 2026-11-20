@@ -68,6 +68,12 @@ private def m (name ps r ret : String) : List String :=
   ["var t = T(5)", "var u = -(-t)", "print(u.n)"] ["5"]
 #guard prints [m "__add__" ", k: Int" "Int" "self.n + k"] ["print(T(5) + 1)"] ["6"]
 
+-- A method whose `mut self` the operand cannot be passed to is not viable.
+#guard match runLines (withT [["def __radd__(mut self, k: Int) -> Int:", "    return 1"]]
+    ["g(T(1))"] ++ ["def g(t: T):", "    print(1 + t)"]) with
+  | some (.rejected ⟨"g", .noMatchingMethod ..⟩) => true
+  | _ => false
+
 -- What the operators cannot call.
 #guard rejects [m "__add__" ", k: Int" "Int" "1"] ["var t = T(5)", "print(t + True)"]
   (.typeMismatch .int .bool)
@@ -111,6 +117,11 @@ private def bump : List String := ["def bump(mut t: T) -> Int:", "    t.n += 10"
 #guard rejects [getter] ["var t = T(1)", "t[0] = 2"]
   (.immutablePlace (.index (.var "t") (.int 0)))
 #guard rejects [getter] ["var t = T(1)", "print(t[True])"] (.typeMismatch .int .bool)
+-- With a setter, the getter's call and its result are checked first.
+#guard rejects [getter, ["def __setitem__(mut self, b: Bool, v: Int):", "    pass"]]
+  ["var t = T(1)", "t[True] = 5"] (.typeMismatch .int .bool)
+#guard rejects [getter, ["def __setitem__(mut self, i: Int, v: Bool):", "    pass"]]
+  ["var t = T(1)", "t[1] = True"] (.typeMismatch .int .bool)
 -- Assigning it checks the getter's call first, and never the value.
 #guard rejects [getter] ["var t = T(1)", "t[True] = 2"] (.typeMismatch .int .bool)
 #guard rejects [getter] ["var t = T(1)", "t[0] = nope"]

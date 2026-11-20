@@ -13,13 +13,23 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7596071823711709946")
+:::moduleDocs (fingerprint := "10275852728830901707")
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv (fingerprint := "8803222123172763763")
+:::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.TyEnv.lookup MojoGrimoire.Parse.TyEnv.push MojoGrimoire.Parse.TyEnv.fixedPlace MojoGrimoire.Parse.TyEnv.canPass (fingerprint := "16708674265126674775")
 *Definition: the types in scope.* Inference keeps the types of the
-variables in scope, innermost first. An operator's result has its
+variables in scope, innermost first, and the variables that may not
+change: `read` and `ref` parameters, and `ref` bindings into them. An
+operand may be passed to a `mut` parameter only when it is a place that
+may change, not a transfer (#191). An operator's result has its
 `binaryResult`.
+:::
+
+:::readable MojoGrimoire.Parse.eagerValue (fingerprint := "6974606055818951561")
+*Definition: the value of a setter.* The value $`v` of $`q[i] = v` is
+read as it is evaluated, before the getters of the subscripts read late
+in $`i`, as the compiler does: a subscript read late there is a call of
+its getter as a method (#191).
 :::
 
 :::readable MojoGrimoire.Parse.foldable (fingerprint := "2964211985334498850")
@@ -30,7 +40,7 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "6958775715477405588")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "6078439522542562581")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
@@ -105,7 +115,7 @@ with no signature has the type of a struct the program declares, `len`'s
 $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferTarget MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "6774898984718374689")
+:::readable MojoGrimoire.Parse.inferTarget MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "7640768639471984940")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 and `ref x = e` binds $`x` with the type of $`e`. An initial value is
 expected to have the declared type of its variable, an assigned value the
@@ -122,7 +132,7 @@ inferred in order, each statement seeing the variables declared before it;
 the variables of an inner block do not leave it.
 :::
 
-:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.parse (fingerprint := "12476147594948150229")
+:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.parse (fingerprint := "4117428577163560014")
 *Definition: parsing a program.* Inference starts each function from its
 parameters, and each destructor from `self`. The values a function returns
 are expected to have its result type, unless it returns a reference: then

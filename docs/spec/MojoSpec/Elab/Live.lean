@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Uses, moves and liveness: readable blocks" =>
 
-:::moduleDocs (fingerprint := "113571658939375005")
+:::moduleDocs (fingerprint := "15587195897367674273")
 :::
 
 :::readable MojoGrimoire.Elab.Slots MojoGrimoire.Elab.Slots.of MojoGrimoire.Elab.Slots.isSlot (fingerprint := "3465937767195176188")
@@ -89,4 +89,26 @@ definition, even when the expression that gives it destroys or consumes
 the old value of the same slot, as `s = s^.consume()` does: what the
 expression destroys or consumes dies before the statement defines
 anything.
+:::
+
+:::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
+*Definition: values that are dropped.* Only values of struct type, and
+lists and arrays of values that are dropped. Values of $`\mathsf{Int}`,
+$`\mathsf{Bool}`, string and $`\mathsf{None}` type have no destruction a
+program can observe.
+:::
+
+:::readable MojoGrimoire.Elab.drops (fingerprint := "5696115969548938391")
+*Definition: drops.* The `drop` statements for a set of slots, in the
+order of the slots the function owns, which is the order in which the
+compiler destroys values that die at once: its `var` parameters, then its
+local variables, each the last declared first; in `__deinit__`, the fields
+of `self` in their order. A slot the function does not own, such as a
+borrowed parameter, is never dropped.
+:::
+
+:::readable MojoGrimoire.Elab.declared MojoGrimoire.Elab.declaredBlock (fingerprint := "2404514119192343687")
+*Definition: local variables.* The variables of a type whose values are
+dropped that a body declares, in order, each once. Variables of sibling blocks may share a
+name, and then share a slot, since neither is live in the other.
 :::

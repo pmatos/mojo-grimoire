@@ -42,6 +42,11 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     if copyingOf prog t == .none then throw (CheckError.notCopyable t)
     pure t
   | .call f args => do
+    if let .place p :: _ := args then
+      if inPlaceCallee f then
+        let s ← get
+        typePlace prog p
+        set s
     requireInPlace f args
     rejectCalledVar prog f (typeArgs prog args)
     match callSig prog f with

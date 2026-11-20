@@ -53,36 +53,6 @@ namespace MojoGrimoire.Elab
 
 open MojoGrimoire.Core MojoGrimoire.Check
 
-/-- Whether a value of type `t` is dropped: one of struct type, or a list
-or an array of them. -/
-def needsDrop : Ty → Bool
-  | .struct _ => true
-  | .list t | .array t _ => needsDrop t
-  | _ => false
-
-/-- The statements that drop the slots of `d`, in the order of `owned`, the
-slots a function owns, in the order they die when several die at once. A
-slot that the function does not own, such as a borrowed parameter, is never
-dropped. -/
-def drops (owned d : List Place) : List Stmt :=
-  (owned.filter (d.contains ·)).map .drop
-
-mutual
-/-- The local variables whose values are dropped that the statement `s`
-declares, in order, each once. -/
-def declared : Stmt → List Place
-  | .decl x t _ => if needsDrop t then [.var x] else []
-  | .ifElse _ a b => union (declaredBlock a) (declaredBlock b)
-  | .whileLoop _ body => declaredBlock body
-  | _ => []
-
-/-- The local variables whose values are dropped that the block `b`
-declares, in order, each once. -/
-def declaredBlock : List Stmt → List Place
-  | [] => []
-  | s :: rest => union (declared s) (declaredBlock rest)
-end
-
 /-- Whether each argument of a call of `f` is passed by value, when it is a
 place, as its signature says. `len`, which has none, takes its list by
 reference. The standard library's `range` reads its `Int`s by value. -/
@@ -237,18 +207,21 @@ def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Expr :=
       (if top then [] else diff d.2.1 gone)
   | .binary op a b =>
     if op == .and || op == .or then
-      let d := opDrops ctx.owned [directOf ctx a true, (uses ctx.sl b, false)] after
+      let la := lateValue ctx.prog a
+      let d := opDrops ctx.owned [if la then ([], true) else directOf ctx a true,
+        (uses ctx.sl b, false)] after
       let b' := elabExpr ctx false b (union after (directOf ctx b true).1)
       let rest := diff d.2.1 (droppedIn b')
       let b'' := if rest.isEmpty then b' else .withDrops (.withDrops b' [] []) [] rest
-      withDropsOf (.binary op (elabExpr ctx false a d.2.2) b'') d.1 d.2.1
+      let a' := if la then elabLate ctx a d.2.2 [] else elabExpr ctx false a d.2.2
+      withDropsOf (.binary op a' b'') d.1 d.2.1
     else
       let d := opDrops ctx.owned (directArgs ctx [a, b] [true, true]) after
       let late := lateValue ctx.prog
-      let a' := elabExpr ctx false a (union d.2.2
-        (if late a then placeUses ctx ([b].filter late) else uses ctx.sl b))
-      let b' := elabExpr ctx false b
-        (if late a && !late b then union d.2.2 (placeUses ctx [a]) else d.2.2)
+      let held := if late a then placeUses ctx [a] else []
+      let a' := if late a then elabLate ctx a (union d.2.2 (placeUses ctx ([b].filter late))) []
+        else elabExpr ctx false a (union d.2.2 (uses ctx.sl b))
+      let b' := if late b then elabLate ctx b d.2.2 held else elabExpr ctx false b (union d.2.2 held)
       withDropsOf (.binary op a' b') d.1 (if top then [] else d.2.1)
   | .unary op a =>
     let d := opDrops ctx.owned (directArgs ctx [a] [true]) after
@@ -275,11 +248,22 @@ def elabOps (ctx : Ctx) (es : List Expr) (after held : List Place) : List Expr :
   | [] => []
   | e :: rest =>
     if lateValue ctx.prog e then
-      elabExpr ctx false e (union after (placeUses ctx (rest.filter (lateValue ctx.prog)))) ::
+      elabLate ctx e (union after (placeUses ctx (rest.filter (lateValue ctx.prog)))) held ::
         elabOps ctx rest after (union held (placeUses ctx [e]))
     else
       elabExpr ctx false e (union (union after held) (usesList ctx.sl rest)) ::
         elabOps ctx rest after held
+
+/-- Elaborates the subscript read late `e`, given the slots live once it is
+read, `after`: the slots `held` that the subscripts read late before it use
+live while its arguments are evaluated, since their getters are called
+later. -/
+def elabLate (ctx : Ctx) (e : Expr) (after held : List Place) : Expr :=
+  match e with
+  | .call f args =>
+    let d := opDrops ctx.owned (directArgs ctx args (callModes ctx.prog f)) after
+    withDropsOf (.call f (elabOps ctx args d.2.2 held)) d.1 d.2.1
+  | e => e
 end
 
 /-- The slots that the elaborated optional expression `e` destroys. -/
@@ -298,7 +282,8 @@ def elabPrintOps (ctx : Ctx) (args : List Expr) (atLoad : List Place) : List Exp
   | e :: rest =>
     let late := isGetter ctx.prog e
     let live := union atLoad (placeUses ctx ((if late then rest else args).filter (isGetter ctx.prog)))
-    elabExpr ctx false e (if late then live else union live (usesList ctx.sl rest)) ::
+    let held := placeUses ctx ((args.take (args.length - rest.length - 1)).filter (isGetter ctx.prog))
+    (if late then elabLate ctx e live held else elabExpr ctx false e (union live (usesList ctx.sl rest))) ::
       elabPrintOps ctx args atLoad rest
 
 /-- Elaborates the operands `args` of `print`, given the slots live after
@@ -310,11 +295,13 @@ def elabPrintArgs (ctx : Ctx) (args : List Expr) (after : List Place) : List Exp
 is read once it is done, so the values it points into that the function
 owns live until then, and die then in the order of `owned`. The inner
 `withDrops` makes the call one operand, so that they die after it is read,
-not before it is made. -/
+not before it is made. A subscript read late keeps only what its getter's
+reference points into: its getter destroys what else it last uses. -/
 def elabReturn (ctx : Ctx) (e : Expr) : Expr :=
   match e, directOf ctx e true with
   | .place _, _ => e
   | e, (keep, _) =>
+    let keep := if isGetter ctx.prog e then (locOperand ctx e true).1 else keep
     let e' := elabExpr ctx false e keep
     if keep.isEmpty then e' else .withDrops (.withDrops e' [] []) keep []
 

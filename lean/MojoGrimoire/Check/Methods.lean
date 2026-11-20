@@ -124,8 +124,9 @@ where
     | .unary op _ => pure (some (if op == .neg then .int else .bool))
     | .binary op a b => do
       if op == .and || op == .or then
-        let ta ← formTy a
-        pure (if ta == (← formTy b) && ta matches some (.struct _) then ta else some .bool)
+        let tb ← formTy b
+        if !(tb matches some (.struct _)) then return some .bool
+        pure (if (← formTy a) == tb then tb else some .bool)
       else pure (some (binaryResult op))
     | .list .noneType (e :: es) => do
       let u ← formTy e
@@ -226,9 +227,9 @@ def rejectMisfit (misfit : Option CheckError) (typing : CheckM Unit) : CheckM Un
 
 /-- Rejects the call of the in-place method `f` of a struct, `p += e`
 (`MojoGrimoire.Core.inPlaceCallee`), whose receiver `p` may not change,
-before the method is looked up or its arguments checked: the compiler
-requires a destination that may change first, whatever the convention of
-the method's `self` (#191). -/
+once its indices are checked, before the method is looked up or its
+arguments checked: the compiler requires a destination that may change
+then, whatever the convention of the method's `self` (#191). -/
 def requireInPlace (f : Name) (args : List Expr) : CheckM Unit := do
   if let (true, .place p :: _) := (inPlaceCallee f, args) then requireMutable p
 

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods of operators on structs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11850075084399905065")
+:::moduleDocs (fingerprint := "14774758445427137949")
 :::
 
 :::readable MojoGrimoire.Parse.declaredMethod MojoGrimoire.Parse.reflectedMethod MojoGrimoire.Parse.inPlaceMethod MojoGrimoire.Parse.otherParam (fingerprint := "6011094076042802973")
@@ -28,14 +28,17 @@ method of $`p \mathrel{\mathit{op}{=}} e` is `__iadd__`, `__isub__` or
 the one after `self`, of a method that takes exactly one.
 :::
 
-:::readable MojoGrimoire.Parse.chooseBinary (fingerprint := "9438965039999460958")
+:::readable MojoGrimoire.Parse.chooseBinary (fingerprint := "2002475636821204314")
 *Rule: the method of a binary operator.* $`a \mathbin{\mathit{op}} b`
 calls the method of $`a`'s struct that $`\mathit{op}` names when $`b`
 fits its parameter, else the reflected method of $`b`'s struct when $`a`
 fits its parameter, whatever $`a`'s type, its own included, else the
 method of $`a`'s struct, whose misfit the checker reports; with no
 method of $`a`'s struct and no reflected method that fits, the operator
-stays as it is (#191).
+stays as it is (#191). A method fits only when its receiver and its
+other operand can be passed with their conventions: a `mut` parameter,
+`self` among them, takes only a place that may change, as in the
+compiler, so a temporary or a read-only operand moves the choice on.
 :::
 
 :::readable MojoGrimoire.Parse.toBool (fingerprint := "6158316062790451282")

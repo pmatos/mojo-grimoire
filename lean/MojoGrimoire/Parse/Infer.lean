@@ -45,8 +45,11 @@ variable's struct declares `__call__`.
 An operator, a subscript read or assigned, an in-place operator and a call
 whose operand is a struct that declares the method become calls of the
 method, as `MojoGrimoire.Parse.Dispatch` decides (#191); the operand that
-fits a parameter of the method is inferred against its type. A subscript
-passed `mut` or `ref`, bound with `ref` or returned as a reference stays
+fits a parameter of the method is inferred against its type. Inference
+knows which variables may not change, so that a method whose `mut`
+parameter an operand cannot be passed to is not chosen. The value of an
+assignment through a setter is read as it is evaluated (`eagerValue`). A
+subscript passed `mut` or `ref`, bound with `ref` or returned as a reference stays
 a place, which the model does not yet read through a getter (#198).
 
 Inference also gives `p^` its meaning when `p` is an `Int` or a `Bool`.
@@ -60,8 +63,28 @@ namespace MojoGrimoire.Parse
 
 open MojoGrimoire.Core MojoGrimoire.Check
 
-/-- The types of the variables in scope, innermost first. -/
-abbrev TyEnv := List (Name × Ty)
+/-- The types of the variables in scope, innermost first, and the variables
+that may not change: `read` and `ref` parameters, and `ref` bindings into
+them. -/
+structure TyEnv where
+  vars : List (Name × Ty)
+  fixed : List Name := []
+
+/-- The type of the variable `x`. -/
+def TyEnv.lookup (env : TyEnv) (x : Name) : Option Ty := env.vars.lookup x
+
+/-- The variables after `x` of type `t` is declared. -/
+def TyEnv.push (env : TyEnv) (x : Name) (t : Ty) : TyEnv := { env with vars := (x, t) :: env.vars }
+
+/-- Whether the place `p` goes into a variable that may not change. -/
+def TyEnv.fixedPlace (env : TyEnv) (p : Place) : Bool := env.fixed.contains (splitPlace p).1
+
+/-- Whether the operand `e` may be passed to the parameter `prm` with its
+convention: a `mut` parameter takes only a place that may change (#191). -/
+def TyEnv.canPass (env : TyEnv) (e : Expr) (prm : Param) : Bool :=
+  prm.conv != .mutable || match e with
+    | .place p => !env.fixedPlace p && !throughTransfer p
+    | _ => false
 
 /-- The type of an open literal that is expected to have the type `t`: `t`
 itself when it is a list or an array, whose size the checker compares with
@@ -159,6 +182,7 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
     match chooseBinary prog op ta₀ tb₀
       (fun prm => (if a matches .list .. then (inferExpr prog env prm.ty a).2 else ta₀) == some prm.ty)
       (fun prm => (if b matches .list .. then (inferExpr prog env prm.ty b).2 else tb₀) == some prm.ty)
+      (env.canPass a₀) (env.canPass b₀)
     with
     | some (s, fd, reflected) =>
       let u := ((otherParam fd).map (·.ty)).getD .noneType
@@ -241,6 +265,14 @@ def inferTarget (prog : Program) (env : TyEnv) (exp : Ty) (e : Expr) : Expr × O
   | .place p => let (p', t) := inferPlace prog env p; (.place p', t)
   | e => inferExpr prog env exp e
 
+/-- The value `e` of `q[i] = e`, which the compiler reads before it calls
+the getters of the subscripts read late in `i` (#191): such a subscript is
+a call of its getter as a method, made as `e` is evaluated. -/
+def eagerValue (prog : Program) : Expr → Expr
+  | .call g (.place r :: args) =>
+    if lateGetter prog g then .method r "__getitem__" args else .call g (.place r :: args)
+  | e => e
+
 mutual
 /-- Infers inside the statement `s` of a function whose result type is
 `result`, and gives the types in scope after it. -/
@@ -248,16 +280,24 @@ def inferStmt (prog : Program) (result : Ty) (env : TyEnv) : Stmt → Stmt × Ty
   | .decl x t init =>
     let init' := init.map fun e => inferExpr prog env t e
     let t' := if t == .noneType then ((init'.bind (·.2)).getD .noneType) else t
-    (.decl x t' (init'.map (·.1)), (x, t') :: env)
+    (.decl x t' (init'.map (·.1)), env.push x t')
   | .refDecl x e =>
     let (e', t) := inferTarget prog env .noneType e
-    (.refDecl x e', match t with | some t => (x, t) :: env | none => env)
+    let fixed := match e with
+      | .place p => env.fixedPlace p
+      | .call _ args => args.any fun | .place p => env.fixedPlace p | _ => false
+      | _ => false
+    (.refDecl x e', match t with
+      | some t => { env.push x t with fixed := if fixed then x :: env.fixed else env.fixed }
+      | none => env)
   | .assign (.index q i) e =>
     let (q', qt) := inferPlace prog env q
     match declaredMethod prog qt "__getitem__", declaredMethod prog qt "__setitem__" with
     | some _, some (s, fd) =>
-      (.expr (.call (methodCallee s "__setitem__") (.place q' :: inferArgs prog env fd.params.tail [i, e])),
-        env)
+      let args := match inferArgs prog env fd.params.tail [i, e] with
+        | [i', e'] => [i', eagerValue prog e']
+        | args => args
+      (.expr (.call (methodCallee s "__setitem__") (.place q' :: args)), env)
     | _, _ =>
       let (p', t) := inferPlace prog env (.index q i)
       (.assign p' (inferExpr prog env (t.getD .noneType) e).1, env)
@@ -308,13 +348,15 @@ a reference expects no `Int` of the value it returns, which must be a
 place: a literal there is no place, as Mojo reports. -/
 def inferFun (prog : Program) (fd : FunDecl) : FunDecl :=
   let result := if fd.origin.isSome then Ty.noneType else fd.result
-  { fd with body := inferBlock prog result (fd.params.map fun p => (p.name, p.ty)) fd.body }
+  let fixed := fd.params.filter fun p => p.conv == .read || p.conv == .ref
+  let env : TyEnv := ⟨fd.params.map fun p => (p.name, p.ty), fixed.map (·.name)⟩
+  { fd with body := inferBlock prog result env fd.body }
 
 /-- Infers inside a struct's initializer, destructor and methods. -/
 def inferStruct (prog : Program) (sd : StructDecl) : StructDecl :=
   { sd with
     init := sd.init.map (inferFun prog)
-    deinit := sd.deinit.map (inferBlock prog .noneType [("self", .struct sd.name)])
+    deinit := sd.deinit.map (inferBlock prog .noneType ⟨[("self", .struct sd.name)], []⟩)
     methods := sd.methods.map (inferFun prog) }
 
 /-- Infers inside every declaration of a program. -/

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13155760122894128179")
+:::moduleDocs (fingerprint := "16128288831382666187")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -133,7 +133,16 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "14734628613027596053")
+:::readable MojoGrimoire.Check.checkSetter (fingerprint := "15709946822842586190")
+*Rule: assigning a subscript through its setter.* $`q[i] = v`, which
+inference makes a call of `__setitem__` when $`q`'s struct declares it
+and `__getitem__`, first has the getter call $`q[i]` checked and $`v`
+checked against the getter's result, as the compiler does, then the
+setter call as any other call; the first checks change nothing in the
+state, since the getter is not run (#191).
+:::
+
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "2534970187274358144")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
@@ -162,7 +171,8 @@ an expression, so a place is copied implicitly.
   whole first. Assigning a part below a field in $`M` does not remove it.
   Through a reference or to an element, the old value is read first, so
   it must be initialized;
-* an expression statement checks its expression;
+* an expression statement checks its expression, once `checkSetter` has
+  checked what a setter call needs;
 * `print`, unless a variable in scope named `print` hides it, which
   `rejectCalledVar` rejects once the arguments are typed (#176), checks
   its arguments as above, then that its place arguments are still
