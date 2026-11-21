@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.Ref
+import MojoGrimoire.Check.Subscript
 
 /-!
 The checking of statements and blocks.
@@ -280,6 +280,9 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let (t, origins, m) ← refTarget prog sig.name e
     modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
+    if let some g ← valueSubscript prog p then
+      let _ ← checkExpr prog g
+      throw (CheckError.immutablePlace p)
     let k ← mark
     if let .binary _ (.place q) _ := e then
       if q == p && !plainIndices p then rejectIntElem prog p (checkIndices prog p)
@@ -313,7 +316,9 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     setVar { v with uninit, moved := outside v.moved, held := uninitialize v.held path,
                     touched := union (outside v.touched) (above path v.held),
                     pieces := if whole then pieces.filter (!·.isEmpty) else pieces }
-  | .expr e => do let _ ← checkExpr prog e
+  | .expr e => do
+    checkSetter prog e
+    let _ ← checkExpr prog e
   | .print args => do
     rejectCalledVar prog "print" (typeArgs prog args)
     let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark

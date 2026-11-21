@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11734871645674211319")
+:::moduleDocs (fingerprint := "5145508772946980342")
 :::
 
 :::readable MojoGrimoire.Parse.foldable (fingerprint := "1995746572076948755")
@@ -24,7 +24,7 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "5187173249590899560")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "16988277763620048492")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, or $`\mathsf{Int}` for the element of
@@ -38,10 +38,12 @@ gives an $`\mathsf{Int}`. A call of `range`, when the program declares no
 function or struct `range`, expects an $`\mathsf{Int}` of each argument, by
 `rangeParams` (#121). A call of a name that a variable in scope hides
 follows no signature and has no type, so that the checker rejects it
-(#176), unless the variable's struct declares `__call__`. An operator and
-a call whose operand is a struct that declares the method are calls of
-the method that `chooseBinary` and `declaredMethod` pick, with the type
-of its result; an
+(#176), unless the variable's struct declares `__call__`. An operator, a
+subscript read as a value and a call whose operand is a struct that
+declares the method are calls of the method that `chooseBinary` and
+`declaredMethod` pick, with the type of its result: a subscript calls
+`__getitem__`, its index expected to have the type of the getter's
+parameter; an
 operand that is a literal is inferred as an argument of the method's
 other parameter, by `inferArg`, so that one passed `mut` or `ref` stays a
 temporary (#191). `not` on a struct negates what its `__bool__` gives, and
@@ -63,7 +65,8 @@ $`[e]_{\mathsf{Int}}`: Mojo passes a temporary there, not the place or the
 reference $`e` names, so `mut` rejects it, and `ref` gets a temporary
 filled from $`e` when the call is made, which a returned reference keeps,
 so it does not see a later change (#103). A place passed `mut` or `ref`
-stays a place. A literal of any other
+stays a place: a subscript of a struct there is not read through its
+getter (#198). A literal of any other
 length left open where an $`\mathsf{Int}` is expected is
 $`[e^*]_{\mathsf{Int}}`, of type $`\mathsf{Int}`, with an
 $`\mathsf{Int}` expected of each element, as SIMD's initializer takes
@@ -103,7 +106,14 @@ with no signature has the type of a struct the program declares, `len`'s
 $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "16999948477821896485")
+:::readable MojoGrimoire.Parse.eagerValue (fingerprint := "4099641442443751981")
+*Definition: the value of a setter.* The value $`v` of $`q[i] = v` is
+read as it is evaluated, before the getters of the subscripts read late
+in $`i`, as the compiler does: a subscript read late there is a call of
+its getter as a method (#191).
+:::
+
+:::readable MojoGrimoire.Parse.inferTarget MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "5947869770364184810")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 $`\mathsf{None}` for a call that returns nothing (#131),
 and `ref x = e` binds $`x` with the type of $`e`; $`x` may change what
@@ -113,7 +123,13 @@ through a `mut` parameter, or a place of a variable that may change, also
 through $`q\,\hat{}`, whose transfer has no effect there (#191). An initial value is
 expected to have the declared type of its variable, an assigned value the
 type of the place it is assigned to, and a returned value the function's
-result. $`p \mathrel{\mathit{op}{=}} e` calls the in-place method of $`p`'s
+result. The target of a `ref` binding, and the value a function that
+returns a reference returns, keep a place as it is (`inferTarget`), so a
+subscript of a struct there is not read through its getter (#198).
+$`q[i] = e` on a struct that declares `__getitem__` and `__setitem__`
+calls the setter, $`e` read by `eagerValue`; with a getter and no setter
+it stays an assignment, which the checker rejects.
+$`p \mathrel{\mathit{op}{=}} e` calls the in-place method of $`p`'s
 struct (`inPlaceMethod`), which the checker reports when the struct lacks
 it, and is otherwise `p = p op e`, with no method of $`e`'s struct
 reflected. `print(…)` calls the `__call__` of a variable named `print`

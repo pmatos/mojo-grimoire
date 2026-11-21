@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11446752658467843258")
+:::moduleDocs (fingerprint := "12002118674837754041")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "11218918294133274966")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "18440039892520298801")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -41,7 +41,8 @@ type:
   or a call on a struct (#191), passes its receiver as its
   first argument; one of an in-place method needs a receiver that may
   change, once its indices are typed (`typePlace`), before anything else
-  (`requireInPlace`), and one whose struct
+  (`requireInPlace`); one of a getter that a subscript makes has its index
+  typed first (`typeFirst`), as any subscript's is; and one whose struct
   lacks the method is `missingMethod`, once its arguments are typed;
 * operators have the types above, but a method that an operand's type
   lacks is `missingMethod` (#176): found from the operands' types
@@ -172,7 +173,8 @@ $`\mathsf{immutablePlace}`, named by its first origin; and any other
 expression by its type, which must be the parameter's. A `mut` parameter
 needs a place or such a call; passed $`q\,\hat{}`, it is
 $`\mathsf{notAPlace}`, where the compiler reports a value that cannot
-change (#81), with two exceptions: a $`q` with no origin of its own is
+change (#81), or a subscript read late $`\mathsf{notAList}`
+(`notPlaceError`, #198), with two exceptions: a $`q` with no origin of its own is
 $`\mathsf{transferFromElement}`, as above, and any other $`q`, once it
 has a type, whose variable is a `read` or `ref` parameter is
 $`\mathsf{transferFromBorrowed}`, as the compiler reports them.

@@ -2,11 +2,12 @@ import MojoGrimoire.Parse.Infer
 import MojoGrimoire.Interp.Run
 
 /-!
-Tests of the operators, `and`, `or` and calls on a struct value, which call
-the methods that the struct declares (#191, `MojoGrimoire.Parse.Dispatch`):
-which method inference calls, and what running the program gives. Each
-verdict is the pinned compiler's for the program, probed on the nightly
-1.3.0.dev2026111905.
+Tests of the operators, subscripts, `and`, `or` and calls on a struct
+value, which call the methods that the struct declares (#191,
+`MojoGrimoire.Parse.Dispatch`): which method inference calls, and what
+running the program gives. Each verdict is the pinned compiler's for the
+program, probed on the nightly 1.3.0.dev2026111905, but where a comment
+names a compiler bug that the human ruled on (#211).
 -/
 
 namespace MojoGrimoireTest.Parse.StructOperators
@@ -138,6 +139,53 @@ private def moveT (body : List String) : List String :=
 #guard runLines (moveT ["var t = T(4)", "print(t^ or False)"]) ==
   some (.rejected ⟨"main", .implicitCopy (.struct "T")⟩)
 #guard runLines (moveT ["print(True and T(4), not T(0))"]) == some (.finished ["True True"])
+
+-- Subscripts: the getter is called late only when the struct declares a
+-- setter too.
+private def getter : List String := m "__getitem__" ", i: Int" "Int" "self.n + i"
+private def setter : List String := ["def __setitem__(mut self, i: Int, v: Int):", "    self.n = v"]
+private def bump : List String := ["def bump(mut t: T) -> Int:", "    t.n += 10", "    return 0"]
+#guard prints [getter] ["var t = T(5)", "print(t[1])"] ["6"]
+#guard prints [getter, setter] ["var t = T(5)", "t[1] = 2", "print(t.n)"] ["2"]
+#guard runLines (withT [getter, setter] ["var t = T(1)", "print(t[0], bump(t))"] ++ bump) ==
+  some (.finished ["11 0"])
+#guard runLines (withT [getter] ["var t = T(1)", "print(t[0], bump(t))"] ++ bump) ==
+  some (.finished ["1 0"])
+#guard rejects [getter] ["var t = T(1)", "t[0] = 2"]
+  (.immutablePlace (.index (.var "t") (.int 0)))
+#guard rejects [getter] ["var t = T(1)", "print(t[True])"] (.typeMismatch .int .bool)
+-- The index is typed before the receiver is read, as any subscript's is: an
+-- unknown name or a misfit in it comes before a use of a moved receiver.
+#guard rejects [getter] ["var t = T(1)", "var u = t^", "print(t[nope])"]
+  (.unknownVariable "nope")
+#guard rejects [getter, setter] ["var t = T(1)", "var u = t^", "print(t[True])"]
+  (.typeMismatch .int .bool)
+#guard rejects [getter, setter] ["var t = T(1)", "var u = t^", "print(t[[1, 2]])"]
+  (.uninitializedUse (.var "t"))
+#guard rejects [getter] ["var t = T(1)", "var u = t^", "print(t[0])"]
+  (.uninitializedUse (.var "t"))
+-- With a setter, the getter's call and its result are checked first.
+#guard rejects [getter, ["def __setitem__(mut self, b: Bool, v: Int):", "    pass"]]
+  ["var t = T(1)", "t[True] = 5"] (.typeMismatch .int .bool)
+#guard rejects [getter, ["def __setitem__(mut self, i: Int, v: Bool):", "    pass"]]
+  ["var t = T(1)", "t[1] = True"] (.typeMismatch .int .bool)
+-- Assigning it checks the getter's call first, and never the value.
+#guard rejects [getter] ["var t = T(1)", "t[True] = 2"] (.typeMismatch .int .bool)
+#guard rejects [getter] ["var t = T(1)", "t[0] = nope"]
+  (.immutablePlace (.index (.var "t") (.int 0)))
+-- A subscript read late passed `mut`, here to `mut self`, keeps the result
+-- it had before #191, `notAList`, until its write-back is modelled (#198).
+#guard rejects [m "__getitem__" ", i: Int" "T" "T(self.n)",
+    ["def __setitem__(mut self, i: Int, v: T):", "    pass"],
+    ["def __add__(mut self, k: Int) -> Int:", "    return self.n + k"]]
+  ["var t = T(1)", "print(t[0] + 1)"] (.notAList (.struct "T"))
+-- On the left of `and` or `or`, a getter-and-setter subscript is read once,
+-- as one of a struct with no setter is (#211).
+private def bgetter : List String :=
+  ["def __getitem__(self, i: Int) -> Bool:", "    print(\"get\", i)", "    return self.n != 0"]
+#guard prints [bgetter, ["def __setitem__(mut self, i: Int, v: Bool):", "    pass"]]
+  ["var t = T(1)", "print(t[0] or False)"] ["get 0", "True"]
+#guard prints [bgetter] ["var t = T(1)", "print(t[0] or False)"] ["get 0", "True"]
 
 -- Calls of a variable whose struct declares `__call__`, which hides the
 -- function, `len`, `print` or struct of its name.

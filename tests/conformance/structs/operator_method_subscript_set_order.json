@@ -1,0 +1,13 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "get 2 1",
+    "get 2 0",
+    "del W 2",
+    "set 1 2 3",
+    "del W 3",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

@@ -95,6 +95,8 @@ compared with the compiler's diagnostics.
 
 {includeReadable "." MojoGrimoire.Check.Ref "References" MojoSpec.Check.Ref (level := 2)}
 
+{includeReadable "." MojoGrimoire.Check.Subscript "Assigning a subscript of a struct" MojoSpec.Check.Subscript (level := 2)}
+
 {includeReadable "." MojoGrimoire.Check.Stmt "Statements and blocks" MojoSpec.Check.Stmt (level := 2)}
 
 {includeReadable "." MojoGrimoire.Check.Program "Programs" MojoSpec.Check.Program (level := 2)}
@@ -109,6 +111,10 @@ compiler destroys a value, so that the interpreter destroys only what a
 {includeReadable "." MojoGrimoire.Elab.Live "Uses, moves and liveness" MojoSpec.Elab.Live (level := 2)}
 
 {includeReadable "." MojoGrimoire.Elab.Origins "The origins of references" MojoSpec.Elab.Origins (level := 2)}
+
+{includeReadable "." MojoGrimoire.Elab.Late "Subscripts read late" MojoSpec.Elab.Late (level := 2)}
+
+{includeReadable "." MojoGrimoire.Elab.Operands "What an operation destroys" MojoSpec.Elab.Operands (level := 2)}
 
 {includeReadable "." MojoGrimoire.Elab.Elaborate "Inserting drops" MojoSpec.Elab.Elaborate (level := 2)}
 

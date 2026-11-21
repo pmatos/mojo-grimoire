@@ -1,0 +1,26 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "h 7",
+    "g 7",
+    "del S 7",
+    "get 7",
+    "107 70",
+    "h 8",
+    "g 8",
+    "del S 8",
+    "get 8",
+    "188",
+    "h 9",
+    "g 9",
+    "del S 9",
+    "get 9",
+    "199",
+    "g 3",
+    "del S 3",
+    "get 3",
+    "103 30"
+  ],
+  "class": null,
+  "diagnostic": null
+}

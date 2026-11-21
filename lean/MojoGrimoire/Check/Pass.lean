@@ -10,7 +10,8 @@ place the function may change, and `var` copies it implicitly
 (`MojoGrimoire.Check.Transfer`). A misfit is reported as the call's fit
 says (`MojoGrimoire.Check.Fit`). An error of a later pass than typing, in
 an argument of `range`, may be recorded instead of thrown (`lateErrors`),
-so that the passes report in the compiler's order (#121).
+so that the passes report in the compiler's order (#121). What a call
+types before it reads its first argument is in `typeFirst`.
 -/
 
 namespace MojoGrimoire.Check
@@ -91,5 +92,29 @@ def passPlace (prog : Program) (fit : Fit) (callee : Name) (c : Conv) (t : Ty) (
     requireMutable p fit
   | .owned => expectArg fit t (← copyPlace prog p)
   | .out | .deinit => throw (CheckError.invalidConvention callee)
+
+/-- What the compiler types of a call of `f` before it reads its first
+argument, a place: `recv` types that place, and `rest` the other
+arguments. The receiver of an in-place method that inference made is
+typed first, its indices included. A subscript `p[i]` of a struct, which
+inference makes the call `S.__getitem__(p, i)`, has its index typed
+against the getter's parameter first, as any subscript's is
+(`checkIndex`), so that an unknown name or a type that does not fit in it
+is reported before a use of `p` moved or uninitialized (#191); errors
+that the compiler reports after the types do not count there, nor an
+index with no type here, such as a literal of `Int`s of the wrong length,
+which the call reports later. The state is left as it was. -/
+def typeFirst (prog : Program) (f : Name) (recv : CheckM Unit) (rest : List (CheckM Ty)) :
+    CheckM Unit := do
+  let s0 ← get
+  if inPlaceCallee f then recv
+  else if let (some (_, "__getitem__", false), .ok sig) := (calleeMethod f, callSig prog f) then
+    modify State.typing
+    try
+      for (prm, t) in sig.params.drop 1 |>.zip rest do
+        let ty ← t
+        unless ty == .unknown do expect prm.ty ty
+    catch err => unless err.late || err matches .implicitCopy _ | .noMatchingInit .int do throw err
+  set s0
 
 end MojoGrimoire.Check

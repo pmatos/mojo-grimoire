@@ -43,11 +43,8 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     if copyingOf prog t == .none then throw (CheckError.notCopyable t)
     pure t
   | .call f args => do
-    if let .place p :: _ := args then
-      if inPlaceCallee f then
-        let s ← get
-        typePlace prog p
-        set s
+    if let .place p :: rest := args then
+      typeFirst prog f (typePlace prog p) (rest.attach.map fun ⟨a, _⟩ => typeArg prog a)
     requireInPlace f args
     rejectCalledVar prog f (typeArgs prog args)
     match callSig prog f with
@@ -405,7 +402,7 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
           requireOwnOrigin prog p
           unless ← placeMutable p do
             throw (CheckError.transferFromBorrowed p)
-        throw (fit.misfit (CheckError.notAPlace callee))
+        throw (fit.misfit (notPlaceError prog callee e))
       expectArg fit prm.ty (← checkExprAs prog false e)
       let k ← mark
       pure (← lateLocs prog e, k)

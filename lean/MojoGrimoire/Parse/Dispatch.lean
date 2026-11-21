@@ -30,12 +30,13 @@ modelled (#194).
 `-a` calls `__neg__`, and `not a` negates what `__bool__` gives. `a and b`
 and `a or b` convert each struct operand with `__bool__`, unless both
 operands have the same type: then the operator gives the operand that
-decides, as the checker and the interpreter say. `p += e`, `p -= e` and `p *= e` call `__iadd__`,
-`__isub__` and `__imul__` of `p`'s struct, with no fallback to
-`__add__`. A call `f(…)` of a variable `f` whose struct declares
-`__call__` calls it: the variable hides a function, `len`, `range`,
-`print` or a struct of its name. A struct's subscripts are not yet calls
-of its methods (#191).
+decides, as the checker and the interpreter say. `p += e`, `p -= e` and
+`p *= e` call `__iadd__`, `__isub__` and `__imul__` of `p`'s struct,
+with no fallback to `__add__`. A subscript `p[i]` read as a value calls
+`__getitem__`, and assigned calls `__setitem__` when the struct declares
+both. A call `f(…)` of a variable `f` whose struct declares `__call__`
+calls it: the variable hides a function, `len`, `range`, `print` or a
+struct of its name.
 -/
 
 namespace MojoGrimoire.Parse
@@ -94,9 +95,13 @@ def TyEnv.mutableArgs (prog : Program) (env : TyEnv) (os : List Name) :
 end
 
 /-- Whether the operand `e` may be passed to the parameter `prm` with its
-convention: a `mut` parameter takes only what may change. -/
+convention: a `mut` parameter takes only what may change. A subscript of
+a struct with a setter is let through, for the checker to reject: its
+write-back is not yet modelled (#198). -/
 def TyEnv.canPass (prog : Program) (env : TyEnv) (e : Expr) (prm : Param) : Bool :=
-  prm.conv != .mutable || env.mutableAt prog e
+  prm.conv != .mutable || env.mutableAt prog e || match e with
+    | .call g _ => lateGetter prog g
+    | _ => false
 
 /-- The struct named by the type `t`, and its method `m`, when `t` is a
 struct that declares it. -/

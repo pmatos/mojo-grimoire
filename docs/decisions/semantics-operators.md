@@ -1,8 +1,8 @@
 # Current decisions: semantics, operators and calls on structs
 
-This page continues [semantics.md](semantics.md) with what an operator or
-a call means when its operand is a struct of the program, and when it
-compares two arrays.
+This page continues [semantics.md](semantics.md) with what an operator, a
+subscript or a call means when its operand is a struct of the program, and
+when it compares two arrays.
 
 ## Methods that a struct declares
 
@@ -90,6 +90,38 @@ is: `t < u` may give an `Int`.
   one, as in `b = a and b`, the pin destroys it before it reads it, or
   its default level and `-O0` give different values: what the model does
   there waits for the human's ruling (#248).
+- A subscript `p[i]` read as a value calls `__getitem__`. When the struct
+  also declares `__setitem__`, the subscript is a place: Mojo locates `p`
+  and evaluates `i` in order, but calls the getter only when it reads the
+  operand, once every operand of its operation is evaluated, so a later
+  operand that changes or moves `p` comes first. The getters are called
+  before the operation reads its other operands, so `print(x.n, x[0])`
+  with a getter that changes `x` prints the changed `x.n`; a list
+  literal reads its elements in order. An argument copied into a `var`
+  parameter, or into a struct field of a `@fieldwise_init` construction,
+  is copied before the getters. A getter destroys what it last uses
+  right after it, in any operation and in a `return`, but what a getter
+  that returns a reference points into, which lives until the operation
+  is done, as for any call that returns a reference. The index of a
+  subscript read late, such as `w[h(s)]`, is evaluated in operand order,
+  so what the later operands use lives while it is.
+  With no setter it is a value, and the getter is called in order.
+- On the left of `and` or `or`, a subscript of a struct with a setter is
+  read as one with no setter is: its getter is called once, as it is
+  evaluated, and what its index last uses dies before it. The pin calls
+  the getter twice when the subscript decides, and keeps the index's
+  values alive for the second call even when it does not: a compiler bug
+  (#211, [D-0011](../conformance/decision-log-d0011.md), provisional),
+  which `known.json` lists for its six programs.
+- `p[i] = v` calls `__setitem__` when the struct declares both, evaluating
+  `i` before `v`. The compiler first checks the types of the getter call
+  `p[i]`, then the type of `v` against the getter's result, then the
+  setter call; the getter is not run, so nothing is copied for it, and a
+  literal of `Int`s of the wrong length fails only after the setter's
+  receiver. `v` is read as it is evaluated: a subscript read late there
+  calls its getter before those in `i`. With a getter and no setter
+  `p[i] = v` is `immutablePlace`, reported once the getter call `p[i]` is
+  checked and before `v` is.
 - An operator method that inference calls must take as many operands,
   `self` among them, as its operator: two for a binary, reflected or
   in-place operator and one for `__neg__` and `__bool__`. The compiler
@@ -180,10 +212,11 @@ Not yet modelled, each keeping the result it had before #166:
 
 Each of these keeps the result the model gave before #191:
 
-- A subscript of a struct that declares `__getitem__` or `__setitem__`,
-  read or assigned, which the model rejects as `notAList`. A later part of #191 models reading and assigning it; a
-  subscript used as a place beyond that, such as `p[i] op= e` or passing
-  it `mut`, stays with #198.
+- A subscript of a struct used as a place beyond reading and assigning it:
+  `p[i] op= e`, passing it `mut` (the compiler writes the getter's value
+  back), reading a field, an element or a method of its value, its
+  transfer, its copy and `ref r = p[i]`, which the model rejects as
+  `notAList` (#198).
 - The methods that `Equatable` and `Comparable` supply by default (#194),
   an `if` or
   `while` condition of struct type (#195), and a call of a field (#196).
