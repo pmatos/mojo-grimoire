@@ -63,20 +63,6 @@ def TyEnv.placeTy (prog : Program) (env : TyEnv) : Place → Option Ty
   | .index p _ => (env.placeTy prog p).bind fun t => (indexedOf t).toOption
   | .transferred p => env.placeTy prog p
 
-/-- Whether the operand `e` is a place through the element of an `Int`,
-which the compiler passes to a `ref` parameter as a temporary that cannot
-change (#127). -/
-def TyEnv.intIndexed (prog : Program) (env : TyEnv) (e : Expr) : Bool :=
-  match e with
-  | .place p => go p
-  | _ => false
-where
-  /-- Whether the place goes through the element of an `Int`. -/
-  go : Place → Bool
-    | .var _ => false
-    | .field p _ | .transferred p => go p
-    | .index p _ => env.placeTy prog p == some .int || go p
-
 mutual
 /-- Whether the operand `e` may change: a place into a variable that may, or
 a call that returns a reference whose origins are all parameters it may
@@ -99,8 +85,7 @@ into the parameters `os` points to. -/
 def TyEnv.mutableArgs (prog : Program) (env : TyEnv) (os : List Name) :
     List Param → List Expr → Bool
   | prm :: prms, a :: as =>
-    (!os.contains prm.name || prm.conv == .mutable ||
-      (prm.conv == .ref && env.mutableAt prog a && !env.intIndexed prog a))
+    (!os.contains prm.name || prm.conv == .mutable || (prm.conv == .ref && env.mutableAt prog a))
       && env.mutableArgs prog os prms as
   | _, _ => true
 end

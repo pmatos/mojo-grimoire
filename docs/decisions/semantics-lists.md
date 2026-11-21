@@ -271,14 +271,19 @@ and write its one element. The human ruled on 2026-11-20 that indexing an
   so a `Bool` index is `typeMismatch`.
 - The element has no memory origin: `ref r = k[0]` and a returned
   reference to it are `escapingReference`, as the compiler reports
-  "doesn't have a memory origin", and `k[0]` passed to a `ref` parameter
-  gives a reference that cannot be changed. The compiler passes `k[0]` to
-  a `mut` parameter as a temporary that it writes back after the call,
-  which argument exclusivity does not cover, and to a `ref` parameter as a
-  temporary that a later change of `k` does not reach; the model passes
-  `k` itself, which agrees unless another argument aliases `k`, or a
-  reference returned through the `ref` parameter is read after `k`
-  changes (#222). `k[i] = v` evaluates `i` before `v`, as `__setitem__`
-  takes them, where a list's element is located after its value (D-0002).
-- `len` of an `Int`, which the nightly gives as 1, is still `notAList`,
-  awaiting a ruling (#223).
+  "doesn't have a memory origin". `k[i] = v` evaluates `i` before `v`, as
+  `__setitem__` takes them, where a list's element is located after its
+  value (D-0002), and the value may not invalidate the place of the `Int`.
+- Not modelled yet (#222): the compiler passes `k[0]` to a `mut`
+  parameter as a temporary that it writes back after the call, which
+  argument exclusivity does not cover, and to a `ref` parameter as a
+  temporary that a later change of `k` does not reach. Until then, a call
+  of a function, a method or an operator method that passes `k[0]`, at any
+  depth, to a `mut` or `ref` parameter keeps the result it had before
+  #127, so that no rejection turns into a wrong run: `notAList`, checked
+  after the indices as before, a constant out of the `Int`'s range
+  included, or an earlier error such as `argumentExclusivity` when
+  another argument aliases `k`. Passed `read` or owned, `k[0]` is copied,
+  as the ruling allows.
+- `len` of an `Int`, which the nightly gives as 1, is still `notAList`
+  (#190).

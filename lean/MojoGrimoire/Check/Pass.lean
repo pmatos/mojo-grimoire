@@ -46,6 +46,20 @@ def refResult (prog : Program) (asRef : Bool) (sig : Signature) : CheckM Ty := d
     throw (CheckError.implicitCopy sig.result)
   pure sig.result
 
+/-- Rejects the place `p` through the element of an `Int`, passed to a
+`mut` or `ref` parameter, as `notAList`, as before #127: the compiler
+passes it as a temporary, which the model does not model yet (#222). The
+indices are checked first by `check`, as before, but for a constant out of
+an `Int`'s range, which comes after. -/
+def rejectIntElemArg (prog : Program) (c : Conv) (p : Place) (check : CheckM Unit) :
+    CheckM Unit := do
+  unless (c == .mutable || c == .ref) && (← intIndexed prog p) do return
+  tryCatch check fun e => do
+    if let .constantIndexOutOfBounds (.index q _) := e then
+      if (← placeTy prog q) == .int then throw (CheckError.notAList .int)
+    throw e
+  throw (CheckError.notAList .int)
+
 /-- Passes the place `p` to a parameter of convention `c` and type `t`, of
 a call of fit `fit`. -/
 def passPlace (prog : Program) (fit : Fit) (callee : Name) (c : Conv) (t : Ty) (p : Place) :

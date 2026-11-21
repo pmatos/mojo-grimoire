@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6343786735662056620")
+:::moduleDocs (fingerprint := "2441411867627471058")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -42,6 +42,16 @@ in the compiler's order of passes (#121).
 *Definition: the result of a call.* A call or a method call that returns a
 reference, used as a value, gives the value it points to, which must be
 implicitly copyable, unless it is used as a reference.
+:::
+
+:::readable MojoGrimoire.Check.rejectIntElemArg (fingerprint := "4264150540999649085")
+*Rule: the element of an $`\mathsf{Int}` passed by reference.* The
+compiler passes a place through the element of an $`\mathsf{Int}` to a
+`mut` or `ref` parameter as a temporary, written back after a `mut` call,
+which the model does not model yet (#222). Such an argument is rejected
+as $`\mathsf{notAList}`, as before #127, once its indices are checked,
+but for a constant index out of the $`\mathsf{Int}`'s range, which is
+$`\mathsf{notAList}` too.
 :::
 
 :::readable MojoGrimoire.Check.passPlace (fingerprint := "2500036056060291548")

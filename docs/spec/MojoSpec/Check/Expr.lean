@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3089316698824769657")
+:::moduleDocs (fingerprint := "4482270027598594590")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "17281696054148982009")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "15872008417249097830")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -123,6 +123,8 @@ than `and` and `or`, a list literal and `print`, and the origins of an
 operand among them that is a call that returns a reference and is a
 located operand, are checked again once every operand is, by
 `recheckLocs`; then the call records what it changes.
+A place through the element of an $`\mathsf{Int}` passed `mut` or `ref`
+is rejected by `rejectIntElemArg`, once its indices are checked (#222).
 Every index in a place is checked first, and must be an $`\mathsf{Int}`:
 an index of a list or an array is an argument of `__getitem__`, which has
 several overloads, checked by `checkArg`, so that a misfit is

@@ -7,7 +7,9 @@ whose `__getitem__` and `__setitem__` read and write its one element, at
 index 0, which is the `Int` itself. The pinned nightly ignores any other
 index, a compiler bug (D-0009): the model checks an `Int`'s index as an
 array's of length 1. The element has no memory origin, so no reference may
-point into it, and passed to a `ref` parameter it cannot be changed.
+point into it. The compiler passes it to a `mut` or `ref` parameter as a
+temporary, which the model does not model yet (#222): such a call keeps
+the result it had before #127, `notAList` in every shape that had it.
 -/
 
 namespace MojoGrimoireTest.Parse.IntIndex
@@ -22,15 +24,25 @@ private def runLines (ls : List String) : Option Outcome :=
   | .error _ => none
 
 /-- Functions that take an `Int` by each convention, one that returns a
-reference to its `ref` parameter, and a struct with an `Int` field. -/
+reference to its `ref` parameter, and a struct with an `Int` field and
+methods, operator methods among them, that take an `Int` by each
+convention. -/
 private def lib : List String := [
   "def three() -> Int:", "    return 3",
   "def inc(mut x: Int):", "    x += 1",
   "def rd(x: Int) -> Int:", "    return x[0]",
   "def same(ref a: Int) -> ref [a] Int:", "    return a",
   "def one(mut a: Int, b: Int):", "    a += 1", "    print(b)",
+  "def two(mut a: Int, mut b: Int):", "    a += 1", "    b += 10",
+  "def mf(mut a: Int, ref b: Int):", "    a += 10", "    print(b)",
   "def pr(n: Int) -> Int:", "    print(\"eval\", n)", "    return n",
   "@fieldwise_init", "struct S(Copyable, Movable):", "    var k: Int",
+  "    def put(self, mut x: Int):", "        x += self.k",
+  "    def peek(self, ref x: Int) -> Int:", "        return x + self.k",
+  "    def __add__(self, mut o: Int) -> Int:", "        return self.k + o",
+  "    def __radd__(self, mut o: Int) -> Int:", "        return self.k + o",
+  "    def __iadd__(mut self, mut o: Int):", "        self.k += o",
+  "    def __sub__(self, o: Int) -> Int:", "        return self.k - o",
   ""]
 
 /-- The program of `lib` whose `main` declares `k = 7`, then runs `body`. -/
@@ -74,12 +86,35 @@ private def kAt (i : Int) : Place := .index (.var "k") (.int i)
     "def main():", "    var xs: List[Int] = [1, 2]", "    xs[0][0] = grow(xs)"]) ==
   some (.rejected ⟨"main", .invalidatedReference (.index (.var "xs") (.int 0))⟩)
 #guard prints ["k[0] = k + 1", "print(k)"] ["8"]
--- Passed `mut`, it is changed; passed `read`, it is copied.
-#guard prints ["inc(k[0])", "print(k)"] ["8"]
-#guard prints ["one(k[0], k)", "print(k)"] ["7", "8"]
--- Passed `ref`, it gives an immutable reference.
-#guard prints ["print(same(k[0]))"] ["7"]
-#guard rejects ["ref r = same(k[0])", "r = 3"] (.immutablePlace (.var "r"))
+-- Passed `read` or `owned`, it is copied, to a function, a method or an
+-- operator method.
+#guard prints ["var s = S(2)", "var xs: List[Int] = [1]", "xs.append(k[0])",
+    "print(rd(k[0]), s - k[0], xs)"] ["7 -5 [1, 7]"]
+
+-- Passed `mut` or `ref`, the compiler passes a temporary, written back
+-- after a `mut` call, which the model does not model yet (#222). Each
+-- shape keeps its result from before #127: `notAList`, or, when another
+-- argument aliases `k`, `argumentExclusivity`.
+#guard rejects ["inc(k[0])"] (.notAList .int)
+#guard rejects ["one(k[0], k)"] (.notAList .int)
+#guard rejects ["two(k[0], k)"] (.argumentExclusivity (kAt 0))
+#guard rejects ["mf(k, k[0])"] (.argumentExclusivity (.var "k"))
+#guard rejects ["print(same(k[0]))"] (.notAList .int)
+#guard rejects ["ref r = same(k[0])", "k = 9", "print(r)"] (.notAList .int)
+#guard rejects ["var s = S(2)", "s.put(k[0])"] (.notAList .int)
+#guard rejects ["var s = S(2)", "print(s.peek(k[0]))"] (.notAList .int)
+#guard rejects ["var s = S(2)", "print(s + k[0])"] (.notAList .int)
+#guard rejects ["var s = S(2)", "print(k[0] + s)"] (.notAList .int)
+#guard rejects ["var s = S(2)", "s += k[0]"] (.notAList .int)
+#guard rejects ["inc(k[0]^)"] (.notAList .int)
+#guard rejects ["var s = S(7)", "inc(s.k[0])"] (.notAList .int)
+#guard rejects ["var xs: List[Int] = [1]", "inc(xs[0][0])"] (.notAList .int)
+-- Its index is checked first, as before, but for a constant out of the
+-- `Int`'s range.
+#guard rejects ["inc(k[1])"] (.notAList .int)
+#guard rejects ["inc(k[0][1])"] (.notAList .int)
+#guard rejects ["inc(k[-1])"] (.negativeIndex (kAt (-1)))
+#guard rejects ["inc(k[zz])"] (.unknownVariable "zz")
 
 -- Any other index is checked as an array's of length 1 (D-0009): a
 -- constant one out of range or negative is rejected, a computed one fails
@@ -99,10 +134,11 @@ private def kAt (i : Int) : Place := .index (.var "k") (.int i)
 #guard runLines (lib ++ ["def f(ref k: Int) -> ref [k] Int:", "    return k[0]",
     "def main():", "    var k = 7", "    print(f(k))"]) ==
   some (.rejected ⟨"f", .escapingReference "f"⟩)
--- So is a reference returned through a `ref` parameter given `k[0]`.
+-- A reference returned through a `ref` parameter given `k[0]` is a call
+-- passing `k[0]` `ref`, as above.
 #guard runLines (lib ++ ["def f(ref k: Int) -> ref [k] Int:", "    return same(k[0])",
     "def main():", "    var k = 7", "    print(f(k))"]) ==
-  some (.rejected ⟨"f", .escapingReference "f"⟩)
+  some (.rejected ⟨"f", .notAList .int⟩)
 -- The compiler finds that once it has typed the place, and, in a return,
 -- compared its type with the result's, before a later error, but after an
 -- unknown name in its index.
@@ -115,16 +151,14 @@ private def kAt (i : Int) : Place := .index (.var "k") (.int i)
 -- value assigned comes first.
 #guard rejects ["k[0][1] = zz()"] (.unknownFunction "zz")
 
--- Inference, too, takes `k[0]` passed `ref` for a reference that cannot
--- change: `pick(k[0], s) + t` calls `T.__radd__`, not `S.__add__`, which
--- takes `mut self`.
+-- An operator whose operand passes `k[0]` `ref` is such a call too.
 #guard runLines (["@fieldwise_init", "struct S(Copyable, Movable):", "    var v: Int",
     "    def __add__(mut self, o: T) -> Int:", "        return self.v + o.w",
     "@fieldwise_init", "struct T(Copyable, Movable):", "    var w: Int",
     "    def __radd__(self, o: S) -> Int:", "        return o.v * 100 + self.w",
     "def pick(ref a: Int, ref s: S) -> ref [a, s] S:", "    return s",
     "def main():", "    var k = 7", "    var s = S(1)", "    print(pick(k[0], s) + T(2))"]) ==
-  some (.finished ["102"])
+  some (.rejected ⟨"main", .notAList .int⟩)
 
 -- An index must be an `Int`; `__getitem__` of an `Int` has one overload.
 #guard rejects ["print(k[True])"] (.typeMismatch .int .bool)

@@ -1,6 +1,0 @@
-{
-  "outcome": "rejected",
-  "stdout": [],
-  "class": "immutablePlace",
-  "diagnostic": "expression must be mutable in assignment"
-}

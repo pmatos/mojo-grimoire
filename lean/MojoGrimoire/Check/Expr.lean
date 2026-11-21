@@ -370,6 +370,7 @@ recorded once it was checked. A string literal fits no overload. -/
 def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
     Expr → CheckM (List Place × Nat)
   | .place p => do
+    rejectIntElemArg prog prm.conv p (checkIndices prog p)
     checkIndices prog p
     passPlace prog fit callee prm.conv prm.ty p
     pure ([p], ← mark)

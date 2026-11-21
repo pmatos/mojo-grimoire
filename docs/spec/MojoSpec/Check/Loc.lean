@@ -13,19 +13,17 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Located operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18070799580737749921")
+:::moduleDocs (fingerprint := "6252894720499367893")
 :::
 
-:::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable MojoGrimoire.Check.passedMutable (fingerprint := "9606139123884044909")
+:::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable MojoGrimoire.Check.passedMutable (fingerprint := "13335214914752779514")
 *Definition: places that may change.* A function may change a place, by
 assigning to it or passing it `mut`, unless its variable is a `read` or
 `ref` parameter, or a reference that may not be changed; a `ref` binding
 to a place reached through `p^` may change it, as the compiler allows. A
 place passed to a `ref` parameter or a `ref self` receiver passes on a
 mutable reference when it may be changed and is not reached through `p^`,
-which the compiler borrows as a value that cannot be changed, nor through
-the element of an $`\mathsf{Int}`, which it passes as a temporary that
-cannot be changed (#127).
+which the compiler borrows as a value that cannot be changed.
 :::
 
 :::readable MojoGrimoire.Check.passOn (fingerprint := "2491400132329808649")
@@ -34,12 +32,11 @@ returns through a `mut` parameter may be changed; through a `ref`
 parameter, when its argument may be; through a `read` parameter, never.
 :::
 
-:::readable MojoGrimoire.Check.locOfAs MojoGrimoire.Check.originsOf MojoGrimoire.Check.locOf (fingerprint := "6187860787345125418")
+:::readable MojoGrimoire.Check.locOfAs MojoGrimoire.Check.originsOf MojoGrimoire.Check.locOf (fingerprint := "2923818814505434713")
 *Rule: located operands.* A located operand names a location. A place is
 one: its origins are the place, or the same place in each origin of the
 reference it goes through, and it passes on a mutable reference when its
-variable may be changed and it is not reached through `p^`, nor through
-the element of an $`\mathsf{Int}`.
+variable may be changed and it is not reached through `p^`.
 A call or a method call that returns a reference is one when every
 argument passed to a parameter its origin names, a method's receiver
 included, is a located operand in turn: its origins are those arguments'

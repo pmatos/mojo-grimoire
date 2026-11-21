@@ -15,8 +15,7 @@ that a call passes to the parameters its origin names, the receiver of a
 method among them. It may be changed through when its place may be, or,
 for a call, when each origin argument passes on a mutable reference. A
 place reached through `q^` passes on an immutable one: the compiler borrows
-it as a value that cannot be changed. So does the element of an `Int`, which
-the compiler passes as a temporary (#127).
+it as a value that cannot be changed.
 A reference that a call returns and that is read late is re-checked
 through the origins of those of its origin arguments that are located
 operands, a temporary among them left out.
@@ -48,10 +47,9 @@ def placeMutable (p : Place) : CheckM Bool := do
 /-- Whether the place `p`, passed to a `ref` parameter or a `ref self`
 receiver, passes on a mutable reference: it may be changed through, and is
 not reached through `q^`, which the compiler borrows as a value that cannot
-be changed, nor through the element of an `Int`, which it passes as a
-temporary that cannot be changed (#127). -/
-def passedMutable (prog : Program) (p : Place) : CheckM Bool := do
-  pure ((← placeMutable p) && !throughTransfer p && !(← intIndexed prog p))
+be changed. -/
+def passedMutable (p : Place) : CheckM Bool := do
+  pure ((← placeMutable p) && !throughTransfer p)
 
 /-- Whether a reference that a callee returns through a parameter of
 convention `c` may be changed, when its argument `m` may be: a `mut`
@@ -71,7 +69,7 @@ with no origins, so that checking it as a call rejects it (#176). Unless `strict
 skipped instead: the call then gives the origins of its other origin
 arguments, and may not be changed through. -/
 def locOfAs (prog : Program) (strict : Bool) : Expr → CheckM (Option (List Place × Bool))
-  | .place p => do pure (some (resolvePlace (← get).vars p, ← passedMutable prog p))
+  | .place p => do pure (some (resolvePlace (← get).vars p, ← passedMutable p))
   | .call f args => do
     if (← findVar f).isSome then pure (some ([], false)) else
     match callSig prog f with
@@ -85,7 +83,7 @@ def locOfAs (prog : Program) (strict : Bool) : Expr → CheckM (Option (List Pla
     match self with
     | some s =>
       if os.contains s.name then
-        pure (some (resolvePlace (← get).vars p ++ rest, passOn s.conv (← passedMutable prog p) && mr))
+        pure (some (resolvePlace (← get).vars p ++ rest, passOn s.conv (← passedMutable p) && mr))
       else pure (some (rest, mr))
     | none => pure (some (rest, mr))
   | .withDrops e _ _ => locOfAs prog strict e

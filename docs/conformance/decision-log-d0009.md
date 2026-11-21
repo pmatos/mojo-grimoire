@@ -23,11 +23,10 @@ In `tests/conformance/basics/`, each listed in `known.json` under D-0009:
 
 The programs on which the model agrees are `basics/int_index.mojo`, index 0
 read and written through a variable, a field, an element of a list, another
-index, `+=` and a `mut` argument, and four in `rejected/`: `int_index_bool`
-(`typeMismatch`), `int_index_ref_binding` and `int_index_ref_return`
-(`escapingReference`: "value of type 'Int' doesn't have a memory origin"),
-and `int_index_ref_argument_immutable` (`immutablePlace`: `k[0]` passed to a
-`ref` parameter is a temporary that cannot be changed).
+index and `+=`, `basics/int_index_store_order.mojo`, the index evaluated
+before the value, and three in `rejected/`: `int_index_bool`
+(`typeMismatch`), and `int_index_ref_binding` and `int_index_ref_return`
+(`escapingReference`: "value of type 'Int' doesn't have a memory origin").
 
 ## Compiler
 
@@ -55,9 +54,11 @@ the index in the same expression, as in `print(k[1], zz)`, still comes
 second, as for an array, an order left to #96 and #142.
 
 The element has no memory origin of its own: `ref r = k[0]`, and a
-reference returned to `k[0]`, are `escapingReference`, and `k[0]` passed to
-a `ref` parameter gives a reference that cannot be changed, as the compiler
-does.
+reference returned to `k[0]`, are `escapingReference`, as the compiler
+reports. The compiler passes `k[0]` to a `mut` or `ref` parameter as a
+temporary, which the model does not model yet (#222), so such a call keeps
+the result it had before #127, `notAList` (see
+[the decision page](../decisions/semantics-lists.md#an-index-of-an-int)).
 
 ## Evidence
 

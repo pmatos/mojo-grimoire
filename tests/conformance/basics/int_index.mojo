@@ -3,10 +3,6 @@ struct Box(Copyable, Movable):
     var k: Int
 
 
-def inc(mut x: Int):
-    x += 1
-
-
 def first(x: Int) -> Int:
     return x[0]
 
@@ -19,7 +15,6 @@ def main():
     print(k)
     var i = 0
     k[i] = k[i] * 2
-    inc(k[0])
     print(k, first(k))
     var b = Box(3)
     b.k[0] = 4

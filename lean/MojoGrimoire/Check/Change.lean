@@ -5,8 +5,7 @@ The changes that the checker records, and the operands it checks again
 once every operand of an operation is evaluated.
 
 A call records as changed each place it is passed `mut`, or `ref` when the
-place may be changed and is reached through neither `q^` nor the element of
-an `Int`, which the compiler passes as a temporary, once its operands are
+place may be changed and is not reached through `q^`, once its operands are
 checked; a call that returns a reference passed so changes its origins. That invalidates the references
 into the elements of a list that the place holds: the `ref` bindings, and
 the operands of an enclosing operation that were located before the call.
@@ -48,7 +47,7 @@ def changedArgs (prog : Program) : List Param → List Expr → CheckM (List Pla
     let rest ← changedArgs prog prms args
     match prm.conv, a with
     | .mutable, .place q => pure (q :: rest)
-    | .ref, .place q => if ← passedMutable prog q then pure (q :: rest) else pure rest
+    | .ref, .place q => if ← passedMutable q then pure (q :: rest) else pure rest
     | .mutable, a | .ref, a =>
       match ← locOf prog a with
       | some (os, m) => pure (if prm.conv == .mutable || m then os ++ rest else rest)
