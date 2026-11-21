@@ -107,10 +107,15 @@ arrays of them:
 
 Not yet modelled, each keeping the result it had before #166:
 
+- A literal on the right whose elements the compiler converts to the left
+  array's element type, as it converts a call's argument: `[1, 2] ==
+  [[1], [2]]` runs, each `[1]` initializing an `Int`, where the model
+  reports `typeMismatch`; and `[[1]] == [[]]`, a type mismatch in the
+  compiler and `invalidType` in the model. Part 2 of #166 covers them.
 - An element type that holds a struct. The compiler requires the
   struct's conformance to `Equatable` or `Comparable`, not the methods it
   declares, and calls the struct's `__eq__` and `__lt__` element by
-  element. Conformances come with #194; part 2 of #166 follows it.
+  element. Conformances come with #194; part 3 of #166 follows it.
 - `==` and `!=` of arrays of lists, which need the equality of lists, a
   list compared with an array, `xs == a`, whose list is still copied, and
   the order of two `Bool`s outside an array (#185).

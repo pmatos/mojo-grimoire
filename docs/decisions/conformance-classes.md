@@ -170,7 +170,7 @@ whole and first, to one class, `violatedConstraint`, from the message
 alone. The human ruled this on 2026-11-20 (#166, option A). The model reports it for arrays of `None` and arrays of lists
 ordered, from the operands' types before it reads them
 ([semantics-operators.md](semantics-operators.md#comparisons-of-arrays));
-arrays of structs come with part 2 of #166, after #194, and lists with
+arrays of structs come with part 3 of #166, after #194, and lists with
 #185.
 
 Rejected: one class per trait. The runner keeps a note only for

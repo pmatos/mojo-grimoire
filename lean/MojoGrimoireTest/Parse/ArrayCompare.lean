@@ -11,7 +11,7 @@ the operator needs, `None` or, to order them, a list, `violatedConstraint`.
 An element type that holds a struct, and the equality of arrays of lists,
 keep the result they had before. Each verdict is the pinned compiler's
 for the program, probed on the nightly 1.3.0.dev2026111905, but for the
-last ones, which part 2 of #166 and #185 cover.
+last ones, which part 3 of #166 and #185 cover.
 -/
 
 namespace MojoGrimoireTest.Parse.ArrayCompare
@@ -93,7 +93,7 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
   (.violatedConstraint (.array (.list .int) 1) "__lt__")
 #guard rejects ["print([f()] == [1])"] (.typeMismatch (.array .noneType 1) (.array .int 1))
 
--- Not yet: a struct element (part 2 of #166, after #194), the equality of
+-- Not yet: a struct element (part 3 of #166, after #194), the equality of
 -- lists (#185) and the order of `Bool`s, which keep their result.
 #guard rejects ["print([P(1)] == [P(1)])"] (.typeMismatch .int (.array (.struct "P") 1))
 #guard rejects ["var a = [P(1)]", "print(a < a)"] (.implicitCopy (.array (.struct "P") 1))
