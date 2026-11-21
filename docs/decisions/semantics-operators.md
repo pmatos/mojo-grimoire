@@ -98,9 +98,11 @@ is: `t < u` may give an `Int`.
   in-place operator and one for `__neg__` and `__bool__`. The compiler
   rejects such a declaration when it parses it ("'__add__' requires 2
   operands"), used or
-  not; the model rejects it as `arityMismatch`. Which class this message
-  maps to is not yet settled, so no pattern matches it and no suite
-  program pins it. The other operator methods that the compiler checks
+  not; the model rejects it as `arityMismatch`, the class the human
+  ruled for that message (#214). The suite's
+  `rejected/operator_method_bool_extra_param*` and
+  `rejected/operator_method_add_one_operand` programs pin it. The other
+  operator methods that the compiler checks
   in the same way, such as `__truediv__`, are not yet checked.
 - `p += e`, `p -= e` and `p *= e` on a struct call `__iadd__`, `__isub__`
   and `__imul__`, with no fallback to `__add__`: a struct that lacks the

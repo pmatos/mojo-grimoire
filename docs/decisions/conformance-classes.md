@@ -132,7 +132,11 @@ arguments is reported as an ordinary call reports it, and the suite's
 it. A call that leaves out a required argument, of a function, a method
 or `__call__`, is `arityMismatch`: `diagnostics.json` maps the
 compiler's "missing required argument", matched whole, to it. The human
-ruled this on 2026-11-20 (#209).
+ruled this on 2026-11-20 (#209). An operator method declared with the
+wrong number of operands, `self` among them, such as `__add__(self)` or
+`__bool__(self, k: Int)`, is `arityMismatch` too: `diagnostics.json`
+maps "'__X__' requires N operands", matched whole and accepting
+"operand", to it. The human ruled this on 2026-11-21 (#214).
 
 The model does not yet follow one case of the same rules. The operator
 methods that `Equatable` and `Comparable` supply by default (`a == b` on a
