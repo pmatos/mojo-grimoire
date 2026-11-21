@@ -72,11 +72,11 @@ def fail {α : Type} (e : RunError) : EvalM α := throw (.error e)
 /-- Stops the run in a state that a checked program never reaches. -/
 def stuck {α : Type} (what : String) : EvalM α := fail (.stuck what)
 
-/-- A new location holding `v`. -/
-def alloc (v : Value) : EvalM Ref := do
-  let m ← get
-  set { m with store := m.store.push v }
-  pure ⟨m.store.size, []⟩
+/-- A new location holding `v`. The store is changed in place: no other
+reference to the machine is held while it changes, so the array is not
+copied, and a run that allocates `n` locations takes time linear in `n`. -/
+def alloc (v : Value) : EvalM Ref :=
+  modifyGet fun m => (⟨m.store.size, []⟩, { m with store := m.store.push v })
 
 /-- The value at the reference `r`. -/
 def readRef (r : Ref) : EvalM Value := do
@@ -84,12 +84,12 @@ def readRef (r : Ref) : EvalM Value := do
   let some w := v.get r.path | stuck "no such part"
   pure w
 
-/-- Replaces the value at the reference `r` by `w`. -/
+/-- Replaces the value at the reference `r` by `w`, in place, as `alloc`
+does. -/
 def writeRef (r : Ref) (w : Value) : EvalM Unit := do
-  let m ← get
-  let some v := m.store[r.loc]? | stuck "no such location"
+  let some v := (← get).store[r.loc]? | stuck "no such location"
   let some v' := v.set r.path w | stuck "no such part"
-  set { m with store := m.store.set! r.loc v' }
+  modify fun m => { m with store := m.store.set! r.loc v' }
 
 /-- Takes the value out of the reference `r`, and leaves what is left of
 it, `Value.blank`, in its place. -/

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The machine: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6181323717105135758")
+:::moduleDocs (fingerprint := "2336600503871602383")
 :::
 
 :::readable MojoGrimoire.Interp.Ref MojoGrimoire.Interp.Binding MojoGrimoire.Interp.Env (fingerprint := "10228878087589298434")
@@ -44,10 +44,12 @@ run still shows what it printed.
 its blank in its place.
 :::
 
-:::readable MojoGrimoire.Interp.alloc MojoGrimoire.Interp.readRef MojoGrimoire.Interp.writeRef MojoGrimoire.Interp.emit (fingerprint := "3528105872701788051")
+:::readable MojoGrimoire.Interp.alloc MojoGrimoire.Interp.readRef MojoGrimoire.Interp.writeRef MojoGrimoire.Interp.emit (fingerprint := "4113611147714244786")
 *Definition: the store.* A new location is added at the end of the store
 and never reused. Reading and writing a reference reads and replaces the
-part of its location's value that its path names. `emit` adds a printed
+part of its location's value that its path names. Adding and writing
+change the store in place, so a run that adds $`n` locations takes time
+linear in $`n`. `emit` adds a printed
 line.
 :::
 
