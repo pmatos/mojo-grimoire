@@ -36,6 +36,8 @@ private def lib : List String := [
   "def two(mut a: Int, mut b: Int):", "    a += 1", "    b += 10",
   "def mf(mut a: Int, ref b: Int):", "    a += 10", "    print(b)",
   "def pr(n: Int) -> Int:", "    print(\"eval\", n)", "    return n",
+  "def seti(mut i: Int) -> Int:", "    i = 2", "    return 6",
+  "def sr(a: Int) -> ref [a] Int:", "    return a",
   "@fieldwise_init", "struct S(Copyable, Movable):", "    var k: Int",
   "    def put(self, mut x: Int):", "        x += self.k",
   "    def peek(self, ref x: Int) -> Int:", "        return x + self.k",
@@ -81,6 +83,9 @@ private def kAt (i : Int) : Place := .index (.var "k") (.int i)
 #guard prints ["k[pr(0)] = pr(5)", "print(k)"] ["eval 0", "eval 5", "5"]
 #guard prints ["var xs: List[Int] = [1]", "xs[pr(0)][pr(0)] = pr(6)", "print(xs)"]
   ["eval 0", "eval 0", "eval 6", "[6]"]
+-- The order follows the place's static type, whatever its list holds.
+#guard prints ["var xss: List[List[Int]] = [[], [3], [4]]", "var i = 1",
+    "xss[i][0][0] = seti(i)", "print(xss)"] ["[[], [6], [4]]"]
 -- So the value may not invalidate the `Int`'s location, as in a list.
 #guard runLines (["def grow(mut xs: List[Int]) -> Int:", "    xs.append(7)", "    return 5",
     "def main():", "    var xs: List[Int] = [1, 2]", "    xs[0][0] = grow(xs)"]) ==
@@ -109,12 +114,27 @@ private def kAt (i : Int) : Place := .index (.var "k") (.int i)
 #guard rejects ["inc(k[0]^)"] (.notAList .int)
 #guard rejects ["var s = S(7)", "inc(s.k[0])"] (.notAList .int)
 #guard rejects ["var xs: List[Int] = [1]", "inc(xs[0][0])"] (.notAList .int)
+-- So is `k[0]` passed to a `read` parameter that the callee's origin
+-- names, which the compiler rejects in the signature.
+#guard rejects ["print(sr(k[0]))"] (.notAList .int)
+#guard rejects ["ref r = sr(k[0])", "k = 9", "print(r)"] (.notAList .int)
 -- Its index is checked first, as before, but for a constant out of the
 -- `Int`'s range.
 #guard rejects ["inc(k[1])"] (.notAList .int)
 #guard rejects ["inc(k[0][1])"] (.notAList .int)
 #guard rejects ["inc(k[-1])"] (.negativeIndex (kAt (-1)))
 #guard rejects ["inc(k[zz])"] (.unknownVariable "zz")
+
+-- `p op= e` is read as `p = p op e`, which evaluates the indices of `p`
+-- twice where the compiler evaluates them once (#198). Into the element
+-- of an `Int`, it keeps its result from before #127, `notAList`, unless
+-- each index is a constant or a variable.
+#guard rejects ["var xs: List[Int] = [0, 0]", "k[xs.pop()] += 1"] (.notAList .int)
+#guard rejects ["k[pr(0)] += 3"] (.notAList .int)
+#guard rejects ["var xs: List[Int] = [1]", "xs[pr(0)][0] += 1"] (.notAList .int)
+#guard rejects ["k[pr(0)] = k[pr(0)] * 2"] (.notAList .int)
+#guard prints ["var i = 0", "k[i] += 1", "k[0] *= 2", "print(k)"] ["16"]
+#guard prints ["var xs: List[Int] = [1]", "var i = 0", "xs[i][0] -= 3", "print(xs)"] ["[-2]"]
 
 -- Any other index is checked as an array's of length 1 (D-0009): a
 -- constant one out of range or negative is rejected, a computed one fails

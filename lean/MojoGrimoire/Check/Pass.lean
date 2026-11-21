@@ -38,27 +38,47 @@ def lateErrors (x : CheckM RangeArgs) : CheckM RangeArgs :=
   tryCatch x fun err =>
     if err.late || err == .noMatchingInit .int then pure (RangeArgs.ofLate err) else throw err
 
-/-- The type of a call of signature `sig`. A call that returns a reference,
-used as a value, copies the value it points to implicitly, unless `asRef`
-holds. -/
-def refResult (prog : Program) (asRef : Bool) (sig : Signature) : CheckM Ty := do
+/-- The type of a call of signature `sig`, with the arguments `args`. A
+call that returns a reference, used as a value, copies the value it points
+to implicitly, unless `asRef` holds. An argument through the element of an
+`Int`, passed to a parameter that the origin names, is `notAList`, as
+before #127: the element has no memory origin, and the model passes `k`
+itself (#222). -/
+def refResult (prog : Program) (asRef : Bool) (sig : Signature) (args : List Expr) :
+    CheckM Ty := do
+  if let some os := sig.origin then
+    for (prm, a) in sig.params.zip args do
+      if let .place p := a then
+        if os.contains prm.name && (← intIndexed prog p) then throw (CheckError.notAList .int)
   if sig.origin.isSome && !asRef && copyingOf prog sig.result != .implicit then
     throw (CheckError.implicitCopy sig.result)
   pure sig.result
 
-/-- Rejects the place `p` through the element of an `Int`, passed to a
-`mut` or `ref` parameter, as `notAList`, as before #127: the compiler
-passes it as a temporary, which the model does not model yet (#222). The
+/-- Rejects the place `p` through the element of an `Int` as `notAList`,
+as before #127, where the model cannot yet give the compiler's result. The
 indices are checked first by `check`, as before, but for a constant out of
 an `Int`'s range, which comes after. -/
-def rejectIntElemArg (prog : Program) (c : Conv) (p : Place) (check : CheckM Unit) :
-    CheckM Unit := do
-  unless (c == .mutable || c == .ref) && (← intIndexed prog p) do return
+def rejectIntElem (prog : Program) (p : Place) (check : CheckM Unit) : CheckM Unit := do
+  unless ← intIndexed prog p do return
   tryCatch check fun e => do
     if let .constantIndexOutOfBounds (.index q _) := e then
       if (← placeTy prog q) == .int then throw (CheckError.notAList .int)
     throw e
   throw (CheckError.notAList .int)
+
+/-- Rejects the place `p` through the element of an `Int` passed to a
+`mut` or `ref` parameter (`rejectIntElem`): the compiler passes it as a
+temporary, which the model does not model yet (#222). -/
+def rejectIntElemArg (prog : Program) (c : Conv) (p : Place) (check : CheckM Unit) :
+    CheckM Unit := do
+  if c == .mutable || c == .ref then rejectIntElem prog p check
+
+/-- Whether every index in the place `p` is an integer constant or a
+variable, which evaluating twice cannot change. -/
+def plainIndices : Place → Bool
+  | .var _ => true
+  | .field p _ | .transferred p => plainIndices p
+  | .index p i => plainIndices p && ((constInt i).isSome || i matches .place (.var _))
 
 /-- Passes the place `p` to a parameter of convention `c` and type `t`, of
 a call of fit `fit`. -/

@@ -13,17 +13,17 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1946490137953697850")
+:::moduleDocs (fingerprint := "10286943042416279360")
 :::
 
-:::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "14136961392570647166")
+:::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "12042878878789727990")
 *Definition: arguments.* A call receives each argument as a place, passed
 by reference to a `read`, `mut`, `ref` or `out` parameter; as a value,
 moved or copied into a `var` parameter, which the callee owns, or copied
 into a `read` parameter of type $`\mathsf{Int}` or $`\mathsf{Bool}`; or
 as a temporary, a value passed to a borrowing parameter, which the caller
 destroys after the call. The callee's parameters are bound to them, each
-value at a new location.
+value at a new location, with the parameter's type.
 :::
 
 :::readable MojoGrimoire.Interp.Operand MojoGrimoire.Interp.Operand.load MojoGrimoire.Interp.Pending MojoGrimoire.Interp.Pending.loadAll (fingerprint := "3189860708977689654")
@@ -41,7 +41,7 @@ $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "4644987595786742263")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "10965006909014359029")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -112,8 +112,8 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   it, and destroys the old value; into the element of an $`\mathsf{Int}`,
   it evaluates the place, index included, first, as `__setitem__` takes
   the index before the value (#127). Whether the base is an
-  $`\mathsf{Int}` is read from its value without evaluating its indices
-  (`peekPlace`). An expression statement destroys its
+  $`\mathsf{Int}` is decided from the place's static type, never from what
+  its lists hold. An expression statement destroys its
   result. `print` writes its arguments separated by spaces. `if` and
   `while` run their blocks in scopes of their own. `return x` of an owned
   variable takes it out. `drop p` takes the value out of $`p` and destroys

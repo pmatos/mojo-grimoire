@@ -84,9 +84,9 @@ def bindParams : List Param → List Arg → EvalM Env
   | prm :: prms, a :: args => do
     let rest ← bindParams prms args
     let b ← match a with
-      | .place r => pure ⟨r, false⟩
-      | .value v => do pure ⟨← alloc v, prm.conv == .owned⟩
-      | .temp v => do pure ⟨← alloc v, false⟩
+      | .place r => pure ⟨r, false, prm.ty⟩
+      | .value v => do pure ⟨← alloc v, prm.conv == .owned, prm.ty⟩
+      | .temp v => do pure ⟨← alloc v, false, prm.ty⟩
     pure ((prm.name, b) :: rest)
   | _, _ => pure []
 
@@ -117,7 +117,7 @@ def destroy (prog : Program) (fuel : Nat) (v : Value) : EvalM Unit :=
       match sd.deinit with
       | some body => do
         let r ← alloc v
-        let _ ← runBody prog n false [("self", ⟨r, false⟩)] body
+        let _ ← runBody prog n false [("self", ⟨r, false, .struct s⟩)] body
       | none => fs.forM fun (_, w) => destroy prog n w
     | .list es => es.forM (destroy prog n)
     | _ => pure ()
@@ -398,12 +398,12 @@ def execStmt (prog : Program) (fuel : Nat) (refs : Bool) (env : Env) (s : Stmt) 
       let v ← match init with
         | some e => evalExpr prog n env e
         | none => blankOf prog n t
-      pure ((x, ⟨← alloc v, true⟩) :: env)
-    | .refDecl x e => do pure ((x, ⟨← evalRef prog n env e, false⟩) :: env)
+      pure ((x, ⟨← alloc v, true, t⟩) :: env)
+    | .refDecl x e => do pure ((x, ⟨← evalRef prog n env e, false, refTy prog env e⟩) :: env)
     | .assign p e => do
-      let intBase ← match p with
-        | .index q _ => do pure ((← peekPlace env q) matches some (.int _))
-        | _ => pure false
+      let intBase : Bool := match p with
+        | .index q _ => placeTy prog env q == some .int
+        | _ => false
       let (v, r) ← if intBase then do
           let r ← placeRef prog n env p
           pure (← evalExpr prog n env e, r)

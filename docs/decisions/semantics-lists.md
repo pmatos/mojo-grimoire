@@ -274,6 +274,8 @@ and write its one element. The human ruled on 2026-11-20 that indexing an
   "doesn't have a memory origin". `k[i] = v` evaluates `i` before `v`, as
   `__setitem__` takes them, where a list's element is located after its
   value (D-0002), and the value may not invalidate the place of the `Int`.
+  The interpreter decides this from the place's static type, never from
+  what its lists hold.
 - Not modelled yet (#222): the compiler passes `k[0]` to a `mut`
   parameter as a temporary that it writes back after the call, which
   argument exclusivity does not cover, and to a `ref` parameter as a
@@ -283,7 +285,13 @@ and write its one element. The human ruled on 2026-11-20 that indexing an
   #127, so that no rejection turns into a wrong run: `notAList`, checked
   after the indices as before, a constant out of the `Int`'s range
   included, or an earlier error such as `argumentExclusivity` when
-  another argument aliases `k`. Passed `read` or owned, `k[0]` is copied,
-  as the ruling allows.
+  another argument aliases `k`. So is `k[0]` passed to a `read` parameter
+  that the callee's origin names, a signature the compiler rejects. Passed
+  `read` or owned otherwise, `k[0]` is copied, as the ruling allows.
+- `p op= e` is read as `p = p op e`, which evaluates the indices of `p`
+  twice where the compiler evaluates them once, a gap for list elements
+  too (#198). Into the element of an `Int`, such an assignment keeps its
+  result from before #127, `notAList`, unless every index of `p` is a
+  constant or a variable, so that no index runs twice.
 - `len` of an `Int`, which the nightly gives as 1, is still `notAList`
   (#190).

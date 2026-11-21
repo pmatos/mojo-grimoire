@@ -13,14 +13,15 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The machine: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8050446168377253656")
+:::moduleDocs (fingerprint := "6181323717105135758")
 :::
 
-:::readable MojoGrimoire.Interp.Ref MojoGrimoire.Interp.Binding MojoGrimoire.Interp.Env (fingerprint := "5146776138028628767")
+:::readable MojoGrimoire.Interp.Ref MojoGrimoire.Interp.Binding MojoGrimoire.Interp.Env (fingerprint := "10228878087589298434")
 *Definition: references and variables.* A reference is a location of the
 store and a path to a part of its value. A variable names a reference, and
-says whether the function owns the value there. The variables in scope are
-listed innermost first.
+says whether the function owns the value there, and has a static type:
+its declared type, its parameter's, or for a `ref` binding the type of
+what it names. The variables in scope are listed innermost first.
 :::
 
 :::readable MojoGrimoire.Interp.RunError MojoGrimoire.Interp.Result MojoGrimoire.Interp.Signal (fingerprint := "12799556844993829968")
@@ -59,11 +60,17 @@ $`\mathsf{Bool}`s. Negation wraps too, and `not` negates a
 $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Interp.peekPlace MojoGrimoire.Interp.position MojoGrimoire.Interp.blankOf MojoGrimoire.Interp.emptyStruct (fingerprint := "9117548158765717999")
-*Definition: indices and blanks.* The value in a place can be read
-without evaluating its indices, an index of a list standing for its first
-element, which has the type of every other, and none in an empty list: so
-the interpreter tells whether a place is an $`\mathsf{Int}` (#127). An index into a list of length
+:::readable MojoGrimoire.Interp.placeTy MojoGrimoire.Interp.refTy (fingerprint := "15432595716733909718")
+*Definition: static types.* The static type of a place follows from its
+variable's type, through fields, list and array elements, and the element
+of an $`\mathsf{Int}`, which is the $`\mathsf{Int}` (#127); that of a
+reference is the type of the place or the result of the call it names.
+So the interpreter tells whether a place is an $`\mathsf{Int}` whatever
+its lists hold.
+:::
+
+:::readable MojoGrimoire.Interp.position MojoGrimoire.Interp.blankOf MojoGrimoire.Interp.emptyStruct (fingerprint := "3758052026648494389")
+*Definition: indices and blanks.* An index into a list of length
 $`l` names position $`i` when $`0 \le i < l`; any other index, a negative
 one included, stops the run, since Mojo's `List` does not count from the
 end. A variable declared without a value starts as the blank of its type:

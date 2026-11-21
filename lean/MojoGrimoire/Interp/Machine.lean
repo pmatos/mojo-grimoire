@@ -25,11 +25,13 @@ structure Ref where
   path : List Step
   deriving DecidableEq, Repr
 
-/-- A variable of a function: the place it names, and whether the function
-owns its value and so destroys what is left of it when it returns. -/
+/-- A variable of a function: the place it names, whether the function
+owns its value and so destroys what is left of it when it returns, and its
+type, which tells a place through the element of an `Int` (#127). -/
 structure Binding where
   ref : Ref
   owned : Bool
+  ty : Ty
   deriving DecidableEq, Repr
 
 /-- The variables in scope, innermost first. -/
@@ -126,19 +128,28 @@ def unary (op : UnOp) (a : Value) : EvalM Value :=
   | .not, .bool x => pure (.bool (!x))
   | _, _ => stuck "operand of the wrong type"
 
-/-- The value in the place `p` of the variables `env`, found without
-evaluating its indices: an index of a list stands for its first element,
-which has the type of every other; `none` when there is none, as in an
-empty list. It tells whether a place is an `Int` (#127). -/
-def peekPlace (env : Env) : Place → EvalM (Option Value)
-  | .var x => do
-    let some b := env.lookup x | pure none
-    pure (some (← readRef b.ref))
-  | .field p f => do
-    pure ((← peekPlace env p).bind fun | .struct _ fs => fs.lookup f | _ => none)
-  | .index p _ => do
-    pure ((← peekPlace env p).bind fun | .list (v :: _) => some v | .int k => some (.int k) | _ => none)
-  | .transferred p => peekPlace env p
+/-- The static type of the place `p` of the variables `env`, from the
+types they are declared with, whatever their values hold: an index of an
+`Int` is the `Int` (#127). -/
+def placeTy (prog : Program) (env : Env) : Place → Option Ty
+  | .var x => (env.lookup x).map (·.ty)
+  | .field p f => (placeTy prog env p).bind fun t => (fieldOf prog t f).toOption
+  | .index p _ => (placeTy prog env p).bind fun
+    | .list t | .array t _ => some t
+    | .int => some .int
+    | _ => none
+  | .transferred p => placeTy prog env p
+
+/-- The static type of the reference that `e` names, for a `ref` binding:
+a place, or a call of a function or a method that returns a reference. -/
+def refTy (prog : Program) (env : Env) : Expr → Ty
+  | .place p => (placeTy prog env p).getD .unknown
+  | .call f _ => ((callSig prog f).toOption.map (·.result)).getD .unknown
+  | .method p m args =>
+    (((placeTy prog env p).bind fun t => (methodSig prog t m args.length).toOption).map
+      (·.result)).getD .unknown
+  | .withDrops e _ _ => refTy prog env e
+  | _ => .unknown
 
 /-- The position in a list of length `len` that the index `i` names. Mojo's
 `List` does not count a negative index from the end: it is out of bounds. -/

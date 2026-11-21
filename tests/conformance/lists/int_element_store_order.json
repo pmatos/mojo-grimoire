@@ -1,0 +1,13 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "[[], [6], [4]]",
+    "eval 1",
+    "eval 0",
+    "eval 0",
+    "eval 6",
+    "[[], [6]]"
+  ],
+  "class": null,
+  "diagnostic": null
+}

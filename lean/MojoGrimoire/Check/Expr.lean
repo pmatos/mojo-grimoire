@@ -57,7 +57,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       checkExclusive (← locationArgs prog params args)
       recheckLocs prog (← checkArgs prog fit f params args params.length args.length)
       for q in ← changedArgs prog params args do changePlace prog q
-      refResult prog asRef sig
+      refResult prog asRef sig args
     | .error err =>
       match f, args, err with
       | "len", [e], .unknownFunction _ => do

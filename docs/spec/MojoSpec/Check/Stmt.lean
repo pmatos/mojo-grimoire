@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "831906793526454462")
+:::moduleDocs (fingerprint := "617809598355180912")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -133,7 +133,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "10869542359775465660")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "4626945673268690694")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a $`t` a variable may have
@@ -163,7 +163,11 @@ an expression, so a place is copied implicitly.
   Through a reference or to an element, the old value is read first, so
   it must be initialized. Into the element of an $`\mathsf{Int}`, the
   $`\mathsf{Int}` is located before the value is evaluated, so a change
-  the value makes may not invalidate it (#127);
+  the value makes may not invalidate it (#127). As $`p \mathbin{op}= e`
+  is read as $`p = p \mathbin{op} e`, which evaluates the indices of $`p`
+  twice where the compiler evaluates them once (#198), such an assignment
+  into the element of an $`\mathsf{Int}` is $`\mathsf{notAList}`, as before
+  #127, unless every index of $`p` is plain;
 * an expression statement checks its expression;
 * `print`, unless a variable in scope named `print` hides it, which
   `rejectCalledVar` rejects once the arguments are typed (#176), checks
