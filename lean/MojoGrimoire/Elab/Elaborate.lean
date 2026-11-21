@@ -30,7 +30,8 @@ reference, passed by reference to an operation, uses the values it points
 into the same way, so they live until that operation is done; read by
 value, it uses them until the operation's operands are read, since Mojo
 reads the reference only then, and those that die then are destroyed the
-last declared first. The value of a `return` uses them until it is read.
+last declared first. An operand of a comparison of two arrays is passed by
+reference (#166). The value of a `return` uses them until it is read.
 Inside `__deinit__(deinit self)`, each field of `self` is destroyed on its own,
 at the same points, so a field the body never uses is destroyed before the
 body runs.
@@ -229,7 +230,8 @@ def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Expr :=
       let d := opDrops ctx.owned [directOf ctx a true, (uses ctx.sl b, false)] after
       withDropsOf (.binary op (elabExpr ctx false a d.2.2) b) d.1 (if top then [] else d.2.1)
     else
-      let d := opDrops ctx.owned (directArgs ctx [a, b] [true, true]) after
+      let byVal := fun e => ((refSlots ctx.prog ctx.sl ctx.env e).2.bind (arrayCompare op)).isNone
+      let d := opDrops ctx.owned (directArgs ctx [a, b] [byVal a, byVal b]) after
       withDropsOf (.binary op (elabExpr ctx false a (union d.2.2 (uses ctx.sl b)))
         (elabExpr ctx false b d.2.2)) d.1 (if top then [] else d.2.1)
   | .unary op a =>

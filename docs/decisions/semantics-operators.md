@@ -85,13 +85,15 @@ arrays of them:
   `[[1]] < [[2]]` are `True`. `Array`'s methods compare elements with
   their own `__lt__` and `__eq__`; for these types only the result shows.
 - Both operands are passed by reference: a named array, an element or a
-  field is read, not copied, and so is a call that returns a reference.
-  A place is read once both operands are evaluated, as any operand, so
-  `a == bump(a)` sees what `bump` changed.
+  field is read, not copied, and so is a call that returns a reference,
+  also one whose origin is a temporary. A place is read once both
+  operands are evaluated, as any operand, so `a == bump(a)` sees what
+  `bump` changed. A value whose last use is the comparison is destroyed
+  once it is done, as for a `read` argument.
 - A literal on either side is an array, unless the other operand is an
   `Int` (see [semantics-lists.md](semantics-lists.md#arrays)).
 - An operand of another type, an array of another length or element type,
-  an `Int`, a `Bool` or a list, is the compiler's "cannot be converted",
+  an `Int`, a `Bool` or a list on the right, is the compiler's "cannot be converted",
   `typeMismatch`. So are an `Int` or a `Bool` compared with an array, and
   `[1] == []`. An integer literal compared with an array, `1 == a`, fits
   none of the literal's overloads (`noMatchingMethod`).
@@ -105,13 +107,19 @@ arrays of them:
   So `var a: Array[Int, 1]` compared with `[1, 2]` is a mismatch, not a
   use of an uninitialized value.
 
-Not yet modelled, each keeping the result it had before #166:
+Not yet modelled:
 
 - A literal on the right whose elements the compiler converts to the left
   array's element type, as it converts a call's argument: `[1, 2] ==
-  [[1], [2]]` runs, each `[1]` initializing an `Int`, where the model
-  reports `typeMismatch`; and `[[1]] == [[]]`, a type mismatch in the
-  compiler and `invalidType` in the model. Part 2 of #166 covers them.
+  [[1], [2]]` and `a == [[1], [2]]` run, each `[1]` initializing an `Int`,
+  where the model reports `typeMismatch`; and `[[1]] == [[]]`, a type
+  mismatch in the compiler and `invalidType` in the model. A literal on
+  the left compared with a list, `[1] == xs`, which the compiler converts
+  to a list, keeps the result it had before #166. Part 2 of #166 covers
+  them.
+
+Each of these keeps the result it had before #166:
+
 - An element type that holds a struct. The compiler requires the
   struct's conformance to `Equatable` or `Comparable`, not the methods it
   declares, and calls the struct's `__eq__` and `__lt__` element by

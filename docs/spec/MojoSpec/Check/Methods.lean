@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3045619242451718575")
+:::moduleDocs (fingerprint := "17314150981234240660")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -60,7 +60,7 @@ that a variable hides, and any other form, gives none, and so does a
 lookup that fails: checking the operand then reports why.
 :::
 
-:::readable MojoGrimoire.Check.holdsStruct MojoGrimoire.Check.compares MojoGrimoire.Check.arrayCompare MojoGrimoire.Check.arrayCompare.conforms (fingerprint := "11865509169581022243")
+:::readable MojoGrimoire.Check.compares MojoGrimoire.Check.arrayCompare MojoGrimoire.Check.arrayCompare.conforms (fingerprint := "4263272370677617613")
 *Definition: comparable arrays.* $`<`, $`\le`, $`>`, $`\ge`, $`==`
 and $`!=` compare. Two arrays compare when their element type conforms
 to `Comparable`, to order them, or to `Equatable`, for $`==` and $`!=`:
@@ -90,14 +90,16 @@ for a unary operator its operand's (#176). A binary operator's misfit is
 then that of a comparison of arrays (`arrayMisfit`).
 :::
 
-:::readable MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "585369651153579058")
+:::readable MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "8164538988085402831")
 *Rule: operands of a comparison of arrays.* The misfit of a binary
 operator is found from its operands' forms before they are read
 (`operandTy`). An integer literal on the left gives no type, so that its
 overloads report a comparison with an array (`noMatchingMethod`), and an
-empty literal on the right has a type that fits no array. An operand
-compared as an array is passed by reference: a place, or a call that
-returns a reference, is read, uncopied.
+empty literal on the right of a comparison has a type that fits no array.
+A literal compared with a list, which the compiler converts to a list, is
+left to the checks that follow, as before #166. An operand compared as an
+array is passed by reference, as `Array`'s comparisons take a `read`
+argument: a place, or a call that returns a reference, is read, uncopied.
 :::
 
 :::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "3344581529509980139")

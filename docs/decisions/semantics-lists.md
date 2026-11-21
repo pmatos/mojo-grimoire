@@ -153,7 +153,7 @@ here (#27).
   function's result, a parameter, and the element type of an enclosing
   literal or of the list that `append` adds to. A literal with no type
   expected and no elements, `var xs = []`, is rejected.
-- An array's only methods are its comparisons
+- An array has no methods; two arrays compare
   ([semantics-operators.md](semantics-operators.md#comparisons-of-arrays)).
   `len` and indexing work as on a list. At run time an array is a list
   value whose length is its size `N`.

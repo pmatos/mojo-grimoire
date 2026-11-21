@@ -24,7 +24,9 @@ private def pre : List String :=
    "def f():", "    pass",
    "def pick(ref a: Array[Int, 2]) -> ref [a] Array[Int, 2]:", "    return a",
    "def bump(mut a: Array[Int, 1]) -> Array[Int, 1]:", "    a[0] = 5", "    return [5]",
-   "def lt(a: Array[Int, 2], b: Array[Int, 2]) -> Bool:", "    return a < b"]
+   "def lt(a: Array[Int, 2], b: Array[Int, 2]) -> Bool:", "    return a < b",
+   "@fieldwise_init", "struct H(Movable):", "    var n: Int", "    var a: Array[Int, 2]",
+   "    def __deinit__(deinit self):", "        print(\"del\", self.n)"]
 
 /-- Parses and runs the program of `pre` and a `main` whose body is `body`;
 a syntax error gives `none`. -/
@@ -62,6 +64,11 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard prints ["var a = [1, 2]", "var b = [1, 3]", "print(pick(a) < pick(b), pick(a) == b)"]
   ["True False"]
 #guard prints ["var xs: List[Array[Int, 1]] = [[1], [2]]", "print(xs[0] < xs[1])"] ["True"]
+#guard prints ["var b = [1, 3]", "print(pick([1, 2]) < b, b == pick([1, 3]))"] ["True True"]
+-- A value whose last use is the comparison is destroyed once it is done,
+-- the last declared first, as for `read` arguments.
+#guard prints ["var h = H(1, [1, 2])", "var g = H(2, [1, 3])", "print(h.a < g.a)", "print(\"end\")"]
+  ["del 2", "del 1", "True", "end"]
 -- A place is read once every operand is evaluated.
 #guard prints ["var a = [1]", "print(a == bump(a))"] ["True"]
 #guard prints ["var a = [1]", "print(bump(a) == a)"] ["True"]
@@ -100,5 +107,9 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["print([List[Int]()] == [List[Int]()])"]
   (.typeMismatch .int (.array (.list .int) 1))
 #guard rejects ["print(True < False)"] (.typeMismatch .int .bool)
+-- Nor a literal compared with a list, which the compiler converts (part 2).
+#guard rejects ["var l: List[Int] = [1]", "print([1] == l)"] (.implicitCopy (.list .int))
+-- An empty literal is an array only compared with one.
+#guard rejects ["var x = True", "print(x and [])"] (.invalidType .unknown)
 
 end MojoGrimoireTest.Parse.ArrayCompare

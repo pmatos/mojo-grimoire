@@ -155,13 +155,6 @@ def lacks (prog : Program) (m : Name) : Option Ty → Option CheckError
   | some t => if hasMethod prog t m then none else some (.missingMethod t m)
   | none => none
 
-/-- Whether the type `t` holds a struct, itself or through its lists and
-arrays. -/
-def holdsStruct : Ty → Bool
-  | .struct _ => true
-  | .list t | .array t _ => holdsStruct t
-  | _ => false
-
 /-- Whether the operator `op` compares: `<`, `<=`, `>`, `>=`, `==` or
 `!=`. -/
 def compares (op : BinOp) : Bool :=
@@ -174,7 +167,7 @@ arrays of them conform; `None` does not, nor a list to order. An element
 type that holds a struct is not modelled yet (#194), nor the equality of
 lists (#185). -/
 def arrayCompare (op : BinOp) : Ty → Option Bool
-  | .array u _ => if compares op && !holdsStruct u then conforms u else none
+  | .array u _ => if compares op && !(elemBase u matches .struct _) then conforms u else none
   | _ => none
 where
   /-- Whether the element type `u` conforms, when that is modelled. -/
@@ -212,19 +205,22 @@ def binaryMisfit (prog : Program) (op : BinOp) (ta tb : Option Ty) : Option Chec
 /-- The error of the operator `op` that the forms of its operands `a` and
 `b` give (`operandTy`), before they are read (`binaryMisfit`). An integer
 literal's comparison with an array is left to its overloads, and an empty
-literal compared with an array has no type that fits it. -/
+literal compared with an array has no type that fits it. A literal
+compared with a list, which the compiler converts to a list, is left to
+the checks that follow, as before #166. -/
 def operandMisfit (prog : Program) (op : BinOp) (a b : Expr) : CheckM (Option CheckError) := do
   let ta ← if intLiteral a then pure none else operandTy prog a
-  let tb ← if b matches .list .unknown [] then pure (some .unknown) else operandTy prog b
+  let tb ← if compares op && b matches .list .unknown [] then pure (some .unknown)
+    else operandTy prog b
+  let tb := if a matches .list .unknown _ && tb matches some (.list _) then none else tb
   pure (binaryMisfit prog op ta tb)
 
 /-- Whether the operand `e` of the operator `op` is passed by reference,
-uncopied: a place or a call that returns a reference, compared as an
-array (`arrayCompare`). -/
+uncopied, as `Array`'s comparisons take a `read` argument: a place, or a
+call that returns a reference, compared as an array (`arrayCompare`). -/
 def byRef (prog : Program) (op : BinOp) (e : Expr) : CheckM Bool := do
-  if (arrayCompare op ((← operandTy prog e).getD .unknown)).isSome then
-    pure (← locOf prog e).isSome
-  else pure false
+  if !compares op then return false
+  pure ((← operandTy prog e).bind (arrayCompare op)).isSome
 
 /-- The error of the operator `op` that the type `ta` of its operand
 gives, when it is known: the method that the type lacks. -/
