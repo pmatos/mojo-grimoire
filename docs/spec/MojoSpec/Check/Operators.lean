@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Operators: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9303907415561557740")
+:::moduleDocs (fingerprint := "2859850607926075172")
 :::
 
 :::readable MojoGrimoire.Check.binaryResult (fingerprint := "7037857992261783058")
@@ -23,12 +23,11 @@ whatever its operands: inference types an expression by it, and so does
 the checker an element whose own check fails later (`lateElemTy`).
 :::
 
-:::readable MojoGrimoire.Check.binaryTy MojoGrimoire.Check.unaryTy (fingerprint := "17580043234083190239")
+:::readable MojoGrimoire.Check.binaryTy MojoGrimoire.Check.unaryTy (fingerprint := "7769671662555249431")
 *Rule: operators.* Arithmetic takes two $`\mathsf{Int}` and gives an
-$`\mathsf{Int}`; $`<`, $`\le`, $`>` and $`\ge` take two
-$`\mathsf{Int}` and give a $`\mathsf{Bool}`; $`==` and $`!=` take
-two values of the same type, $`\mathsf{Int}` or $`\mathsf{Bool}`, and
-give a $`\mathsf{Bool}`; $`\mathsf{and}` and $`\mathsf{or}` take
+$`\mathsf{Int}`; $`<`, $`\le`, $`>`, $`\ge`, $`==` and $`!=`
+take two values of the same type, $`\mathsf{Int}` or $`\mathsf{Bool}`,
+and give a $`\mathsf{Bool}` (#185); $`\mathsf{and}` and $`\mathsf{or}` take
 and give $`\mathsf{Bool}`. Negation takes an $`\mathsf{Int}`, and
 $`\mathsf{not}` a $`\mathsf{Bool}`.
 :::

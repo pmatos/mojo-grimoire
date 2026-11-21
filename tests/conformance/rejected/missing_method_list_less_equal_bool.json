@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "missingMethod",
+  "diagnostic": "'List[Bool]' does not implement the '__le__' method"
+}

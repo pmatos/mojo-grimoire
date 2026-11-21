@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "invalid call to '__lt__': value passed to 'rhs' cannot be converted from 'List[Int]' to 'Bool'"
+}

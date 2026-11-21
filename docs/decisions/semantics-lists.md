@@ -147,10 +147,11 @@ here (#27).
   unless a list is expected where it stands. A list is expected by the
   declared type of a variable, the type of a place assigned to, a
   function's result, a parameter, and the element type of an enclosing
-  literal or of the list that `append` adds to. A literal with no type
-  expected and no elements, `var xs = []`, is rejected.
+  literal or of the list that `append` adds to, and by a list on the left
+  of `==` or `!=`. A literal with no type expected and no elements,
+  `var xs = []`, is rejected.
 - An array has no methods; two arrays compare
-  ([semantics-operators.md](semantics-operators.md#comparisons-of-arrays)).
+  ([semantics-operators.md](semantics-operators.md#comparisons-of-arrays-and-lists)).
   `len` and indexing work as on a list. At run time an array is a list
   value whose length is its size `N`.
 - An array's size is part of its type, so `[1, 2, 3]` is not an
