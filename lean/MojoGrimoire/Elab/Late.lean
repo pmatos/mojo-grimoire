@@ -5,10 +5,12 @@ Subscripts that Mojo reads late (#191): a subscript of a struct that
 declares `__getitem__` and `__setitem__` calls its getter when its
 operation reads the operand, once every operand is evaluated
 (`MojoGrimoire.Check.lateGetter`). The places among the getter's arguments,
-and those of the subscripts read late among them, live until then. A
-getter that returns a value destroys what it last uses right after it is
-called; one that returns a reference leaves them to the operation, as a
-call that returns one does.
+and those of the subscripts read late among them, live until then, and
+until then also what the later operands use, since the arguments are
+evaluated in operand order. The getter destroys what it last uses right
+after it is called; one that returns a reference keeps alive only what
+its reference points into, which the operation uses, as a call that
+returns one does.
 -/
 
 namespace MojoGrimoire.Elab

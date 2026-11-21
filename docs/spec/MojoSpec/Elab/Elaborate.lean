@@ -13,46 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "730968381018173176")
+:::moduleDocs (fingerprint := "9022780481946454532")
 :::
 
-:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.locOperand MojoGrimoire.Elab.directOf MojoGrimoire.Elab.opKeep MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "9300171350076979394")
-*Definition: what an operation destroys.* Inside a function, elaboration
-knows the program, the slots, the slots the function owns in the order they
-die, and the types of the variables declared so far. An operation uses
-directly the slots of the places among its operands, and those their
-index expressions use, and, by reference, the slots that a call returning
-a reference passed by reference points into, so that they outlive it:
-`len(first(xs))` destroys `xs` once `len` is done. By value, it uses the
-owned slots that such a call read by value points into, in the order of
-the owned slots, since Mojo reads the reference only once every operand
-is evaluated. A literal $`[e]_{\mathsf{Int}}` uses what $`e` uses, by
-value, since Mojo reads it as it reads $`e` (#103). A subscript of a
-struct that Mojo reads late (`lateGetter`) uses the places among its
-getter's arguments, its receiver among them, by value, as a call
-returning a reference does when its getter returns one; one whose getter
-returns a value uses nothing directly, since its getter, called once the
-operands are read, destroys what it last uses (#191). Its other operands
-are operations of their own. Given the slots live once it is done, the
-slots it uses by value and nowhere later die once its operands are read,
-in the order they are read; those it uses by reference and nowhere later
-die once it is done, in the order of the owned slots. Its operands are
-evaluated with those slots, and the ones it reads, live after them. An
-operation that destroys nothing is left unwrapped. An operand read once
-it is done keeps alive what a call's reference points into, and for a
-subscript read late only that. The slots that a list
-of operands read by reference uses directly are the union of theirs.
-:::
-
-:::readable MojoGrimoire.Elab.consumedSlot MojoGrimoire.Elab.consumedIn MojoGrimoire.Elab.consumedList (fingerprint := "1304641025228155356")
-*Definition: consumed receivers.* A method call on $`q\,\hat{}`, where
-$`q` is a whole slot and the method takes `var self`, consumes $`q`: it
-moves the value away, and the method destroys it. An expression consumes
-the slots that the method calls in it consume, at any depth, also inside
-the argument of $`\mathsf{List}[u](e)`.
-:::
-
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps MojoGrimoire.Elab.elabLate (fingerprint := "14889608858862996066")
+:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps MojoGrimoire.Elab.elabLate (fingerprint := "5832643723799175716")
 *Definition: elaborating expressions.* Each call, method call, operator,
 list literal, $`\mathsf{List}[u](e)` and `.copy()` is wrapped with what it
 destroys, and its operands are elaborated in turn, each with the slots that the later
@@ -61,7 +25,8 @@ after it. A subscript read late whose getter returns a value is read only
 once every operand is evaluated: it is elaborated with the slots live
 then and those of the subscripts read late after it, so its getter
 destroys what it last uses right after it is called, while the places of
-those read late before it live as its arguments are evaluated (#191).
+those read late before it, and what the later operands use, live as its
+arguments are evaluated, in operand order (#191).
 On the left of `and` or `or`, a subscript read late is elaborated as a
 call of its getter made as it is evaluated, as a subscript of a struct
 with no setter is, so it destroys what its index last uses before its
@@ -86,14 +51,14 @@ the comparison reads by reference (`MojoGrimoire.Check.byRef`, #166,
 #185): what it last uses dies once the comparison is done.
 :::
 
-:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.envAfter (fingerprint := "148560885156345098")
+:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.envAfter (fingerprint := "10237194049534601213")
 *Definition: helpers.* The slots that an elaborated expression destroys,
 also inside the argument of $`\mathsf{List}[u](e)`; and the types of
 the variables after a statement, which a declaration or a `ref` binding
 extends.
 :::
 
-:::readable MojoGrimoire.Elab.elabPrintOps MojoGrimoire.Elab.elabPrintArgs (fingerprint := "13326758052447682054")
+:::readable MojoGrimoire.Elab.elabPrintOps MojoGrimoire.Elab.elabPrintArgs (fingerprint := "15539588873786545709")
 *Definition: the operands of print.* `print` reads its operands once every
 operand is evaluated, and a place operand lives until it is done: each
 operand is elaborated with the slots live after `print`, those of its
@@ -103,7 +68,8 @@ it is elaborated with only the slots live once `print` has read its
 operands, and those of the subscripts read after it: what its getter last
 uses dies right after the getter, before `print` writes, and every other
 operand keeps the getter's places alive until then, as the places of the
-getters before it live as its arguments are evaluated (#191).
+getters before it, and what the later operands use, live as its arguments
+are evaluated (#191).
 :::
 
 :::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "12807690894885017943")
