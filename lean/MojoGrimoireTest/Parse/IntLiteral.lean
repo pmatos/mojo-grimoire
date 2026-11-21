@@ -242,7 +242,7 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["var z: Int", "print(x + [z * 2, True])"] (.typeMismatch .int .bool)
 -- A literal whose element is not an `Int` stays an array where an `Int` is
 -- expected of it, as the left operand of a comparison with an `Int`.
-#guard rejects ["print([True] < x)"] (.typeMismatch .int (.array .bool 1))
+#guard rejects ["print([True] < x)"] (.typeMismatch (.array .bool 1) .int)
 -- A literal with no type expected is still an array: as an operand of an
 -- operator whose other operand is not an `Int`, negated, as the argument of
 -- `List[Int](…)`, or bound to a variable. An array has no arithmetic and

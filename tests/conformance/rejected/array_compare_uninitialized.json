@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "uninitializedUse",
+  "diagnostic": "use of uninitialized value 'a'"
+}

@@ -43,6 +43,18 @@ an ordinary call finds its misfit, once its argument is read, so an
 uninitialized argument of the wrong type is still `uninitializedUse`
 first, where the compiler reports `noMatchingMethod`: that order across
 the compiler's passes is left to #96.
+
+Two arrays compare with `<`, `<=`, `>`, `>=`, `==` and `!=`, which `Array`
+declares, when they have the same type and their element type conforms to
+`Comparable`, or for `==` and `!=` to `Equatable`: `Int`, `Bool` and
+arrays of them (`arrayCompare`, #166). Each operand is passed by
+reference: a place is read, uncopied (`byRef`). Another type is a type
+mismatch, found from the operands' types, as an `Int` compared with an
+array is; an element type that does not conform, `None` or, to order
+them, a list, is the compiler's "violated constraint",
+`violatedConstraint`, found the same way. An element type that holds a
+struct waits for its conformances (#194), and the equality of lists for
+#185: such arrays keep the checks they had before.
 -/
 
 namespace MojoGrimoire.Check
@@ -143,13 +155,76 @@ def lacks (prog : Program) (m : Name) : Option Ty → Option CheckError
   | some t => if hasMethod prog t m then none else some (.missingMethod t m)
   | none => none
 
+/-- Whether the type `t` holds a struct, itself or through its lists and
+arrays. -/
+def holdsStruct : Ty → Bool
+  | .struct _ => true
+  | .list t | .array t _ => holdsStruct t
+  | _ => false
+
+/-- Whether the operator `op` compares: `<`, `<=`, `>`, `>=`, `==` or
+`!=`. -/
+def compares (op : BinOp) : Bool :=
+  op matches .lt | .le | .gt | .ge | .eq | .ne
+
+/-- Whether the comparison `op` of two arrays of type `t` is modelled, and
+then whether `t`'s element type conforms to the trait that `op` needs:
+`Comparable` to order, `Equatable` for `==` and `!=`. `Int`, `Bool` and
+arrays of them conform; `None` does not, nor a list to order. An element
+type that holds a struct is not modelled yet (#194), nor the equality of
+lists (#185). -/
+def arrayCompare (op : BinOp) : Ty → Option Bool
+  | .array u _ => if compares op && !holdsStruct u then conforms u else none
+  | _ => none
+where
+  /-- Whether the element type `u` conforms, when that is modelled. -/
+  conforms : Ty → Option Bool
+    | .int | .bool => some true
+    | .array u _ => conforms u
+    | .noneType => some false
+    | .list _ => if op == .eq || op == .ne then none else some false
+    | _ => none
+
+/-- The error of the comparison `op` of operands of types `ta` and `tb`,
+when one is an array whose comparison is modelled (`arrayCompare`): a
+type mismatch when the other is of another type, as the compiler cannot
+convert it, the left one an array, an `Int` or a `Bool`, then `violatedConstraint`
+when their element type does not conform. -/
+def arrayMisfit (op : BinOp) : Option Ty → Option Ty → Option CheckError
+  | some ta, some tb =>
+    match arrayCompare op ta, arrayCompare op tb with
+    | some ok, _ =>
+      if ta != tb then some (.typeMismatch ta tb)
+      else if ok then none else some (.violatedConstraint ta (binaryMethod op))
+    | none, some _ => if ta == .int || ta == .bool then some (.typeMismatch ta tb) else none
+    | none, none => none
+  | _, _ => none
+
 /-- The error of the operator `op` that the types `ta` and `tb` of its
 operands give, when they are known: the method that the left operand's
 type lacks, or, for `and` and `or`, `__bool__` that the right one's
-lacks. -/
+lacks, then the misfit of a comparison of arrays (`arrayMisfit`). -/
 def binaryMisfit (prog : Program) (op : BinOp) (ta tb : Option Ty) : Option CheckError :=
   lacks prog (binaryMethod op) ta <|>
-    if op == .and || op == .or then lacks prog (binaryMethod op) tb else none
+    (if op == .and || op == .or then lacks prog (binaryMethod op) tb else none) <|>
+    arrayMisfit op ta tb
+
+/-- The error of the operator `op` that the forms of its operands `a` and
+`b` give (`operandTy`), before they are read (`binaryMisfit`). An integer
+literal's comparison with an array is left to its overloads, and an empty
+literal compared with an array has no type that fits it. -/
+def operandMisfit (prog : Program) (op : BinOp) (a b : Expr) : CheckM (Option CheckError) := do
+  let ta ← if intLiteral a then pure none else operandTy prog a
+  let tb ← if b matches .list .unknown [] then pure (some .unknown) else operandTy prog b
+  pure (binaryMisfit prog op ta tb)
+
+/-- Whether the operand `e` of the operator `op` is passed by reference,
+uncopied: a place or a call that returns a reference, compared as an
+array (`arrayCompare`). -/
+def byRef (prog : Program) (op : BinOp) (e : Expr) : CheckM Bool := do
+  if (arrayCompare op ((← operandTy prog e).getD .unknown)).isSome then
+    pure (← locOf prog e).isSome
+  else pure false
 
 /-- The error of the operator `op` that the type `ta` of its operand
 gives, when it is known: the method that the type lacks. -/
@@ -207,11 +282,13 @@ def methodCall (prog : Program) (asRef : Bool) (p : Place) (t : Ty) (m : Name) (
   refResult prog asRef sig args
 
 /-- The type of the result of the operator `op` on operands of types `ta`
-and `tb`: a method that a type lacks first, then `binaryTy`. -/
+and `tb`: a method that a type lacks first, or the misfit of a comparison
+of arrays, then a `Bool` for such a comparison, and `binaryTy` for any
+other. -/
 def methodBinaryTy (prog : Program) (op : BinOp) (ta tb : Ty) : Except CheckError Ty :=
   match binaryMisfit prog op (some ta) (some tb) with
   | some err => throw err
-  | none => binaryTy op ta tb
+  | none => if (arrayCompare op ta).isSome then pure .bool else binaryTy op ta tb
 
 /-- The type of the result of the operator `op` on an operand of type `ta`:
 a method that the type lacks first, then `unaryTy`. -/

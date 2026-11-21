@@ -157,6 +157,26 @@ Rejected: mapping either message to an existing class, `noMatchingInit`,
 `typeMismatch` or `unknownAttribute`, which would merge errors that the
 compiler tells apart.
 
+## Violated constraints
+
+The compiler gives "invalid call to 'NAME': violated constraint" for a
+call whose constraint on the parameters of the callee's type fails, with
+a note that names the trait, such as "expected 'conforms_to(T,
+Equatable)'". Two arrays compared whose element type does not conform to
+`Equatable`, or to `Comparable` to order them, give it: arrays of `None`,
+of a list ordered, and of a struct without the conformance; so does `==`
+on lists of such a struct. `diagnostics.json` maps the message, matched
+whole and first, to one class, `violatedConstraint`, from the message
+alone. The human ruled this on 2026-11-20 (#166, option A). The model reports it for arrays of `None` and arrays of lists
+ordered, from the operands' types before it reads them
+([semantics-operators.md](semantics-operators.md#comparisons-of-arrays));
+arrays of structs come with part 2 of #166, after #194, and lists with
+#185.
+
+Rejected: one class per trait. The runner keeps a note only for
+"function instantiation failed", so a pattern cannot see which trait is
+missing, and the human did not approve a runner change.
+
 ## Types that a variable hides
 
 Within its scope, a variable or a parameter hides a type of its name in a

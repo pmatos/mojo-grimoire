@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17123713055245921165")
+:::moduleDocs (fingerprint := "3045619242451718575")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -60,15 +60,47 @@ that a variable hides, and any other form, gives none, and so does a
 lookup that fails: checking the operand then reports why.
 :::
 
-:::readable MojoGrimoire.Check.lacks MojoGrimoire.Check.binaryMisfit MojoGrimoire.Check.unaryMisfit (fingerprint := "15222351421749146837")
+:::readable MojoGrimoire.Check.holdsStruct MojoGrimoire.Check.compares MojoGrimoire.Check.arrayCompare MojoGrimoire.Check.arrayCompare.conforms (fingerprint := "11865509169581022243")
+*Definition: comparable arrays.* $`<`, $`\le`, $`>`, $`\ge`, $`==`
+and $`!=` compare. Two arrays compare when their element type conforms
+to `Comparable`, to order them, or to `Equatable`, for $`==` and $`!=`:
+$`\mathsf{Int}`, $`\mathsf{Bool}` and arrays of them conform, `None`
+does not, nor a list to order. An element type that holds a struct,
+itself or through lists and arrays, is not modelled yet, since its
+conformances come with #194, nor the equality of lists (#185): the
+comparison keeps the rules it had before #166.
+:::
+
+:::readable MojoGrimoire.Check.arrayMisfit (fingerprint := "2923997297340939390")
+*Rule: the misfit of a comparison of arrays.* When one operand of a
+comparison is an array that compares, an operand of another type is a
+type mismatch, as the compiler cannot convert it: the right one when the
+left is such an array, and the array when the left is an
+$`\mathsf{Int}` or a $`\mathsf{Bool}`. Two arrays of the same type
+whose element type does not conform are `violatedConstraint` of their
+type and the operator's method (#166).
+:::
+
+:::readable MojoGrimoire.Check.lacks MojoGrimoire.Check.binaryMisfit MojoGrimoire.Check.unaryMisfit (fingerprint := "27817254171827405")
 *Rule: a method that an operand's type lacks.* An operator whose left
 operand's type is known and lacks the operator's method is
 `missingMethod` of that type and method. For $`\mathsf{and}` and
 $`\mathsf{or}`, so is a right operand whose type lacks `__bool__`, and
-for a unary operator its operand's (#176).
+for a unary operator its operand's (#176). A binary operator's misfit is
+then that of a comparison of arrays (`arrayMisfit`).
 :::
 
-:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "17923407630855063083")
+:::readable MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "585369651153579058")
+*Rule: operands of a comparison of arrays.* The misfit of a binary
+operator is found from its operands' forms before they are read
+(`operandTy`). An integer literal on the left gives no type, so that its
+overloads report a comparison with an array (`noMatchingMethod`), and an
+empty literal on the right has a type that fits no array. An operand
+compared as an array is passed by reference: a place, or a call that
+returns a reference, is read, uncopied.
+:::
+
+:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "3344581529509980139")
 *Rule: a call of `len`.* The built-in `len` takes one list, array or
 $`\mathsf{Int}`, a SIMD vector of width 1, and gives an $`\mathsf{Int}`.
 A string is left to the check of a string outside `print`. Any other type,
@@ -81,7 +113,7 @@ read. Any other number of arguments is `noMatchingInit` of $`?`, once
 they are typed.
 :::
 
-:::readable MojoGrimoire.Check.methodCall (fingerprint := "1527231176191769200")
+:::readable MojoGrimoire.Check.methodCall (fingerprint := "14781180816628587386")
 *Rule: a method call.* A call $`p.m(e^*)` of a method of signature
 $`\mathit{sig}`, once the indices of $`p` are checked, takes the method's
 receiver by its convention: $`p` is passed as a place, or, when $`p` is
@@ -99,11 +131,12 @@ receiver and the arguments are checked again once all are read, the
 places the call changes are changed, and the call gives its result.
 :::
 
-:::readable MojoGrimoire.Check.methodBinaryTy MojoGrimoire.Check.methodUnaryTy (fingerprint := "5771276043216569838")
+:::readable MojoGrimoire.Check.methodBinaryTy MojoGrimoire.Check.methodUnaryTy (fingerprint := "7067538993756540430")
 *Rule: the result of an operator, once its operands are checked.* A
-method that an operand's type lacks is `missingMethod`, found again from
-the checked types; otherwise the operator's result is `binaryTy`'s or
-`unaryTy`'s.
+method that an operand's type lacks is `missingMethod`, and a comparison
+of arrays that does not fit is its misfit, found again from the checked
+types; otherwise a comparison of arrays gives a $`\mathsf{Bool}`, and
+any other operator's result is `binaryTy`'s or `unaryTy`'s.
 :::
 
 :::readable MojoGrimoire.Check.rejectAfter MojoGrimoire.Check.rejectMisfit (fingerprint := "6081766398198932002")

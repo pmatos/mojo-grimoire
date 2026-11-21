@@ -47,6 +47,7 @@ def CheckError.className : CheckError → String
   | .noMatchingInit .. => "noMatchingInit"
   | .noMatchingMethod .. => "noMatchingMethod"
   | .missingMethod .. => "missingMethod"
+  | .violatedConstraint .. => "violatedConstraint"
   | .invalidConvention .. => "invalidConvention"
   | .invalidSelf .. => "invalidSelf"
   | .noInitializer .. => "noInitializer"

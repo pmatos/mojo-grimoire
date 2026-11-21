@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "invalid call to '__ne__': value passed to 'rhs' cannot be converted from 'Array[Int, Int(1)]' to 'Bool'"
+}
