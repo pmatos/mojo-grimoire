@@ -153,13 +153,9 @@ def binary (op : BinOp) (a b : Value) : EvalM Value :=
   | _, .ge, .int x, .int y => pure (.bool (decide (x ≥ y)))
   | _, .eq, .int x, .int y => pure (.bool (x == y))
   | _, .ne, .int x, .int y => pure (.bool (x != y))
-  | _, op, .bool x, .bool y => match ordered op (compare x.toNat y.toNat) with
+  | _, op, a, b => match (Value.order a b).bind (ordered op) with
     | some r => pure (.bool r)
     | none => stuck "operands of the wrong type"
-  | _, op, .list xs, .list ys => match (Value.orderList xs ys).bind (ordered op) with
-    | some r => pure (.bool r)
-    | none => stuck "sequences that do not compare"
-  | _, _, _, _ => stuck "operands of the wrong type"
 
 /-- The result of the unary operator `op`. -/
 def unary (op : UnOp) (a : Value) : EvalM Value :=

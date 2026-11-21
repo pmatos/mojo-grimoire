@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The machine: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7595572532320063122")
+:::moduleDocs (fingerprint := "3433952532555869026")
 :::
 
 :::readable MojoGrimoire.Interp.Ref MojoGrimoire.Interp.Binding MojoGrimoire.Interp.Env (fingerprint := "10228878087589298434")
@@ -63,7 +63,7 @@ when the first comes first, $`\le` unless it comes after, and $`==`
 when neither comes first (#166, #185).
 :::
 
-:::readable MojoGrimoire.Interp.wrap MojoGrimoire.Interp.binary MojoGrimoire.Interp.unary (fingerprint := "9349452818281424533")
+:::readable MojoGrimoire.Interp.wrap MojoGrimoire.Interp.binary MojoGrimoire.Interp.unary (fingerprint := "12054957525774758533")
 *Definition: arithmetic.* $`\mathsf{Int}` is 64-bit: an arithmetic operator
 computes its integer function, and the result is wrapped into
 $`[-2^{63}, 2^{63})`.

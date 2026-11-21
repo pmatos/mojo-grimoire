@@ -97,8 +97,10 @@ it to lists. Part 1 of #166 and #185 model the element types `Int`,
   A literal on the right of a list is the argument of the list's `__eq__`
   or `__ne__`, converted to the list's type as a call's argument is:
   `xs == [1, 2]`, `xss == [[1], []]` and, with `xs` a list of `Int`s,
-  `xs == [[1]]` run; an element that does not fit, `xs == [True]`, is a
-  type mismatch.
+  `xs == [[1]]` run; an element of another type, `xs == [True]`, is a
+  type mismatch, and an inner literal of another length where an `Int`
+  is expected, `xs == [[1, 2]]`, fits no initializer of `Int`
+  (`noMatchingInit`), as in a call.
 - An operand of another type, an array or a list of another length or
   element type, an `Int`, a `Bool` or, beside an array, a list, is the
   compiler's "cannot be converted", `typeMismatch`. So are an `Int` or a
@@ -145,6 +147,12 @@ Not yet modelled, each keeping the result it had before:
   arrays and lists.
 - A list of `None`, `List[NoneType]`, and `xs == None`, which need `None`
   as a type and an expression (#183).
+- The literal on the right of a list is checked as a call checks its
+  argument, with that check's gaps: on the right of an uninitialized
+  list, an element that does not fit comes after the uninitialized use
+  (#96), and an inner literal that initializes a `Bool`,
+  `bs == [[True]]`, is a type mismatch, where the compiler finds no
+  initializer (`noMatchingInit`, #165).
 
 ## What is not yet modelled
 

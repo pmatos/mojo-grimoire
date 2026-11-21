@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12326623872548395241")
+:::moduleDocs (fingerprint := "16876984616171267366")
 :::
 
-:::readable MojoGrimoire.Check.compares MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "18074085799025108892")
+:::readable MojoGrimoire.Check.compares MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "12823475274059033023")
 *Definition: comparable arrays and lists.* $`<`, $`\le`, $`>`, $`\ge`,
 $`==` and $`!=` compare. Two arrays compare when their element type
 conforms to `Comparable`, to order them, or to `Equatable`, for $`==`
@@ -74,8 +74,9 @@ $`\mathsf{Int}`, of a method with several overloads, whose misfit is
 `noMatchingMethod`. When the left operand of $`==` or $`!=` is a list
 and the right one a literal that inference typed as such a list, the
 literal is the argument `other` of the list's `__eq__` or `__ne__`, of
-the list's type, converted to it as a call's argument is: an element
-that does not fit is a type mismatch (#185).
+the list's type, converted to it as a call's argument is (#185): an
+element of another type is a type mismatch, and an inner literal where
+an $`\mathsf{Int}` is expected follows the rules of such literals.
 :::
 
 :::readable MojoGrimoire.Check.methodBinaryTy (fingerprint := "10037846033912567083")

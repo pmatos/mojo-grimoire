@@ -44,9 +44,7 @@ modelled, and then whether `t`'s element type conforms to the trait that
 and does not conform as an element. An element type that holds a struct
 is not modelled yet (#194). -/
 def seqCompare (op : BinOp) : Ty → Option Bool
-  | .array u _ => if modelled u then conforms u else none
-  | .list u => if modelled u then (if op == .eq || op == .ne then conforms u else some false)
-    else none
+  | t@(.array u _) | t@(.list u) => if modelled u then conforms t else none
   | _ => none
 where
   /-- Whether the comparison of a sequence of elements of type `u` is
