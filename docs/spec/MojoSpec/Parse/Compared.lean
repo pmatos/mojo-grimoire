@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expected types of literals: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10170296766053605703")
+:::moduleDocs (fingerprint := "3575438904985884810")
 :::
 
 :::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected (fingerprint := "17740833371835876722")
@@ -31,7 +31,7 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv.leafTy MojoGrimoire.Parse.TyEnv.literalFit MojoGrimoire.Parse.converts (fingerprint := "2370897936089174743")
+:::readable MojoGrimoire.Parse.TyEnv.leafTy MojoGrimoire.Parse.TyEnv.literalFit MojoGrimoire.Parse.converts (fingerprint := "6293860924381182479")
 *Rule: the fit of a compared literal.* The literal is inferred once with
 no type expected, so that an operator or a call of a struct in it is a
 call of the method it calls. An element of it then has the type its form
@@ -46,7 +46,7 @@ literal to it, on the left only when the comparison conforms
 (`MojoGrimoire.Check.convertsTo`).
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv.retype MojoGrimoire.Parse.TyEnv.retypeList MojoGrimoire.Parse.TyEnv.compared (fingerprint := "1532855165304372778")
+:::readable MojoGrimoire.Parse.TyEnv.retype MojoGrimoire.Parse.TyEnv.retypeList MojoGrimoire.Parse.TyEnv.compared (fingerprint := "16253087408763987415")
 *Rule: a compared literal's type.* A literal that fits the type $`t` of
 the operand it is compared with takes $`t`, and so does one on the right
 of $`==` or $`!=` of a list whose fit is not known (#185). Inference does

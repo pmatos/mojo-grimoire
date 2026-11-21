@@ -69,10 +69,11 @@ def TyEnv.leafTy (prog : Program) (env : TyEnv) : Expr → Option Ty
 
 /-- Whether the literal `lit`, once inferred with no type expected, so
 that its operators and calls are those of the methods they call, fits
-the type `t`, as the elements' forms give it
+the type `t`, on the left when `left` holds, as the elements' forms give it
 (`MojoGrimoire.Check.literalFits`). -/
-def TyEnv.literalFit (prog : Program) (env : TyEnv) (t : Ty) (lit : Expr) : Option Bool :=
-  (literalFits (m := Id) (fun e => env.leafTy prog e) t lit).run
+def TyEnv.literalFit (prog : Program) (env : TyEnv) (left : Bool) (t : Ty) (lit : Expr) :
+    Option Bool :=
+  (literalFits (m := Id) (fun e => env.leafTy prog e) left t lit).run
 
 /-- Whether the comparison `op` converts a literal, on the left when
 `left` holds, to the type `t` of the other operand, when it is known
@@ -122,7 +123,7 @@ def TyEnv.compared (prog : Program) (env : TyEnv) (op : BinOp) (t : Option Ty) (
     (lit : Expr × Option Ty) : Expr × Option Ty :=
   match t with
   | some t =>
-    let fit := env.literalFit prog t lit.1
+    let fit := env.literalFit prog left t lit.1
     if converts op (some t) left && fit == some true ||
         !left && (op == .eq || op == .ne) && t matches .list _ && fit != some false then
       env.retype prog t lit.1

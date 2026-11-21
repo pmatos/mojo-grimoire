@@ -26,8 +26,9 @@ Inference gives a literal that fits that type, and the checker checks
 one on the right against the parameter of the method (`rightParam`). One
 that does not fit is a type mismatch, found before the operands are
 read, after an implicit copy that a literal on the left, built with its
-own type, makes (`copyMisfit`). A failed SIMD constraint in a converted
-literal comes once both operands are read (`compareOperands`). An element type that holds a struct waits for its
+own type, makes (`copyMisfit`). A literal on the left that holds an
+inner literal of another length than one where an `Int` is expected is
+not converted: the order of SIMD's failure and the reads waits for #96. An element type that holds a struct waits for its
 conformances (#194), and a literal that would initialize a `Bool` for
 #165: those comparisons keep the checks they had before #166. A list of
 structs compared with an empty literal, `List[P]() == []`, is a type
@@ -109,27 +110,33 @@ elements of `u` takes `n` elements that each fit `u`, a list of `u` any
 number of them, and an `Int`, whose initializer from a literal takes
 `Int`s (#103), any number of elements that fit `Int`, its length checked
 later (#170). Any other operand fits only its own type, which `leafTy`
-gives. A literal fits no other type, but one that would initialize a
-`Bool` is left to #165, and an operand whose type `leafTy` does not give
-is not known: both are `none`. -/
-def literalFits {m : Type → Type} [Monad m] (leafTy : Expr → m (Option Ty)) (t : Ty) :
-    Expr → m (Option Bool)
-  | .list _ es => match t with
-    | .array u n => if es.length == n then elemsFit leafTy u es else pure (some false)
-    | .list u => elemsFit leafTy u es
-    | .int => elemsFit leafTy .int es
+gives, and so does a literal that has a type, such as `List[u]()` or one
+that inference typed. A literal fits no other type, but one that would
+initialize a `Bool` is left to #165, and an operand whose type `leafTy`
+does not give is not known: both are `none`. So is, when `left` holds,
+an inner literal of another length than one where an `Int` is expected:
+the order of the compiler's failure of SIMD's constraint and of the reads
+waits for #96, and a literal on the left that holds one keeps the checks
+it had before #166. -/
+def literalFits {m : Type → Type} [Monad m] (leafTy : Expr → m (Option Ty)) (left : Bool)
+    (t : Ty) : Expr → m (Option Bool)
+  | .list .unknown es => match t with
+    | .array u n => if es.length == n then elemsFit leafTy left u es else pure (some false)
+    | .list u => elemsFit leafTy left u es
+    | .int => if left && es.length != 1 then pure none else elemsFit leafTy left .int es
     | .bool => pure none
     | _ => pure (some false)
+  | .list u _ => pure (some (u == t))
   | e => do pure ((← leafTy e).map (· == t))
 
 /-- Whether each of the elements `es` fits the type `u` (`literalFits`):
 `some false` when one does not, `none` when one is not known. -/
-def elemsFit {m : Type → Type} [Monad m] (leafTy : Expr → m (Option Ty)) (u : Ty) :
-    List Expr → m (Option Bool)
+def elemsFit {m : Type → Type} [Monad m] (leafTy : Expr → m (Option Ty)) (left : Bool)
+    (u : Ty) : List Expr → m (Option Bool)
   | [] => pure (some true)
   | e :: es => do
-    let r ← literalFits leafTy u e
-    let rs ← elemsFit leafTy u es
+    let r ← literalFits leafTy left u e
+    let rs ← elemsFit leafTy left u es
     pure (match r, rs with
       | some false, _ | _, some false => some false
       | some true, some true => some true
@@ -155,7 +162,7 @@ def operandFit (prog : Program) (op : BinOp) (e : Expr) (t : Option Ty) (left :=
     CheckM (Option (Option Bool)) := do
   match e, t with
   | .list .., some t =>
-    if compares op && convertsTo op t left then pure (some (← literalFits (operandTy prog) t e))
+    if compares op && convertsTo op t left then pure (some (← literalFits (operandTy prog) left t e))
     else pure none
   | _, _ => pure none
 
@@ -198,21 +205,25 @@ on the left of a comparison is converted to the type of the right
 operand, unless that is a literal too, and a literal on the right to the
 type of the left one (`operandFit`), as the compiler converts the
 argument of the method: one that does not fit is a type mismatch. A
-literal on the left that does not fit is built with its own type first,
-so an implicit copy that it makes comes before (`copyMisfit`); one with
-no type of its own, which the compiler reports as a list it cannot type,
-keeps the checks it had before. An integer literal's comparison with an
-array or a list is left to its overloads. -/
+literal on the left that keeps its own type beside an array or a list,
+as it does not fit or the comparison converts none, is built first, so
+an implicit copy that it makes comes before its misfit (`copyMisfit`);
+one with no type of its own, which the compiler reports as a list it
+cannot type, keeps the checks it had before. An integer literal's
+comparison with an array or a list is left to its overloads. -/
 def operandMisfit (prog : Program) (op : BinOp) (a b : Expr) : CheckM (Option CheckError) := do
   let ta ← if intLiteral a then pure none else operandTy prog a
   let tb ← operandTy prog b
   let fa ← if b matches .list .. then pure none else operandFit prog op a tb true
   let ta' := fitTy fa tb ta
   let fb ← operandFit prog op b ta'
-  let mismatch := CheckError.typeMismatch (ta'.getD .unknown) (tb.getD .unknown)
-  if fa == some (some false) && ta.isSome then return (← copyMisfit prog a).getD mismatch
-  if fb == some (some false) then return some mismatch
-  pure (binaryMisfit prog op (if fa == some (some false) then none else ta') (fitTy fb ta' tb))
+  let misfit := if fa == some (some false) && ta.isSome || fb == some (some false) then
+      some (.typeMismatch (ta'.getD .unknown) (tb.getD .unknown))
+    else binaryMisfit prog op (if fa == some (some false) then none else ta') (fitTy fb ta' tb)
+  if misfit.isSome && compares op && a matches .list .. && !(b matches .list ..) &&
+      fa != some (some true) && tb matches some (.list _) | some (.array ..) then
+    if let some err ← copyMisfit prog a then return some err
+  pure misfit
 
 /-- Whether the operand `e` of the operator `op`, whose other operand is
 `other`, is passed by reference, uncopied, as the comparisons of `Array`
@@ -257,23 +268,14 @@ def methodBinaryTy (prog : Program) (op : BinOp) (ta tb : Ty) : Except CheckErro
 `checkA` and `checkB`, which check them read by reference or not, or with
 `argB`, which checks `b` as the argument that `rightParam` gives, and
 gives their types, once the places they read are checked again for what
-changed after (`recheckPlaces`). A literal on the left converted to the
-type of the right operand reads first, as an argument is; an inner
-literal in it that fails SIMD's constraint, `noMatchingInit`, fails in
-a later pass, so it is reported once the right operand is read too, as
-on the right (#166). -/
+changed after (`recheckPlaces`). -/
 def compareOperands (prog : Program) (op : BinOp) (a b : Expr) (checkA checkB : Bool → CheckM Ty)
     (argB : Fit → Param → CheckM Unit) : CheckM (Ty × Ty) := do
-  let readB := do checkB (← byRef prog op b a true)
-  let ta ← tryCatch (do checkA (← byRef prog op a b)) fun err => do
-    if err matches .noMatchingInit _ && a matches .list .. && !(b matches .list ..) &&
-        (literalTy a).isSome && literalTy a == (← operandTy prog b) then
-      let _ ← readB
-    throw err
+  let ta ← checkA (← byRef prog op a b)
   let ka ← mark
   let tb ← match rightParam op a b ta with
     | some (fit, prm) => do argB fit prm; pure prm.ty
-    | none => readB
+    | none => checkB (← byRef prog op b a true)
   let kb ← mark
   unless op == .and || op == .or do recheckPlaces prog [a, b] [ka, kb]
   pure (ta, tb)

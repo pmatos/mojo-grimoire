@@ -85,10 +85,25 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
   (.typeMismatch (.array (.array .int 1) 1) (.array (.list .int) 1))
 #guard rejects ["var v: Array[List[Int], 1] = [[1]]", "print(v < [[1]])"]
   (.violatedConstraint (.array (.list .int) 1) "__lt__")
--- An inner literal of another length where an `Int` is expected, after
--- the reads of both operands.
-#guard runMain ["var a = [1]", "print([[1, 2]] == a)"] matches
-  some (.rejected ⟨"main", .noMatchingInit ..⟩)
+-- Not yet: a literal on the left that holds an inner literal of another
+-- length where an `Int` is expected is not converted, since the order of
+-- SIMD's failure and the reads waits for #96. It keeps the checks it had
+-- before #166: the right operand is copied, and the compiler's
+-- `noMatchingInit` is `implicitCopy`, or the read of an uninitialized
+-- operand, as the compiler says, `uninitializedUse`.
+#guard rejects ["var a = [1]", "print([[1, 2]] == a)"] (.implicitCopy (.array .int 1))
 #guard rejects ["var a: Array[Int, 1]", "print([[1, 2]] == a)"] (.uninitializedUse (.var "a"))
+#guard rejects ["var x: Int", "var a = [1, 2]", "print([[2, 3], [x]] == a)"]
+  (.uninitializedUse (.var "x"))
+-- A literal with a type, `List[u]()`, fits only that type.
+#guard rejects ["var a = [1, 2]", "print([List[Int](), 2] == a)"]
+  (.typeMismatch (.list .int) .int)
+-- A constructor's error in a converted literal comes before the reads.
+#guard runMain ["var xss: List[List[Int]]", "print([List[Int](1)] == xss)"] matches
+  some (.rejected ⟨"main", .noMatchingInit ..⟩)
+-- A literal on the left that the comparison does not convert is built
+-- first, so its implicit copy comes before its misfit.
+#guard rejects ["var ys: List[Int] = [1]", "var xss: List[List[Int]] = [[1]]", "print([ys] < xss)"]
+  (.implicitCopy (.list .int))
 
 end MojoGrimoireTest.Parse.LiteralCompare

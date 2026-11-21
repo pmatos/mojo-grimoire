@@ -98,7 +98,8 @@ it to lists. Part 1 of #166 and #185 model the element types `Int`,
   that each fit its element type, a list any number, and an `Int`, a
   literal of `Int`s, as `var x: Int = [1]` does. An element that is an
   operator or a call fits by the result of the method it calls, also a
-  struct's `__add__`, `__lt__` or `__call__`. A literal on the right
+  struct's `__add__`, `__lt__` or `__call__`, and `List[u]()` fits only
+  its own type. A literal on the right
   takes the left operand's type. One on the left takes the right
   operand's, unless that is a literal too, or a comparison that does not
   conform, such as an array of lists ordered: then it keeps its own type,
@@ -110,17 +111,17 @@ it to lists. Part 1 of #166 and #185 model the element types `Int`,
   the right is checked as the method's argument (`rightParam`); one that
   does not fit is a type mismatch, found before the operands are read:
   `a == [[]]`, `[[1]] == [1]`, `xs == [True]`, `a == [p + p, 2]` with
-  `p + p` a struct. A literal on the left that does not fit is built with
-  its own type first: an implicit copy in it comes first, as in
-  `[ys] == xs` with `ys` a list, and then the right operand, which fits it
-  no better, is a type mismatch: `[1, 2, 3] == a`, `[True] == xs`,
-  `[ys^] == xs`, and `[[1]] < v` with `v` an array of lists. An inner
-  literal of another length where an `Int` is expected, `a == [[1, 2], 3]`
-  or `[[1, 2], 3] == a`, fits no initializer of `Int` (`noMatchingInit`),
-  but only once both operands are read, as in a call: beside an
-  uninitialized `a`, either is `uninitializedUse`. Otherwise a literal
-  is an array, unless the other operand is an `Int` (see
-  [semantics-lists.md](semantics-lists.md#arrays)).
+  `p + p` a struct. A literal on the left that keeps its own type, as it
+  does not fit or the comparison converts none, is built first: an
+  implicit copy in it comes first, as in `[ys] == xs` or `[ys] < xss` with
+  `ys` a list, and then the right operand, which fits it no better, is a
+  type mismatch: `[1, 2, 3] == a`, `[True] == xs`, `[ys^] == xs`, and
+  `[[1]] < v` with `v` an array of lists. An inner literal of another
+  length where an `Int` is expected on the right, `a == [[1, 2], 3]`, fits
+  no initializer of `Int` (`noMatchingInit`), but only once `a` is read,
+  as in a call: beside an uninitialized `a` it is `uninitializedUse`.
+  Otherwise a literal is an array, unless the other operand is an `Int`
+  (see [semantics-lists.md](semantics-lists.md#arrays)).
 - An operand of another type, an array or a list of another length or
   element type, an `Int`, a `Bool` or, beside an array, a list, is the
   compiler's "cannot be converted", `typeMismatch`. So are an `Int` or a
@@ -152,6 +153,14 @@ and `1 < True` fits none of the literal's overloads.
 Not yet modelled. Each stays rejected, with a class that is still not
 the compiler's; where #185 changed the class, the bullet says so:
 
+- A literal on the left that holds an inner literal of another length
+  where an `Int` is expected, `[[1, 2], 3] == a`. The compiler converts
+  it, fails SIMD's constraint (`noMatchingInit`) in a later pass than its
+  reads, and reports an uninitialized read in either operand first. That
+  order is #96's; until then the literal is not converted and keeps the
+  checks it had before #166: the right operand is copied, so a named one
+  is `implicitCopy`, and an uninitialized read is `uninitializedUse`, as
+  the compiler says.
 - A literal on the left with no type of its own that does not fit the
   right operand, or that the comparison does not convert, `[[]] == a`,
   `[[]] < v` or `[] == []`, which the compiler cannot type ("cannot emit an empty list without a contextual type", a message
