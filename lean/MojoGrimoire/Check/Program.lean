@@ -126,7 +126,10 @@ def checkCopying (prog : Program) (sd : StructDecl) : Except CheckError Unit :=
 /-- Checks a program: it is accepted, or rejected with the first error found
 and where it was found. The fields of copyable structs are checked after
 every body and the parameters and result of `main`, and before a program
-with no `main` is rejected, as the compiler orders its errors (#164). -/
+with no `main` is rejected. The compiler checks a struct's fields after
+the functions' bodies, `main`'s signature and the methods of the structs
+up to it, and before its later passes and a missing `main`; the rest of
+its order is left to #96 (#164). -/
 def checkProgram (prog : Program) : Except Rejection Unit := do
   (checkDistinct (prog.structs.map (·.name) ++ prog.funs.map (·.name))).mapError (⟨"", ·⟩)
   for sd in prog.structs do checkStruct prog sd

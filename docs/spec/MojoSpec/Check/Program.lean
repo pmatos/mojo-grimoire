@@ -74,7 +74,9 @@ struct is copyable as it declares, whatever its own fields.
 distinct names, every struct and function is accepted, `main`, if it is
 declared, has no parameters and returns nothing, every copyable struct's
 fields can be copied, and `main` is declared. The checks run in that
-order, as the compiler reports the copyable structs' fields after the
-errors of every body (#164). Otherwise the program is rejected with the
+order. The compiler reports a copyable struct's fields after the
+functions' bodies, `main`'s signature and the methods of the structs up
+to it, and before its later passes and a missing `main`; the rest of its
+order is left to #96 (#164). Otherwise the program is rejected with the
 first error found, and where.
 :::

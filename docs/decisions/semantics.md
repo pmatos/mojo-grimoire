@@ -230,9 +230,8 @@ where the compiler and the manual disagree, the model follows the compiler.
   ruling on #136 is provisional until the human has discussed it with
   Modular.
 - A struct that declares `Copyable`, or `ImplicitlyCopyable`, is
-  rejected when a field cannot be copied so, `uncopyableField`; the
-  compiler reports it after the first-pass errors of every body. What the
-  model still orders otherwise is in
+  rejected when a field cannot be copied so, `uncopyableField`. Where it
+  comes among the compiler's errors, and where the model differs, is in
   [conformance.md](conformance.md#copyable-structs-whose-fields-cannot-be-copied)
   (#164, #96).
 - A declaration may not reuse the name of a variable in scope, a

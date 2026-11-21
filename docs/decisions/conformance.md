@@ -259,18 +259,18 @@ matched whole, to `uncopyableField`. The human ruled this on 2026-11-20
 (#164). A hand-written copy initializer, `__init__(out self, *, copy:
 Self)`, which the compiler accepts, is not yet parsed (#184).
 
-The compiler reports this error after the errors of its first pass in
-every body of the program, even a body after the struct, and before the
-errors of its later passes, such as a use of an uninitialized value or a
-missing return, and before a missing `main`. The model checks the fields
-after every body and `main`'s signature. A later pass's error in a body
-still comes first in the model, so such a program is `uninitializedUse`
-or `missingReturn` in the model and `uncopyableField` in the compiler.
-That order across the compiler's passes is left to #96. The compiler
-also orders "attempt to resolve a recursive reference to declaration" with
-this error by declaration, where the model reports `recursiveStruct`
-before it: a bad copyable struct declared before a struct that holds
-itself is `recursiveStruct` in the model, also left to #96.
+In its first pass, the compiler checks the bodies of the functions and
+`main`'s signature, wherever they are declared, then each struct in
+declaration order: its methods, then its copy initializer. Its later
+passes, such as a use of an uninitialized value or a missing return, and
+a missing `main` come after. The model checks every struct, then every
+function and `main`'s signature, then these fields, then that `main` exists.
+Three cases differ, as on `main`, and are left to #96. A later pass's
+error in a body comes first in the model (`uninitializedUse`,
+`missingReturn`). So does a first-pass error in a method of a struct
+declared after the bad one. And "attempt to resolve a recursive reference
+to declaration" is ordered with this error by declaration, where the
+model reports `recursiveStruct` first.
 
 Rejected: an existing class, `notCopyable` or `implicitCopy`, which would
 merge an error at a struct's declaration with an error at a copy.

@@ -14,8 +14,8 @@ own, a docstring, is skipped.
 
 A struct's `self` parameters may be written without a type: the struct is
 their type. A struct's conformances say how it is copied:
-`ImplicitlyCopyable` implicitly, `Copyable` explicitly, and otherwise
-not at all.
+`ImplicitlyCopyable` implicitly, as `TrivialRegisterPassable`, which
+implies it (#164); `Copyable` explicitly; and otherwise not at all.
 -/
 
 namespace MojoGrimoire.Parse
@@ -202,7 +202,7 @@ def conformances : Nat → Copying → P Copying
   | n + 1, c => do
     let t ← name
     let c' := match t, c with
-      | "ImplicitlyCopyable", _ => Copying.implicit
+      | "ImplicitlyCopyable", _ | "TrivialRegisterPassable", _ => Copying.implicit
       | "Copyable", .none => .explicit
       | _, c => c
     if ← acceptSym "," then conformances n c' else

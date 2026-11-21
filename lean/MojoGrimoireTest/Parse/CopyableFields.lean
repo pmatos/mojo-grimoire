@@ -91,8 +91,8 @@ private def res : Ty := .struct "Res"
     "    var s = S(Res(4))", "    var t = s.copy()", "    print(t.r.id)"]) ==
   some (.rejected ⟨"S", .uncopyableField "S" "r" res⟩)
 
--- The compiler reports the error after every body's errors of its first
--- pass, even a body that comes later, and before the struct is used.
+-- The compiler reports the error after the first-pass errors of `main`'s
+-- body, which comes later, and before the struct is used.
 #guard rejectsAt "Copyable" ["r: Res"] ["print(y)"] "main" (.unknownVariable "y")
 #guard rejectsAt "Copyable" ["r: Res"] ["var s = S(Res(1))", "var t = s", "print(t.r.id)"] "main"
   (.implicitCopy (.struct "S"))
@@ -101,5 +101,22 @@ private def res : Ty := .struct "Res"
 -- It comes before a program with no `main` is rejected.
 #guard runLines (decls ++ ["@fieldwise_init", "struct S(Copyable):", "    var r: Res",
     "def f():", "    print(1)"]) == some (.rejected ⟨"S", .uncopyableField "S" "r" res⟩)
+
+-- `TrivialRegisterPassable` implies `ImplicitlyCopyable`.
+private def trp : List String :=
+  ["@fieldwise_init", "struct R(TrivialRegisterPassable):", "    var x: Int"]
+
+#guard runLines (trp ++ ["@fieldwise_init", "struct S(ImplicitlyCopyable):", "    var r: R",
+    "def main():", "    var s = S(R(1))", "    var t = s", "    print(t.r.x, s.r.x)"]) ==
+  some (.finished ["1 1"])
+#guard runLines (trp ++ ["@fieldwise_init", "struct S(Copyable):", "    var rs: List[R]",
+    "def main():", "    var s = S([R(1)])", "    var t = s.copy()", "    print(len(t.rs))"]) ==
+  some (.finished ["1"])
+#guard runLines (trp ++ ["def main():", "    var a = R(1)", "    var b = a", "    b.x = 2",
+    "    print(a.x, b.x)"]) == some (.finished ["1 2"])
+#guard runLines (trp ++ ["def main():", "    var a = R(1)", "    var b = a.copy()", "    b.x = 2",
+    "    print(a.x, b.x)"]) == some (.finished ["1 2"])
+#guard runLines (trp ++ ["def take(var r: R):", "    r.x = 5", "    print(r.x)", "def main():",
+    "    var a = R(1)", "    take(a)", "    print(a.x)"]) == some (.finished ["5", "1"])
 
 end MojoGrimoireTest.Parse.CopyableFields
