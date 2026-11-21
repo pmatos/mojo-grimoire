@@ -119,6 +119,12 @@ it to lists. Part 1 of #166 and #185 model the element types `Int`,
   [D-0010](../conformance/decision-log.md)); the model compares the
   elements. Two lists in that position compare their elements at every
   optimization level.
+- At `-O3`, the default, the pin also compares arrays of arrays of
+  one-element arrays wrongly when two comparisons of them are printed
+  together: `[[[1]]] > [[[0]]]` is `False` beside `==`, with no destructor
+  involved. The human ruled this a compiler bug on 2026-11-21 (#257,
+  [D-0013](../conformance/decision-log.md)); the model compares the
+  elements, as `-O0` to `-O2` do.
 - The checker finds both errors from the operands' types, once they are
   typed and before either is read: a mismatch first, then a constraint.
   So `var a: Array[Int, 1]` compared with `[1, 2]`, or an uninitialized
