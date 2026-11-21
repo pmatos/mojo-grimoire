@@ -22,7 +22,16 @@ Usage:
       Runs each program with the compiler, through the wrapper that
       scripts/install-mojo.sh prints, and writes its expected result: a
       program the compiler cannot build is rejected; one it builds is run,
-      and finishes or fails by its exit status.
+      and finishes or fails by its exit status. Each program is also built at
+      -O0, and is not recorded when its result there differs from the
+      default -O3 build's, unless a ruled compiler bug names it: known.json
+      lists it under an entry of the decision log. The recorded result is
+      the default build's.
+  scripts/conformance.py levels --mojo WRAPPER [--jobs N] [PROGRAM...]
+      Builds each program, or the whole suite, at -O0, -O1, -O2 and -O3 and
+      with -D ASSERT=all, and lists every program whose result differs
+      between them. It fails when a program that no ruled compiler bug
+      names differs. Run it whenever the pinned compiler moves.
   scripts/conformance.py check [--allow-unrecorded] [--no-build]
       Builds lean/ with scripts/build-lean.sh, unless --no-build, then runs
       the model's executable on every program and compares its outcome,
@@ -41,6 +50,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -177,11 +187,18 @@ def load_patterns(path: Path = SUITE / "diagnostics.json") -> list[tuple[str, st
     return [(entry["pattern"], entry["class"]) for entry in data["patterns"]]
 
 
-def run_compiler(program: Path, mojo: str, patterns: list[tuple[str, str]]) -> Result:
+def run_compiler(
+    program: Path,
+    mojo: str,
+    patterns: list[tuple[str, str]],
+    flags: tuple[str, ...] = (),
+) -> Result:
+    """The compiler's result for a program, built with the default -O3, or
+    with `flags`, such as another optimization level."""
     with tempfile.TemporaryDirectory() as tmp:
         binary = Path(tmp) / "program"
         build = subprocess.run(
-            [mojo, "build", str(program), "-o", str(binary)],
+            [mojo, "build", *flags, str(program), "-o", str(binary)],
             capture_output=True,
             text=True,
             timeout=TIMEOUT * 5,
@@ -198,6 +215,71 @@ def run_compiler(program: Path, mojo: str, patterns: list[tuple[str, str]]) -> R
         printed, assertion = failed_output(run.stdout)
         detail = assertion or first_error(run.stderr) or f"exit {run.returncode}"
         return Result("failed", printed, None, detail)
+
+
+# --- optimization levels --------------------------------------------------
+
+# The builds that the level sweep compares; -O3 is the default level.
+LEVELS = {
+    "-O0": ("-O0",),
+    "-O1": ("-O1",),
+    "-O2": ("-O2",),
+    "-O3": ("-O3",),
+    "ASSERT=all": ("-D", "ASSERT=all"),
+}
+INSTANTIATION = "function instantiation failed"
+
+
+def same_first_error(a: str | None, b: str | None) -> bool:
+    """Whether two builds gave the same first error. A failed instantiation
+    whose constraint note one build left out agrees with the noted one."""
+    if a == b:
+        return True
+    short, full = sorted((a or "", b or ""), key=len)
+    return short == INSTANTIATION and full.startswith(INSTANTIATION + ": ")
+
+
+def level_differences(reference: Result, other: Result, level: str) -> list[str]:
+    """How the compiler's result at another level differs from its result
+    at the default -O3; empty when they agree. Both come from run_compiler,
+    so a failed assertion's line on standard output is never a printed
+    line. A failed run's detail is not compared: without an assertion it
+    is the runtime's first stack frame, which changes from run to run."""
+    if reference.outcome != other.outcome:
+        return [f"outcome: {reference.outcome} at -O3, {other.outcome} at {level}"]
+    problems = []
+    if reference.stdout != other.stdout:
+        problems.append(
+            f"output: {list(reference.stdout)} at -O3, {list(other.stdout)} at {level}"
+        )
+    if reference.outcome == "rejected" and not same_first_error(
+        reference.detail, other.detail
+    ):
+        problems.append(
+            f"first error: {reference.detail!r} at -O3, {other.detail!r} at {level}"
+        )
+    return problems
+
+
+def build_at(program: Path, mojo: str, patterns, level: str) -> Result:
+    """The compiler's result at a level of LEVELS; a build or run that
+    times out is a result of its own, so that it is reported."""
+    try:
+        return run_compiler(program, mojo, patterns, LEVELS[level])
+    except subprocess.TimeoutExpired as e:
+        return Result("error", (), None, f"timed out: {e.cmd[0]}")
+
+
+def across_levels(program: Path, mojo: str, patterns) -> list[str]:
+    """How the program's result differs between the levels of LEVELS."""
+    results = {level: build_at(program, mojo, patterns, level) for level in LEVELS}
+    reference = results["-O3"]
+    return [
+        f"{level}: {p}"
+        for level, result in results.items()
+        if level != "-O3"
+        for p in level_differences(reference, result, level)
+    ]
 
 
 # --- comparison -----------------------------------------------------------
@@ -239,30 +321,51 @@ def load_known(path: Path = SUITE / "known.json") -> dict[str, str]:
     return json.loads(path.read_text())["known"] if path.exists() else {}
 
 
+def is_entry(entry: str, log: str) -> bool:
+    """Whether `entry` is the id of an entry of the decision log."""
+    return re.fullmatch(r"D-\d{4}", entry) is not None and f"### {entry}:" in log
+
+
 def check_known(known: dict[str, str], names: set[str], log: str) -> list[str]:
     """Problems with the list of known disagreements."""
     problems = []
     for name, entry in sorted(known.items()):
         if name not in names:
             problems.append(f"known.json lists {name}, which is not a program")
-        if not re.fullmatch(r"D-\d{4}", entry) or f"### {entry}:" not in log:
+        if not is_entry(entry, log):
             problems.append(f"known.json cites {entry} for {name}, not an entry")
     return problems
+
+
+def ruled_bugs() -> dict[str, str]:
+    """The programs that a ruled compiler bug names, with its entry: those
+    that known.json lists under an entry of the decision log."""
+    log = DECISION_LOG.read_text()
+    return {name: e for name, e in load_known().items() if is_entry(e, log)}
 
 
 # --- commands -------------------------------------------------------------
 
 
-def record(args: list[str]) -> int:
+def record(args: list[str], ruled: dict[str, str] | None = None) -> int:
     if len(args) < 2 or args[0] != "--mojo":
         print(__doc__, file=sys.stderr)
         return 2
     mojo, chosen = args[1], args[2:]
     patterns = load_patterns()
+    ruled = ruled_bugs() if ruled is None else ruled
     targets = [Path(p).resolve() for p in chosen] or programs()
-    unclassified = []
+    unclassified, refused = [], []
     for program in targets:
+        name = name_of(program)
         result = run_compiler(program, mojo, patterns)
+        at_o0 = run_compiler(program, mojo, patterns, LEVELS["-O0"])
+        if found := level_differences(result, at_o0, "-O0"):
+            if name not in ruled:
+                refused.extend(f"{name}: {p}" for p in found)
+                print(f"{name}: not recorded, its result differs at -O0")
+                continue
+            print(f"{name}: differs at -O0, a compiler bug ruled in {ruled[name]}")
         out = program.with_suffix(".json")
         out.write_text(json.dumps(result.to_json(), indent=2) + "\n")
         print(f"{name_of(program)}: {result.outcome}", result.error_class or "")
@@ -271,7 +374,52 @@ def record(args: list[str]) -> int:
     if unclassified:
         print("\nDiagnostics with no class; add a pattern to diagnostics.json:")
         print("\n".join(unclassified))
-    return 0
+    if refused:
+        print(
+            "\nNot recorded, the result differs between levels; rule on a "
+            "compiler bug or change the program:",
+            file=sys.stderr,
+        )
+        print("\n".join(refused), file=sys.stderr)
+    return 1 if refused else 0
+
+
+def levels(args: list[str], ruled: dict[str, str] | None = None) -> int:
+    if len(args) < 2 or args[0] != "--mojo":
+        print(__doc__, file=sys.stderr)
+        return 2
+    mojo, rest = args[1], args[2:]
+    jobs = 4
+    if rest[:1] == ["--jobs"] and len(rest) > 1:
+        jobs, rest = int(rest[1]), rest[2:]
+    patterns = load_patterns()
+    ruled = ruled_bugs() if ruled is None else ruled
+    targets = [Path(p).resolve() for p in rest] or programs()
+    with ThreadPoolExecutor(jobs) as pool:
+        found = list(pool.map(lambda p: across_levels(p, mojo, patterns), targets))
+    same = excused = 0
+    problems = []
+    for program, differences in zip(targets, found, strict=True):
+        name = name_of(program)
+        if not differences:
+            same += 1
+            continue
+        if name in ruled:
+            excused += 1
+            print(
+                f"{name}: differs between levels, a compiler bug ruled in {ruled[name]}"
+            )
+            print("\n".join(f"  {d}" for d in differences))
+            continue
+        problems.extend(f"{name}: {d}" for d in differences)
+    differ = len(targets) - same - excused
+    print(
+        f"{len(targets)} programs at {', '.join(LEVELS)}: {same} the same, "
+        f"{excused} differ by a ruled compiler bug, {differ} differ"
+    )
+    for p in problems:
+        print(p, file=sys.stderr)
+    return 1 if problems else 0
 
 
 def check(args: list[str]) -> int:
@@ -332,6 +480,8 @@ def main(argv: list[str]) -> int:
         return record(argv[1:])
     if argv and argv[0] == "check":
         return check(argv[1:])
+    if argv and argv[0] == "levels":
+        return levels(argv[1:])
     print(__doc__, file=sys.stderr)
     return 2
 

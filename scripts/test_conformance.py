@@ -7,7 +7,7 @@ import stat
 import tempfile
 import textwrap
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 from conformance import (
@@ -18,12 +18,15 @@ from conformance import (
     compare,
     failed_output,
     first_error,
+    level_differences,
+    levels,
     load_patterns,
     model_result,
     name_of,
     programs,
     record,
     runs_cleanly,
+    same_first_error,
 )
 
 
@@ -133,6 +136,40 @@ class Compare(unittest.TestCase):
         self.assertIn("could not run", compare(Result("finished", ()), act)[0])
 
 
+class Levels(unittest.TestCase):
+    NOTED = "function instantiation failed: constraint failed: negative index"
+
+    def test_the_same_result(self):
+        r = Result("finished", ("1",))
+        self.assertEqual(level_differences(r, r, "-O0"), [])
+
+    def test_outcome_output_and_first_error_differ(self):
+        ok = Result("finished", ("1",))
+        found = level_differences(ok, Result("failed", ("1",)), "-O1")
+        self.assertIn("outcome: finished at -O3, failed at -O1", found[0])
+        self.assertIn("output", level_differences(ok, Result("finished", ()), "-O0")[0])
+        a = Result("rejected", (), "x", "use of uninitialized value 'a'")
+        b = Result("rejected", (), "x", "use of uninitialized value 'b'")
+        self.assertIn("first error", level_differences(a, b, "-O2")[0])
+
+    def test_a_missing_constraint_note_is_no_difference(self):
+        self.assertTrue(same_first_error(self.NOTED, "function instantiation failed"))
+        self.assertTrue(same_first_error("function instantiation failed", self.NOTED))
+        bare = Result("rejected", (), None, "function instantiation failed")
+        noted = Result("rejected", (), None, self.NOTED)
+        self.assertEqual(level_differences(noted, bare, "-O0"), [])
+
+    def test_two_constraint_notes_differ(self):
+        other = "function instantiation failed: constraint failed: other"
+        self.assertFalse(same_first_error(self.NOTED, other))
+        self.assertFalse(same_first_error("function instantiation", self.NOTED))
+
+    def test_a_failed_runs_detail_is_not_compared(self):
+        a = Result("failed", ("before",), None, "index 3 is out of bounds")
+        b = Result("failed", ("before",), None, "#0 0x7f18 PrintStackTrace")
+        self.assertEqual(level_differences(a, b, "-O0"), [])
+
+
 class Known(unittest.TestCase):
     LOG = "### D-0002: something\n"
 
@@ -149,34 +186,53 @@ class Record(unittest.TestCase):
         self.tmp = Path(self.enterContext(tempfile.TemporaryDirectory()))
         # A stand-in compiler: it rejects a program that contains REJECT,
         # and builds any other into a script that prints its PRINT lines
-        # and fails when it contains FAIL.
+        # and fails when it contains FAIL. A line `LEVEL L text` prints
+        # text only when built with the flag L; a failed run built with
+        # -O0 also writes the runtime's assertion line.
         fake = self.tmp / "mojo"
         fake.write_text(
             textwrap.dedent("""\
             #!/usr/bin/env python3
             import sys
-            src = open(sys.argv[2]).read()
+            args = sys.argv[2:]
+            path = next(a for a in args if a.endswith(".mojo"))
+            binary = args[args.index("-o") + 1]
+            src = open(path).read()
             if "REJECT" in src:
-                print(sys.argv[2] + ":1:1: error: use of uninitialized value 'a'",
+                print(path + ":1:1: error: use of uninitialized value 'a'",
                       file=sys.stderr)
                 sys.exit(1)
             out = [l.split("PRINT ", 1)[1] for l in src.splitlines() if "PRINT " in l]
+            for l in src.splitlines():
+                if l.startswith("# LEVEL ") and l.split()[2] in args:
+                    out.append(l.split(None, 3)[3])
             code = 1 if "FAIL" in src else 0
-            with open(sys.argv[4], "w") as f:
+            if code and "-O0" in args:
+                out.append("At: " + path + ":1:1: Assert Error: boom")
+            with open(binary, "w") as f:
                 f.write("#!/bin/sh\\n" + "".join(f"echo '{l}'\\n" for l in out)
                         + f"exit {code}\\n")
             import os
-            os.chmod(sys.argv[4], 0o755)
+            os.chmod(binary, 0o755)
             """)
         )
         fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
         self.fake = str(fake)
 
-    def recorded(self, name: str, text: str) -> dict:
+    def program(self, name: str, text: str) -> Path:
         program = self.tmp / f"{name}.mojo"
         program.write_text(text)
-        with redirect_stdout(io.StringIO()):
-            self.assertEqual(record(["--mojo", self.fake, str(program)]), 0)
+        return program
+
+    def run_command(self, command, program: Path, ruled: dict) -> tuple[int, str]:
+        out = io.StringIO()
+        with redirect_stdout(out), redirect_stderr(out):
+            code = command(["--mojo", self.fake, str(program)], ruled=ruled)
+        return code, out.getvalue()
+
+    def recorded(self, name: str, text: str, ruled: dict | None = None) -> dict:
+        program = self.program(name, text)
+        self.assertEqual(self.run_command(record, program, ruled or {})[0], 0)
         return json.loads(program.with_suffix(".json").read_text())
 
     def test_finished(self):
@@ -193,6 +249,44 @@ class Record(unittest.TestCase):
         data = self.recorded("boom", "# PRINT before\n# FAIL\n")
         self.assertEqual(data["outcome"], "failed")
         self.assertEqual(data["stdout"], ["before"])
+
+    def test_a_result_that_differs_at_O0_is_not_recorded(self):
+        program = self.program("unstable", "# PRINT a\n# LEVEL -O0 garbage\n")
+        code, out = self.run_command(record, program, {})
+        self.assertEqual(code, 1)
+        self.assertIn("output: ['a'] at -O3, ['a', 'garbage'] at -O0", out)
+        self.assertFalse(program.with_suffix(".json").exists())
+
+    def test_a_ruled_compiler_bug_is_recorded_at_O3(self):
+        name = (self.tmp / "unstable").as_posix()
+        text = "# PRINT a\n# LEVEL -O0 garbage\n"
+        data = self.recorded("unstable", text, {name: "D-0003"})
+        self.assertEqual(data["stdout"], ["a"])
+
+    def test_the_assertion_line_at_O0_is_no_difference(self):
+        data = self.recorded("assert", "# PRINT before\n# FAIL\n")
+        self.assertEqual(data["stdout"], ["before"])
+
+    def test_the_sweep_fails_on_a_difference_at_any_level(self):
+        program = self.program("o1", "# PRINT a\n# LEVEL ASSERT=all b\n")
+        code, out = self.run_command(levels, program, {})
+        self.assertEqual(code, 1)
+        self.assertIn("ASSERT=all: output: ['a'] at -O3, ['a', 'b'] at ASSERT=all", out)
+        self.assertIn("1 programs at -O0, -O1, -O2, -O3, ASSERT=all", out)
+
+    def test_the_sweep_lists_a_ruled_compiler_bug_and_passes(self):
+        program = self.program("o2", "# PRINT a\n# LEVEL -O2 b\n")
+        ruled = {(self.tmp / "o2").as_posix(): "D-0003"}
+        code, out = self.run_command(levels, program, ruled)
+        self.assertEqual(code, 0)
+        self.assertIn("a compiler bug ruled in D-0003", out)
+        self.assertIn("-O2: output", out)
+
+    def test_the_sweep_passes_when_every_level_agrees(self):
+        program = self.program("stable", "# PRINT a\n# FAIL\n")
+        code, out = self.run_command(levels, program, {})
+        self.assertEqual(code, 0)
+        self.assertIn("1 the same", out)
 
 
 class Suite(unittest.TestCase):
