@@ -53,8 +53,10 @@ mismatch, found from the operands' types, as an `Int` compared with an
 array is; an element type that does not conform, `None` or, to order
 them, a list, is the compiler's "violated constraint",
 `violatedConstraint`, found the same way. An element type that holds a
-struct waits for its conformances (#194), and the equality of lists for
-#185: such arrays keep the checks they had before.
+struct waits for its conformances (#194), the equality of lists for
+#185, and a literal that the compiler converts to the other operand's type
+for part 2 of #166 (`convertsLiteral`): such comparisons keep the checks
+they had before.
 -/
 
 namespace MojoGrimoire.Check
@@ -202,25 +204,44 @@ def binaryMisfit (prog : Program) (op : BinOp) (ta tb : Option Ty) : Option Chec
     (if op == .and || op == .or then lacks prog (binaryMethod op) tb else none) <|>
     arrayMisfit op ta tb
 
+/-- Whether the expression `e` is a literal that holds a literal. -/
+def holdsLiteral : Expr → Bool
+  | .list .unknown es => es.any (· matches .list ..)
+  | _ => false
+
+/-- Whether the comparison `op` of `a` and `b`, of types `ta` and `tb`
+found from their forms, has a literal that holds a literal and types not
+known to be the same. The compiler converts such a literal to the other
+operand's type, element by element, which part 2 of #166 models: until
+then the comparison keeps the checks it had before #166. -/
+def convertsLiteral (op : BinOp) (a b : Expr) (ta tb : Option Ty) : Bool :=
+  compares op && (holdsLiteral a || holdsLiteral b) && (ta.isNone || ta != tb)
+
 /-- The error of the operator `op` that the forms of its operands `a` and
 `b` give (`operandTy`), before they are read (`binaryMisfit`). An integer
 literal's comparison with an array is left to its overloads, and an empty
 literal compared with an array has no type that fits it. A literal
-compared with a list, which the compiler converts to a list, is left to
-the checks that follow, as before #166. -/
+compared with a list, which the compiler converts to a list, and a
+literal that the compiler converts (`convertsLiteral`), are left to the
+checks that follow, as before #166. -/
 def operandMisfit (prog : Program) (op : BinOp) (a b : Expr) : CheckM (Option CheckError) := do
   let ta ← if intLiteral a then pure none else operandTy prog a
   let tb ← if compares op && b matches .list .unknown [] then pure (some .unknown)
     else operandTy prog b
   let tb := if a matches .list .unknown _ && tb matches some (.list _) then none else tb
+  let tb := if convertsLiteral op a b ta tb then none else tb
   pure (binaryMisfit prog op ta tb)
 
-/-- Whether the operand `e` of the operator `op` is passed by reference,
-uncopied, as `Array`'s comparisons take a `read` argument: a place, or a
-call that returns a reference, compared as an array (`arrayCompare`). -/
-def byRef (prog : Program) (op : BinOp) (e : Expr) : CheckM Bool := do
+/-- Whether the operand `e` of the operator `op`, whose other operand is
+`other`, is passed by reference, uncopied, as `Array`'s comparisons take
+a `read` argument: a place, or a call that returns a reference, compared
+as an array (`arrayCompare`), unless a literal is converted
+(`convertsLiteral`). -/
+def byRef (prog : Program) (op : BinOp) (e other : Expr) : CheckM Bool := do
   if !compares op then return false
-  pure ((← operandTy prog e).bind (arrayCompare op)).isSome
+  let t ← operandTy prog e
+  if convertsLiteral op e other t (← operandTy prog other) then return false
+  pure (t.bind (arrayCompare op)).isSome
 
 /-- The error of the operator `op` that the type `ta` of its operand
 gives, when it is known: the method that the type lacks. -/

@@ -11,7 +11,7 @@ the operator needs, `None` or, to order them, a list, `violatedConstraint`.
 An element type that holds a struct, and the equality of arrays of lists,
 keep the result they had before. Each verdict is the pinned compiler's
 for the program, probed on the nightly 1.3.0.dev2026111905, but for the
-last ones, which part 3 of #166 and #185 cover.
+last ones, which parts 2 and 3 of #166 and #185 cover.
 -/
 
 namespace MojoGrimoireTest.Parse.ArrayCompare
@@ -107,8 +107,15 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["print([List[Int]()] == [List[Int]()])"]
   (.typeMismatch .int (.array (.list .int) 1))
 #guard rejects ["print(True < False)"] (.typeMismatch .int .bool)
--- Nor a literal compared with a list, which the compiler converts (part 2).
+-- Nor a literal compared with a list, or one that holds a literal, which
+-- the compiler converts (part 2).
 #guard rejects ["var l: List[Int] = [1]", "print([1] == l)"] (.implicitCopy (.list .int))
+#guard rejects ["var a = [1, 2]", "print(a == [[1], [2]])"] (.implicitCopy (.array .int 2))
+#guard rejects ["var a = [[1]]", "print(a == [[]])"] (.implicitCopy (.array (.array .int 1) 1))
+#guard rejects ["var a = [1]", "print([[1]] == a)"] (.implicitCopy (.array .int 1))
+#guard rejects ["var a: Array[Int, 2]", "print(a == [[1], [2]])"] (.uninitializedUse (.var "a"))
+#guard prints ["var a = [[1, 2], [3, 4]]", "print(a == [[1, 2], [3, 4]], [[1]] < [[2]])"]
+  ["True True"]
 -- An empty literal is an array only compared with one.
 #guard rejects ["var x = True", "print(x and [])"] (.invalidType .unknown)
 

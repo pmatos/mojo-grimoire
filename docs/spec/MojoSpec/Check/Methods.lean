@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17314150981234240660")
+:::moduleDocs (fingerprint := "4770595326657988530")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -90,15 +90,18 @@ for a unary operator its operand's (#176). A binary operator's misfit is
 then that of a comparison of arrays (`arrayMisfit`).
 :::
 
-:::readable MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "8164538988085402831")
+:::readable MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.convertsLiteral MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "12862265436166846129")
 *Rule: operands of a comparison of arrays.* The misfit of a binary
 operator is found from its operands' forms before they are read
 (`operandTy`). An integer literal on the left gives no type, so that its
 overloads report a comparison with an array (`noMatchingMethod`), and an
 empty literal on the right of a comparison has a type that fits no array.
 A literal compared with a list, which the compiler converts to a list, is
-left to the checks that follow, as before #166. An operand compared as an
-array is passed by reference, as `Array`'s comparisons take a `read`
+left to the checks that follow, as before #166, and so is a literal that
+holds a literal compared with an operand whose type its form does not
+show to be the same, which the compiler converts element by element (part
+2 of #166): its operands are not passed by reference either. Any other
+operand compared as an array is passed by reference, as `Array`'s comparisons take a `read`
 argument: a place, or a call that returns a reference, is read, uncopied.
 :::
 

@@ -107,19 +107,18 @@ arrays of them:
   So `var a: Array[Int, 1]` compared with `[1, 2]` is a mismatch, not a
   use of an uninitialized value.
 
-Not yet modelled:
+Not yet modelled, each keeping the result it had before #166:
 
-- A literal on the right whose elements the compiler converts to the left
-  array's element type, as it converts a call's argument: `[1, 2] ==
-  [[1], [2]]` and `a == [[1], [2]]` run, each `[1]` initializing an `Int`,
-  where the model reports `typeMismatch`; and `[[1]] == [[]]`, a type
-  mismatch in the compiler and `invalidType` in the model. A literal on
-  the left compared with a list, `[1] == xs`, which the compiler converts
-  to a list, keeps the result it had before #166. Part 2 of #166 covers
-  them.
-
-Each of these keeps the result it had before #166:
-
+- A literal that holds a literal, on either side, compared with an
+  operand whose type its form does not show to be the same. The compiler
+  converts it to the other operand's type, element by element, as it
+  converts a call's argument: `a == [[1], [2]]`, `a == [[1], 2]` and
+  `[[1]] == a`, with `a` an array of `Int`s, run, each `[1]` initializing
+  an `Int`, and `a == [[]]` and `a == [[1, 2]]` are type mismatches; the
+  model still copies a named `a` (`implicitCopy`), and gives two literals
+  `typeMismatch` or `invalidType`. So is a literal on the left compared
+  with a list, `[1] == xs`, which the compiler converts to a list. Part 2
+  of #166 covers them (`convertsLiteral`).
 - An element type that holds a struct. The compiler requires the
   struct's conformance to `Equatable` or `Comparable`, not the methods it
   declares, and calls the struct's `__eq__` and `__lt__` element by
