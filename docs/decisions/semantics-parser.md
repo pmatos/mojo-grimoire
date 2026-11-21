@@ -87,7 +87,9 @@ else. These choices hold:
 - The exit code says how a run ended: 0 finished, 1 rejected
   (`rejected: CLASS in DECL` on standard error), 2 a run-time error
   (`run-time error: NAME`), 3 a syntax error (`syntax error: line N:
-  MESSAGE`), 4 a command line or file that cannot be used. The conformance
+  MESSAGE`) or a program outside the subset (`outside the subset: line N:
+  MESSAGE`, [below](#outside-the-subset)), 4 a command line or file that
+  cannot be used. The conformance
   suite compares 0 to 2, and the printed lines, with the compiler's. It
   cannot compare a syntax error with the compiler's parse error, so the
   rejections the compiler makes while parsing (#54, #68) are pinned by
@@ -99,9 +101,45 @@ else. These choices hold:
 
 A program outside the subset ends with exit 3, never with a checker error
 class: a class claims that Mojo rejects the program, and the compiler may
-accept it. The human ruled this on 2026-11-20. Where only the checker can
-tell that a construct is outside the subset, the driver still exits with 3
-(#180, which tracks the checker classes that break this today).
+accept it. The human ruled this on 2026-11-20. What the parser cannot read
+is a syntax error, as above. The parser reads the excluded constructs
+below, and `MojoGrimoire.Parse.Subset` finds them (#180). Each one needs only the
+syntax and the names in scope, so the check runs on the parsed program
+before inference, which rewrites `p += e` and a `print` statement of a
+variable into other forms. The program is outside the subset wherever the
+construct stands, whatever other error it has; a syntax error anywhere
+comes first. The driver prints `outside the subset: line N: MESSAGE` on
+standard error and exits with 3. `N` is the line where the statement that
+holds the first construct in the order of the file starts, and `MESSAGE`
+names the construct: `` a string literal outside `print` `` or
+`` a call of `range` outside `List[T](...)` ``.
+
+The excluded constructs, each temporary:
+
+- A string literal anywhere but as an argument of the `print` statement,
+  such as `P("a")` (#175), `len("a")`, `xs["a"]` or `range(u + "a")`.
+  The Phase 1 subset that the human approved
+  ([process.md](process.md#phase-1-the-core-calculus-in-lean)) has no
+  string type, and `print` alone takes string literals
+  ([semantics.md](semantics.md#the-static-checker)). A variable or a
+  parameter named `print` makes the statement a call of it, so its string
+  literals are outside the subset too. Covering them is #238.
+- A call of the standard library's `range` anywhere but as the one
+  argument of `List[T](…)`, such as `var r = range(3)`, `len(range(3))` or
+  `range(p.x + range(2))`: the human ruled on 2026-11-19 that the model
+  takes `range` only there (#121). A variable or a parameter in scope, or
+  a struct or a function of the program, named `range` hides it, as in a
+  call (#176). Covering a range as a value is #239.
+
+The suite cannot compare exit 3, so it holds no program with one of
+these constructs. The human ruled on 2026-11-21 (#180) that the four suite
+programs that held one leave the suite, and `#guard` tests in
+`MojoGrimoireTest.Parse.Subset` pin their exit 3, line and message:
+`rejected/range_string_argument` and `rejected/range_of_range`, which the
+compiler rejects as `noMatchingInit`, and
+`rejected/no_matching_method_index_string` and
+`rejected/no_matching_method_pop_string`, as `noMatchingMethod`. #238 and
+#239 list them, so that covering the construct brings them back.
 
 Every exclusion is temporary. The goal is a model of the whole of Mojo, so
 each excluded construct is future work, not a boundary of the design. Only

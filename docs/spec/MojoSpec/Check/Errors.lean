@@ -36,7 +36,8 @@ of these classes, each with the names or types it concerns:
   (`negativeIndex`) or, into an array or an $`\mathsf{Int}`, past its last element
   (`constantIndexOutOfBounds`), a value that
   `print` cannot print (`notPrintable`), a string literal outside
-  `print` (`stringOutsidePrint`), a call with the wrong number of
+  `print` (`stringOutsidePrint`, which the driver never reports, since it
+  finds such a program outside the subset first, #180), a call with the wrong number of
   arguments (`arityMismatch`), and an initialization of a type whose
   arguments fit no initializer (`noMatchingInit`, one class however they
   misfit, since the compiler reports them alike): a construction with

@@ -1,4 +1,4 @@
-import MojoGrimoire.Parse.Infer
+import MojoGrimoire.Parse.Subset
 import MojoGrimoire.Interp.Run
 
 /-!
@@ -13,7 +13,10 @@ error, which the conformance suite compares with the compiler's:
 - 0: the program finished;
 - 1: the checker rejected it, `rejected: CLASS in DECL`;
 - 2: it failed at run time, `run-time error: NAME`;
-- 3: it has a syntax error, `syntax error: line N: MESSAGE`;
+- 3: it has a syntax error, `syntax error: line N: MESSAGE`, or is
+  outside the subset that the model covers, `outside the subset: line N:
+  MESSAGE`, at the line where the statement that holds the construct starts
+  (`MojoGrimoire.Parse.Subset`);
 - 4: the command line or the file could not be used.
 
 The executable's entry point, the top-level `main`, is the module
@@ -91,9 +94,12 @@ def main (args : List String) : IO UInt32 := do
   let source ← try IO.FS.readFile file catch e => do
     IO.eprintln s!"cannot read {file}: {e}"
     return 4
-  match MojoGrimoire.Parse.parse source with
-  | .error e =>
+  match MojoGrimoire.Parse.parseSubset source with
+  | .error (.syntax e) =>
     IO.eprintln s!"syntax error: line {e.line}: {e.message}"
+    pure 3
+  | .error (.outside o) =>
+    IO.eprintln s!"outside the subset: line {o.line}: {o.message}"
     pure 3
   | .ok prog =>
     match run prog fuel with

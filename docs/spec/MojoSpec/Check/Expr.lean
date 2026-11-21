@@ -106,7 +106,8 @@ type:
   an argument, is `noMatchingInit`, as the compiler
   fails only when it instantiates the call; then a constant index out of
   range. `range` anywhere else is an unknown function, unless a variable
-  hides it: a range is not a value of its own;
+  hides it: a range is not a value of its own, and the driver finds such
+  a program outside the subset first (#180);
 * $`\mathsf{List}[u](e^+)` with more than one argument checks each
   argument on its own, locating a place without reading it, and is then
   rejected as `noMatchingInit` $`\mathsf{List}[u]`: no initializer of

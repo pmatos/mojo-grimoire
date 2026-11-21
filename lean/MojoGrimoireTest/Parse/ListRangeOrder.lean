@@ -1,4 +1,4 @@
-import MojoGrimoire.Parse.Infer
+import MojoGrimoire.Parse.Subset
 import MojoGrimoire.Interp.Run
 
 /-!
@@ -23,14 +23,21 @@ private def lib : List String := [
   ""]
 
 /-- The outcome of the program of `lib` and the functions `funs` whose
-`main` runs `body`; a syntax error gives `none`. -/
+`main` runs `body`, as the driver reads it; a syntax error, or a construct
+outside the subset, gives `none`. -/
 private def runLines' (funs body : List String) : Option Outcome :=
-  match parse ("\n".intercalate (lib ++ funs ++ "def main():" :: body.map ("    " ++ ·))) with
+  match parseSubset ("\n".intercalate (lib ++ funs ++ "def main():" :: body.map ("    " ++ ·))) with
   | .ok prog => some (run prog 100000)
   | .error _ => none
 
 /-- The outcome of the program of `lib` whose `main` runs `body`. -/
 private def runMain (body : List String) : Option Outcome := runLines' [] body
+
+/-- The construct outside the subset of the program whose lines are `ls`. -/
+private def outsideOf (ls : List String) : Option Outside :=
+  match parseSubset ("\n".intercalate ls) with
+  | .error (.outside o) => some o
+  | _ => none
 
 /-- Whether `main`, running `body`, prints the lines `out`. -/
 private def prints (body : List String) (out : List String) : Bool :=
@@ -45,50 +52,36 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 private def rejectsWith (line : String) (e : CheckError) : Bool :=
   rejects ["var p = P(1)", "var b = True", "var u: Int", "var xs: List[Int] = [1]", line] e
 
+/-- Whether the line `line` of `rejectsWith` is outside the subset as the
+construct `m`. -/
+private def outsideWith (line : String) (m : String) : Bool :=
+  outsideOf (lib ++ "def main():" :: ["var p = P(1)", "var b = True", "var u: Int",
+    "var xs: List[Int] = [1]", line].map ("    " ++ ·)) == some ⟨lib.length + 6, m⟩
+
 /-- `List[Int](range(args))` in `main` (`rejectsWith`). -/
 private def rangeOf (args : String) : String := s!"print(List[Int](range({args})))"
 
 -- The compiler's order of passes, each case checked on the nightly
 -- 1.3.0.dev2026111905. First, typing errors in any argument, also after a
--- misfit of `range` and inside an argument that holds a string or a range.
+-- misfit of `range`.
 #guard rejectsWith (rangeOf "nope") (.unknownVariable "nope")
-#guard rejectsWith (rangeOf "\"a\", nope") (.unknownVariable "nope")
 #guard rejectsWith (rangeOf "b, nope") (.unknownVariable "nope")
 #guard rejectsWith (rangeOf "[], nope") (.unknownVariable "nope")
-#guard rejectsWith (rangeOf "range(3), nope") (.unknownVariable "nope")
 #guard rejectsWith (rangeOf "1, 2, 3, nope") (.unknownVariable "nope")
-#guard rejectsWith (rangeOf "[1, 2, \"a\"], nope") (.unknownVariable "nope")
-#guard rejectsWith (rangeOf "[nope, \"a\"]") (.unknownVariable "nope")
-#guard rejectsWith (rangeOf "[\"a\", nope]") (.unknownVariable "nope")
-#guard rejectsWith (rangeOf "[u, nope, \"a\"]") (.unknownVariable "nope")
 #guard rejectsWith (rangeOf "[True, nope]") (.unknownVariable "nope")
-#guard rejectsWith (rangeOf "\"a\" + nope") (.unknownVariable "nope")
-#guard rejectsWith (rangeOf "range(nope)") (.unknownVariable "nope")
 #guard rejectsWith (rangeOf "xs, p.y") (.unknownAttribute "P" "y")
-#guard rejectsWith (rangeOf "[p.y, \"a\"]") (.unknownAttribute "P" "y")
 #guard rejectsWith (rangeOf "[f(True)]") (.typeMismatch .int .bool)
-#guard rejectsWith (rangeOf "\"a\", f(p)") (.typeMismatch .int (.struct "P"))
 #guard rejectsWith (rangeOf "P(1, 2), nope") (.noMatchingInit (.struct "P"))
 #guard rejectsWith (rangeOf "len(List[Int](b)), nope") (.noMatchingInit (.list .int))
 #guard rejectsWith (rangeOf "[u, nope]") (.unknownVariable "nope")
--- Then the misfits of `range`: an argument of another type, or that holds a
--- string or a `range` at any depth, a literal of other elements, a wrong
--- number of arguments, or another element type. A misfit comes before a use
+-- Then the misfits of `range`: an argument of another type, a literal of
+-- other elements, a wrong number of arguments, or another element type. A misfit comes before a use
 -- of an uninitialized value and a constant index out of range.
-#guard rejectsWith (rangeOf "\"a\"") (.noMatchingInit (.list .int))
-#guard rejectsWith (rangeOf "[[\"a\"]]") (.noMatchingInit (.list .int))
-#guard rejectsWith (rangeOf "[[range(3)]]") (.noMatchingInit (.list .int))
-#guard rejectsWith (rangeOf "\"a\" + \"b\"") (.noMatchingInit (.list .int))
-#guard rejectsWith (rangeOf "\"a\" == \"b\"") (.noMatchingInit (.list .int))
-#guard rejectsWith (rangeOf "not \"a\"") (.noMatchingInit (.list .int))
 #guard rejectsWith (rangeOf "[True, 1]") (.noMatchingInit (.list .int))
 #guard rejectsWith (rangeOf "[1, True]") (.noMatchingInit (.list .int))
 #guard rejectsWith (rangeOf "[[1], [True]]") (.noMatchingInit (.list .int))
-#guard rejectsWith (rangeOf "1, [range(3)]") (.noMatchingInit (.list .int))
-#guard rejectsWith (rangeOf "u, \"a\"") (.noMatchingInit (.list .int))
 #guard rejectsWith (rangeOf "u, b") (.noMatchingInit (.list .int))
 #guard rejectsWith (rangeOf "u, [True]") (.noMatchingInit (.list .int))
-#guard rejectsWith (rangeOf "xs[-1], \"a\"") (.noMatchingInit (.list .int))
 #guard rejectsWith "print(List[Bool](range(u)))" (.noMatchingInit (.list .bool))
 -- A place is typed before it is read, and an open literal's elements too.
 #guard rejectsWith "var c: Bool\n    print(List[Int](range(c)))" (.noMatchingInit (.list .int))
@@ -103,10 +96,6 @@ private def rangeOf (args : String) : String := s!"print(List[Int](range({args})
 -- an implicit copy.
 #guard rejectsWith (rangeOf "[p]") (.noMatchingInit (.list .int))
 #guard rejectsWith (rangeOf "[1, p], u") (.noMatchingInit (.list .int))
-#guard rejectsWith (rangeOf "[xs, \"a\"]") (.noMatchingInit (.list .int))
-#guard rejectsWith (rangeOf "range(xs)") (.noMatchingInit (.list .int))
-#guard rejectsWith (rangeOf "[\"a\", []]") (.noMatchingInit (.list .int))
-#guard rejectsWith (rangeOf "[range(3), [True, 1]]") (.noMatchingInit (.list .int))
 -- Then a use of an uninitialized value, before a literal of `Int`s of the
 -- wrong length, or an empty one, and before a constant index out of range.
 #guard rejectsWith (rangeOf "[1, 2], u") (.uninitializedUse (.var "u"))
@@ -203,11 +192,36 @@ private def rangeOf (args : String) : String := s!"print(List[Int](range({args})
 -- A nested `List[Int](range(…))` of a literal of `Int`s fails at once in the
 -- model, where the compiler fails it only when it instantiates the call.
 #guard rejectsWith (rangeOf "len(List[Int](range([1, 2]))), u") (.noMatchingInit (.list .int))
--- An operator over an `Int` and a string or a range is a misfit of `range`
--- in the model, which cannot type either; the compiler reports the
--- operator's own type mismatch. This is the model's choice for a program
--- outside the subset, which awaits a ruling.
-#guard rejectsWith (rangeOf "p.x + range(2)") (.noMatchingInit (.list .int))
-#guard rejectsWith (rangeOf "u + \"a\"") (.noMatchingInit (.list .int))
+-- An argument that holds a string literal or a call of `range`, at any
+-- depth, is outside the subset (#180), whatever error the compiler reports
+-- first: a string outside `print`, and `range` outside `List[T](…)` by the
+-- ruling of 2026-11-19. Among them, an operator over an `Int` and a string
+-- or a range, for which the compiler reports the operator's own type
+-- mismatch.
+#guard outsideWith (rangeOf "\"a\", nope") outsideString
+#guard outsideWith (rangeOf "range(3), nope") outsideRange
+#guard outsideWith (rangeOf "[1, 2, \"a\"], nope") outsideString
+#guard outsideWith (rangeOf "[nope, \"a\"]") outsideString
+#guard outsideWith (rangeOf "[\"a\", nope]") outsideString
+#guard outsideWith (rangeOf "[u, nope, \"a\"]") outsideString
+#guard outsideWith (rangeOf "\"a\" + nope") outsideString
+#guard outsideWith (rangeOf "range(nope)") outsideRange
+#guard outsideWith (rangeOf "[p.y, \"a\"]") outsideString
+#guard outsideWith (rangeOf "\"a\", f(p)") outsideString
+#guard outsideWith (rangeOf "\"a\"") outsideString
+#guard outsideWith (rangeOf "[[\"a\"]]") outsideString
+#guard outsideWith (rangeOf "[[range(3)]]") outsideRange
+#guard outsideWith (rangeOf "\"a\" + \"b\"") outsideString
+#guard outsideWith (rangeOf "\"a\" == \"b\"") outsideString
+#guard outsideWith (rangeOf "not \"a\"") outsideString
+#guard outsideWith (rangeOf "1, [range(3)]") outsideRange
+#guard outsideWith (rangeOf "u, \"a\"") outsideString
+#guard outsideWith (rangeOf "xs[-1], \"a\"") outsideString
+#guard outsideWith (rangeOf "[xs, \"a\"]") outsideString
+#guard outsideWith (rangeOf "range(xs)") outsideRange
+#guard outsideWith (rangeOf "[\"a\", []]") outsideString
+#guard outsideWith (rangeOf "[range(3), [True, 1]]") outsideRange
+#guard outsideWith (rangeOf "p.x + range(2)") outsideRange
+#guard outsideWith (rangeOf "u + \"a\"") outsideString
 
 end MojoGrimoireTest.Parse.ListRangeOrder

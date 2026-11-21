@@ -1,6 +1,0 @@
-{
-  "outcome": "rejected",
-  "stdout": [],
-  "class": "noMatchingMethod",
-  "diagnostic": "no matching method in call to 'pop'"
-}

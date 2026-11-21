@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and declarations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3295645897398060918")
+:::moduleDocs (fingerprint := "11082921746531785300")
 :::
 
 :::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.augCallee MojoGrimoire.Parse.exprStmt (fingerprint := "14674107341489909627")
@@ -25,7 +25,7 @@ call of `print` on a line of its own is the $`\mathsf{print}` statement;
 any other expression there is evaluated and its value discarded.
 :::
 
-:::readable MojoGrimoire.Parse.simpleStmt MojoGrimoire.Parse.exprTail MojoGrimoire.Parse.stmt MojoGrimoire.Parse.ifRest MojoGrimoire.Parse.block MojoGrimoire.Parse.stmts (fingerprint := "9926287593026733704")
+:::readable MojoGrimoire.Parse.simpleStmt MojoGrimoire.Parse.exprTail MojoGrimoire.Parse.stmt MojoGrimoire.Parse.ifRest MojoGrimoire.Parse.block MojoGrimoire.Parse.stmts (fingerprint := "13287827973192454830")
 *Definition: statements and blocks.*
 
 $$`\begin{array}{lcl}
@@ -43,10 +43,13 @@ block. A string literal alone on a line, a docstring, is skipped. A
 statement that starts with a postfix chain is an assignment when the chain
 is a place followed by `=`, an augmented assignment, read as a call of
 its callee (`augCallee`), when it is followed by an augmented operator,
-and otherwise an expression whose first operand is that chain.
+and otherwise an expression whose first operand is that chain. The line
+where each statement starts is recorded, an `elif`'s and a simple
+statement's on the line of its block's `:` included, each statement
+before the statements it holds.
 :::
 
-:::readable MojoGrimoire.Parse.conv MojoGrimoire.Parse.params MojoGrimoire.Parse.originNames MojoGrimoire.Parse.funDecl (fingerprint := "13064837100808414567")
+:::readable MojoGrimoire.Parse.conv MojoGrimoire.Parse.params MojoGrimoire.Parse.originNames MojoGrimoire.Parse.funDecl (fingerprint := "9777558907402154166")
 *Definition: functions.*
 
 $$`\begin{array}{lcl}
@@ -64,10 +67,11 @@ followed by the parameter's name, and `owned` is a name, not a convention:
 a method, whose type is its struct. A function without a result returns
 $`\mathsf{None}`. `raises` is read and ignored: the subset raises no
 errors. A result `ref [a, b] T` is a reference with the origins of the
-parameters named; it names at least one.
+parameters named; it names at least one. Each function is recorded with
+the lines where the statements of its body start.
 :::
 
-:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "14677026556332698606")
+:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "3774387349503419295")
 *Definition: structs.*
 
 $$`\begin{array}{lcl}
@@ -84,9 +88,11 @@ initializer and the body of `__deinit__` is the destructor; every other
 function is a method.
 :::
 
-:::readable MojoGrimoire.Parse.decls MojoGrimoire.Parse.parseRaw (fingerprint := "11830877125119029656")
+:::readable MojoGrimoire.Parse.decls MojoGrimoire.Parse.parseLines MojoGrimoire.Parse.parseRaw (fingerprint := "17787779178842599508")
 *Definition: programs.* A program is a sequence of structs and functions,
 in any order. The only decorator is `@fieldwise_init`. The parser is given
 ten times the number of tokens, plus a hundred, as fuel, which is more than
-any program spends.
+any program spends. `parseLines` also gives every function, method,
+initializer and destructor in the order of the file, with the lines of its
+statements.
 :::

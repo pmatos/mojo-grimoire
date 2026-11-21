@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The command-line driver: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18340403835472681179")
+:::moduleDocs (fingerprint := "16972737175175177950")
 :::
 
 :::readable MojoGrimoire.Driver.CheckError.className MojoGrimoire.Driver.RunError.name (fingerprint := "6534231796128194727")
@@ -23,10 +23,12 @@ compare it with the class of the compiler's diagnostic. The name of a
 stuck run also says what went wrong.
 :::
 
-:::readable MojoGrimoire.Driver.defaultFuel MojoGrimoire.Driver.parseArgs MojoGrimoire.Driver.main (fingerprint := "17813737716310917823")
+:::readable MojoGrimoire.Driver.defaultFuel MojoGrimoire.Driver.parseArgs MojoGrimoire.Driver.main (fingerprint := "12635168914292561278")
 *Definition: the driver.* `mojo-grimoire FILE [--fuel N]` reads the file,
-parses it and runs it with $`N` units of fuel, $`10^8` by default. The
-printed lines go to standard output, and the exit code says how the run
-ended: 0 finished, 1 rejected, 2 a run-time error, 3 a syntax error, and 4
-a command line or file that could not be used.
+parses it, checks that it holds no construct outside the subset
+(`parseSubset`), and runs it with $`N` units of fuel, $`10^8` by default.
+The printed lines go to standard output, and the exit code says how the
+run ended: 0 finished, 1 rejected, 2 a run-time error, 3 a syntax error or
+a construct outside the subset, `outside the subset: line N: MESSAGE`, and
+4 a command line or file that could not be used.
 :::
