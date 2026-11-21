@@ -102,6 +102,11 @@ arrays of them:
   '__eq__': violated constraint", `violatedConstraint`
   ([conformance-classes.md](conformance-classes.md#violated-constraints)):
   `None` for every operator, and a list to order them.
+- The pin's optimized build compares two one-element arrays as equal
+  when a struct's `__deinit__` prints, where `-O0` compares the elements.
+  The human ruled this a compiler bug on 2026-11-21 (#235,
+  [D-0010](../conformance/decision-log.md)); the model compares the
+  elements.
 - The checker finds both errors from the operands' types, once they are
   typed and before either is read: a mismatch first, then a constraint.
   So `var a: Array[Int, 1]` compared with `[1, 2]` is a mismatch, not a
