@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "value of type 'None' is not compatible with value of type 'IntLiteral[2]'"
+}

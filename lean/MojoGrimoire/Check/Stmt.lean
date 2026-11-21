@@ -235,7 +235,7 @@ initializer (`rejectIntLiteral`, #153, #154). -/
 def checkInitValue (prog : Program) (t : Ty) (e : Expr) (value : CheckM Ty) : CheckM Unit := do
   if let some es := wrongIntLiteral e then
     rejectIntLiteral prog (.init t) (intMisfit prog es) (readIntElems prog es)
-  if let .list .noneType es := e then
+  if let .list .unknown es := e then
     unless t matches .list _ | .array .. do
       checkOperands prog es
       throw (CheckError.noMatchingInit t)
@@ -256,8 +256,8 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
   | .pass => pure ()
   | .decl x t init => do
     if (← get).vars.any (·.name == x) then throw (CheckError.duplicate x)
-    unless validTy prog t do
-      if let (.noneType, some e) := (t, init) then let _ ← checkExpr prog e
+    unless declarableTy prog t do
+      if let (.unknown, some e) := (t, init) then let _ ← checkExpr prog e
       throw (CheckError.invalidType t)
     let us ← match init with
       | some e => do checkInitValue prog t e (checkExpr prog e); pure []
@@ -269,7 +269,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let (t, origins, m) ← refTarget prog e
     modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
-    let t ← if e matches .list .noneType _ || (wrongIntLiteral e).isSome then do
+    let t ← if e matches .list .unknown _ || (wrongIntLiteral e).isSome then do
         let u ← placeTy prog p
         checkInitValue prog u e (checkExpr prog e)
         pure u

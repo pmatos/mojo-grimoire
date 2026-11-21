@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9141360601481084344")
+:::moduleDocs (fingerprint := "1427584199185165329")
 :::
 
-:::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8574393401186773807")
+:::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8076625837927918720")
 *Definition: values that are dropped.* Only values of struct type, and
 lists and arrays of values that are dropped. Values of $`\mathsf{Int}`,
 $`\mathsf{Bool}`, string and $`\mathsf{None}` type have no destruction a
@@ -68,7 +68,7 @@ to a `var self`; the receiver's type, from the variables declared so far,
 gives the method.
 :::
 
-:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "12999806906914342393")
+:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "9725923883889489055")
 *Definition: what an operation destroys.* Inside a function, elaboration
 knows the program, the slots, the slots the function owns in the order they
 die, and the types of the variables declared so far. An operation uses

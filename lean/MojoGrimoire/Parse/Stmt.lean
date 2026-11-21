@@ -47,7 +47,7 @@ def simpleStmt (fuel : Nat) : P Stmt :=
       if (← peek) == some .newline then pure (.ret none) else pure (.ret (some (← expr n)))
     else if ← acceptKw "var" then
       let x ← name
-      let t ← if ← acceptSym ":" then ty n else pure .noneType
+      let t ← if ← acceptSym ":" then ty n else pure .unknown
       let init ← if ← acceptSym "=" then pure (some (← expr n)) else pure none
       pure (.decl x t init)
     else if ← acceptKw "ref" then

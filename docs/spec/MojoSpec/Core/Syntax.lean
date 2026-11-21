@@ -67,7 +67,7 @@ Here $`n` is an integer, $`b` a boolean and $`s` a string literal.
 * $`[e^*]_t` builds a value of the type $`t`, a list or an array, with the
   elements $`e^*`: Mojo's literal `[e1, e2]`, or `List[u]()` when it is
   empty. Mojo gives `[e1, e2]` the type `Array[u, 2]` unless a list is
-  expected where it stands. The parser gives a literal the type `None`,
+  expected where it stands. The parser gives a literal the type $`?`,
   which inference replaces only when a list or an array is expected, or
   with $`\mathsf{Int}` for a literal `[e]` of one `Int` made of literals
   and operators where an `Int` is expected, which is the value of $`e`

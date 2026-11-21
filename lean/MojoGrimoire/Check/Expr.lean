@@ -29,7 +29,8 @@ mutual
 /-- The type of the expression `e`. A string literal has no type here: it may
 only be printed, which `checkPrint` checks. A call that returns a reference
 gives the value it points to, which is copied implicitly, unless `asRef`
-holds: then the reference itself is bound, by `ref`. -/
+holds: then the reference itself is bound, by `ref`. `None` has no
+`.copy()`: Mojo says it has no attributes (#131). -/
 def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .int _ => pure .int
   | .bool _ => pure .bool
@@ -39,6 +40,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .copy p => do
     checkIndices prog p
     let t ← readPlace prog p
+    if t == .noneType then throw (CheckError.unknownAttribute (typeName t) "copy")
     if copyingOf prog t == .none then throw (CheckError.notCopyable t)
     pure t
   | .call f args => do
@@ -89,11 +91,11 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     let kb ← mark
     unless op == .and || op == .or do recheckPlaces prog [a, b] [ka, kb]
     lift (methodBinaryTy prog op ta tb)
-  | .list .noneType [] => throw (CheckError.invalidType .noneType)
-  | .list .noneType (e :: es) => do
+  | .list .unknown [] => throw (CheckError.invalidType .unknown)
+  | .list .unknown (e :: es) => do
     let u ← checkExprAs prog false e
     let t := Ty.array u (es.length + 1)
-    unless validTy prog u do throw (CheckError.invalidType t)
+    unless declarableTy prog u do throw (CheckError.invalidType t)
     let k ← mark
     recheckLocs prog ((if let .place p := e then [p] else [], k) ::
       (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
@@ -115,7 +117,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       | .str _ => throw (CheckError.noMatchingInit (.list u))
       | e => do
         let t ← match e with
-          | .list .noneType es => do iterableLiteralTy prog u (← checkIterableElems prog u es)
+          | .list .unknown es => do iterableLiteralTy prog u (← checkIterableElems prog u es)
           | .call f args =>
             if builtinRange prog f && (← findVar f).isNone then
               rangeList prog u args.length (typeRangeArgs prog true args) (readRangeArgs prog args)
@@ -140,7 +142,7 @@ def checkIterableElems (prog : Program) (u : Ty) : List Expr → CheckM (List (T
   | [] => pure []
   | e :: es => do
     let t ← match e with
-      | .list .noneType es' => do iterableLiteralTy prog u (← checkIterableElems prog u es')
+      | .list .unknown es' => do iterableLiteralTy prog u (← checkIterableElems prog u es')
       | e => checkExprAs prog false e
     let k ← mark
     pure ((t, ← lateLocs prog e, k) :: (← checkIterableElems prog u es))
@@ -159,7 +161,7 @@ def typeRangeArgs (prog : Program) (first : Bool) : List Expr → CheckM (Bool �
   | a :: as => do
     modify State.typing
     let (misfit, literal) ← match a with
-      | .list .noneType es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => do
+      | .list .unknown es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => do
         let (ints, empty) ← typeLiteral prog es
         pure (if ints && !(first && empty) then (false, true) else (true, false))
       | a => do pure ((← typeArg prog a) != .int, false)
@@ -175,7 +177,7 @@ def typeLiteral (prog : Program) : List Expr → CheckM (Bool × Bool)
   | [] => pure (true, true)
   | e :: es => do
     let (ints, empty) ← match e with
-      | .list .noneType es' | .list .int es'@([]) | .list .int es'@(_ :: _ :: _) => typeLiteral prog es'
+      | .list .unknown es' | .list .int es'@([]) | .list .int es'@(_ :: _ :: _) => typeLiteral prog es'
       | e => do pure ((← typeArg prog e) == .int, false)
     let (ints', _) ← typeLiteral prog es
     pure (ints && ints', empty)
@@ -185,7 +187,7 @@ def typeLiteral (prog : Program) : List Expr → CheckM (Bool × Bool)
 the compiler types it before it finds the form of `range` that fits. One
 that holds a string or a call of the standard library's `range`
 (`holdsStrOrRange`) fits none: it
-is typed only in its other parts, and has no type here, `None`. So has a
+is typed only in its other parts, and has no type here, `unknown`. So has a
 literal in it. A place is typed by `typePlace`. One whose check gives an
 error that the compiler reports after its types, or after the misfit, a
 call's implicit copy of the value it returns a reference to, has its
@@ -197,13 +199,13 @@ def typeArg (prog : Program) (e : Expr) : CheckM Ty :=
     | .unary _ a => let _ ← typeArg prog a
     | .binary _ a b => do let _ ← typeArg prog a; let _ ← typeArg prog b
     | _ => pure ()
-    pure .noneType
+    pure .unknown
   else
     match e with
     | .place p => do
       try typePlace prog p catch err => unless err.late || err == .noMatchingInit .int do throw err
       placeTy prog p
-    | .list .noneType es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => do typeArgs prog es; pure .noneType
+    | .list .unknown es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => do typeArgs prog es; pure .unknown
     | e => try checkExprAs prog false e catch err => do
         let t ← lateElemTy prog e
         if err.late || err == .noMatchingInit .int ||
@@ -225,7 +227,7 @@ def readRangeArgs (prog : Program) : List Expr → CheckM RangeArgs
   | [] => pure {}
   | a :: as => do
     let r ← match a with
-      | .list .noneType es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => readRangeArgs prog es
+      | .list .unknown es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => readRangeArgs prog es
       | .place p => lateErrors (do
         checkIndices prog p
         let _ ← readPlace prog p

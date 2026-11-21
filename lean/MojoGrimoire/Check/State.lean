@@ -177,13 +177,13 @@ below `q` are subsumed by it. -/
 def uninitialize (us : List Path) (q : Path) : List Path :=
   if us.any (·.isPrefixOf q) then us else q :: us.filter (!q.isPrefixOf ·)
 
-/-- The type of the part `path` of a value of type `t`, or `None` when the
+/-- The type of the part `path` of a value of type `t`, or `unknown` when the
 path does not name a part. -/
 def partTy (prog : Program) (t : Ty) : Path → Ty
   | [] => t
   | f :: rest => match fieldOf prog t f with
     | .ok ft => partTy prog ft rest
-    | .error _ => .noneType
+    | .error _ => .unknown
 
 /-- The uninitialized parts that remain of a part of type `t` when its part
 `rest` is initialized and the others are not: for each field on the way
@@ -194,7 +194,7 @@ def remainder (prog : Program) (t : Ty) : Path → List Path
     let others := (fieldNames prog t).filter (· != f) |>.map ([·])
     let ft := match fieldOf prog t f with
       | .ok ft => ft
-      | .error _ => .noneType
+      | .error _ => .unknown
     others ++ (remainder prog ft rest).map (f :: ·)
 
 /-- The uninitialized parts once the part `q`, of a variable of type `t`, is

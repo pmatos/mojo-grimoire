@@ -4,7 +4,7 @@ import MojoGrimoire.Interp.Run
 /-!
 Tests of an unannotated `var u = e` whose initializer has no type that
 inference can find (#123). The checker reports the initializer's own error,
-as the compiler does, before the `None` type that inference leaves. Each
+as the compiler does, before the `unknown` type that inference leaves. Each
 expected outcome is the compiler's. The programs are parsed from text, one
 line per string, after the shared declarations.
 -/
@@ -40,7 +40,7 @@ private def rejects (e : CheckError) : Option Outcome := some (.rejected ⟨"mai
 #guard inMain ["    var u = nope"] == rejects (.unknownVariable "nope")
 
 -- An empty literal has no type, which the compiler rejects as well.
-#guard inMain ["    var u = []"] == rejects (.invalidType .noneType)
+#guard inMain ["    var u = []"] == rejects (.invalidType .unknown)
 
 -- An initializer that checks gives its type to the variable.
 #guard inMain ["    var u = s.k", "    print(u)"] == some (.finished ["7"])

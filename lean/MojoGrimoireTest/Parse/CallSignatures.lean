@@ -43,7 +43,7 @@ private def bare : List String := ["struct Bare:", "    var xs: List[Int]", ""]
 -- and the checker gives it the type of its elements.
 #guard mainBody (bare ++ ["def main():", "    var b = Bare([1, 2])"]) ==
   some [.decl "b" (.struct "Bare")
-    (some (.call "Bare" [.list .noneType [.int 1, .int 2]]))]
+    (some (.call "Bare" [.list .unknown [.int 1, .int 2]]))]
 
 -- A method that a list or an array does not have is reported before the
 -- receiver is read: here it is not yet initialized.

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The machine: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2707893099620734853")
+:::moduleDocs (fingerprint := "6099052685432523474")
 :::
 
 :::readable MojoGrimoire.Interp.Ref MojoGrimoire.Interp.Binding MojoGrimoire.Interp.Env (fingerprint := "5146776138028628767")
@@ -59,7 +59,7 @@ $`\mathsf{Bool}`s. Negation wraps too, and `not` negates a
 $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Interp.position MojoGrimoire.Interp.blankOf MojoGrimoire.Interp.emptyStruct (fingerprint := "13651110332402185810")
+:::readable MojoGrimoire.Interp.position MojoGrimoire.Interp.blankOf MojoGrimoire.Interp.emptyStruct (fingerprint := "3758052026648494389")
 *Definition: indices and blanks.* An index into a list of length
 $`l` names position $`i` when $`0 \le i < l`; any other index, a negative
 one included, stops the run, since Mojo's `List` does not count from the

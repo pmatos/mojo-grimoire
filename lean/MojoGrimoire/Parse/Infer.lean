@@ -7,7 +7,8 @@ declared as `var x = e`, and the type of a literal `[e₁, …, eₙ]`.
 Inference follows the program's declarations: the types of the
 parameters, of the variables declared so far, of the fields of each
 struct, and the signature of each call and method call. A variable takes the
-type of its initial value. A literal takes the type expected where it
+type of its initial value, `None` for a call that returns nothing (#131),
+unless it declares one. A literal takes the type expected where it
 stands: the declared type of its variable, the type of the place it is
 assigned to, the function's result when it is returned, the parameter it
 is passed to, or the element type of the literal or list that holds it.
@@ -28,10 +29,10 @@ is also expected by an index, and by either operand of an operator other
 than `and` and `or` whose other operand is an `Int`, as Mojo reads it
 (#160). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
 the type `t` of the first, as in Mojo: inference gives that type to what
-holds the literal, and leaves the literal's own type `None`, so that the
+holds the literal, and leaves the literal's own type `unknown`, so that the
 checker tells a literal that initializes an expected type from one that
 takes the type of its elements (#46). What inference cannot find stays
-`None`, which the checker rejects as a type that may not be declared, once
+`unknown`, which the checker rejects as a type that may not be declared, once
 it has checked the initializer, whose own error comes first (#123).
 `List[u](e₁, …, eₙ)` is a list of `u`; nothing is expected of its
 arguments. With one argument, `e`, Mojo takes it by `ref`, which borrows
@@ -54,7 +55,8 @@ a method that returns a reference through a `mut` parameter, or a place
 of a variable that may change, also through `q^`, whose transfer has no
 effect there, as the checker's `refTarget` reads it.
 
-Inference also gives `p^` its meaning when `p` is an `Int` or a `Bool`.
+Inference also gives `p^` its meaning when `p` is an `Int`, a `Bool` or
+`None` (#131).
 Mojo does not move such a value: it warns that the transfer has no effect,
 and uses the place `p`, which is what inference puts in its stead. That
 holds wherever `p` is, also an element of a list or an array, or a field of
@@ -67,14 +69,14 @@ open MojoGrimoire.Core MojoGrimoire.Check
 
 /-- The type of an open literal that is expected to have the type `t`: `t`
 itself when it is a list or an array, whose size the checker compares with
-the literal's length, and otherwise `None`, which the elements decide. -/
+the literal's length, and otherwise `unknown`, which the elements decide. -/
 def openLiteralTy : Ty → Ty
   | t@(.list _) | t@(.array ..) => t
-  | _ => .noneType
+  | _ => .unknown
 
 /-- The type that the elements of a literal of type `t` are expected to
 have. -/
-def elemExpected (t : Ty) : Ty := (elemOf t).toOption.getD .noneType
+def elemExpected (t : Ty) : Ty := (elemOf t).toOption.getD .unknown
 
 /-- The type of a call of `f` with no signature: a struct's, even when it
 cannot be built, so that the checker reports why; `len`'s `Int`; and
@@ -109,7 +111,7 @@ def inferPlace (prog : Program) (env : TyEnv) : Place → Place × Option Ty
   termination_by p => (sizeOf p, 0)
 
 /-- Infers inside the expression `e`, expected to have the type `exp`
-(`None` when nothing is expected), and gives its type, if it has one. -/
+(`unknown` when nothing is expected), and gives its type, if it has one. -/
 def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Option Ty
   | .int k => (.int k, some .int)
   | .bool b => (.bool b, some .bool)
@@ -136,16 +138,16 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
     let sig := pt.bind fun t => (methodSig prog t m args.length).toOption
     (.method p' m (inferArgs prog env (sig.elim [] (·.params)) args), sig.map (·.result))
   | .unary op a =>
-    let (a', ta) := inferExpr prog env .noneType a
+    let (a', ta) := inferExpr prog env .unknown a
     match declaredMethod prog ta (unaryMethod op), op with
     | some (s, fd), .neg => (.call (methodCallee s "__neg__") [a'], some fd.result)
     | _, _ => (.unary op a', some (if op == .neg then .int else .bool))
   | .binary op a b =>
-    let (a₀, ta₀) := if a matches .list .. then (a, none) else inferExpr prog env .noneType a
-    let (b₀, tb₀) := if b matches .list .. then (b, none) else inferExpr prog env .noneType b
+    let (a₀, ta₀) := if a matches .list .. then (a, none) else inferExpr prog env .unknown a
+    let (b₀, tb₀) := if b matches .list .. then (b, none) else inferExpr prog env .unknown b
     if op == .and || op == .or then
-      let a' := if a matches .list .. then (inferExpr prog env .noneType a).1 else a₀
-      let b' := if b matches .list .. then (inferExpr prog env .noneType b).1 else b₀
+      let a' := if a matches .list .. then (inferExpr prog env .unknown a).1 else a₀
+      let b' := if b matches .list .. then (inferExpr prog env .unknown b).1 else b₀
       (.binary op a' b', some (binaryResult op))
     else
     match chooseBinary prog op ta₀ tb₀
@@ -154,35 +156,35 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
       (env.canPass prog a₀) (env.canPass prog b₀)
     with
     | some (s, fd, reflected) =>
-      let prm := (otherParam fd).getD ⟨.read, "", .noneType⟩
+      let prm := (otherParam fd).getD ⟨.read, "", .unknown⟩
       let a' := if a matches .list .. then inferArg prog env prm a else a₀
       let b' := if b matches .list .. then inferArg prog env prm b else b₀
       let m := if reflected then reflectedMethod op else binaryMethod op
       (.call (methodCallee s m reflected) [a', b'], some fd.result)
     | none =>
     let (a', ta) := if a matches .list .. then
-        inferExpr prog env (if tb₀ == some .int then .int else .noneType) a
+        inferExpr prog env (if tb₀ == some .int then .int else .unknown) a
       else (a₀, ta₀)
     let b' := if b matches .list .. then
-        (inferExpr prog env (if ta == some .int then .int else .noneType) b).1
+        (inferExpr prog env (if ta == some .int then .int else .unknown) b).1
       else b₀
     (.binary op a' b', some (binaryResult op))
   | .list t es =>
     match t, exp, es with
-    | .noneType, .int, [e] =>
+    | .unknown, .int, [e] =>
       let (e', te) := inferExpr prog env .int e
       if te == some .int then (if foldable e' then .list .int [e'] else e', some .int)
-      else (.list .noneType [e'], te.map (.array · 1))
-    | .noneType, .int, es =>
+      else (.list .unknown [e'], te.map (.array · 1))
+    | .unknown, .int, es =>
       (.list .int ((inferList prog env (List.replicate es.length .int) es).map (·.1)), some .int)
     | t, _, es =>
       let n := es.length
-      let t := if t == .noneType then openLiteralTy exp else t
+      let t := if t == .unknown then openLiteralTy exp else t
       let es' := inferList prog env (List.replicate n (elemExpected t)) es
       let t' := match t, es'.head?.bind (·.2) with
-        | .noneType, some u => .array u n
+        | .unknown, some u => .array u n
         | t, _ => t
-      (.list t (es'.map (·.1)), if t' == .noneType then none else some t')
+      (.list t (es'.map (·.1)), if t' == .unknown then none else some t')
   | .listInit u args =>
     let args' : List Expr := (inferList prog env [] args).map (·.1)
     (.listInit u (match args' with | [.transfer p] => [.place (.transferred p)] | as => as),
@@ -216,11 +218,11 @@ def inferArg (prog : Program) (env : TyEnv) (prm : Param) : Expr → Expr
   termination_by a => (sizeOf a, 1)
 
 /-- Infers inside each of the expressions `es`, expected to have the types
-`exps` in order, or `None` past their end. -/
+`exps` in order, or `unknown` past their end. -/
 def inferList (prog : Program) (env : TyEnv) (exps : List Ty) :
     List Expr → List (Expr × Option Ty)
   | [] => []
-  | e :: es => inferExpr prog env (exps.headD .noneType) e :: inferList prog env exps.tail es
+  | e :: es => inferExpr prog env (exps.headD .unknown) e :: inferList prog env exps.tail es
   termination_by es => (sizeOf es, 2)
 end
 
@@ -230,10 +232,10 @@ mutual
 def inferStmt (prog : Program) (result : Ty) (env : TyEnv) : Stmt → Stmt × TyEnv
   | .decl x t init =>
     let init' := init.map fun e => inferExpr prog env t e
-    let t' := if t == .noneType then ((init'.bind (·.2)).getD .noneType) else t
+    let t' := if t == .unknown then ((init'.bind (·.2)).getD .unknown) else t
     (.decl x t' (init'.map (·.1)), env.push x t')
   | .refDecl x e =>
-    let (e', t) := inferExpr prog env .noneType e
+    let (e', t) := inferExpr prog env .unknown e
     let mutable := match e' with
       | .place p => !env.fixed.contains (splitPlace p).1
       | e' => env.mutableAt prog e'
@@ -242,7 +244,7 @@ def inferStmt (prog : Program) (result : Ty) (env : TyEnv) : Stmt → Stmt × Ty
       | none => env)
   | .assign p e =>
     let (p', t) := inferPlace prog env p
-    (.assign p' (inferExpr prog env (t.getD .noneType) e).1, env)
+    (.assign p' (inferExpr prog env (t.getD .unknown) e).1, env)
   | .expr (.call f [.place p, e]) =>
     match augOps.find? (·.1 == f) with
     | some (_, op) =>
@@ -253,10 +255,10 @@ def inferStmt (prog : Program) (result : Ty) (env : TyEnv) : Stmt → Stmt × Ty
         let prms := ((declaredMethod prog t m).map (·.2.params.tail)).getD []
         (.expr (.call (methodCallee s m) (.place p' :: inferArgs prog env prms [e])), env)
       | _ =>
-        let u := if t == some .int && e matches .list .. then .int else .noneType
+        let u := if t == some .int && e matches .list .. then .int else .unknown
         (.assign p' (.binary op (.place p') (inferExpr prog env u e).1), env)
-    | none => (.expr (inferExpr prog env .noneType (.call f [.place p, e])).1, env)
-  | .expr e => (.expr (inferExpr prog env .noneType e).1, env)
+    | none => (.expr (inferExpr prog env .unknown (.call f [.place p, e])).1, env)
+  | .expr e => (.expr (inferExpr prog env .unknown e).1, env)
   | .print args =>
     match declaredMethod prog (env.lookup "print") "__call__" with
     | some (s, fd) =>
@@ -264,10 +266,10 @@ def inferStmt (prog : Program) (result : Ty) (env : TyEnv) : Stmt → Stmt × Ty
         env)
     | none => (.print ((inferList prog env [] args).map (·.1)), env)
   | .ifElse c a b =>
-    (.ifElse (inferExpr prog env .noneType c).1 (inferBlock prog result env a)
+    (.ifElse (inferExpr prog env .unknown c).1 (inferBlock prog result env a)
       (inferBlock prog result env b), env)
   | .whileLoop c body =>
-    (.whileLoop (inferExpr prog env .noneType c).1 (inferBlock prog result env body), env)
+    (.whileLoop (inferExpr prog env .unknown c).1 (inferBlock prog result env body), env)
   | .ret value =>
     (.ret (value.map fun e => (inferExpr prog env result e).1), env)
   | .pass => (.pass, env)
@@ -285,7 +287,7 @@ end
 a reference expects no `Int` of the value it returns, which must be a
 place: a literal there is no place, as Mojo reports. -/
 def inferFun (prog : Program) (fd : FunDecl) : FunDecl :=
-  let result := if fd.origin.isSome then Ty.noneType else fd.result
+  let result := if fd.origin.isSome then Ty.unknown else fd.result
   let fixed := fd.params.filter fun p => p.conv == .read || p.conv == .ref
   let env : TyEnv := ⟨fd.params.map fun p => (p.name, p.ty), fixed.map (·.name)⟩
   { fd with body := inferBlock prog result env fd.body }

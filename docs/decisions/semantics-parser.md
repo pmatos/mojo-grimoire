@@ -48,19 +48,32 @@ else. These choices hold:
   field or call a method of the place `s^` (#66; see the static checker in
   [semantics.md](semantics.md#the-static-checker)). `s^[0]` and `s^(…)` are
   XOR, as above.
-- The parser writes the type `None` where the program leaves a type
-  implicit, since no variable of the subset has that type. Inference then
+- The parser writes the type `unknown`, which is no Mojo type, where the
+  program leaves a type implicit, so that a failed inference and a real
+  `None` differ (#131). Inference then
   gives `var x = e` the type of `e`, and a literal `[e1, …, en]` the type
   expected where it stands, or else `Array[T, n]` (see
   [Arrays](semantics-lists.md#arrays)). A literal `[e]` of one `Int`
   element where an `Int` is expected is replaced by `e`, or, when `e` is
   made only of literals and operators or the literal is passed `mut` or
   `ref`, gets the type `Int` (#103).
-  What it cannot find stays `None`, and the checker rejects it, after the
-  initializer's own error, which comes first (#123). A literal
-  with no expected type keeps `None` as its own type, which the checker
+  What it cannot find stays `unknown`, and the checker rejects it, after
+  the initializer's own error, which comes first (#123). A literal
+  with no expected type keeps `unknown` as its own type, which the checker
   replaces with its elements' type, so that the checker tells it from a
   literal that initializes an expected type (#46).
+- A value of type `None`, from a call that returns nothing, is a value as
+  in the nightly: a variable may hold one, with or without the annotation
+  `None`, copy it implicitly, and transfer it, which has no effect, as for
+  `Int`; a literal may hold them, as `Array[None, n]`. `print` cannot
+  write one (`notPrintable`), and it has no operator methods
+  (`missingMethod`) and no `.copy()` (`unknownAttribute`, "'None' has no
+  attributes"). The human ruled this on 2026-11-20 (#131). `None` written
+  as an expression, and parameters and fields of type `None`, are not
+  modelled yet (#183): the parser reads `None` as an expression as a name,
+  as before. `None` as a type argument, `List[None]`, is such a value
+  where the compiler expects a type, which it rejects; the parser reads it
+  as `unknown`, which the checker rejects as `invalidType`.
 - `List[T]()` is an empty list. `List[T](e1, …, en)` with arguments is
   read as its own expression, which the checker accepts only for one
   argument that is a list or an array of `T`, or a call of `range` (see

@@ -70,6 +70,7 @@ def typeName : Ty → Name
   | .bool => "Bool"
   | .str => "StringLiteral"
   | .noneType => "NoneType"
+  | .unknown => "unknown"
   | .struct s => s
   | .list _ => "List"
   | .array .. => "Array"
@@ -146,15 +147,15 @@ def rangeParams (n : Nat) : List Param :=
     | 2 => ["start", "end"]
     | _ => ["start", "end", "step"]).map (⟨.read, ·, .int⟩)
 
-/-- How the values of the type `t` can be copied. `Int` and `Bool` are
-implicitly copyable, as in Mojo; a list or an array only explicitly, with
-`.copy()`, and only when its elements can be copied; string literals and
-`None` are never copied. -/
+/-- How the values of the type `t` can be copied. `Int`, `Bool` and `None`
+are implicitly copyable, as in Mojo; a list or an array only explicitly,
+with `.copy()`, and only when its elements can be copied; string literals
+are never copied. -/
 def copyingOf (prog : Program) : Ty → Copying
-  | .int | .bool => .implicit
+  | .int | .bool | .noneType => .implicit
   | .struct s => (findStruct prog s).elim .none (·.copying)
   | .list t | .array t _ => if copyingOf prog t == .none then .none else .explicit
-  | .str | .noneType => .none
+  | .str | .unknown => .none
 
 /-- The type of the field `f` of a value of type `t`. Only a struct has
 fields; on any other type the field is an unknown attribute, named with
@@ -173,14 +174,24 @@ def fieldNames (prog : Program) : Ty → List Name
   | .struct s => (findStruct prog s).elim [] (·.fields.map (·.1))
   | _ => []
 
-/-- Whether a variable or parameter may be declared with the type `t`:
+/-- Whether a parameter or a field may be declared with the type `t`:
 `Int`, `Bool`, a struct of the program, or a list or an array of such
 values. -/
 def validTy (prog : Program) : Ty → Bool
   | .int | .bool => true
   | .struct s => (findStruct prog s).isSome
   | .list t | .array t _ => validTy prog t
-  | .str | .noneType => false
+  | .str | .noneType | .unknown => false
+
+/-- Whether a variable may be declared with the type `t`, which is also
+the type of a literal's elements: as a parameter may (`validTy`), or
+`None`, the type of a call that returns nothing, or a list or an array of
+such values (#131). A type that inference cannot find is `unknown`, which
+none may have. -/
+def declarableTy (prog : Program) : Ty → Bool
+  | .noneType => true
+  | .list t | .array t _ => declarableTy prog t
+  | t => validTy prog t
 
 /-- The type of what a value of type `t` holds through its lists and arrays:
 the element type, through any number of them, or `t` itself. -/

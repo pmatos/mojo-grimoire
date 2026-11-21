@@ -13,17 +13,19 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "996911247700911747")
+:::moduleDocs (fingerprint := "9812431287666085160")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "5097395188802783491")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "12711595615319357232")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
 * a literal has its type, but a string literal is rejected outside
   `print`;
 * $`p` is copied implicitly, $`p\,\hat{}` transferred, and
-  $`p.\mathsf{copy}()` needs an initialized place of a copyable type;
+  $`p.\mathsf{copy}()` needs an initialized place of a copyable type,
+  other than $`\mathsf{None}`, which has no `.copy()`: Mojo says it has
+  no attributes, an unknown attribute (#131);
 * $`f(e^*)` and $`p.m(e^*)` pass their arguments to the parameters of
   their signature, $`p` first, by the convention of the method's `self`,
   and have its result type; when $`f` names a struct, the call is an
@@ -52,7 +54,7 @@ type:
   variable may have, initializes $`t`: it passes each element as to a `var`
   parameter of type $`u`, and an array must have as many elements as its
   type says, or the literal is `noMatchingInit` $`t`; with $`t` the type
-  `None`, no type is expected, and the literal is an array of the type of
+  $`?`, no type is expected, and the literal is an array of the type of
   its first element, whose other elements must have that type;
 * $`[e]_{\mathsf{Int}}` has the type of $`e`, which must be an
   $`\mathsf{Int}` (#103). Passed to a parameter, a literal whose type is
@@ -139,8 +141,8 @@ $`\mathsf{Int}` (#127), before its index, each index as an
 $`\mathsf{Int}`, checked as an expression, whose own errors come first but for the later ones, and
 each inner $`r\,\hat{}` as one that could transfer $`r`, initialized or
 not, by the same rule and the `read` or `ref` parameter rule above,
-unless $`r` is an $`\mathsf{Int}` or a $`\mathsf{Bool}`, which
-$`r\,\hat{}` leaves in place. So a moved list, an uninitialized
+unless $`r` is an $`\mathsf{Int}`, a $`\mathsf{Bool}` or a
+$`\mathsf{None}`, which $`r\,\hat{}` leaves in place. So a moved list, an uninitialized
 or invalidated index, or a constant index out of range is not reported
 for an element's transfer.
 A call or a method call that returns a reference gives the value it

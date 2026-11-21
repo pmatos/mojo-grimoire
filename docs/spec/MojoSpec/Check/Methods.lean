@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11861127469728064369")
+:::moduleDocs (fingerprint := "3854396264829635623")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -25,18 +25,18 @@ and $`!=` call `__lt__`, `__le__`, `__gt__`, `__ge__`, `__eq__` and
 $`\mathsf{and}` and $`\mathsf{or}` call `__bool__` on each operand.
 :::
 
-:::readable MojoGrimoire.Check.hasMethod (fingerprint := "74535816480982210")
+:::readable MojoGrimoire.Check.hasMethod (fingerprint := "10449175719696369603")
 *Definition: the methods of a type.* Of the methods that operators and
 calls need, an $`\mathsf{Int}` has every one but `__call__`. A
 $`\mathsf{Bool}` has the comparisons and `__bool__`, and no arithmetic
 or negation. A list has `__add__`, `__mul__`, `__eq__`, `__ne__` and
 `__bool__`. An array has the comparisons only. A struct has the methods
 it declares; those its traits supply are not yet modelled (#194). `None`
-has none. A string literal, which is only printed, is
+has none, nor has $`?`. A string literal, which is only printed, is
 taken to have them all: the model claims nothing of it.
 :::
 
-:::readable MojoGrimoire.Check.overloaded MojoGrimoire.Check.intLiteral (fingerprint := "9175153237094737598")
+:::readable MojoGrimoire.Check.overloaded MojoGrimoire.Check.intLiteral (fingerprint := "14804267025960426371")
 *Definition: methods with several overloads.* Of the methods the model
 calls, a list's `pop` has several overloads, and so has `__getitem__`
 of a list or an array, which an index calls. Their misfits are
@@ -46,7 +46,7 @@ them, negation and arithmetic, has the type `IntLiteral`, whose operators
 have several overloads too.
 :::
 
-:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "16790746705646846013")
+:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "2250277455228571407")
 *Definition: the type of an operand from its form.* The type of an
 operand is found, without checking or reading it, from its form: a
 literal's, a place's type, the result of the function, struct or method

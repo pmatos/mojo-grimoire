@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3460774467130204207")
+:::moduleDocs (fingerprint := "14542082697538841758")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -89,7 +89,7 @@ moved out in each iteration. As Mojo does, the
 checker reports such a part as a use of an uninitialized value.
 :::
 
-:::readable MojoGrimoire.Check.printable MojoGrimoire.Check.checkPrintArg (fingerprint := "1986903753210102649")
+:::readable MojoGrimoire.Check.printable MojoGrimoire.Check.checkPrintArg (fingerprint := "6868542877883536562")
 *Rule: printing.* `print` takes string literals, and values it can write:
 those of type $`\mathsf{Int}` or $`\mathsf{Bool}`, and lists and arrays
 of values it can write, nested ones included. It reads a place by
@@ -113,10 +113,10 @@ does. $`\mathsf{List}[u](e)` builds its result in place, and passes $`e`
 by `ref` (#103).
 :::
 
-:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "14580347412378468746")
+:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "3556521052256848185")
 *Rule: initializing values.* A value that initializes a declared variable,
 a place assigned to, or a function's result must have its type. A literal
-$`[e^*]_{\mathsf{None}}`, which has no list or array expected, where that
+$`[e^*]_{?}`, which has no list or array expected, where that
 type is neither, such as a struct or a $`\mathsf{Bool}`, is
 `noMatchingInit` of that type once its elements are checked on their own:
 Mojo calls the type's initializer with the elements and the keyword
@@ -133,13 +133,14 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "11244212085081677629")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "14915442914929159780")
 *Rule: statements.*
 
-* $`\mathsf{var}~x : t~(= e)^?` needs a declarable $`t` and an $`e`
+* $`\mathsf{var}~x : t~(= e)^?` needs a $`t` a variable may have
+  (`declarableTy`) and an $`e`
   of type $`t`, by `checkInitValue`, as do an assignment and `return`, and declares $`x`, initialized when $`e` is given; $`x`
   may not be the name of a variable in scope, so no variable hides another.
-  When inference left $`t` as $`\mathsf{None}`, $`e` is checked first, so
+  When inference left $`t` as $`?`, $`e` is checked first, so
   that its own error, such as an unknown field, is reported, as the
   compiler does (#123);
 * $`\mathsf{ref}~x = e` binds $`x` to a reference, as the next section

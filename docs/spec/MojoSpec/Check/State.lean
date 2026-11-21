@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7062206939620445354")
+:::moduleDocs (fingerprint := "14343171178977340674")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "4845031522016519524")
@@ -93,7 +93,7 @@ already uninitialized, and otherwise adds $`\rho` and removes the parts
 below it.
 :::
 
-:::readable MojoGrimoire.Check.partTy MojoGrimoire.Check.remainder MojoGrimoire.Check.initPart (fingerprint := "2792872999317184741")
+:::readable MojoGrimoire.Check.partTy MojoGrimoire.Check.remainder MojoGrimoire.Check.initPart (fingerprint := "6758739688406185053")
 *Definition: initializing a part.* Initializing $`\rho` removes from
 $`U` the parts below $`\rho`. If a part $`\pi` above $`\rho` is
 uninitialized, as when `__init__` sets the first field of `self`,
@@ -129,7 +129,7 @@ scope with that name, if there is one, and updating a variable replaces
 the innermost variable with its name. An unknown name is rejected.
 :::
 
-:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "5276229274653351199")
+:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "16540179678589216223")
 *Definition: reading a place.* The type of a place is the type of its
 variable, then of each field or element on the way; only a list or an
 array has elements, and $`p\,\hat{}` has the type of $`p`. Reading a place's value needs the
@@ -146,7 +146,7 @@ place resolves to itself. Replacing the variable of a place keeps each
 $`\hat{}` on the way.
 :::
 
-:::readable MojoGrimoire.Check.shapeOf MojoGrimoire.Check.invalidates (fingerprint := "1346872709055547422")
+:::readable MojoGrimoire.Check.shapeOf MojoGrimoire.Check.invalidates (fingerprint := "4708377491845332458")
 *Definition: invalidation.* The shape of $`p[e]` ends in
 $`[\cdot]_{\mathsf{list}}` when $`p` is a list, and in
 $`[\cdot]_{\mathsf{array}}` when it is an array, and $`p\,\hat{}` has

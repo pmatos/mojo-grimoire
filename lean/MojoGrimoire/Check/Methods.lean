@@ -79,7 +79,7 @@ def hasMethod (prog : Program) (t : Ty) (m : Name) : Bool :=
   | .list _ => ["__add__", "__mul__", "__eq__", "__ne__", "__bool__"].contains m
   | .array .. => ["__lt__", "__le__", "__gt__", "__ge__", "__eq__", "__ne__"].contains m
   | .struct s => (findStruct prog s).any fun sd => (findMethod sd m).isSome
-  | .noneType => false
+  | .noneType | .unknown => false
   | .str => true
 
 /-- Whether the method `m` of a value of type `t` has several overloads,
@@ -122,7 +122,7 @@ where
       pure ((methodSig prog (← placeTy prog p) m args.length).toOption.map (·.result))
     | .unary op _ => pure (some (if op == .neg then .int else .bool))
     | .binary op _ _ => pure (some (binaryResult op))
-    | .list .noneType (e :: es) => do
+    | .list .unknown (e :: es) => do
       let u ← formTy e
       pure (if ← sameTy u es then u.map (.array · (es.length + 1)) else none)
     | .list .int [_] => pure (some .int)

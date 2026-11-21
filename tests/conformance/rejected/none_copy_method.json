@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "unknownAttribute",
+  "diagnostic": "'None' has no attributes"
+}

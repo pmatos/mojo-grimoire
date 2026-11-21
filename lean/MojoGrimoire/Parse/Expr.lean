@@ -219,7 +219,7 @@ def primary (fuel : Nat) : P Term :=
       pure (.expr e)
     | some (.sym "[") =>
       let _ ← next
-      pure (.expr (.list .noneType (← exprList n "]")))
+      pure (.expr (.list .unknown (← exprList n "]")))
     | _ => pure (.place (.var (← name)))
 
 /-- Reads expressions separated by commas, up to the closing symbol

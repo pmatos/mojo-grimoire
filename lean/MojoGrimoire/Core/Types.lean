@@ -19,7 +19,8 @@ abbrev Name := String
 which may only be printed, and `noneType` the type of a call that returns
 nothing, Mojo's `None`. `list t` is Mojo's `List[t]`, whose length may
 change, and `array t n` is Mojo's `Array[t, n]`, which holds exactly `n`
-elements. -/
+elements. `unknown` is no Mojo type: it stands for a type that the parser
+leaves for inference, and stays where inference finds none (#131). -/
 inductive Ty where
   | int
   | bool
@@ -28,13 +29,14 @@ inductive Ty where
   | struct (name : Name)
   | list (elem : Ty)
   | array (elem : Ty) (size : Nat)
+  | unknown
   deriving DecidableEq, Repr
 
 /-- Whether Mojo uses a value of type `t` by value where it would otherwise
-use its location: an `Int` or a `Bool`, which Mojo copies when it is passed
-to a `read` parameter, and does not move with `^`. -/
+use its location: an `Int`, a `Bool` or `None`, which Mojo copies when it
+is passed to a `read` parameter, and does not move with `^` (#131). -/
 def Ty.byValue : Ty → Bool
-  | .int | .bool => true
+  | .int | .bool | .noneType => true
   | _ => false
 
 /-- The argument conventions. `read` is the default, which Mojo writes with no
