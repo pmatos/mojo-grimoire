@@ -45,11 +45,8 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     pure t
   | .call f args => do
     let f ← mainOperator prog f args (typeArgs prog args)
-    if let .place p :: _ := args then
-      if inPlaceCallee f then
-        let s ← get
-        typePlace prog p
-        set s
+    if let .place p :: rest := args then
+      typeFirst prog f (typePlace prog p) (rest.attach.map fun ⟨a, _⟩ => typeArg prog a)
     requireInPlace f args
     rejectCalledVar prog f (typeArgs prog args)
     match callSig prog f with

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7934327607513148516")
+:::moduleDocs (fingerprint := "12002118674837754041")
 :::
 
 :::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "5233929300943440758")
@@ -41,7 +41,8 @@ type:
   or a call on a struct (#191), passes its receiver as its
   first argument; one of an in-place method needs a receiver that may
   change, once its indices are typed (`typePlace`), before anything else
-  (`requireInPlace`), and one whose struct
+  (`requireInPlace`); one of a getter that a subscript makes has its index
+  typed first (`typeFirst`), as any subscript's is; and one whose struct
   lacks the method is `missingMethod`, once its arguments are typed;
 * operators have the types above, but a method that an operand's type
   lacks is `missingMethod` (#176): found from the operands' types

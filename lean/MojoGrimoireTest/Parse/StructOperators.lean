@@ -245,6 +245,14 @@ private def bump : List String := ["def bump(mut t: T) -> Int:", "    t.n += 10"
 #guard rejects [getter] ["var t = T(1)", "t[0] = 2"]
   (.immutablePlace (.index (.var "t") (.int 0)))
 #guard rejects [getter] ["var t = T(1)", "print(t[True])"] (.typeMismatch .int .bool)
+-- The index is typed before the receiver is read, as any subscript's is: an
+-- unknown name or a misfit in it comes before a use of a moved receiver.
+#guard rejects [getter] ["var t = T(1)", "var u = t^", "print(t[nope])"]
+  (.unknownVariable "nope")
+#guard rejects [getter, setter] ["var t = T(1)", "var u = t^", "print(t[True])"]
+  (.typeMismatch .int .bool)
+#guard rejects [getter] ["var t = T(1)", "var u = t^", "print(t[0])"]
+  (.uninitializedUse (.var "t"))
 -- With a setter, the getter's call and its result are checked first.
 #guard rejects [getter, ["def __setitem__(mut self, b: Bool, v: Int):", "    pass"]]
   ["var t = T(1)", "t[True] = 5"] (.typeMismatch .int .bool)
