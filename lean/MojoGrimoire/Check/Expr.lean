@@ -78,13 +78,8 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     lift (methodUnaryTy prog op (← checkExprAs prog false a))
   | .binary op a b => do
     rejectMisfit (← operandMisfit prog op a b) (do let _ ← typeArg prog a; let _ ← typeArg prog b)
-    let ta ← checkExprAs prog (← byRef prog op a b) a
-    let ka ← mark
-    let tb ← match rightParam op a b ta with
-      | some (fit, prm) => do let _ ← checkArg prog fit (binaryMethod op) prm b; pure prm.ty
-      | none => checkExprAs prog (← byRef prog op b a) b
-    let kb ← mark
-    unless op == .and || op == .or do recheckPlaces prog [a, b] [ka, kb]
+    let (ta, tb) ← compareOperands prog op a b (checkExprAs prog · a) (checkExprAs prog · b)
+      fun fit prm => do let _ ← checkArg prog fit (binaryMethod op) prm b
     lift (methodBinaryTy prog op ta tb)
   | .list .unknown [] => throw (CheckError.invalidType .unknown)
   | .list .unknown (e :: es) => do

@@ -10,8 +10,9 @@ mismatch, and arrays whose element type does not conform to the trait
 the operator needs, `None` or, to order them, a list, `violatedConstraint`.
 An element type that holds a struct keeps the result it had before. Each
 verdict is the pinned compiler's for the program, probed on the nightly
-1.3.0.dev2026111905, but for the last ones, which parts 2 and 3 of #166
-cover. The comparisons of lists, and of arrays of lists, are tested in
+1.3.0.dev2026111905, but for the last ones, which part 3 of #166 covers.
+A literal that the compiler converts is tested in
+`MojoGrimoireTest.Parse.LiteralCompare` (part 2). The comparisons of lists, and of arrays of lists, are tested in
 `MojoGrimoireTest.Parse.ListCompare` (#185).
 -/
 
@@ -105,13 +106,8 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 -- result.
 #guard rejects ["print([P(1)] == [P(1)])"] (.typeMismatch .int (.array (.struct "P") 1))
 #guard rejects ["var a = [P(1)]", "print(a < a)"] (.implicitCopy (.array (.struct "P") 1))
--- Nor a literal compared with a list, or one that holds a literal, which
--- the compiler converts (part 2).
-#guard rejects ["var l: List[Int] = [1]", "print([1] == l)"] (.implicitCopy (.list .int))
-#guard rejects ["var a = [1, 2]", "print(a == [[1], [2]])"] (.implicitCopy (.array .int 2))
-#guard rejects ["var a = [[1]]", "print(a == [[]])"] (.implicitCopy (.array (.array .int 1) 1))
-#guard rejects ["var a = [1]", "print([[1]] == a)"] (.implicitCopy (.array .int 1))
-#guard rejects ["var a: Array[Int, 2]", "print(a == [[1], [2]])"] (.uninitializedUse (.var "a"))
+-- A literal that the compiler converts, element by element, is tested in
+-- `MojoGrimoireTest.Parse.LiteralCompare` (part 2).
 #guard prints ["var a = [[1, 2], [3, 4]]", "print(a == [[1, 2], [3, 4]], [[1]] < [[2]])"]
   ["True True"]
 -- An empty literal is an array only compared with one.

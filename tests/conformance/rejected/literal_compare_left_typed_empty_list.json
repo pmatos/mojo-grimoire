@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "value of type 'List[Int]' is not compatible with value of type 'IntLiteral[2]'"
+}

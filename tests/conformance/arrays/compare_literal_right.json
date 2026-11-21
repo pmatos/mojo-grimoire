@@ -1,0 +1,12 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "True True",
+    "True True True True",
+    "True False True",
+    "True True True",
+    "True"
+  ],
+  "class": null,
+  "diagnostic": null
+}

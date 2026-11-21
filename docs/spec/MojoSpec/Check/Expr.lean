@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13270111508805104032")
+:::moduleDocs (fingerprint := "8187108892653241186")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "18127347277492640592")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "18059980262312949718")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -50,13 +50,15 @@ type:
   right operand of an operator whose left operand is an integer literal
   expression (`intLiteral`), but `and` and `or`, is passed as to a `read`
   $`\mathsf{Int}` parameter of a method with several overloads: one that
-  is no $`\mathsf{Int}` is `noMatchingMethod` (#88). The literal on the
-  right of $`==` or $`!=` whose left operand is a list is passed as the
-  list's `other` parameter of the list's type (`rightParam`, #185). The
+  is no $`\mathsf{Int}` is `noMatchingMethod` (#88). A literal on the
+  right of a comparison that converts it to the type of an array or a
+  list on the left, and that inference gave that type, is passed as the
+  method's `other` parameter of that type (`rightParam`, #166, #185). The
   misfit of a comparison of two arrays or two lists is found from the
   operands' types too (`operandMisfit`), and an operand compared as an
   array or a list, a place or a call that returns a reference, is read by
-  reference, uncopied (`byRef`, #166, #185);
+  reference, uncopied (`byRef`, #166, #185), in the order that
+  `compareOperands` gives;
 * $`[e^*]_t`, with $`t` a list or an array of $`u` and $`u` a type a
   variable may have, initializes $`t`: it passes each element as to a `var`
   parameter of type $`u`, and an array must have as many elements as its

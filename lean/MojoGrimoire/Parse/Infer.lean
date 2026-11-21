@@ -1,4 +1,4 @@
-import MojoGrimoire.Parse.Dispatch
+import MojoGrimoire.Parse.Compared
 import MojoGrimoire.Parse.HiddenTypes
 
 /-!
@@ -28,9 +28,14 @@ its elements, as SIMD's initializer takes them; the checker rejects it
 (#153, #154). An `Int`
 is also expected by an index, and by either operand of an operator other
 than `and` and `or` whose other operand is an `Int`, as Mojo reads it
-(#160). The right operand of `==` or `!=` whose left operand is a list
-is expected to have the list's type, as the argument of its `__eq__` or
-`__ne__` (#185). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
+(#160). A literal compared with an array or a list is expected to have
+that operand's type, as the argument of its comparison method, when it
+fits it (`MojoGrimoire.Check.literalFits`): on the right, of the left
+operand, and on the left, of a right operand that is no literal and
+whose comparison conforms (#166).
+The right operand of `==` or `!=` whose left operand is a list is
+expected to have the list's type unless it does not fit it, also when its
+fit is not known (#185). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
 the type `t` of the first, as in Mojo: inference gives that type to what
 holds the literal, and leaves the literal's own type `unknown`, so that the
 checker tells a literal that initializes an expected type from one that
@@ -70,17 +75,6 @@ namespace MojoGrimoire.Parse
 
 open MojoGrimoire.Core MojoGrimoire.Check
 
-/-- The type of an open literal that is expected to have the type `t`: `t`
-itself when it is a list or an array, whose size the checker compares with
-the literal's length, and otherwise `unknown`, which the elements decide. -/
-def openLiteralTy : Ty → Ty
-  | t@(.list _) | t@(.array ..) => t
-  | _ => .unknown
-
-/-- The type that the elements of a literal of type `t` are expected to
-have. -/
-def elemExpected (t : Ty) : Ty := (elemOf t).toOption.getD .unknown
-
 /-- The type of a call of `f` with no signature: a struct's, even when it
 cannot be built, so that the checker reports why; `len`'s `Int`; and
 otherwise none. -/
@@ -88,17 +82,6 @@ def unsignedResult (prog : Program) (f : Name) : Option Ty :=
   if (findStruct prog f).isSome then some (.struct f)
   else if f == "len" then some .int
   else none
-
-/-- Whether the expression `e` is made only of literals and operators, so
-that it reads no place and calls nothing: a literal `[e]` of type `Int`
-that holds one is kept, so that the checker does not compute an index
-from it, as Mojo does not; any other is replaced by `e`. -/
-def foldable : Expr → Bool
-  | .int _ | .bool _ => true
-  | .unary _ a => foldable a
-  | .binary _ a b => foldable a && foldable b
-  | .list .int [a] => foldable a
-  | _ => false
 
 mutual
 /-- Infers inside the place `p`, and gives its type, if it has one. -/
@@ -166,13 +149,12 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
       (.call (methodCallee s m reflected) [a', b'], some fd.result)
     | none =>
     let (a', ta) := if a matches .list .. then
-        inferExpr prog env (if tb₀ == some .int then .int else .unknown) a
+        if tb₀ == some .int then inferExpr prog env .int a
+        else env.compared prog op tb₀ true (inferExpr prog env .unknown a)
       else (a₀, ta₀)
     let b' := if b matches .list .. then
-        (inferExpr prog env (match ta with
-          | some .int => .int
-          | some t@(.list _) => if op == .eq || op == .ne then t else .unknown
-          | _ => .unknown) b).1
+        if ta == some .int then (inferExpr prog env .int b).1
+        else (env.compared prog op ta false (inferExpr prog env .unknown b)).1
       else b₀
     (.binary op a' b', some (binaryResult op))
   | .list t es =>
