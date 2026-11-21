@@ -249,7 +249,7 @@
         "commit": "a549e6a6"
       },
       "reproducer": "def three() -> Int:\n    return 3\n\n\ndef main():\n    var k = 7\n    print(k[1], k[-1], k[three()])\n    k[1] = 5\n    print(k)\n",
-      "compiler": "accepts and prints `7 7 7`, then `5`, also with -O0 and -D ASSERT=all: SIMD.__getitem__ and __setitem__ (std/simd.mojo:1193 and 1209 at 10c54f6f5b) lower to pop.simd.extractelement and insertelement with no bounds check, and an index beyond the width gives poison in LLVM",
+      "compiler": "accepts and prints `7 7 7`, then `5`, also with -O0 and -D ASSERT=all: SIMD.__getitem__ and __setitem__ (std/simd.mojo:1193 and 1209 at 10c54f6f5b) lower to pop.simd.extractelement and insertelement with no bounds check, and every index probed acts on the one element",
       "fixed": "checks the index of an Int as the index of an array of length 1, as `var k = [7]` is checked on the pin: a constant index out of range is rejected (\"constraint failed: index is out of bounds\", or \"negative indexing is not supported\" when negative), and a computed one fails at run time (\"index 3 is out of bounds, valid range is 0 to 0\")",
       "model": "rejects the reproducer as constantIndexOutOfBounds, for k[1]; with the constant indices removed, it fails at run time with indexOutOfBounds at k[three()]",
       "upstream": {

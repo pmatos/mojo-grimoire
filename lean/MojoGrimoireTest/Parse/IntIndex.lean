@@ -69,6 +69,11 @@ private def kAt (i : Int) : Place := .index (.var "k") (.int i)
 #guard prints ["k[pr(0)] = pr(5)", "print(k)"] ["eval 0", "eval 5", "5"]
 #guard prints ["var xs: List[Int] = [1]", "xs[pr(0)][pr(0)] = pr(6)", "print(xs)"]
   ["eval 0", "eval 0", "eval 6", "[6]"]
+-- So the value may not invalidate the `Int`'s location, as in a list.
+#guard runLines (["def grow(mut xs: List[Int]) -> Int:", "    xs.append(7)", "    return 5",
+    "def main():", "    var xs: List[Int] = [1, 2]", "    xs[0][0] = grow(xs)"]) ==
+  some (.rejected ⟨"main", .invalidatedReference (.index (.var "xs") (.int 0))⟩)
+#guard prints ["k[0] = k + 1", "print(k)"] ["8"]
 -- Passed `mut`, it is changed; passed `read`, it is copied.
 #guard prints ["inc(k[0])", "print(k)"] ["8"]
 #guard prints ["one(k[0], k)", "print(k)"] ["7", "8"]

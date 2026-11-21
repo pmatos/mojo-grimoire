@@ -40,8 +40,7 @@ acts on its one element: `k[1]`, `k[-1]`, `k[1 - 2]`,
 At `10c54f6f5b`, `SIMD.__getitem__(self, idx: Int)` (`std/simd.mojo:1193`)
 and `SIMD.__setitem__(mut self, idx: Int, val)` (`std/simd.mojo:1209`) lower
 to `pop.simd.extractelement` and `pop.simd.insertelement`, with no bounds
-check. In LLVM an index at or beyond the vector's length gives a poison
-value, so the result is undefined; on x86-64 it is element 0.
+check: every index probed acts on the one element.
 
 ## Model
 

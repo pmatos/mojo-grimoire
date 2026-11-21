@@ -45,7 +45,9 @@ result fits no initializer of its type (#46), nor, where an `Int` is
 expected, does one of any length but 1 (#153, #154). A function that returns a reference
 returns a location within its own origin, as `withinOrigin` decides.
 
-An assignment changes its place as a whole. After an `if`, a reference is
+An assignment changes its place as a whole. Into the element of an `Int`,
+it locates the `Int` before it evaluates the value, as `__setitem__` takes
+it as `self`, so the value may not invalidate that location (#127). After an `if`, a reference is
 invalidated when either branch invalidates it. A loop whose body can reach
 its end and leaves a part moved out, a part that may hold a value, a
 touched part, a piece or an invalidated reference that the state before
@@ -270,6 +272,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let (t, origins, m) ← refTarget prog sig.name e
     modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
+    let k ← mark
     let t ← if e matches .list .unknown _ || (wrongIntLiteral e).isSome then do
         let u ← placeTy prog p
         checkInitValue prog u e (checkExpr prog e)
@@ -279,6 +282,8 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     expect (← placeTy prog p) t
     checkConstructed prog p e
     requireMutable p
+    if let .index q _ := p then
+      if (← placeTy prog q) == .int then requireUnchanged prog q k
     changePlace prog p
     let (x, path) := splitPlace p
     let v ← lookup x
