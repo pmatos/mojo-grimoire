@@ -1,0 +1,22 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "del O True",
+    "pb True",
+    "del O False",
+    "wrap False",
+    "False",
+    "rd False",
+    "del O False",
+    "wrap False",
+    "False",
+    "del O False",
+    "pb False",
+    "wrap False",
+    "False",
+    "del O False",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

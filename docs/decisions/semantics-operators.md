@@ -65,9 +65,9 @@ is: `t < u` may give an `Int`.
   (`notAPlace`, #81), and a `var self` gets a copy, which it destroys.
 - The value that an assignment to a whole variable replaces is not live
   after the assigned expression, whether or not the variable is used
-  later: in `o = O(o.f or pb(p.f))`, the old `o` dies once `o.f` is
-  tested, and in `a = a or b`, with `b` deciding, once `a` is, as the pin
-  does at both levels. When the target is a struct operand of `and` or
+  later: in `o = O(wrap(rd(o)))`, the old `o` dies once `rd` returns,
+  in `o = O(o.f or pb(p.f))` once `o.f` is tested, and in `a = a or b`,
+  with `b` deciding, once `a` is, as the pin does at both levels. When the target is a struct operand of `and` or
   `or` that decides, as in `a = a and b` with a false `a`, or the right
   one, as in `b = a and b`, the pin destroys it before it reads it, or
   its default level and `-O0` give different values: what the model does
