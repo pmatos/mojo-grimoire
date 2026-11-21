@@ -1,0 +1,38 @@
+{
+  "issue": 248,
+  "title": "an assignment whose value is the target itself destroys the old value before copying it",
+  "ruled": "2026-11-21",
+  "decision_log": "D-0012",
+  "suite_programs": [
+    "structs/assign_target_self",
+    "structs/assign_target_and_right",
+    "structs/assign_target_or_right",
+    "structs/assign_target_and_left",
+    "structs/assign_target_or_right_unread",
+    "structs/assign_target_field"
+  ],
+  "reference": {
+    "release": "1.3.0.dev2026111905",
+    "commit": "a549e6a6"
+  },
+  "reproducer": "struct T(ImplicitlyCopyable):\n    var n: Int\n\n    def __init__(out self, n: Int):\n        self.n = n\n\n    def __bool__(self) -> Bool:\n        print(\"bool\", self.n)\n        return self.n != 0\n\n    def __deinit__(deinit self):\n        print(\"del T\", self.n)\n\n\ndef main():\n    var o = T(4)\n    o = o\n    print(o.n)\n",
+  "compiler": "prints `del T 4`, `1`, `del T 0` in a default build and `del T 4`, `4`, `del T 4` with -O0: it destroys the old value of `o` and then copies it. `b = a and b` and `b = a or b` where `b` decides, and `a = a and b` where `a` decides, read the destroyed target the same way; `b = a or b` where `a` decides, and `h.u = h.t and h.u`, destroy the old target before the test at both levels",
+  "fixed": "copies the value, then destroys the old one, as the pin does for any other target and through a call, so it prints `del T 4`, `4`, `del T 4`; the human ruled the whole family a bug on 2026-11-21",
+  "model": "prints `del T 4`, `4`, `del T 4`",
+  "upstream": {
+    "status": "unfiled",
+    "draft": "https://github.com/pmatos/mojo-grimoire/issues/248#issuecomment-7070491976",
+    "tracking": 261,
+    "report": null
+  },
+  "confirmation": {
+    "status": "pending",
+    "notes": "provisional ruling, until the human has discussed it with Modular"
+  },
+  "nightly": {
+    "version": "1.3.0.dev2026112105",
+    "checked": "2026-11-21",
+    "reproduces": true,
+    "result": "prints the same as the pin at both levels for o = o, b = a and b, b = a or b and a = a and b; so do the nightlies 1.3.0.dev2026111705 and 1.3.0.dev2026112017"
+  }
+}

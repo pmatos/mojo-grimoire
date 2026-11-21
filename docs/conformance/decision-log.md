@@ -17,9 +17,10 @@ record the moves of the Mojo pin. The human ruled out spec decisions on
 discussed it with Modular.
 
 Every compiler bug that the human rules on is also listed in
-[compiler-bugs.json](compiler-bugs.json), with a minimal reproducer and the
-state of its upstream report, so that it can be confirmed later on a newer
-compiler. Upstream reports are filed only with the human's approval.
+[compiler-bugs.json](compiler-bugs.json), whose entry, one file per
+D-id in [compiler-bugs/](compiler-bugs/), holds a minimal reproducer and
+the state of its upstream report, so that it can be confirmed later on a
+newer compiler. Upstream reports are filed only with the human's approval.
 
 Each entry below keeps a summary, with the heading `### D-NNNN: <title>`
 that `scripts/conformance.py` looks for when `known.json` cites the entry.
@@ -284,3 +285,20 @@ Each move of the Mojo pin gets an entry below.
   every level ([evidence](decision-log-d0012.md#evidence)). The model did
   so already and needed no change.
 - Upstream report: not filed; a draft on #248 awaits the human.
+
+### D-0013: arrays of arrays of one-element arrays compare wrongly at -O3 (provisional)
+
+- Date: 2026-11-21
+- Mojo release and commit: nightly 1.3.0.dev2026111905 (D-0007)
+- Program: `tests/conformance/arrays/compare_deep_one_element.mojo`
+- Compiler: at the default level, `-O3`, `e > z` is `False` for
+  `e = [[[1]]]` and `z = [[[0]]]` when another comparison of the same
+  arrays is printed with it; `-O0`, `-O1` and `-O2` print the right `True`
+  ([detail](decision-log-d0013.md#compiler)).
+- Model: compares the elements, and prints `True False`.
+- Classification: compiler bug, ruled by the human on 2026-11-21 (#257),
+  provisional. It is a sibling of D-0010, with no printing destructor.
+- Decision and rationale: the fixed compiler compares the elements one by
+  one, as `-O0`, `-O1` and `-O2` do
+  ([evidence](decision-log-d0013.md#evidence)).
+- Upstream report: not filed; a draft on #257 awaits the human.

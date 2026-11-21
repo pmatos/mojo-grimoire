@@ -1,0 +1,35 @@
+{
+  "issue": 47,
+  "title": "@fieldwise_init fails inside a struct cycle through a List, where the hand-written initializer compiles: at the pin with the holder B declared first, on 1.2.0 in either declaration order",
+  "ruled": "2026-11-18",
+  "decision_log": "D-0004",
+  "suite_programs": [
+    "structs/cycle_fieldwise_init_holder_first"
+  ],
+  "reference": {
+    "release": "1.2.0",
+    "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
+  },
+  "reproducer": "@fieldwise_init\nstruct B(Movable):\n    var a: A\n\nstruct A(Movable):\n    var bs: List[B]\n    def __init__(out self): self.bs = List[B]()\n\ndef main():\n    var a = A()\n    a.bs.append(B(A()))\n    print(len(a.bs))\n",
+  "compiler": "rejects: \"field 'bs' has non-'Deinitable' type 'List[B]'\", as 1.2.0 did. With B's initializer written by hand as `def __init__(out self, var a: A): self.a = a^`, it compiles and prints `1`. The forms with A declared first, which 1.2.0 rejected with \"invalid implicit move: unexpected keyword argument 'move'\" and \"invalid call to '__init__': no candidates found\", now compile and print `1`",
+  "model": "accepts it, as it accepts the hand-written form, and prints `1`",
+  "upstream": {
+    "status": "unfiled",
+    "draft": "https://github.com/pmatos/mojo-grimoire/issues/47#issuecomment-6982008812",
+    "tracking": 125,
+    "report": null,
+    "related": [
+      "https://github.com/modular/modular/issues/7398"
+    ]
+  },
+  "confirmation": {
+    "status": "pending",
+    "notes": null
+  },
+  "nightly": {
+    "version": "1.3.0.dev2026111905",
+    "checked": "2026-11-19",
+    "reproduces": true,
+    "result": "partly fixed: the forms with A declared first compile and print `1`; the reproducer, with B declared first, is still rejected with the same non-'Deinitable' error, and its hand-written form compiles"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "about": [
-    "Compiler bugs that the human has ruled on, each with a reproducer that was run on the",
+    "Compiler bugs that the human has ruled on, one entry per file in compiler-bugs/, named after its decision-log id; this file lists them. Each entry has a reproducer that was run on the",
     "pinned compiler when it was added (`reference`). The decision log (decision-log.md) holds the reasoning.",
     "A ruling is confirmed when the human has discussed the intended semantics with Modular's",
     "developers; the outcome goes in `confirmation`. If a ruling turns out wrong, the human",
@@ -13,332 +13,64 @@
   ],
   "bugs": [
     {
+      "decision_log": "D-0002",
       "issue": 57,
       "title": "xs[i] = f(xs) stores into a stale element when f grows or shrinks xs",
-      "ruled": "2026-11-16",
-      "decision_log": "D-0002",
-      "suite_programs": [
-        "lists/store_after_grow"
-      ],
-      "reference": {
-        "release": "1.2.0",
-        "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
-      },
-      "reproducer": "def bump(mut xs: List[Int]) -> Int:\n    xs.append(7)\n    return 5\n\n\ndef main():\n    var xs: List[Int] = [1, 2]\n    xs[0] = bump(xs)\n    print(xs[0], len(xs))\n",
-      "compiler": "accepts and prints `1 3`, as 1.2.0 did: it locates xs[0] before the call, the append reallocates, and the store of 5 is lost. Built with --sanitize address, AddressSanitizer reports heap-use-after-free",
-      "model": "prints `5 3`",
-      "upstream": {
-        "status": "unfiled",
-        "draft": "https://github.com/pmatos/mojo-grimoire/issues/57#issuecomment-6922291323",
-        "tracking": 70,
-        "report": null
-      },
-      "confirmation": {
-        "status": "pending",
-        "notes": null
-      },
-      "nightly": {
-        "version": "1.3.0.dev2026111905",
-        "checked": "2026-11-19",
-        "reproduces": true,
-        "result": "accepts and prints `1 3`; AddressSanitizer reports heap-use-after-free, as on 1.2.0"
-      }
+      "entry": "compiler-bugs/d0002.json"
     },
     {
+      "decision_log": "D-0003",
       "issue": 51,
       "title": "a struct initialized field by field destroys a field that was never set",
-      "ruled": "2026-11-17",
-      "decision_log": "D-0003",
-      "suite_programs": [
-        "structs/field_by_field_branch_move_other",
-        "structs/field_by_field_branch_move_other_both",
-        "structs/field_by_field_move_after_last_use",
-        "structs/field_by_field_move_after_last_use_loop",
-        "structs/field_by_field_unset_branch",
-        "structs/field_by_field_unset_destroyed",
-        "structs/field_by_field_unset_destructor",
-        "structs/field_by_field_unset_ints",
-        "structs/field_by_field_unset_nested",
-        "structs/field_by_field_unset_overwritten",
-        "structs/field_by_field_unset_whole_branch",
-        "structs/field_by_field_unset_whole_loop",
-        "structs/field_by_field_whole_branch_then_fields"
-      ],
-      "reference": {
-        "release": "1.2.0",
-        "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
-      },
-      "reproducer": "struct Res(Movable):\n    var id: Int\n\n    def __init__(out self, id: Int):\n        self.id = id\n\n    def __del__(deinit self):\n        print(\"drop\", self.id)\n\n\nstruct Two(Movable):\n    var a: Res\n    var b: Res\n\n    def __init__(out self):\n        self.a = Res(1)\n        self.b = Res(2)\n\n\ndef main():\n    var t: Two\n    t.a = Res(1)\n    print(t.a.id)\n",
-      "compiler": "prints `1`, `drop 1`, `drop 0`, as 1.2.0 did: it runs the destructor of t.b, which was never initialized",
-      "fixed": "rejects the program, as the compiler rejects a variable with a field moved out (\"field 't.a' destroyed out of the middle of a value, preventing the overall value from being destroyed\"): a variable that ends with only some of its fields set is rejected, however it got there (R, ruled by the human on 2026-11-19)",
-      "model": "rejects it as partiallyDestroyed, as the fixed compiler would. The model does not read the deprecated `__del__`, which it rejects as invalidSelf; with `__del__` spelled `__deinit__`, it rejects the program as partiallyDestroyed",
-      "upstream": {
-        "status": "unfiled",
-        "draft": "https://github.com/pmatos/mojo-grimoire/issues/51#issuecomment-6982426260",
-        "tracking": 51,
-        "report": null
-      },
-      "confirmation": {
-        "status": "pending",
-        "notes": "R, the fixed behaviour ruled on 2026-11-19, is provisional: the human will confirm it with Modular's engineers, and the model changes if that discussion changes the semantics."
-      },
-      "nightly": {
-        "version": "1.3.0.dev2026111905",
-        "checked": "2026-11-19",
-        "reproduces": true,
-        "result": "prints `1`, `drop 1`, `drop 0`, as on 1.2.0"
-      }
+      "entry": "compiler-bugs/d0003.json"
     },
     {
+      "decision_log": "D-0004",
       "issue": 47,
       "title": "@fieldwise_init fails inside a struct cycle through a List, where the hand-written initializer compiles: at the pin with the holder B declared first, on 1.2.0 in either declaration order",
-      "ruled": "2026-11-18",
-      "decision_log": "D-0004",
-      "suite_programs": [
-        "structs/cycle_fieldwise_init_holder_first"
-      ],
-      "reference": {
-        "release": "1.2.0",
-        "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
-      },
-      "reproducer": "@fieldwise_init\nstruct B(Movable):\n    var a: A\n\nstruct A(Movable):\n    var bs: List[B]\n    def __init__(out self): self.bs = List[B]()\n\ndef main():\n    var a = A()\n    a.bs.append(B(A()))\n    print(len(a.bs))\n",
-      "compiler": "rejects: \"field 'bs' has non-'Deinitable' type 'List[B]'\", as 1.2.0 did. With B's initializer written by hand as `def __init__(out self, var a: A): self.a = a^`, it compiles and prints `1`. The forms with A declared first, which 1.2.0 rejected with \"invalid implicit move: unexpected keyword argument 'move'\" and \"invalid call to '__init__': no candidates found\", now compile and print `1`",
-      "model": "accepts it, as it accepts the hand-written form, and prints `1`",
-      "upstream": {
-        "status": "unfiled",
-        "draft": "https://github.com/pmatos/mojo-grimoire/issues/47#issuecomment-6982008812",
-        "tracking": 125,
-        "report": null,
-        "related": [
-          "https://github.com/modular/modular/issues/7398"
-        ]
-      },
-      "confirmation": {
-        "status": "pending",
-        "notes": null
-      },
-      "nightly": {
-        "version": "1.3.0.dev2026111905",
-        "checked": "2026-11-19",
-        "reproduces": true,
-        "result": "partly fixed: the forms with A declared first compile and print `1`; the reproducer, with B declared first, is still rejected with the same non-'Deinitable' error, and its hand-written form compiles"
-      }
+      "entry": "compiler-bugs/d0004.json"
     },
     {
+      "decision_log": "D-0005",
       "issue": 122,
       "title": "var x: Int = [e1, ..., en] is accepted for every n, keeps e1 when n >= 2 and crashes at run time when n = 0",
-      "ruled": "2026-11-19",
-      "decision_log": "D-0005",
-      "suite_programs": [
-        "basics/int_literal_length_evaluated",
-        "basics/int_literal_length_three",
-        "basics/int_literal_length_two"
-      ],
-      "reference": {
-        "release": "1.2.0",
-        "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
-      },
-      "reproducer": "def main():\n    var x: Int = [1, 2]\n    print(x)\n",
-      "compiler": "rejects: \"function instantiation failed\", with the note \"constraint failed: expected 1 elements in the SIMD list literal, found 2\" (std/simd.mojo:1094 at 10c54f6f5b), classed noMatchingInit. 1.2.0 accepted it and printed `1`: SIMD's __list_literal__ initializer checked the documented element count only with an assert, which a default build leaves out; `[f(1), f(2)]` evaluated both elements and kept the first, and `var x: Int = []` built and segfaulted (exit 139)",
-      "model": "rejects every length but 1, with the class of the position (D-0005); here noMatchingInit",
-      "upstream": {
-        "status": "fixed-upstream",
-        "draft": null,
-        "tracking": null,
-        "report": null
-      },
-      "confirmation": {
-        "status": "pending",
-        "notes": "provisional ruling, until the human has discussed it with Modular"
-      },
-      "nightly": {
-        "version": "1.3.0.dev2026111905",
-        "checked": "2026-11-19",
-        "reproduces": false,
-        "result": "rejected: \"function instantiation failed\", with the note \"constraint failed: expected 1 elements in the SIMD list literal, found 2\"; `[f(1), f(2)]` and `[]` (found 0) are rejected the same way. Resolved at the pin (D-0005)"
-      }
+      "entry": "compiler-bugs/d0005.json"
     },
     {
+      "decision_log": "D-0006",
       "issue": 136,
       "title": "a struct on a cycle through a List is rejected as non-'Deinitable', depending on which structs have a __deinit__ of their own",
-      "ruled": "2026-11-19",
-      "decision_log": "D-0006",
-      "suite_programs": [
-        "rejected/array_of_lists_cycle_deinit",
-        "rejected/list_cycle_beside_self_loop_deinit",
-        "rejected/list_of_arrays_cycle_deinit",
-        "rejected/list_of_self_deinit_off_cycle",
-        "rejected/recursive_cycle_and_list_of_self",
-        "rejected/recursive_list_array_cycle",
-        "rejected/recursive_list_cycle",
-        "rejected/recursive_list_cycle_beside_mixed",
-        "rejected/recursive_list_field"
-      ],
-      "reference": {
-        "release": "1.2.0",
-        "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
-      },
-      "reproducer": "struct Node(Movable):\n    var children: List[Node]\n\n    def __init__(out self):\n        self.children = List[Node]()\n\n\ndef main():\n    var n = Node()\n    print(len(n.children))\n",
-      "compiler": "rejects: \"field 'children' has non-'Deinitable' type 'List[Node]'\", as 1.2.0 did. With `def __deinit__(deinit self): pass` added to Node, it compiles and prints `0`",
-      "model": "accepts it and prints `0`",
-      "upstream": {
-        "status": "filed",
-        "draft": null,
-        "tracking": [
-          "https://github.com/modular/modular/issues/7398",
-          "https://github.com/modular/modular/issues/7290"
-        ],
-        "report": "https://github.com/modular/modular/issues/7398"
-      },
-      "confirmation": {
-        "status": "pending",
-        "notes": "provisional ruling, until the human has discussed it with Modular"
-      },
-      "nightly": {
-        "version": "1.3.0.dev2026111905",
-        "checked": "2026-11-19",
-        "reproduces": true,
-        "result": "rejects with the same non-'Deinitable' error, as on 1.2.0, and so do the other suite programs; with the empty __deinit__ it prints `0`"
-      }
+      "entry": "compiler-bugs/d0006.json"
     },
     {
+      "decision_log": "D-0008",
       "issue": 121,
       "title": "List[Int](range(start, end, step)) aborts when the range is not empty and start - end is ±2^63",
-      "ruled": "2026-11-19",
-      "decision_log": "D-0008",
-      "suite_programs": [],
-      "reference": {
-        "release": "1.3.0.dev2026111905",
-        "commit": "a549e6a6"
-      },
-      "reproducer": "def main():\n    print(\"before\")\n    print(List[Int](range(-1, 9223372036854775807, 9223372036854775807)))\n",
-      "compiler": "prints `before`, then aborts: \"ABORT: Mojo/stdlib/std/memory/alloc.mojo:1021:18: Layout: `length` must be >= 0\". _StridedRange._signed_count computes abs(start - end), which wraps, and List's initializer from an iterable reserves the negative count. 1.2.0 aborts the same way, with \"alloc.mojo:888:14: alloc: Layout.count() must be >= 0\"",
-      "fixed": "builds the range's list, `[-1, 9223372036854775806]`: every element lies between start and end, and only the reserved size overflows",
-      "model": "prints `before` and `[-1, 9223372036854775806]`",
-      "upstream": {
-        "status": "unfiled",
-        "draft": "https://github.com/pmatos/mojo-grimoire/issues/121#issuecomment-7020135751",
-        "tracking": 121,
-        "report": null
-      },
-      "confirmation": {
-        "status": "pending",
-        "notes": "provisional ruling, until the human has discussed it with Modular"
-      },
-      "nightly": {
-        "version": "1.3.0.dev2026111905",
-        "checked": "2026-11-19",
-        "reproduces": true,
-        "result": "aborts as above; the stdlib's TODO(MSTDL-3087) above _signed_count names the wrap"
-      }
+      "entry": "compiler-bugs/d0008.json"
     },
     {
+      "decision_log": "D-0009",
       "issue": 127,
       "title": "indexing an Int ignores the index: k[1], k[-1] and k[n] read and write k with no error",
-      "ruled": "2026-11-20",
-      "decision_log": "D-0009",
-      "suite_programs": [
-        "basics/int_index_computed_out_of_bounds",
-        "basics/int_index_constant_out_of_bounds",
-        "basics/int_index_negative",
-        "basics/int_index_popped",
-        "basics/int_index_store_out_of_bounds"
-      ],
-      "reference": {
-        "release": "1.3.0.dev2026111905",
-        "commit": "a549e6a6"
-      },
-      "reproducer": "def three() -> Int:\n    return 3\n\n\ndef main():\n    var k = 7\n    print(k[1], k[-1], k[three()])\n    k[1] = 5\n    print(k)\n",
-      "compiler": "accepts and prints `7 7 7`, then `5`, also with -O0 and -D ASSERT=all: SIMD.__getitem__ and __setitem__ (std/simd.mojo:1193 and 1209 at 10c54f6f5b) lower to pop.simd.extractelement and insertelement with no bounds check, and every index probed acts on the one element",
-      "fixed": "checks the index of an Int as the index of an array of length 1, as `var k = [7]` is checked on the pin: a constant index out of range is rejected (\"constraint failed: index is out of bounds\", or \"negative indexing is not supported\" when negative), and a computed one fails at run time (\"index 3 is out of bounds, valid range is 0 to 0\")",
-      "model": "rejects the reproducer as constantIndexOutOfBounds, for k[1]; with the constant indices removed, it fails at run time with indexOutOfBounds at k[three()]",
-      "upstream": {
-        "status": "unfiled",
-        "draft": "https://github.com/pmatos/mojo-grimoire/issues/127#issuecomment-7056408565",
-        "tracking": 221,
-        "report": null
-      },
-      "confirmation": {
-        "status": "pending",
-        "notes": "provisional ruling, until the human has discussed it with Modular; its evidence is an analogy with arrays, which neither the docs nor the compiler states for Int"
-      },
-      "nightly": {
-        "version": "1.3.0.dev2026111905",
-        "checked": "2026-11-21",
-        "reproduces": true,
-        "result": "accepts and prints `7 7 7`, then `5`; with `var k = [7]` the constant indices are rejected and k[three()] fails at run time"
-      }
+      "entry": "compiler-bugs/d0009.json"
     },
     {
+      "decision_log": "D-0010",
       "issue": 235,
       "title": "two one-element arrays compare as equal in an optimized build when a struct's __deinit__ prints",
-      "ruled": "2026-11-21",
-      "decision_log": "D-0010",
-      "suite_programs": [
-        "arrays/compare_beside_printing_deinit"
-      ],
-      "reference": {
-        "release": "1.3.0.dev2026111905",
-        "commit": "a549e6a6"
-      },
-      "reproducer": "@fieldwise_init\nstruct H(Movable):\n    var n: Int\n\n    def __deinit__(deinit self):\n        print(\"del\", self.n)\n\n\ndef get(h: H) -> Int:\n    return h.n\n\n\ndef main():\n    var h = H(1)\n    var g = H(2)\n    print([get(h)] == [get(g)], [get(h)] < [get(g)])\n",
-      "compiler": "prints `del 1`, `del 2`, `True False` in a default build: the arrays compare as equal whatever they hold. With -O0 or -D ASSERT=all it prints the right `False True`. The answers are right when the destructor is `pass`, when the values come from parameters or pop, with two-element arrays, and with plain Ints",
-      "fixed": "compares the elements one by one, as the pin does at -O0 and in every control, so it prints `del 1`, `del 2`, `False True`",
-      "model": "prints `del 1`, `del 2`, `False True`",
-      "upstream": {
-        "status": "unfiled",
-        "draft": "https://github.com/pmatos/mojo-grimoire/issues/235#issuecomment-7062466615",
-        "tracking": 240,
-        "report": null
-      },
-      "confirmation": {
-        "status": "pending",
-        "notes": "provisional ruling, until the human has discussed it with Modular"
-      },
-      "nightly": {
-        "version": "1.3.0.dev2026112017",
-        "checked": "2026-11-21",
-        "reproduces": true,
-        "result": "prints `True False`, as the pin does; Mojo 1.2.0 and the nightly 1.3.0.dev2026111705 do too"
-      }
+      "entry": "compiler-bugs/d0010.json"
     },
     {
+      "decision_log": "D-0012",
       "issue": 248,
       "title": "an assignment whose value is the target itself destroys the old value before copying it",
-      "ruled": "2026-11-21",
-      "decision_log": "D-0012",
-      "suite_programs": [
-        "structs/assign_target_self",
-        "structs/assign_target_and_right",
-        "structs/assign_target_or_right",
-        "structs/assign_target_and_left",
-        "structs/assign_target_or_right_unread",
-        "structs/assign_target_field"
-      ],
-      "reference": {
-        "release": "1.3.0.dev2026111905",
-        "commit": "a549e6a6"
-      },
-      "reproducer": "struct T(ImplicitlyCopyable):\n    var n: Int\n\n    def __init__(out self, n: Int):\n        self.n = n\n\n    def __bool__(self) -> Bool:\n        print(\"bool\", self.n)\n        return self.n != 0\n\n    def __deinit__(deinit self):\n        print(\"del T\", self.n)\n\n\ndef main():\n    var o = T(4)\n    o = o\n    print(o.n)\n",
-      "compiler": "prints `del T 4`, `1`, `del T 0` in a default build and `del T 4`, `4`, `del T 4` with -O0: it destroys the old value of `o` and then copies it. `b = a and b` and `b = a or b` where `b` decides, and `a = a and b` where `a` decides, read the destroyed target the same way; `b = a or b` where `a` decides, and `h.u = h.t and h.u`, destroy the old target before the test at both levels",
-      "fixed": "copies the value, then destroys the old one, as the pin does for any other target and through a call, so it prints `del T 4`, `4`, `del T 4`; the human ruled the whole family a bug on 2026-11-21",
-      "model": "prints `del T 4`, `4`, `del T 4`",
-      "upstream": {
-        "status": "unfiled",
-        "draft": "https://github.com/pmatos/mojo-grimoire/issues/248#issuecomment-7070491976",
-        "tracking": 261,
-        "report": null
-      },
-      "confirmation": {
-        "status": "pending",
-        "notes": "provisional ruling, until the human has discussed it with Modular"
-      },
-      "nightly": {
-        "version": "1.3.0.dev2026112105",
-        "checked": "2026-11-21",
-        "reproduces": true,
-        "result": "prints the same as the pin at both levels for o = o, b = a and b, b = a or b and a = a and b; so do the nightlies 1.3.0.dev2026111705 and 1.3.0.dev2026112017"
-      }
+      "entry": "compiler-bugs/d0012.json"
+    },
+    {
+      "decision_log": "D-0013",
+      "issue": 257,
+      "title": "arrays of arrays of one-element arrays compare wrongly at -O3 when two comparisons of them are printed together",
+      "entry": "compiler-bugs/d0013.json"
     }
   ]
 }
