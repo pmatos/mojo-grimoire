@@ -10,7 +10,8 @@ hides it, and printing is then a call of the variable (#176), but not
 yet when its struct type declares `__call__` (#191). When inference could not
 find a declaration's type, the checker checks its initializer before it
 rejects the declaration, so that the initializer's own error is reported,
-as the compiler does (#123).
+as the compiler does (#123). A declared type in which a variable hides a
+name is `valueAsType`, before any other error of the declaration (#193).
 After an `if`, a part of a variable is
 initialized only when both branches leave it initialized, and a branch that
 returns does not count. A loop body that can reach its end must leave
@@ -264,6 +265,7 @@ and origin a `return` is checked against. -/
 def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
   | .pass => pure ()
   | .decl x t init => do
+    rejectHidden t
     if (← get).vars.any (·.name == x) then throw (CheckError.duplicate x)
     unless declarableTy prog t do
       if let (.unknown, some e) := (t, init) then let _ ← checkExpr prog e

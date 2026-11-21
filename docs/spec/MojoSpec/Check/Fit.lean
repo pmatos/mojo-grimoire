@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8055925766368640643")
+:::moduleDocs (fingerprint := "4913642661167508920")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -41,16 +41,24 @@ explicitly or implicitly (#103). Any other type fits no initializer, and
 is `noMatchingInit` $`\mathsf{List}[u]`.
 :::
 
-:::readable MojoGrimoire.Check.literalElem (fingerprint := "7284588851106128790")
+:::readable MojoGrimoire.Check.rejectHidden (fingerprint := "44940845536319113")
+*Rule: a hidden type.* A type in which a variable hides a name is
+`valueAsType` of the name: the type of a declared variable, before any
+other error of its declaration, and that of $`\mathsf{List}[u](\ldots)`,
+before its arguments are checked, as the compiler does (#193).
+:::
+
+:::readable MojoGrimoire.Check.literalElem (fingerprint := "10361419412845338351")
 *Definition: a literal of an expected type.* A literal of $`n` elements
 whose type $`t` is expected where it stands must have a list or an array
-type of an element type $`u` a variable may have (`declarableTy`), and an array type must have the size
+type of an element type $`u` a variable may have (`declarableTy`),
+otherwise `valueAsType` when a variable hides a name in $`t`, and an array type must have the size
 $`n`. A size that differs does not fit: an initialization of $`t` reports
 it as `noMatchingInit` $`t`, and a conversion for a function's parameter
 as a type mismatch.
 :::
 
-:::readable MojoGrimoire.Check.iterableLiteralTy (fingerprint := "3935624038139464072")
+:::readable MojoGrimoire.Check.iterableLiteralTy (fingerprint := "8587945389359148268")
 *Definition: the type of a literal argument of $`\mathsf{List}[u](e)`.*
 Given the type of each element of a literal with no type expected, the
 literal is an array of the type of its first element, which must be a
@@ -69,7 +77,7 @@ named `range` is no such call. Such an argument of the standard library's `range
 fits none of its forms (#121).
 :::
 
-:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "2993827872815404841")
+:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "13001624560026373216")
 *Definition: what reading the arguments of a range finds.* Reading the
 arguments of `range`, once they are typed, records the errors of the
 compiler's later passes in the order it reports them: the first use of an
@@ -81,7 +89,7 @@ error of a later pass than typing is a constant index out of range,
 a nested literal's failed constraint, or else a use of a value.
 :::
 
-:::readable MojoGrimoire.Check.rangeList (fingerprint := "5393411661139869736")
+:::readable MojoGrimoire.Check.rangeList (fingerprint := "11655554858330598160")
 *Rule: $`\mathsf{List}[u](\mathsf{range}(e^*))`.* The arguments of
 `range` are typed first, and the state that typing leaves is dropped.
 An argument that fits no form of `range`, no argument or more than three,
@@ -94,7 +102,7 @@ $`\mathsf{List}[u]`, then a constant index out of range (#121). The
 call gives a $`\mathsf{List}[\mathsf{Int}]`.
 :::
 
-:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "3399692036597671027")
+:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "11339132122385879290")
 *Rule: a literal of the wrong length where an $`\mathsf{Int}` is
 expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1, which
 `wrongIntLiteral` picks out, fits no initializer of $`\mathsf{Int}`,

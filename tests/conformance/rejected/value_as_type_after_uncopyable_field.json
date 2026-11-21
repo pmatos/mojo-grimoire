@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "uncopyableField",
+  "diagnostic": "cannot synthesize implicit copy constructor because field 'xs' has non-implicitly-copyable type 'List[Int]'"
+}

@@ -142,6 +142,8 @@ line, as the compiler's `mojo run` does.
 
 {includeReadable "." MojoGrimoire.Parse.Stmt "Statements and declarations" MojoSpec.Parse.Stmt (level := 2)}
 
+{includeReadable "." MojoGrimoire.Parse.HiddenTypes "Types that a variable hides" MojoSpec.Parse.HiddenTypes (level := 2)}
+
 {includeReadable "." MojoGrimoire.Parse.SelfType "Self in methods" MojoSpec.Parse.SelfType (level := 2)}
 
 {includeReadable "." MojoGrimoire.Parse.Dispatch "Methods of operators on structs" MojoSpec.Parse.Dispatch (level := 2)}

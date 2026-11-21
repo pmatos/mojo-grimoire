@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16230122014580839393")
+:::moduleDocs (fingerprint := "4887886177569760108")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -133,10 +133,11 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "7433167122423302147")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "13371840907604808946")
 *Rule: statements.*
 
-* $`\mathsf{var}~x : t~(= e)^?` needs a $`t` a variable may have
+* $`\mathsf{var}~x : t~(= e)^?` needs a $`t` in which no variable hides
+  a name, before anything else (`rejectHidden`, #193), a $`t` a variable may have
   (`declarableTy`) and an $`e`
   of type $`t`, by `checkInitValue`, as do an assignment and `return`, and declares $`x`, initialized when $`e` is given; $`x`
   may not be the name of a variable in scope, so no variable hides another.

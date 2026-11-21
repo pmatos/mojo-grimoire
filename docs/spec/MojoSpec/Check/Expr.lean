@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14090390249265398418")
+:::moduleDocs (fingerprint := "7799841989064607242")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "5412609487802043098")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "10533322956495356314")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -68,7 +68,8 @@ type:
   $`\mathsf{Int}`s, a nested such literal's in turn. Passed to a
   parameter, it is rejected by the call's fit;
 * $`\mathsf{List}[u](e)` with one argument copies the elements of a list
-  or an array (#103). Its argument is passed by `ref`, as `len` takes its
+  or an array (#103). First, a $`u` in which a variable hides a name is
+  `valueAsType` (`rejectHidden`, #193), with any number of arguments. Its argument is passed by `ref`, as `len` takes its
   list: a place is located, its type must fit by `iterableFits`, and then
   it must be initialized; a call that returns a reference and is a
   located operand is passed as a location, and any other expression is

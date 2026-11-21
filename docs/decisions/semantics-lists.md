@@ -74,7 +74,7 @@ Lists, `List[T]`, follow the rules of
   no initializer either (`noMatchingInit`). The compiler reports a
   `List[T]` source whose elements cannot be copied as "cannot construct
   'List[T]' with itself", which the suite also maps to `noMatchingInit`
-  ([conformance.md](conformance.md#initializations-that-fit-no-initializer)).
+  ([conformance.md](conformance-classes.md#initializations-that-fit-no-initializer)).
 - `List[T](range(…))` with one, two or three `Int` arguments, the end, the
   start and the end, or a step too, is the list of the range's `Int`s,
   from the start, 0 by default, by the step, 1 by default, up to the end

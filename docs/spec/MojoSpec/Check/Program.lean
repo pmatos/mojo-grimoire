@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14277500069030721100")
+:::moduleDocs (fingerprint := "15166957122269741176")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17131055927722852879")
@@ -31,9 +31,10 @@ repeats. Only the `self` of `__init__` may be `out`, and only the
 `self` of `__deinit__` `deinit`.
 :::
 
-:::readable MojoGrimoire.Check.checkBody (fingerprint := "2409811792939589629")
+:::readable MojoGrimoire.Check.checkBody (fingerprint := "5194200915744885241")
 *Rule: function bodies.* The parameters have distinct names and declarable
-types, and the result type is declarable or $`\mathsf{None}`. An origin
+types, and the result type is declarable or $`\mathsf{None}`; a type in
+which a variable hides a name is `valueAsType`, in that order. An origin
 names parameters passed as locations, and needs a result. The body is
 checked from the parameters' states on entry, with no reference
 invalidated and no change recorded. If its end can be reached,
@@ -52,14 +53,14 @@ compiler checks when it parses the declaration; otherwise
 `out self` of type $`S`, and it returns nothing.
 :::
 
-:::readable MojoGrimoire.Check.checkStruct (fingerprint := "13113239104476564352")
+:::readable MojoGrimoire.Check.checkFields MojoGrimoire.Check.checkMethods (fingerprint := "14368931049088727063")
 *Rule: structs.* A struct's fields and methods have distinct names, its
 fields declarable types, and no field leads to a rejected cycle back to
 the struct. Its initializer, its destructor, checked with the single
 parameter `deinit self`, and its methods are checked.
 :::
 
-:::readable MojoGrimoire.Check.checkCopying (fingerprint := "11704993049387811985")
+:::readable MojoGrimoire.Check.checkCopying (fingerprint := "4967680146187123200")
 *Rule: copyable structs.* A struct that declares `Copyable` gets a copy
 initializer synthesized from its fields, so each field's type must be
 copyable; one that declares `ImplicitlyCopyable` needs each field's type
@@ -69,7 +70,7 @@ the declaration, even when nothing copies the struct (#164). A field's
 struct is copyable as it declares, whatever its own fields.
 :::
 
-:::readable MojoGrimoire.Check.checkProgram (fingerprint := "9654407533411021076")
+:::readable MojoGrimoire.Check.checkProgram (fingerprint := "14451913969485019686")
 *Rule: programs.* A program is accepted when its structs and functions have
 distinct names, every struct and function is accepted, `main`, if it is
 declared, has no parameters and returns nothing, every copyable struct's
@@ -77,6 +78,11 @@ fields can be copied, and `main` is declared. The checks run in that
 order. The compiler reports a copyable struct's fields after the
 functions' bodies, `main`'s signature and the methods of the structs up
 to it, and before its later passes and a missing `main`; the rest of its
-order is left to #96 (#164). Otherwise the program is rejected with the
-first error found, and where.
+order is left to #96 (#164). A type that a variable hides in a struct's
+initializer, destructor or method, `valueAsType`, is reported there too,
+just before that struct's fields: the compiler checks those bodies after
+the functions'. The bodies of the structs after it are then not checked,
+since the compiler reports their errors later; their fields still are
+(#193). Otherwise the program is rejected with the first error found, and
+where.
 :::

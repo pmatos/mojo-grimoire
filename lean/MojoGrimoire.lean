@@ -29,6 +29,7 @@ import MojoGrimoire.Parse.Lexer
 import MojoGrimoire.Parse.Parser
 import MojoGrimoire.Parse.Expr
 import MojoGrimoire.Parse.Stmt
+import MojoGrimoire.Parse.HiddenTypes
 import MojoGrimoire.Parse.SelfType
 import MojoGrimoire.Parse.Dispatch
 import MojoGrimoire.Parse.Infer

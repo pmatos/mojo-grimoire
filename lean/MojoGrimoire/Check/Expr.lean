@@ -106,6 +106,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length)
     pure t
   | .listInit u [e] => do
+    rejectHidden (.list u)
     let t ← match e with
       | .place p => do
         checkIndices prog p
@@ -125,6 +126,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     for q in ← changedArgs prog [⟨.ref, "iterable", t⟩] [e] do changePlace prog q
     pure (.list u)
   | .listInit u args => do
+    rejectHidden (.list u)
     checkOperands prog args
     throw (CheckError.noMatchingInit (.list u))
   | .withDrops e _ _ => checkExprAs prog asRef e

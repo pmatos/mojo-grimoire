@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Errors: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16887117944261018205")
+:::moduleDocs (fingerprint := "9530126369629551503")
 :::
 
-:::readable MojoGrimoire.Check.CheckError (fingerprint := "1838917303650679153")
+:::readable MojoGrimoire.Check.CheckError (fingerprint := "2690262131078755379")
 *Definition: the classes of error.* The checker rejects a program with one
 of these classes, each with the names or types it concerns:
 
@@ -25,7 +25,9 @@ of these classes, each with the names or types it concerns:
   reports both alike), and a name declared twice where it must be unique
   (`duplicate`);
 * types: a type that may not be declared, such as that of string literals
-  (`invalidType`), a struct on a cycle of fields none of which holds the next
+  (`invalidType`), a type written as a name that a variable or a
+  parameter in scope hides, where the compiler finds a value
+  (`valueAsType`, #193), a struct on a cycle of fields none of which holds the next
   struct through a list (`recursiveStruct`), a type other than the one expected
   (`typeMismatch`), an index into a
   value that is neither a list, an array nor an $`\mathsf{Int}`
@@ -73,6 +75,13 @@ of these classes, each with the names or types it concerns:
   (`notAReference`), a returned reference that may point outside the
   function's origin (`escapingReference`), and a use of a reference into
   an element of a list after the list changed (`invalidatedReference`).
+:::
+
+:::readable MojoGrimoire.Check.typeError (fingerprint := "5340710968318894415")
+*Definition: the error of a type.* A parameter, a result or a variable
+declared with a type that no value may have is rejected with
+`valueAsType` of the name when a variable hides a name in the type, and
+with `invalidType` otherwise.
 :::
 
 :::readable MojoGrimoire.Check.Rejection (fingerprint := "11806667538347354827")

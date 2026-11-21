@@ -29,6 +29,7 @@ import MojoSpec.Parse.Lexer
 import MojoSpec.Parse.Parser
 import MojoSpec.Parse.Expr
 import MojoSpec.Parse.Stmt
+import MojoSpec.Parse.HiddenTypes
 import MojoSpec.Parse.SelfType
 import MojoSpec.Parse.Dispatch
 import MojoSpec.Parse.Infer

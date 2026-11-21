@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "453936485551264812")
+:::moduleDocs (fingerprint := "6407537122614658486")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -47,7 +47,7 @@ origin names is $`\mathsf{notAList}`, as before #127: the element has no
 memory origin, and the model passes the $`\mathsf{Int}` itself (#222).
 :::
 
-:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "17494788173869974135")
+:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "14648965725410204653")
 *Rule: the element of an $`\mathsf{Int}` where the model cannot follow
 the compiler.* A place through the element of an $`\mathsf{Int}` is
 rejected there as $`\mathsf{notAList}`, as before #127, once its indices

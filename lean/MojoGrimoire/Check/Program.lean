@@ -41,8 +41,8 @@ path through it must return. -/
 def checkBody (prog : Program) (fd : FunDecl) : Except CheckError Unit := do
   checkDistinct (fd.params.map (·.name))
   for prm in fd.params do
-    unless validTy prog prm.ty do throw (.invalidType prm.ty)
-  unless fd.result == .noneType || validTy prog fd.result do throw (.invalidType fd.result)
+    unless validTy prog prm.ty do throw (typeError prm.ty)
+  unless fd.result == .noneType || validTy prog fd.result do throw (typeError fd.result)
   checkOrigin fd
   let start : State := ⟨fd.params.reverse.map paramState, true, [], []⟩
   let ((), _) ← (do
@@ -94,16 +94,20 @@ def checkInit (prog : Program) (s : Name) (fd : FunDecl) : Except CheckError Uni
   checkConventions fd.name fd.params.tail
   checkBody prog fd
 
-/-- Checks a struct: its fields, its initializer, its destructor and its
-methods. A failure is located at `S`, or at `S.m` for a method `m`. -/
-def checkStruct (prog : Program) (sd : StructDecl) : Except Rejection Unit := do
-  let at_ {α : Type} (where_ : Name) (r : Except CheckError α) : Except Rejection α :=
-    r.mapError (⟨where_, ·⟩)
-  at_ sd.name do
+/-- Checks a struct's own declaration: its names and its fields. A failure
+is located at `S`. -/
+def checkFields (prog : Program) (sd : StructDecl) : Except Rejection Unit :=
+  Except.mapError (⟨sd.name, ·⟩) do
     checkDistinct (sd.fields.map (·.1) ++ sd.methods.map (·.name))
     for (_, t) in sd.fields do
       unless validTy prog t do throw (.invalidType t)
       if rejectedCycle prog sd.name t then throw (.recursiveStruct sd.name)
+
+/-- Checks a struct's initializer, its destructor and its methods. A
+failure is located at `S.m` for a method `m`. -/
+def checkMethods (prog : Program) (sd : StructDecl) : Except Rejection Unit := do
+  let at_ {α : Type} (where_ : Name) (r : Except CheckError α) : Except Rejection α :=
+    r.mapError (⟨where_, ·⟩)
   if let some fd := sd.init then at_ (sd.name ++ ".__init__") (checkInit prog sd.name fd)
   if let some body := sd.deinit then
     at_ (sd.name ++ ".__deinit__")
@@ -129,15 +133,27 @@ every body and the parameters and result of `main`, and before a program
 with no `main` is rejected. The compiler checks a struct's fields after
 the functions' bodies, `main`'s signature and the methods of the structs
 up to it, and before its later passes and a missing `main`; the rest of
-its order is left to #96 (#164). -/
+its order is left to #96 (#164). A type that a variable hides in a
+struct's initializer, destructor or method, `valueAsType`, is reported
+there too, before the struct's fields, and the methods of the structs
+after it are not checked, since the compiler reports their errors later
+(#193). -/
 def checkProgram (prog : Program) : Except Rejection Unit := do
   (checkDistinct (prog.structs.map (·.name) ++ prog.funs.map (·.name))).mapError (⟨"", ·⟩)
-  for sd in prog.structs do checkStruct prog sd
+  let mut hidden : Option (Name × Rejection) := none
+  for sd in prog.structs do
+    checkFields prog sd
+    if hidden.isNone then
+      match checkMethods prog sd with
+      | .error r => if r.error matches .valueAsType _ then hidden := some (sd.name, r) else throw r
+      | .ok () => pure ()
   for fd in prog.funs do (checkFun prog fd).mapError (⟨fd.name, ·⟩)
   let main := findFun prog "main"
   if let some fd := main then
     unless fd.params.isEmpty && fd.result == .noneType do throw ⟨"main", .noMain⟩
-  for sd in prog.structs do (checkCopying prog sd).mapError (⟨sd.name, ·⟩)
+  for sd in prog.structs do
+    if let some (s, r) := hidden then if s == sd.name then throw r
+    (checkCopying prog sd).mapError (⟨sd.name, ·⟩)
   if main.isNone then throw ⟨"", .noMain⟩
 
 end MojoGrimoire.Check
