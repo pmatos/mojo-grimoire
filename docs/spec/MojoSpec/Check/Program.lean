@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11126437600627405394")
+:::moduleDocs (fingerprint := "4745262075387947770")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17131055927722852879")
@@ -53,11 +53,15 @@ compiler checks when it parses the declaration; otherwise
 `out self` of type $`S`, and it returns nothing.
 :::
 
-:::readable MojoGrimoire.Check.checkFields MojoGrimoire.Check.checkMethods (fingerprint := "14368931049088727063")
+:::readable MojoGrimoire.Check.checkFields MojoGrimoire.Check.checkMethods (fingerprint := "10962442979836301495")
 *Rule: structs.* A struct's fields and methods have distinct names, its
 fields declarable types, and no field leads to a rejected cycle back to
 the struct. Its initializer, its destructor, checked with the single
-parameter `deinit self`, and its methods are checked.
+parameter `deinit self`, and its methods are checked. Among the methods,
+the first error in declaration order is reported, as the compiler does.
+The model keeps no order between them and the initializer and the
+destructor, so a `valueAsType` in either of those is reported only when
+no method has another error (#193).
 :::
 
 :::readable MojoGrimoire.Check.checkCopying (fingerprint := "4967680146187123200")
@@ -70,7 +74,7 @@ the declaration, even when nothing copies the struct (#164). A field's
 struct is copyable as it declares, whatever its own fields.
 :::
 
-:::readable MojoGrimoire.Check.checkProgram (fingerprint := "4843575775348792908")
+:::readable MojoGrimoire.Check.checkProgram (fingerprint := "7875788320624616484")
 *Rule: programs.* A program is accepted when its structs and functions have
 distinct names, every struct and function is accepted, `main`, if it is
 declared, has no parameters and returns nothing, every copyable struct's

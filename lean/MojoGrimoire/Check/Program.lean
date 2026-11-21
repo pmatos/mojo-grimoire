@@ -104,16 +104,27 @@ def checkFields (prog : Program) (sd : StructDecl) : Except Rejection Unit :=
       if rejectedCycle prog sd.name t then throw (.recursiveStruct sd.name)
 
 /-- Checks a struct's initializer, its destructor and its methods. A
-failure is located at `S.m` for a method `m`. -/
+failure is located at `S.m` for a method `m`. The compiler checks a
+struct's members in declaration order. The model keeps that order among
+the methods, so the first of their errors is reported, but not where the
+initializer and the destructor stand among them: a type that a variable
+hides in either, `valueAsType`, is reported only when no method has
+another error (#193). -/
 def checkMethods (prog : Program) (sd : StructDecl) : Except Rejection Unit := do
-  let at_ {α : Type} (where_ : Name) (r : Except CheckError α) : Except Rejection α :=
-    r.mapError (⟨where_, ·⟩)
-  if let some fd := sd.init then at_ (sd.name ++ ".__init__") (checkInit prog sd.name fd)
-  if let some body := sd.deinit then
-    at_ (sd.name ++ ".__deinit__")
-      (checkBody prog ⟨"__deinit__", [⟨.deinit, "self", .struct sd.name⟩], .noneType, body, none⟩)
+  let mut hidden : Option Rejection := none
+  let lifecycle : List (Name × Except CheckError Unit) :=
+    (sd.init.toList.map fun fd => (sd.name ++ ".__init__", checkInit prog sd.name fd)) ++
+    sd.deinit.toList.map fun body => (sd.name ++ ".__deinit__",
+      checkBody prog ⟨"__deinit__", [⟨.deinit, "self", .struct sd.name⟩], .noneType, body, none⟩)
+  for (where_, r) in lifecycle do
+    if let .error e := r then
+      if !(e matches .valueAsType _) then throw ⟨where_, e⟩
+      if hidden.isNone then hidden := some ⟨where_, e⟩
   for fd in sd.methods do
-    at_ (sd.name ++ "." ++ fd.name) (checkMethod prog sd.name fd)
+    if let .error e := checkMethod prog sd.name fd then
+      if let (.valueAsType _, some r) := (e, hidden) then throw r
+      throw ⟨sd.name ++ "." ++ fd.name, e⟩
+  if let some r := hidden then throw r
 
 /-- Checks that every field of the struct `sd` can be copied as `sd`
 declares its values are: at all for `Copyable`, implicitly for
@@ -140,8 +151,8 @@ the structs after it are not checked, since the compiler reports their
 errors later (#193). When the struct declares its own `__init__` and the
 type is in its destructor or a method, it comes after the copyability
 check: the compiler checks the copy initializer right after `__init__`,
-which the model, keeping no order among a struct's methods, takes to come
-first. -/
+which the model, keeping no order between `__init__` and the methods,
+takes to come first. -/
 def checkProgram (prog : Program) : Except Rejection Unit := do
   (checkDistinct (prog.structs.map (·.name) ++ prog.funs.map (·.name))).mapError (⟨"", ·⟩)
   let mut hidden : Option (Name × Rejection) := none

@@ -140,6 +140,18 @@ private def method (body : List String) : List String :=
   (.valueAsType "P")
 #guard rejectsIn "R" (["@fieldwise_init", "struct R(ImplicitlyCopyable):", "    var xs: List[Int]"] ++
   method []) ["print(1)"] (.uncopyableField "R" "xs" (.list .int))
+-- Among a struct's methods, the first error in declaration order comes
+-- first; a hidden type in its initializer or destructor only when no
+-- method has another error, since the model keeps no order among them.
+#guard rejectsIn "R.m" ["@fieldwise_init", "struct R(Movable):", "    var q: Int",
+  "    def m(self):", "        print(zz)", "    def n(self):", "        var P = 1",
+  "        var z: P = mk()"] ["print(1)"] (.unknownVariable "zz")
+#guard rejectsIn "R.m" ["@fieldwise_init", "struct R(Movable):", "    var q: Int",
+  "    def m(self):", "        print(zz)", "    def __deinit__(deinit self):", "        var P = 1",
+  "        var z: P = mk()"] ["print(1)"] (.unknownVariable "zz")
+#guard rejectsIn "R.__deinit__" ["@fieldwise_init", "struct R(Movable):", "    var q: Int",
+  "    def m(self, P: Int, q: P):", "        pass", "    def __deinit__(deinit self):",
+  "        var P = 1", "        var z: P = mk()"] ["print(1)"] (.valueAsType "P")
 -- With its own `__init__`, a struct's copy initializer is checked right
 -- after it, so an uncopyable field comes before a hidden type in a method
 -- or the destructor, not in `__init__` itself.

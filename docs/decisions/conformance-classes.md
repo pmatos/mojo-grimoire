@@ -185,7 +185,10 @@ bodies and `main`'s signature, just before that struct's copyability
 check, or just after it when the struct declares its own `__init__` and
 the type is in its destructor or a method: the compiler checks the copy
 initializer right after `__init__`, which the model takes to come first,
-as it keeps no order among a struct's methods. It does
+as it keeps no order between `__init__` and the methods. Among the
+methods, the first error in declaration order comes first, as in the
+compiler; one in `__init__` or the destructor is reported only when no
+method has another error, for the same reason. It does
 not check the methods of the structs after it, since the compiler checks
 those bodies after the functions'. Four cases differ. A later pass's
 error before it, such as a use of an uninitialized value, comes first in
