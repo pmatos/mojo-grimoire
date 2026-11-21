@@ -311,7 +311,9 @@
         "structs/operator_method_bool_getter_twice",
         "structs/operator_method_bool_getter_temporary",
         "structs/operator_method_bool_getter_drop_order",
-        "rejected/operator_method_bool_getter_consumed"
+        "rejected/operator_method_bool_getter_consumed",
+        "structs/operator_method_bool_getter_index_order",
+        "rejected/operator_method_bool_getter_transfer"
       ],
       "reference": {
         "release": "1.3.0.dev2026111905",

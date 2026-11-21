@@ -219,7 +219,10 @@ def evalLogic (prog : Program) (fuel : Nat) (env : Env) (isOr : Bool) (a b : Exp
       | some (fd, e) => do
         let v ← match ← evalOperand prog n env e with
           | .loc r => readRef r
-          | o => do let v ← loadOperand prog n env o; destroy prog n v; pure v
+          | .val v => do destroy prog n v; pure v
+          | .getter fd as p q => do match ← loadGetter prog n env fd as p q with
+            | .ref r => readRef r
+            | .value v => do destroy prog n v; pure v
         pure (Operand.val (← (← callFun prog n fd [.value v]).read))
       | none => evalOperand prog n env a
     let (v, r, temp) ← match o with

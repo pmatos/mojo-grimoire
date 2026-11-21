@@ -7,7 +7,7 @@ file-size budget.
 
 ## Programs
 
-The pin disagrees with the model on these four programs, which
+The pin disagrees with the model on these six programs, which
 `known.json` lists:
 
 - `structs/operator_method_bool_getter_twice`: the getter runs twice when
@@ -18,11 +18,16 @@ The pin disagrees with the model on these four programs, which
 - `structs/operator_method_bool_getter_drop_order`: the subscript does not
   decide, and the index's value dies after the getter instead of before
   it.
+- `structs/operator_method_bool_getter_index_order`: as the last, with
+  `and` and a right operand that changes the receiver.
 - `rejected/operator_method_bool_getter_consumed`: the getter takes its
   index `var`, and the second call uses the temporary that the first
   consumed.
+- `rejected/operator_method_bool_getter_transfer`: as the last, with the
+  index a variable transferred with `^`, which the pin reports as a use
+  of an uninitialized `k`.
 
-The last two are the side effects that the human ruled part of the same
+The last four are the side effects that the human ruled part of the same
 bug (question A on #211, 2026-11-21).
 
 ## Compiler
@@ -54,10 +59,16 @@ because the second call uses the temporary that the first consumed.
 Without a setter the pin accepts it and prints `get 1 5`, `del K 5`,
 `True`.
 
+Without a setter, the pin calls each getter once and accepts the last
+two. `structs/operator_method_bool_getter_var_self` agrees with the pin:
+its left operands are the tests `__bool__(w[i])` that inference makes of
+a mixed `and` or `or`, not bare subscripts, and the pin reads each
+subscript once there.
+
 ## Model
 
 The model calls the getter once and destroys values in the order the pin
-uses for the same struct without `__setitem__`. Each of the four programs
+uses for the same struct without `__setitem__`. Each of the six programs
 prints, or accepts, what its twin without `__setitem__` gives on the pin,
 at the default level and at `-O0`.
 
