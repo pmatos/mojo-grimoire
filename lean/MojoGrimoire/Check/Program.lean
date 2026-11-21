@@ -137,7 +137,11 @@ its order is left to #96 (#164). A type that a variable hides in a
 struct's initializer, destructor or method, `valueAsType`, is reported
 there too, before that struct's copyability check, and the methods of
 the structs after it are not checked, since the compiler reports their
-errors later (#193). -/
+errors later (#193). When the struct declares its own `__init__` and the
+type is in its destructor or a method, it comes after the copyability
+check: the compiler checks the copy initializer right after `__init__`,
+which the model, keeping no order among a struct's methods, takes to come
+first. -/
 def checkProgram (prog : Program) : Except Rejection Unit := do
   (checkDistinct (prog.structs.map (·.name) ++ prog.funs.map (·.name))).mapError (⟨"", ·⟩)
   let mut hidden : Option (Name × Rejection) := none
@@ -152,8 +156,11 @@ def checkProgram (prog : Program) : Except Rejection Unit := do
   if let some fd := main then
     unless fd.params.isEmpty && fd.result == .noneType do throw ⟨"main", .noMain⟩
   for sd in prog.structs do
-    if let some (s, r) := hidden then if s == sd.name then throw r
+    let deferred := hidden.bind fun (s, r) => if s == sd.name then some r else none
+    if let some r := deferred then
+      if sd.init.isNone || r.decl == sd.name ++ ".__init__" then throw r
     (checkCopying prog sd).mapError (⟨sd.name, ·⟩)
+    if let some r := deferred then throw r
   if main.isNone then throw ⟨"", .noMain⟩
 
 end MojoGrimoire.Check

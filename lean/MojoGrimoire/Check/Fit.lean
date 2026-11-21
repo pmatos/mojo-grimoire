@@ -76,7 +76,7 @@ it (`MojoGrimoire.Core.hiddenTy`): the type of a declared variable, before
 any other error of its declaration, and of `List[u](…)`, before its
 arguments are checked, as the compiler does (#193). -/
 def rejectHidden (t : Ty) : CheckM Unit := do
-  if let some x := t.hidden then throw (CheckError.valueAsType x)
+  if t.hidden.isSome then throw (typeError t)
 
 /-- The element type of a literal of `n` elements that has the expected type
 `t`, which a call of fit `fit` initializes or converts it to. It rejects a

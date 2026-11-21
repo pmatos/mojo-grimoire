@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15166957122269741176")
+:::moduleDocs (fingerprint := "11126437600627405394")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17131055927722852879")
@@ -70,7 +70,7 @@ the declaration, even when nothing copies the struct (#164). A field's
 struct is copyable as it declares, whatever its own fields.
 :::
 
-:::readable MojoGrimoire.Check.checkProgram (fingerprint := "14451913969485019686")
+:::readable MojoGrimoire.Check.checkProgram (fingerprint := "4843575775348792908")
 *Rule: programs.* A program is accepted when its structs and functions have
 distinct names, every struct and function is accepted, `main`, if it is
 declared, has no parameters and returns nothing, every copyable struct's
@@ -81,7 +81,10 @@ to it, and before its later passes and a missing `main`; the rest of its
 order is left to #96 (#164). A type that a variable hides in a struct's
 initializer, destructor or method, `valueAsType`, is reported there too,
 just before that struct's copyability check: the compiler checks those bodies after
-the functions'. The bodies of the structs after it are then not checked,
+the functions'. When the struct declares its own `__init__` and the type is
+in its destructor or a method, it comes just after that check instead: the
+compiler checks the copy initializer right after `__init__`, which the
+model takes to come first. The bodies of the structs after it are then not checked,
 since the compiler reports their errors later; their fields still are
 (#193). Otherwise the program is rejected with the first error found, and
 where.

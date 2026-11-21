@@ -182,7 +182,10 @@ the body, and before the declaration's initializer, its reuse of a name
 and the arguments of `List[T](...)`, as the compiler does. In a struct's
 initializer, destructor or method, it reports it after the functions'
 bodies and `main`'s signature, just before that struct's copyability
-check, and does
+check, or just after it when the struct declares its own `__init__` and
+the type is in its destructor or a method: the compiler checks the copy
+initializer right after `__init__`, which the model takes to come first,
+as it keeps no order among a struct's methods. It does
 not check the methods of the structs after it, since the compiler checks
 those bodies after the functions'. Four cases differ. A later pass's
 error before it, such as a use of an uninitialized value, comes first in
@@ -191,9 +194,11 @@ signature where a body first refers to it, and a struct's `__init__`
 signature with the struct, in declaration order, where the model checks a
 signature with its body (#231). A hidden type in a function comes
 after an error in a struct's method in the model, which checks structs
-first (#96). And `ref r = List[T]()` stays `notAReference`, since the
-model rejects a `ref` binding to what is not a location before it checks
-the expression.
+first (#96), and one in a struct's method comes after a later struct's
+`recursiveStruct` there (#96). And
+`ref r = List[T]()` stays `notAReference`, and `List[T]()` passed to a
+`mut` parameter `notAPlace`, since the model rejects what is not a
+location there before it checks the expression.
 
 A variable named `List` or `Array` makes `List[...]` a subscript of the
 variable, which the compiler reports with other errors. The model does

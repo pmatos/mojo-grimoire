@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4913642661167508920")
+:::moduleDocs (fingerprint := "17176789159644216087")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -41,7 +41,7 @@ explicitly or implicitly (#103). Any other type fits no initializer, and
 is `noMatchingInit` $`\mathsf{List}[u]`.
 :::
 
-:::readable MojoGrimoire.Check.rejectHidden (fingerprint := "44940845536319113")
+:::readable MojoGrimoire.Check.rejectHidden (fingerprint := "3061063770040030119")
 *Rule: a hidden type.* A type in which a variable hides a name is
 `valueAsType` of the name: the type of a declared variable, before any
 other error of its declaration, and that of $`\mathsf{List}[u](\ldots)`,
@@ -58,7 +58,7 @@ it as `noMatchingInit` $`t`, and a conversion for a function's parameter
 as a type mismatch.
 :::
 
-:::readable MojoGrimoire.Check.iterableLiteralTy (fingerprint := "8587945389359148268")
+:::readable MojoGrimoire.Check.iterableLiteralTy (fingerprint := "3935624038139464072")
 *Definition: the type of a literal argument of $`\mathsf{List}[u](e)`.*
 Given the type of each element of a literal with no type expected, the
 literal is an array of the type of its first element, which must be a
@@ -89,7 +89,7 @@ error of a later pass than typing is a constant index out of range,
 a nested literal's failed constraint, or else a use of a value.
 :::
 
-:::readable MojoGrimoire.Check.rangeList (fingerprint := "11655554858330598160")
+:::readable MojoGrimoire.Check.rangeList (fingerprint := "5393411661139869736")
 *Rule: $`\mathsf{List}[u](\mathsf{range}(e^*))`.* The arguments of
 `range` are typed first, and the state that typing leaves is dropped.
 An argument that fits no form of `range`, no argument or more than three,
@@ -102,7 +102,7 @@ $`\mathsf{List}[u]`, then a constant index out of range (#121). The
 call gives a $`\mathsf{List}[\mathsf{Int}]`.
 :::
 
-:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "11339132122385879290")
+:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "3399692036597671027")
 *Rule: a literal of the wrong length where an $`\mathsf{Int}` is
 expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1, which
 `wrongIntLiteral` picks out, fits no initializer of $`\mathsf{Int}`,

@@ -140,6 +140,21 @@ private def method (body : List String) : List String :=
   (.valueAsType "P")
 #guard rejectsIn "R" (["@fieldwise_init", "struct R(ImplicitlyCopyable):", "    var xs: List[Int]"] ++
   method []) ["print(1)"] (.uncopyableField "R" "xs" (.list .int))
+-- With its own `__init__`, a struct's copy initializer is checked right
+-- after it, so an uncopyable field comes before a hidden type in a method
+-- or the destructor, not in `__init__` itself.
+private def uncopyable (body : List String) : List String :=
+  ["struct A(ImplicitlyCopyable):", "    var xs: List[Int]", "    def __init__(out self):",
+   "        self.xs = List[Int]()"] ++ body
+#guard rejectsIn "A" (uncopyable ["    def m(self, Int: Int):", "        var y: Int = 2"])
+  ["print(1)"] (.uncopyableField "A" "xs" (.list .int))
+#guard rejectsIn "A" (uncopyable ["    def __deinit__(deinit self):", "        var Int = 1",
+  "        var y: Int = 2"]) ["print(1)"] (.uncopyableField "A" "xs" (.list .int))
+#guard rejectsIn "A.__init__" ["struct A(ImplicitlyCopyable):", "    var xs: List[Int]",
+  "    def __init__(out self):", "        var Int = 1", "        var y: Int = 2",
+  "        self.xs = List[Int]()"] ["print(1)"] (.valueAsType "Int")
+#guard rejectsIn "A.m" ["@fieldwise_init", "struct A(ImplicitlyCopyable):", "    var xs: List[Int]",
+  "    def m(self, Int: Int):", "        var y: Int = 2"] ["print(1)"] (.valueAsType "Int")
 #guard rejectsIn "main" ["struct R(Movable):", "    var q: Int", "    def __init__(out self):",
   "        self.q = 1", "    def __deinit__(deinit self):", "        var P = 1",
   "        var z: P = mk()"] ["print(zz)"] (.unknownVariable "zz")
