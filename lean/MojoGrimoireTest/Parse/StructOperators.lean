@@ -160,6 +160,8 @@ private def bump : List String := ["def bump(mut t: T) -> Int:", "    t.n += 10"
   (.unknownVariable "nope")
 #guard rejects [getter, setter] ["var t = T(1)", "var u = t^", "print(t[True])"]
   (.typeMismatch .int .bool)
+#guard rejects [getter, setter] ["var t = T(1)", "var u = t^", "print(t[[1, 2]])"]
+  (.uninitializedUse (.var "t"))
 #guard rejects [getter] ["var t = T(1)", "var u = t^", "print(t[0])"]
   (.uninitializedUse (.var "t"))
 -- With a setter, the getter's call and its result are checked first.

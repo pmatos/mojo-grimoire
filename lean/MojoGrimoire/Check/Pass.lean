@@ -101,8 +101,9 @@ inference makes the call `S.__getitem__(p, i)`, has its index typed
 against the getter's parameter first, as any subscript's is
 (`checkIndex`), so that an unknown name or a type that does not fit in it
 is reported before a use of `p` moved or uninitialized (#191); errors
-that the compiler reports after the types do not count there. The state
-is left as it was. -/
+that the compiler reports after the types do not count there, nor an
+index with no type here, such as a literal of `Int`s of the wrong length,
+which the call reports later. The state is left as it was. -/
 def typeFirst (prog : Program) (f : Name) (recv : CheckM Unit) (rest : List (CheckM Ty)) :
     CheckM Unit := do
   let s0 ← get
@@ -110,7 +111,9 @@ def typeFirst (prog : Program) (f : Name) (recv : CheckM Unit) (rest : List (Che
   else if let (some (_, "__getitem__", false), .ok sig) := (calleeMethod f, callSig prog f) then
     modify State.typing
     try
-      for (prm, t) in sig.params.drop 1 |>.zip rest do expect prm.ty (← t)
+      for (prm, t) in sig.params.drop 1 |>.zip rest do
+        let ty ← t
+        unless ty == .unknown do expect prm.ty ty
     catch err => unless err.late || err matches .implicitCopy _ | .noMatchingInit .int do throw err
   set s0
 
