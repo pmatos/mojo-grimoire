@@ -264,3 +264,23 @@ Each move of the Mojo pin gets an entry below.
 - Decision and rationale: the fixed compiler compares the elements, as
   `-O0` and every control do ([evidence](decision-log-d0010.md#evidence)).
 - Upstream report: not filed; a draft on #235 awaits the human.
+
+### D-0012: an assignment whose value is the target itself destroys the old value first (provisional)
+
+- Date: 2026-11-21
+- Mojo release and commit: nightly 1.3.0.dev2026111905 (D-0007)
+- Programs: six in `tests/conformance/structs/`, `assign_target_*`,
+  listed on [the detail page](decision-log-d0012.md#programs).
+- Compiler: in `o = o`, or `b = a and b` where `b` decides, it destroys
+  the target's old value before it copies it, and reads the destroyed
+  value; its default level and `-O0` print different values
+  ([detail](decision-log-d0012.md#compiler)).
+- Model: copies the value, then destroys the old one.
+- Classification: compiler bug, for the whole family, the rows where the
+  levels agree included; ruled by the human on 2026-11-21 (#248),
+  provisional.
+- Decision and rationale: the fixed compiler copies, then destroys the
+  old value, as the pin does for a fresh target and through a call, at
+  every level ([evidence](decision-log-d0012.md#evidence)). The model did
+  so already and needed no change.
+- Upstream report: not filed; a draft on #248 awaits the human.

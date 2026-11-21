@@ -85,11 +85,14 @@ is: `t < u` may give an `Int`.
   with `b` deciding, once `a` is, as the pin does at both levels. A
   `mut` parameter or `mut self` still loses its old value only when the
   store replaces it, where the pin destroys it at its last use too
-  (#251). When the target is a struct operand of `and` or
-  `or` that decides, as in `a = a and b` with a false `a`, or the right
-  one, as in `b = a and b`, the pin destroys it before it reads it, or
-  its default level and `-O0` give different values: what the model does
-  there waits for the human's ruling (#248).
+  (#251). When the value is the target itself, as in `o = o`, or the
+  operand of `and` or `or` that decides, as in `b = a and b` or
+  `a = a and b` with a false `a`, the pin destroys the old value before
+  it copies it, and its default level and `-O0` print different values:
+  a compiler bug (#248, [D-0012](../conformance/decision-log-d0012.md),
+  provisional). The model copies the value, then destroys the old one,
+  as the pin does for any other target; `known.json` lists the six
+  `structs/assign_target_*` programs.
 - An operator method that inference calls must take as many operands,
   `self` among them, as its operator: two for a binary, reflected or
   in-place operator and one for `__neg__` and `__bool__`. The compiler
