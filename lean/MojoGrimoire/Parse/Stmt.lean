@@ -221,6 +221,15 @@ def conformances : Nat → Copying → P Copying
       expectSym ")"
       pure c'
 
+/-- The state `st` with the destructor of the struct `s` just recorded
+given `self` alone as its parameter: the later passes check its body with
+`self` alone in scope, whatever its parameters. -/
+def PState.deinitScope (s : Name) (st : PState) : PState :=
+  match st.bodies with
+  | (fd, ls) :: rest =>
+    { st with bodies := ({ fd with params := [⟨.deinit, "self", .struct s⟩] }, ls) :: rest }
+  | [] => st
+
 /-- Reads the members of a struct up to the dedent that ends them: fields,
 methods, `pass` and docstrings. -/
 def members (s : Name) : Nat → StructDecl → P StructDecl
@@ -242,7 +251,9 @@ def members (s : Name) : Nat → StructDecl → P StructDecl
       let fd ← funDecl (some (.struct s)) n
       match fd.name with
       | "__init__" => members s n { sd with init := some fd }
-      | "__deinit__" => members s n { sd with deinit := some fd.body }
+      | "__deinit__" => do
+        modify (PState.deinitScope s)
+        members s n { sd with deinit := some fd.body }
       | _ => members s n { sd with methods := sd.methods ++ [fd] }
     | _ => fail "expected a field or a method"
 

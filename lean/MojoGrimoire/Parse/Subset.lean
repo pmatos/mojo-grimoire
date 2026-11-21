@@ -21,7 +21,8 @@ Telling whether `print` and `range` are the standard library's needs the
 names in scope: a variable or a parameter named `print` makes the `print`
 statement a call of it, whose string arguments are outside the subset, and
 a variable, a parameter, a struct or a function named `range` hides the
-standard library's `range` (#176). It needs no types, so this check runs on
+standard library's `range` (#176). A destructor's body has `self` alone in
+scope, as in the checker. It needs no types, so this check runs on
 the program as parsed, before inference, which rewrites `p += e` and the
 `print` statement of a variable into other forms. Docstrings are skipped by
 the parser and are not string literals of the program.
@@ -57,11 +58,11 @@ def outsideString : String := "a string literal outside `print`"
 def outsideRange : String := "a call of `range` outside `List[T](...)`"
 
 /-- Whether a call of `range`, where the names `vs` are in scope, calls the
-standard library's: no variable or parameter in scope, and no struct or
-function of the program `prog`, has that name. -/
+standard library's: no variable or parameter in scope has that name, and
+nor does a struct or a function of the program `prog`, as the checker
+decides (`MojoGrimoire.Check.builtinRange`). -/
 def stdRange (prog : Program) (vs : List Name) : Bool :=
-  !vs.contains "range" && !prog.structs.any (·.name == "range") &&
-    !prog.funs.any (·.name == "range")
+  MojoGrimoire.Check.builtinRange prog "range" && !vs.contains "range"
 
 mutual
 /-- The first construct outside the subset in the indices of the place
@@ -94,13 +95,6 @@ def Expr.outside (prog : Program) (vs : List Name) : Expr → Option String
 def Expr.listOutside (prog : Program) (vs : List Name) : List Expr → Option String
   | [] => none
   | e :: es => Expr.outside prog vs e <|> Expr.listOutside prog vs es
-
-/-- The first construct outside the subset in the arguments `es` of the
-`print` statement, each of which may be a string literal. -/
-def Expr.printOutside (prog : Program) (vs : List Name) : List Expr → Option String
-  | [] => none
-  | .str _ :: es => Expr.printOutside prog vs es
-  | e :: es => Expr.outside prog vs e <|> Expr.printOutside prog vs es
 end
 
 /-- Fails with the construct `found`, if any, of the statement whose index
@@ -115,7 +109,8 @@ in scope: fails with the index of the statement that holds the first
 construct outside the subset, and the construct, or gives the index of the
 statement after `st` and those it holds, and the names in scope after it.
 A variable declared with `var` or bound with `ref` is in scope after its
-declaration in its block, not in its own initializer. -/
+declaration in its block, not in its own initializer. The arguments of the
+`print` statement may be string literals. -/
 def Stmt.outside (prog : Program) (vs : List Name) (k : Nat) :
     Stmt → Except (Nat × String) (Nat × List Name)
   | .pass | .drop _ => pure (k + 1, vs)
@@ -126,8 +121,8 @@ def Stmt.outside (prog : Program) (vs : List Name) (k : Nat) :
     pure (k + 1, vs)
   | .expr e => do foundIn k (Expr.outside prog vs e); pure (k + 1, vs)
   | .print args => do
-    foundIn k (if vs.contains "print" then Expr.listOutside prog vs args
-      else Expr.printOutside prog vs args)
+    foundIn k (Expr.listOutside prog vs
+      (if vs.contains "print" then args else args.filter (!· matches .str _)))
     pure (k + 1, vs)
   | .ifElse c a b => do
     foundIn k (Expr.outside prog vs c)

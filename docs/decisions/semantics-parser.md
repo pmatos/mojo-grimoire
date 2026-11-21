@@ -6,9 +6,10 @@ This page continues [semantics.md](semantics.md) with how the model reads a
 ## The parser and the driver
 
 `MojoGrimoire.Parse` reads a `.mojo` file into the core calculus, and
-`mojo-grimoire FILE [--fuel N]` runs it (#23). It reads the subset the
-model covers and fails with a syntax error, line and message, on anything
-else. These choices hold:
+`mojo-grimoire FILE [--fuel N]` runs it (#23). It fails with a syntax
+error, line and message, on what it cannot read, and the constructs it
+reads but the subset excludes end with exit 3 too
+([below](#outside-the-subset)). These choices hold:
 
 - A struct's conformances give its copying: `ImplicitlyCopyable` implicit,
   and so `TrivialRegisterPassable`, which implies it on the pinned
@@ -103,8 +104,8 @@ A program outside the subset ends with exit 3, never with a checker error
 class: a class claims that Mojo rejects the program, and the compiler may
 accept it. The human ruled this on 2026-11-20. What the parser cannot read
 is a syntax error, as above. The parser reads the excluded constructs
-below, and `MojoGrimoire.Parse.Subset` finds them (#180). Each one needs only the
-syntax and the names in scope, so the check runs on the parsed program
+below, and `MojoGrimoire.Parse.Subset` finds them (#180). Each one needs
+only the syntax and the names in scope, so the check runs on the parsed program
 before inference, which rewrites `p += e` and a `print` statement of a
 variable into other forms. The program is outside the subset wherever the
 construct stands, whatever other error it has; a syntax error anywhere
@@ -117,19 +118,28 @@ names the construct: `` a string literal outside `print` `` or
 The excluded constructs, each temporary:
 
 - A string literal anywhere but as an argument of the `print` statement,
-  such as `P("a")` (#175), `len("a")`, `xs["a"]` or `range(u + "a")`.
-  The Phase 1 subset that the human approved
+  such as `P("a")` (#175), `len("a")`, `xs["a"]` or
+  `List[Int](range(u + "a"))`. The Phase 1 subset that the human approved
   ([process.md](process.md#phase-1-the-core-calculus-in-lean)) has no
   string type, and `print` alone takes string literals
   ([semantics.md](semantics.md#the-static-checker)). A variable or a
   parameter named `print` makes the statement a call of it, so its string
-  literals are outside the subset too. Covering them is #238.
+  literals are outside the subset too; a function or a struct of the
+  program named `print` does not yet, as in the checker (#244). Covering
+  them is #238.
 - A call of the standard library's `range` anywhere but as the one
-  argument of `List[T](…)`, such as `var r = range(3)`, `len(range(3))` or
-  `range(p.x + range(2))`: the human ruled on 2026-11-19 that the model
-  takes `range` only there (#121). A variable or a parameter in scope, or
+  argument of `List[T](…)`, such as `var r = range(3)`, `len(range(3))`
+  or `List[Int](range(p.x + range(2)))`: the human ruled on 2026-11-19
+  that the model takes `range` only there (#121). A variable or a parameter in scope, or
   a struct or a function of the program, named `range` hides it, as in a
-  call (#176). Covering a range as a value is #239.
+  call (#176). A destructor's body has `self` alone in scope, as in the
+  checker. Covering a range as a value is #239.
+
+Constructs that the checker still rejects with a class where the compiler
+accepts them, and that no ruling puts outside the subset, are not
+excluded: they wait for the human's ruling. The type `String` and the
+standard-library calls that the model lacks are #243; the others are
+#183, #198 and #222.
 
 The suite cannot compare exit 3, so it holds no program with one of
 these constructs. The human ruled on 2026-11-21 (#180) that the four suite

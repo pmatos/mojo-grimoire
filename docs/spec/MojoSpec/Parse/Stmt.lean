@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and declarations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11082921746531785300")
+:::moduleDocs (fingerprint := "5291466686812682013")
 :::
 
 :::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.augCallee MojoGrimoire.Parse.exprStmt (fingerprint := "14674107341489909627")
@@ -71,7 +71,7 @@ parameters named; it names at least one. Each function is recorded with
 the lines where the statements of its body start.
 :::
 
-:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "3774387349503419295")
+:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.PState.deinitScope MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "11028547165630557114")
 *Definition: structs.*
 
 $$`\begin{array}{lcl}
@@ -85,7 +85,8 @@ implicitly, and so `TrivialRegisterPassable`, which implies it (#164);
 as `Movable`, are read and ignored. Parentheses after
 the name hold at least one conformance. The method `__init__` is the
 initializer and the body of `__deinit__` is the destructor; every other
-function is a method.
+function is a method. The destructor is recorded with `self` alone as its
+parameter (`deinitScope`), the scope in which the later passes check it.
 :::
 
 :::readable MojoGrimoire.Parse.decls MojoGrimoire.Parse.parseLines MojoGrimoire.Parse.parseRaw (fingerprint := "17787779178842599508")

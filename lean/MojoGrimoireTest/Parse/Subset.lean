@@ -118,6 +118,14 @@ private def inMain (body : List String) : List String :=
   "    return n"] == some (.finished ["3"])
 #guard runLines ["@fieldwise_init", "struct range(Copyable):", "    var n: Int", "def main():",
   "    var r = range(3)", "    print(r.n)"] == some (.finished ["3"])
+-- A destructor's body has `self` alone in scope, as the checker gives it,
+-- whatever parameters it declares.
+#guard outside ["struct Foo:", "    var x: Int", "    def __init__(out self):", "        self.x = 1",
+  "    def __deinit__(deinit self, range: Int):", "        var y = range(2)", "def main():",
+  "    var f = Foo()"] 6 outsideRange
+#guard readError ["struct Foo:", "    var x: Int", "    def __init__(out self):",
+  "        self.x = 1", "    def __deinit__(deinit self, print: Int):", "        print(\"bye\")",
+  "def main():", "    var f = Foo()"] == none
 -- A variable hides it after its declaration in its block, not in its own
 -- initializer nor after the block.
 #guard outside (inMain ["print(len(range(3)))", "var range = 5"]) 7 outsideRange

@@ -47,16 +47,20 @@ private def prints (body : List String) (out : List String) : Bool :=
 private def rejects (body : List String) (e : CheckError) : Bool :=
   runMain body == some (.rejected ⟨"main", e⟩)
 
-/-- Whether `main` is rejected with `e` when it declares `p`, a `P`; `b`, a
-`Bool`; `u`, an uninitialized `Int`; and `xs`, a list, then runs `line`. -/
+/-- The declarations of `p`, a `P`; `b`, a `Bool`; `u`, an uninitialized
+`Int`; and `xs`, a list, before the line that `rejectsWith` runs. -/
+private def context : List String :=
+  ["var p = P(1)", "var b = True", "var u: Int", "var xs: List[Int] = [1]"]
+
+/-- Whether `main` is rejected with `e` when it runs `context`, then `line`. -/
 private def rejectsWith (line : String) (e : CheckError) : Bool :=
-  rejects ["var p = P(1)", "var b = True", "var u: Int", "var xs: List[Int] = [1]", line] e
+  rejects (context ++ [line]) e
 
 /-- Whether the line `line` of `rejectsWith` is outside the subset as the
 construct `m`. -/
 private def outsideWith (line : String) (m : String) : Bool :=
-  outsideOf (lib ++ "def main():" :: ["var p = P(1)", "var b = True", "var u: Int",
-    "var xs: List[Int] = [1]", line].map ("    " ++ ·)) == some ⟨lib.length + 6, m⟩
+  outsideOf (lib ++ "def main():" :: (context ++ [line]).map ("    " ++ ·)) ==
+    some ⟨lib.length + context.length + 2, m⟩
 
 /-- `List[Int](range(args))` in `main` (`rejectsWith`). -/
 private def rangeOf (args : String) : String := s!"print(List[Int](range({args})))"
