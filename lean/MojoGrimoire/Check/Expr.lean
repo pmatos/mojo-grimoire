@@ -405,7 +405,7 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
           requireOwnOrigin prog p
           unless ← placeMutable p do
             throw (CheckError.transferFromBorrowed p)
-        throw (fit.misfit (CheckError.notAPlace callee))
+        throw (fit.misfit (notPlaceError prog callee e))
       expectArg fit prm.ty (← checkExprAs prog false e)
       let k ← mark
       pure (← lateLocs prog e, k)

@@ -163,6 +163,12 @@ private def bump : List String := ["def bump(mut t: T) -> Int:", "    t.n += 10"
 #guard rejects [getter] ["var t = T(1)", "t[True] = 2"] (.typeMismatch .int .bool)
 #guard rejects [getter] ["var t = T(1)", "t[0] = nope"]
   (.immutablePlace (.index (.var "t") (.int 0)))
+-- A subscript read late passed `mut`, here to `mut self`, keeps the result
+-- it had before #191, `notAList`, until its write-back is modelled (#198).
+#guard rejects [m "__getitem__" ", i: Int" "T" "T(self.n)",
+    ["def __setitem__(mut self, i: Int, v: T):", "    pass"],
+    ["def __add__(mut self, k: Int) -> Int:", "    return self.n + k"]]
+  ["var t = T(1)", "print(t[0] + 1)"] (.notAList (.struct "T"))
 -- On the left of `and` or `or`, a getter-and-setter subscript is read once,
 -- as one of a struct with no setter is (#211).
 private def bgetter : List String :=
