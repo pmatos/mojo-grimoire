@@ -60,12 +60,10 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       refResult prog asRef sig args
     | .error err =>
       match f, args, err with
-      | "len", [e], .unknownFunction _ => do
-        rejectMisfit ((← operandTy prog e).bind lenMisfit) (typeArgs prog args)
-        lift (lenOf (← match e with
-          | .place p => do checkIndices prog p; readPlace prog p
-          | e => do checkExprAs prog (← locOf prog e).isSome e))
-      | "len", _, .unknownFunction _ => rejectAfter (typeArgs prog args) (.noMatchingInit .unknown)
+      | "len", [e], .unknownFunction _ => lenCall prog args (typeArgs prog args) (match e with
+        | .place p => do checkIndices prog p; readPlace prog p
+        | e => do checkExprAs prog (← locOf prog e).isSome e)
+      | "len", _, .unknownFunction _ => lenCall prog args (typeArgs prog args) (pure .unknown)
       | _, _, .missingMethod .. => rejectAfter (typeArgs prog args) err
       | _, _, _ => throw err
   | .method p m args => do

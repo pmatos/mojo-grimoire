@@ -296,10 +296,10 @@ and write its one element. The human ruled on 2026-11-20 that indexing an
   result from before #127, `notAList`, unless every index of `p` is a
   constant or a variable, so that no index runs twice.
 - `len` of a list or an array is its length, and of an `Int`, a SIMD
-  vector of width 1, is 1, as the nightly gives it. Any other call of the
-  built-in `len`, of a `Bool`, `None` or a struct, even one that declares
-  `__len__` without `Sized`, or with a wrong number of arguments, is "no
-  matching function in call to 'len'", which the suite maps to
-  `noMatchingInit` (#190). The misfit is found from the arguments' types,
-  after an error of typing inside one and before any is read. A string
-  keeps the class of a string outside `print`.
+  vector of width 1, is 1, as on the nightly. `len` of a `Bool`, `None` or
+  a struct without `Sized`, even one that declares `__len__`, or with a
+  wrong number of arguments, is "no matching function in call to 'len'",
+  which the suite maps to `noMatchingInit` (#190). The misfit comes after
+  an error of typing in an argument and before any read. A string keeps
+  the class of a string outside `print`. A `Sized` struct is still
+  `noMatchingInit`, though the compiler accepts it (#230).

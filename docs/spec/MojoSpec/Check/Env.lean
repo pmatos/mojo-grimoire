@@ -71,7 +71,7 @@ the function $`f`, or the method that the callee $`f` names, with its
 receiver as its first argument. A method callee whose struct lacks the
 method is `missingMethod`: inference makes one only of $`p \mathrel{+}= e`
 on a struct that lacks `__iadd__`. `len` has no signature, since it takes a list or an
-array of any type. $`p.m(e^*)` calls a method of the type of $`p`: one of
+array of any type, or an $`\mathsf{Int}`. $`p.m(e^*)` calls a method of the type of $`p`: one of
 a list's methods, or a method of a struct, whose `self` takes $`p`; a
 method of a struct with no parameter at all is rejected. An array has no
 methods, nor does any other type: a method that the type lacks is an

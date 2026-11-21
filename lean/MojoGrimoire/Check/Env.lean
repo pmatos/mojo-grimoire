@@ -97,7 +97,7 @@ which takes the parameters of its `__init__` after `self`, or each field
 `var` when it is `@fieldwise_init`; otherwise the function `f`, or the
 method that the callee `f` names, which takes its receiver as its first
 argument. A struct wins over a function of the same name. `len` has none,
-since it takes a list or an array of any type. A method that the callee
+since it takes a list or an array of any type, or an `Int`. A method that the callee
 names and its struct lacks is `missingMethod`: inference makes such a
 call only of an in-place operator, `p += e`, whose struct lacks its
 method (#191). -/

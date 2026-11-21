@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9510415465963360096")
+:::moduleDocs (fingerprint := "14090390249265398418")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "788796992723748808")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "5412609487802043098")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -115,10 +115,10 @@ type:
   `len` and no variable hides it, takes one list, array or $`\mathsf{Int}`
   and gives an $`\mathsf{Int}`: a place
   argument, or a call that returns a reference that is a located
-  operand, is read, not copied. Any other argument, or another number of
-  them, fits no overload of `len`: `noMatchingInit`, found from the
-  arguments' types once an error inside one is found and before any is
-  read (#190);
+  operand, is read, not copied. A $`\mathsf{Bool}`, `None` or a struct,
+  or another number of arguments, fits no overload of `len`:
+  `noMatchingInit`, found by `lenCall` before any argument is read
+  (#190);
 * $`\mathsf{drops}(e; p^*; q^*)`, which only elaboration inserts, after
   checking, has the type of $`e`.
 

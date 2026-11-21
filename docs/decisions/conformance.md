@@ -148,7 +148,7 @@ on [semantics-lists.md](semantics-lists.md).
 It gives a fourth, "no matching function in call to 'NAME'", for a call
 that fits no overload of a function, a wrong number of arguments
 included: `List[T](range(…))` whose arguments fit no form of `range`,
-and `len` of anything but a list, an array or an `Int`. Which of the two
+and `len` of a `Bool`, `None` or a struct without `Sized`. Which of the two
 messages a `range` misfit gets depends on whether every argument
 converts to the first's type, which the model does not follow. The human
 ruled on 2026-11-19 (#121) that `diagnostics.json` maps it, matched

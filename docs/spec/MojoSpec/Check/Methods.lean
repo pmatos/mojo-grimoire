@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6564992672915062568")
+:::moduleDocs (fingerprint := "17123713055245921165")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -68,12 +68,17 @@ $`\mathsf{or}`, so is a right operand whose type lacks `__bool__`, and
 for a unary operator its operand's (#176).
 :::
 
-:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenOf (fingerprint := "13430969869620522747")
-*Rule: the misfit of `len`.* The built-in `len` takes a list, an array
-or an $`\mathsf{Int}`, a SIMD vector of width 1, and gives an
-$`\mathsf{Int}`. A $`\mathsf{Bool}`, `None` or a struct, even one that
-declares `__len__`, fits none of its overloads: `noMatchingInit` of that
-type (#190). A string is left to the check of a string outside `print`.
+:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "17923407630855063083")
+*Rule: a call of `len`.* The built-in `len` takes one list, array or
+$`\mathsf{Int}`, a SIMD vector of width 1, and gives an $`\mathsf{Int}`.
+A string is left to the check of a string outside `print`. Any other type,
+a $`\mathsf{Bool}`, `None` or a struct, fits none of its overloads:
+`noMatchingInit` of that type (#190). The model ignores a struct's
+`Sized` conformance, which the compiler accepts (#230). The misfit is
+found from the argument's form once the arguments are typed, so that an
+error inside one comes first, and again from its checked type once it is
+read. Any other number of arguments is `noMatchingInit` of $`?`, once
+they are typed.
 :::
 
 :::readable MojoGrimoire.Check.methodCall (fingerprint := "1527231176191769200")
@@ -94,14 +99,14 @@ receiver and the arguments are checked again once all are read, the
 places the call changes are changed, and the call gives its result.
 :::
 
-:::readable MojoGrimoire.Check.methodBinaryTy MojoGrimoire.Check.methodUnaryTy (fingerprint := "9499790568235641829")
+:::readable MojoGrimoire.Check.methodBinaryTy MojoGrimoire.Check.methodUnaryTy (fingerprint := "5771276043216569838")
 *Rule: the result of an operator, once its operands are checked.* A
 method that an operand's type lacks is `missingMethod`, found again from
 the checked types; otherwise the operator's result is `binaryTy`'s or
 `unaryTy`'s.
 :::
 
-:::readable MojoGrimoire.Check.rejectAfter MojoGrimoire.Check.rejectMisfit (fingerprint := "10315779876493403768")
+:::readable MojoGrimoire.Check.rejectAfter MojoGrimoire.Check.rejectMisfit (fingerprint := "6081766398198932002")
 *Rule: an error found from types.* An error found from the types of
 operands, before they are read, is reported once the operands are typed
 in `State.typing`: an error inside an operand, which the compiler finds as
