@@ -29,6 +29,7 @@ private def lib : List String := [
   "def rd(x: Int) -> Int:", "    return x[0]",
   "def same(ref a: Int) -> ref [a] Int:", "    return a",
   "def one(mut a: Int, b: Int):", "    a += 1", "    print(b)",
+  "def pr(n: Int) -> Int:", "    print(\"eval\", n)", "    return n",
   "@fieldwise_init", "struct S(Copyable, Movable):", "    var k: Int",
   ""]
 
@@ -40,10 +41,9 @@ private def inMain (body : List String) : List String :=
 private def prints (body : List String) (out : List String) : Bool :=
   runLines (inMain body) == some (.finished out)
 
-/-- Whether `main`, running `body`, is rejected with the error `e`, in the
-declaration `decl`. -/
-private def rejects (body : List String) (e : CheckError) (decl : Name := "main") : Bool :=
-  runLines (inMain body) == some (.rejected ⟨decl, e⟩)
+/-- Whether `main`, running `body`, is rejected with the error `e`. -/
+private def rejects (body : List String) (e : CheckError) : Bool :=
+  runLines (inMain body) == some (.rejected ⟨"main", e⟩)
 
 /-- Whether `main`, running `body`, prints the lines `out` and then fails
 with an index out of bounds. -/
@@ -64,6 +64,11 @@ private def kAt (i : Int) : Place := .index (.var "k") (.int i)
 #guard prints ["ref r = k", "r[0] = 3", "print(k)"] ["3"]
 #guard prints ["var i = 0", "k[i] = 2", "print(k[i], k[1 - 1])"] ["2 2"]
 #guard prints ["var j = k[0]^", "print(j)"] ["7"]
+-- `k[i] = v` evaluates `i` before `v`, as `__setitem__` takes them, also
+-- below an element of a list.
+#guard prints ["k[pr(0)] = pr(5)", "print(k)"] ["eval 0", "eval 5", "5"]
+#guard prints ["var xs: List[Int] = [1]", "xs[pr(0)][pr(0)] = pr(6)", "print(xs)"]
+  ["eval 0", "eval 0", "eval 6", "[6]"]
 -- Passed `mut`, it is changed; passed `read`, it is copied.
 #guard prints ["inc(k[0])", "print(k)"] ["8"]
 #guard prints ["one(k[0], k)", "print(k)"] ["7", "8"]
@@ -89,13 +94,32 @@ private def kAt (i : Int) : Place := .index (.var "k") (.int i)
 #guard runLines (lib ++ ["def f(ref k: Int) -> ref [k] Int:", "    return k[0]",
     "def main():", "    var k = 7", "    print(f(k))"]) ==
   some (.rejected ⟨"f", .escapingReference "f"⟩)
--- The compiler finds that once it has typed the place, before a later
--- error, but after an unknown name in its index.
+-- So is a reference returned through a `ref` parameter given `k[0]`.
+#guard runLines (lib ++ ["def f(ref k: Int) -> ref [k] Int:", "    return same(k[0])",
+    "def main():", "    var k = 7", "    print(f(k))"]) ==
+  some (.rejected ⟨"f", .escapingReference "f"⟩)
+-- The compiler finds that once it has typed the place, and, in a return,
+-- compared its type with the result's, before a later error, but after an
+-- unknown name in its index.
+#guard runLines (lib ++ ["def f(ref k: Int) -> ref [k] Bool:", "    return k[0]",
+    "def main():", "    var k = 7", "    print(f(k))"]) ==
+  some (.rejected ⟨"f", .typeMismatch .bool .int⟩)
 #guard rejects ["ref r = k[-1]"] (.escapingReference "main")
 #guard rejects ["ref r = k[zz]"] (.unknownVariable "zz")
 -- An index out of range is reported late: an unknown function in the
 -- value assigned comes first.
 #guard rejects ["k[0][1] = zz()"] (.unknownFunction "zz")
+
+-- Inference, too, takes `k[0]` passed `ref` for a reference that cannot
+-- change: `pick(k[0], s) + t` calls `T.__radd__`, not `S.__add__`, which
+-- takes `mut self`.
+#guard runLines (["@fieldwise_init", "struct S(Copyable, Movable):", "    var v: Int",
+    "    def __add__(mut self, o: T) -> Int:", "        return self.v + o.w",
+    "@fieldwise_init", "struct T(Copyable, Movable):", "    var w: Int",
+    "    def __radd__(self, o: S) -> Int:", "        return o.v * 100 + self.w",
+    "def pick(ref a: Int, ref s: S) -> ref [a, s] S:", "    return s",
+    "def main():", "    var k = 7", "    var s = S(1)", "    print(pick(k[0], s) + T(2))"]) ==
+  some (.finished ["102"])
 
 -- An index must be an `Int`; `__getitem__` of an `Int` has one overload.
 #guard rejects ["print(k[True])"] (.typeMismatch .int .bool)

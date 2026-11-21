@@ -401,8 +401,15 @@ def execStmt (prog : Program) (fuel : Nat) (refs : Bool) (env : Env) (s : Stmt) 
       pure ((x, ⟨← alloc v, true⟩) :: env)
     | .refDecl x e => do pure ((x, ⟨← evalRef prog n env e, false⟩) :: env)
     | .assign p e => do
-      let v ← evalExpr prog n env e
-      let r ← placeRef prog n env p
+      let intBase ← match p with
+        | .index q _ => do pure ((← peekPlace env q) matches some (.int _))
+        | _ => pure false
+      let (v, r) ← if intBase then do
+          let r ← placeRef prog n env p
+          pure (← evalExpr prog n env e, r)
+        else do
+          let v ← evalExpr prog n env e
+          pure (v, ← placeRef prog n env p)
       let old ← readRef r
       writeRef r v
       destroy prog n old

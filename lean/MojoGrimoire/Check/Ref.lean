@@ -28,8 +28,10 @@ the function `fn`: a place, or a call of a function or method that returns
 a reference. A call of a name that a variable in scope hides is checked as
 a call, which rejects it (#176). A place through the element of an `Int`
 has no memory origin (`escapingReference`), which the compiler finds once
-it has typed the place, before any later error (#127). -/
-def refTarget (prog : Program) (fn : Name) (e : Expr) : CheckM (Ty × List Place × Bool) := do
+it has typed the place, and, in a `return`, compared its type with the
+result type `expected`, before any later error (#127). -/
+def refTarget (prog : Program) (fn : Name) (e : Expr) (expected : Option Ty := none) :
+    CheckM (Ty × List Place × Bool) := do
   let located : CheckM (Ty × List Place × Bool) := do
     let t ← checkExprAs prog true e
     let (origins, m) ← locatedOrigins prog e
@@ -38,6 +40,7 @@ def refTarget (prog : Program) (fn : Name) (e : Expr) : CheckM (Ty × List Place
   | .place p =>
     if ← intIndexed prog p then
       typePlace prog p
+      if let some r := expected then expect r (← placeTy prog p)
       throw (CheckError.escapingReference fn)
     checkIndices prog p
     let t ← readPlace prog p

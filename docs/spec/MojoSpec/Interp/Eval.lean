@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18073210493618536347")
+:::moduleDocs (fingerprint := "1946490137953697850")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "14136961392570647166")
@@ -41,7 +41,7 @@ $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "3081536066507530418")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "4644987595786742263")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -109,7 +109,11 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   reference or a value, and any other expression its value.
 - *Statements.* A declaration puts its value, or the blank of its type
   when it has none, at a new location the function owns. An assignment evaluates its value, then its place, writes
-  it, and destroys the old value. An expression statement destroys its
+  it, and destroys the old value; into the element of an $`\mathsf{Int}`,
+  it evaluates the place, index included, first, as `__setitem__` takes
+  the index before the value (#127). Whether the base is an
+  $`\mathsf{Int}` is read from its value without evaluating its indices
+  (`peekPlace`). An expression statement destroys its
   result. `print` writes its arguments separated by spaces. `if` and
   `while` run their blocks in scopes of their own. `return x` of an owned
   variable takes it out. `drop p` takes the value out of $`p` and destroys

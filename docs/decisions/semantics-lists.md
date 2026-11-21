@@ -276,6 +276,9 @@ and write its one element. The human ruled on 2026-11-20 that indexing an
   a `mut` parameter as a temporary that it writes back after the call,
   which argument exclusivity does not cover, and to a `ref` parameter as a
   temporary that a later change of `k` does not reach; the model passes
-  `k` itself, which agrees unless another argument aliases `k` (#222).
+  `k` itself, which agrees unless another argument aliases `k`, or a
+  reference returned through the `ref` parameter is read after `k`
+  changes (#222). `k[i] = v` evaluates `i` before `v`, as `__setitem__`
+  takes them, where a list's element is located after its value (D-0002).
 - `len` of an `Int`, which the nightly gives as 1, is still `notAList`,
   awaiting a ruling (#223).

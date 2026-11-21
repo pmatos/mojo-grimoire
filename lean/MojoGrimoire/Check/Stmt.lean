@@ -331,7 +331,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
       if sig.result == .noneType then throw (CheckError.invalidReturn sig.name)
       checkInitValue prog sig.result e (checkReturnValue prog e)
     | some e, some os => do
-      let (t, origins, _) ← refTarget prog sig.name e
+      let (t, origins, _) ← refTarget prog sig.name e sig.result
       expect sig.result t
       unless ← origins.allM (withinOrigin prog os) do
         throw (CheckError.escapingReference sig.name)

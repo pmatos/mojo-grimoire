@@ -19,7 +19,8 @@ pins their fingerprint; the build fails when the Lean changes under it.
 :::readable MojoGrimoire.Check.mark MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "9947886768196152938")
 *Rule: changes.* A call changes as a whole each place it is passed `mut`,
 and each place it is passed `ref` that the function may change and that
-is not reached through `p^`; for a
+is reached through neither `p^` nor the element of an $`\mathsf{Int}`,
+which the compiler passes as a temporary (#127); for a
 call that returns a reference passed so, its origins; `append` and `pop`
 change their list. The checker records the change once the
 call's operands are checked, and marks as invalidated every reference

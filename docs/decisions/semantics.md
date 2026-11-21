@@ -316,7 +316,8 @@ corrected against the compiler's recorded results (#25):
   destroyed: the checker rejects the program (#51, D-0003).
 - A temporary passed to a borrowing parameter is destroyed right after the
   call; the unused result of an expression statement is destroyed at once.
-- An assignment evaluates its value, then its place, and destroys the old
-  value after storing the new one.
+- An assignment evaluates its value, then its place, or into an `Int`'s
+  element its place first (#127), and destroys the old value after
+  storing the new one.
 - `return` evaluates its value, then destroys what the function still
   owns, in declaration order.

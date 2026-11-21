@@ -51,7 +51,9 @@ index, made only of integer literals and operators, is rejected when it is
 negative (`negativeIndex`) or at least 1 (`constantIndexOutOfBounds`), and a
 computed one other than 0 fails at run time (`indexOutOfBounds`). Both
 rejections are reported late, as for an array, so an unknown name in the
-statement comes first.
+value assigned comes first, as in `x[0][1] = g()`. An unknown name after
+the index in the same expression, as in `print(k[1], zz)`, still comes
+second, as for an array, an order left to #96 and #142.
 
 The element has no memory origin of its own: `ref r = k[0]`, and a
 reference returned to `k[0]`, are `escapingReference`, and `k[0]` passed to

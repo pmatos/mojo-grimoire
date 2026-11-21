@@ -126,6 +126,20 @@ def unary (op : UnOp) (a : Value) : EvalM Value :=
   | .not, .bool x => pure (.bool (!x))
   | _, _ => stuck "operand of the wrong type"
 
+/-- The value in the place `p` of the variables `env`, found without
+evaluating its indices: an index of a list stands for its first element,
+which has the type of every other; `none` when there is none, as in an
+empty list. It tells whether a place is an `Int` (#127). -/
+def peekPlace (env : Env) : Place → EvalM (Option Value)
+  | .var x => do
+    let some b := env.lookup x | pure none
+    pure (some (← readRef b.ref))
+  | .field p f => do
+    pure ((← peekPlace env p).bind fun | .struct _ fs => fs.lookup f | _ => none)
+  | .index p _ => do
+    pure ((← peekPlace env p).bind fun | .list (v :: _) => some v | .int k => some (.int k) | _ => none)
+  | .transferred p => peekPlace env p
+
 /-- The position in a list of length `len` that the index `i` names. Mojo's
 `List` does not count a negative index from the end: it is out of bounds. -/
 def position (len : Nat) (i : Int) : EvalM Nat :=
