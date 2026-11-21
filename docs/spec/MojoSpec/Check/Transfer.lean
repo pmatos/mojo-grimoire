@@ -37,6 +37,6 @@ what $`q\,\hat{}` before a field or a method needs of $`q`.
 
 :::readable MojoGrimoire.Check.usePlace (fingerprint := "173479358898358411")
 *Rule: using a place.* A place whose location is used, as a comparison
-of arrays uses its operands (#166), is read, uncopied; any other use
-copies it implicitly.
+of arrays or lists uses its operands (#166, #185), is read, uncopied;
+any other use copies it implicitly.
 :::
