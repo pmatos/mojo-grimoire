@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10025700717692363691")
+:::moduleDocs (fingerprint := "8055925766368640643")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -41,16 +41,16 @@ explicitly or implicitly (#103). Any other type fits no initializer, and
 is `noMatchingInit` $`\mathsf{List}[u]`.
 :::
 
-:::readable MojoGrimoire.Check.literalElem (fingerprint := "11550179997732153358")
+:::readable MojoGrimoire.Check.literalElem (fingerprint := "7284588851106128790")
 *Definition: a literal of an expected type.* A literal of $`n` elements
 whose type $`t` is expected where it stands must have a list or an array
-type of a valid element type $`u`, and an array type must have the size
+type of an element type $`u` a variable may have (`declarableTy`), and an array type must have the size
 $`n`. A size that differs does not fit: an initialization of $`t` reports
 it as `noMatchingInit` $`t`, and a conversion for a function's parameter
 as a type mismatch.
 :::
 
-:::readable MojoGrimoire.Check.iterableLiteralTy (fingerprint := "14437912108218426291")
+:::readable MojoGrimoire.Check.iterableLiteralTy (fingerprint := "3935624038139464072")
 *Definition: the type of a literal argument of $`\mathsf{List}[u](e)`.*
 Given the type of each element of a literal with no type expected, the
 literal is an array of the type of its first element, which must be a
@@ -94,7 +94,7 @@ $`\mathsf{List}[u]`, then a constant index out of range (#121). The
 call gives a $`\mathsf{List}[\mathsf{Int}]`.
 :::
 
-:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "10508323097046125712")
+:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "3399692036597671027")
 *Rule: a literal of the wrong length where an $`\mathsf{Int}` is
 expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1, which
 `wrongIntLiteral` picks out, fits no initializer of $`\mathsf{Int}`,

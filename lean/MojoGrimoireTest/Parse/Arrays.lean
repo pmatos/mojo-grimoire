@@ -116,6 +116,6 @@ private def xs : Place := .var "xs"
 #guard rejects (inMain ["var xs = [[1], [2, 3]]"]) (.typeMismatch (.array .int 1) (.array .int 2))
 
 -- An empty literal needs an expected type.
-#guard rejects (inMain ["var xs = []"]) (.invalidType .noneType)
+#guard rejects (inMain ["var xs = []"]) (.invalidType .unknown)
 
 end MojoGrimoireTest.Parse.Arrays

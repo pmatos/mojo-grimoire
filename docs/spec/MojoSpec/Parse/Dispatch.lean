@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods of operators on structs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14121114416614882663")
+:::moduleDocs (fingerprint := "18309284950756854124")
 :::
 
-:::readable MojoGrimoire.Parse.declaredMethod MojoGrimoire.Parse.reflectedMethod MojoGrimoire.Parse.inPlaceMethod MojoGrimoire.Parse.otherParam (fingerprint := "14327447033417783899")
+:::readable MojoGrimoire.Parse.declaredMethod MojoGrimoire.Parse.reflectedMethod MojoGrimoire.Parse.inPlaceMethod MojoGrimoire.Parse.otherParam (fingerprint := "4476456537020946172")
 *Definition: the methods an operator may call.* A struct type declares a
 method by its name. The reflected method of a binary operator, called on
 its right operand, is `__radd__`, `__rsub__`, `__rmul__`,

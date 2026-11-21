@@ -81,8 +81,9 @@ where the compiler and the manual disagree, the model follows the compiler.
   after each of its sub-fields was assigned. The same holds for a loop
   body that leaves such a field moved out, and for overwriting the struct
   through a reference.
-- `p^` of type `Int` or `Bool` is the place `p`: the compiler warns that
-  the transfer has no effect, and uses `p` as if `^` were not there. So `p`
+- `p^` of type `Int`, `Bool` or `None` (#131) is the place `p`: the
+  compiler warns that the transfer has no effect, and uses `p` as if `^`
+  were not there. So `p`
   keeps its value, may be a `read` parameter, a field of one, a
   reference, an element of a list or an array, or a field of an element,
   is read when other places are, and may be passed to a `mut` parameter.

@@ -25,7 +25,8 @@ choices (#18):
   of a function or an initializer: the compiler rejects the transfer
   before it looks at the origins or matches the argument. A `ref` or a
   `read` parameter stays `transferFromBorrowed`, also passed to a `mut`
-  parameter (#85). `t^` of type `Int` or `Bool` is the place `t` (#50).
+  parameter (#85). `t^` of type `Int`, `Bool` or
+  `None` is the place `t` (#50, #131).
 - A reference may be changed when every origin allows it: a `mut`
   parameter does, a `ref` parameter as its argument does, a `read`
   parameter does not. A place reached through `p^` passed to a `ref`
@@ -67,8 +68,8 @@ choices (#18):
 - An assignment into a list element is rejected (`argumentExclusivity`)
   when the value is a call that builds its result in place and is passed
   `mut` the list, or a place that holds it: `xs[0] = xs.pop()`. A call
-  builds its result in place unless it returns an `Int`, a `Bool` or a
-  reference. `pop` always does, since its result has a generic type.
+  builds its result in place unless it returns an `Int`, a `Bool`,
+  `None` or a reference. `pop` always does, since its result has a generic type.
 - A call that returns a reference, used as a value, copies the value
   implicitly. Printed, an operand of a binary operator other than `and`
   and `or`, an argument passed by value or an element of a list or an

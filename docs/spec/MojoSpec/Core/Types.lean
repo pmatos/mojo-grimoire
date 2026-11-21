@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Names, types, conventions and operators: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5000350897246289862")
+:::moduleDocs (fingerprint := "15279387200446488079")
 :::
 
 :::readable MojoGrimoire.Core.Name (fingerprint := "17987575212195285839")
@@ -21,7 +21,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 methods and structs are all named by names, and the context says which.
 :::
 
-:::readable MojoGrimoire.Core.Ty (fingerprint := "4354194502057206910")
+:::readable MojoGrimoire.Core.Ty (fingerprint := "197235755055621481")
 *Definition: types.* A type $`t` is one of:
 
 ```grammar MojoGrimoire.Core.Ty
@@ -33,18 +33,22 @@ noneType   \mathsf{None}
 struct     S
 list       \mathsf{List}[t]
 array      \mathsf{Array}[t, n]
+unknown    \mathord{?}
 ```
 
 Here $`S` is the name of a struct, $`\mathsf{List}[t]` is a list of
 values of type $`t`, whose length may change, and
 $`\mathsf{Array}[t, n]` an array of exactly $`n` of them. $`\mathsf{Str}` is the type of string
 literals, which a program may only print, and $`\mathsf{None}` the type of a
-call to a function that returns nothing.
+call to a function that returns nothing. $`?` is no Mojo type: it stands
+for a type that the parser leaves for inference, and stays where
+inference finds none, so that a failed inference and a real
+$`\mathsf{None}` differ (#131).
 :::
 
-:::readable MojoGrimoire.Core.Ty.byValue (fingerprint := "7689001293932829925")
-*Definition: values used by value.* Mojo copies an $`\mathsf{Int}` or a
-$`\mathsf{Bool}` where it would otherwise use its location: when it is
+:::readable MojoGrimoire.Core.Ty.byValue (fingerprint := "15121805117193340047")
+*Definition: values used by value.* Mojo copies an $`\mathsf{Int}`, a
+$`\mathsf{Bool}` or a $`\mathsf{None}` where it would otherwise use its location: when it is
 passed to a `read` parameter, and when it is transferred with `^`, which
 does not move it.
 :::

@@ -77,7 +77,7 @@ def passValue (fit : Fit) (callee : Name) (c : Conv) : CheckM Unit := do
 size. -/
 def literalElem (prog : Program) (fit : Fit) (t : Ty) (n : Nat) : CheckM Ty := do
   let .ok u := elemOf t | throw (CheckError.invalidType t)
-  unless validTy prog u do throw (CheckError.invalidType t)
+  unless declarableTy prog u do throw (CheckError.invalidType t)
   if let .array _ k := t then
     unless k == n do throw (fit.misfit (CheckError.typeMismatch t (.array u n)))
   pure u
@@ -99,7 +99,7 @@ inside a nested literal, fits no initializer of `List[u]` (#103). -/
 def iterableLiteralTy (prog : Program) (u : Ty) (ts : List (Ty × List Place × Nat)) :
     CheckM Ty := do
   let some (t, _) := ts.head? | throw (CheckError.noMatchingInit (.list u))
-  unless validTy prog t do throw (CheckError.invalidType (.array t ts.length))
+  unless declarableTy prog t do throw (CheckError.invalidType (.array t ts.length))
   unless ts.all (·.1 == t) do throw (CheckError.noMatchingInit (.list u))
   recheckLocs prog (ts.map (·.2))
   pure (.array t ts.length)
@@ -193,7 +193,7 @@ def lateElemTy (prog : Program) : Expr → CheckM Ty
     pure (((methodSig prog (← placeTy prog p) m args.length).toOption.map (·.result)).getD .int)
   | .place p | .copy p | .transfer p => placeTy prog p
   | .listInit u [_] => pure (.list u)
-  | .list .noneType (e :: es) => do pure (.array (← lateElemTy prog e) (es.length + 1))
+  | .list .unknown (e :: es) => do pure (.array (← lateElemTy prog e) (es.length + 1))
   | _ => pure .int
 
 /-- Rejects a `wrongIntLiteral` as a call of fit `fit` reports it. The

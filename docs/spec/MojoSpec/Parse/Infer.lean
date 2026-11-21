@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6412586796278154283")
+:::moduleDocs (fingerprint := "4924817954781577601")
 :::
 
-:::readable MojoGrimoire.Parse.foldable (fingerprint := "2964211985334498850")
+:::readable MojoGrimoire.Parse.foldable (fingerprint := "1995746572076948755")
 *Definition: a literal that stays.* An expression made only of literals,
 negations, `not` and binary operators, or of a literal
 $`[e]_{\mathsf{Int}}` of one, reads no place and calls nothing. A literal
@@ -24,7 +24,7 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "1452655154678513150")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "9885899747695812429")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
@@ -48,7 +48,7 @@ it stands, a list type or an array type, and the checker compares an
 array's size with the literal's length. With no list or array expected, it is
 an array of its elements, of the type of the first: Mojo's
 $`\mathsf{Array}[t, n]`. Inference gives that type to what holds the
-literal, and leaves the literal's own type `None`, so that the checker
+literal, and leaves the literal's own type $`?`, so that the checker
 tells it from a literal that initializes an expected type (#46).
 A literal $`[e]` left open where an $`\mathsf{Int}` is expected, whose one
 element has the type $`\mathsf{Int}` when it is expected to, is an
@@ -80,13 +80,13 @@ argument of `append` is expected to be an element of the list, and the
 index of `pop(i)` an $`\mathsf{Int}`. The drops
 that elaboration inserts have the type of their operation. Inference fills
 in the literals inside an expression as it goes; where it finds no type,
-it gives none. A transfer $`p\,\hat{}` of an $`\mathsf{Int}` or a
-$`\mathsf{Bool}` becomes the place $`p`, since Mojo does not move such a
+it gives none. A transfer $`p\,\hat{}` of an $`\mathsf{Int}`, a
+$`\mathsf{Bool}` or a $`\mathsf{None}` becomes the place $`p`, since Mojo does not move such a
 value, wherever $`p` is: also an element of a list or an array, or a field
 of one.
 :::
 
-:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.unsignedResult (fingerprint := "4286700661354665780")
+:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.unsignedResult (fingerprint := "3606479627143958479")
 *Definition: expected types.* A literal expected to have a list type or an
 array type has that type, which the checker compares with its elements;
 otherwise its elements decide. Its elements are expected to have its
@@ -99,8 +99,9 @@ with no signature has the type of a struct the program declares, `len`'s
 $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "9466830064863890229")
+:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "5961927545704265853")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
+$`\mathsf{None}` for a call that returns nothing (#131),
 and `ref x = e` binds $`x` with the type of $`e`; $`x` may change what
 it points to when $`e`, once inferred, may (`TyEnv.mutableAt`), so also
 when it is a call of a method or of `__call__` that returns a reference
@@ -117,7 +118,7 @@ inferred in order, each statement seeing the variables declared before it;
 the variables of an inner block do not leave it.
 :::
 
-:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.parse (fingerprint := "4117428577163560014")
+:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.parse (fingerprint := "13241702365688979301")
 *Definition: parsing a program.* Inference starts each function from its
 parameters, and each destructor from `self`. The values a function returns
 are expected to have its result type, unless it returns a reference: then

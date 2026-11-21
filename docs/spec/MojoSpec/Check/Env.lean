@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5458553760525548020")
+:::moduleDocs (fingerprint := "11717772980221419843")
 :::
 
-:::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "1921251147877829779")
+:::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "1675389372256504091")
 *Definition: lookups.* The checker finds a struct or a function of the
 program by its name, the first one declared with that name, and a field or
 method of a struct by its name. `fieldOf` gives the type of the field
@@ -47,7 +47,7 @@ $`n = 0`, `pop` takes no argument; with any other $`n`, it takes one
 arguments is an arity mismatch.
 :::
 
-:::readable MojoGrimoire.Check.typeName (fingerprint := "7030328644115975064")
+:::readable MojoGrimoire.Check.typeName (fingerprint := "2691527890258549914")
 *Definition: type names.* The name of a type, as Mojo writes it without
 its parameters, names the type in an error about its methods or about
 the elements of a list literal of that type.
@@ -62,7 +62,7 @@ reflected operator's operands, evaluated left to right, bind the right
 one to `self` (#191).
 :::
 
-:::readable MojoGrimoire.Check.callSig MojoGrimoire.Check.methodSig (fingerprint := "12234308884261720347")
+:::readable MojoGrimoire.Check.callSig MojoGrimoire.Check.methodSig (fingerprint := "17017399791582438206")
 *Definition: the signature of a call.* $`f(e^*)` constructs the struct
 $`f`, when the program declares one, with the parameters of its `__init__`
 after `self`, or with one `var` parameter per field if it is
@@ -91,34 +91,42 @@ parameter, and with more than three, three; the checker rejects a wrong
 number of arguments itself.
 :::
 
-:::readable MojoGrimoire.Check.copyingOf (fingerprint := "11191475259856383167")
-*Definition: how a type is copied.* $`\mathsf{Int}` and
-$`\mathsf{Bool}` are implicitly copyable, as in Mojo; a struct is copied as
-it declares; a list or an array is copied only explicitly, with
-`.copy()`, and only when its elements can be copied; string literals and $`\mathsf{None}` are
-never copied.
+:::readable MojoGrimoire.Check.copyingOf (fingerprint := "4929797041010489604")
+*Definition: how a type is copied.* $`\mathsf{Int}`,
+$`\mathsf{Bool}` and $`\mathsf{None}` are implicitly copyable, as in
+Mojo; a struct is copied as it declares; a list or an array is copied only
+explicitly, with `.copy()`, and only when its elements can be copied;
+string literals, and $`?`, are never copied.
 :::
 
-:::readable MojoGrimoire.Check.validTy (fingerprint := "16319643588843478444")
-*Definition: declarable types.* A variable, parameter or field may have the
+:::readable MojoGrimoire.Check.validTy (fingerprint := "8576897572564801312")
+*Definition: declarable types.* A parameter or a field may have the
 type $`\mathsf{Int}`, $`\mathsf{Bool}`, a struct of the program, or a
 list or an array of values of such a type, and no other. So may a
-function's result, unless it is `None`, and the elements of a list
-literal.
+function's result, unless it is `None`, and the elements of a list or an
+array type that a program writes.
 :::
 
-:::readable MojoGrimoire.Check.elemBase (fingerprint := "16152550111862490354")
+:::readable MojoGrimoire.Check.declarableTy (fingerprint := "9281051138973713621")
+*Definition: the types of variables.* A variable may have a type that a
+parameter may have, $`\mathsf{None}`, the type of a call that returns
+nothing, or a list or an array of values of such a type, as the nightly
+accepts (#131); so may the elements of a literal. $`?`, a type that
+inference could not find, is no such type.
+:::
+
+:::readable MojoGrimoire.Check.elemBase (fingerprint := "16519205532748788881")
 *Definition: element types.* The element type of a type $`t` is that of
 its elements through any number of lists and arrays, or $`t` itself.
 :::
 
-:::readable MojoGrimoire.Check.throughList (fingerprint := "15034747893672114577")
+:::readable MojoGrimoire.Check.throughList (fingerprint := "10906708178436627416")
 *Definition: list edges.* A field of type $`t` holds the struct it reaches
 through a list when some list wraps it, under any number of arrays and
 lists.
 :::
 
-:::readable MojoGrimoire.Check.successors MojoGrimoire.Check.reach (fingerprint := "7332398909861290542")
+:::readable MojoGrimoire.Check.successors MojoGrimoire.Check.reach (fingerprint := "11918007857969338830")
 *Definition: reachable structs.* A field leads to the struct of its
 element type. The successors of a struct, through the fields whose type
 satisfies a predicate, are the structs that those fields lead to. The
@@ -129,7 +137,7 @@ that, the search gives nothing, rather than the structs it has reached so
 far.
 :::
 
-:::readable MojoGrimoire.Check.rejectedCycle (pin := MojoGrimoire.Check.elemBase) (pin := MojoGrimoire.Check.throughList) (pin := MojoGrimoire.Check.successors) (pin := MojoGrimoire.Check.reach) (fingerprint := "4062249882073262940")
+:::readable MojoGrimoire.Check.rejectedCycle (pin := MojoGrimoire.Check.elemBase) (pin := MojoGrimoire.Check.throughList) (pin := MojoGrimoire.Check.successors) (pin := MojoGrimoire.Check.reach) (fingerprint := "10946540318252151045")
 *Definition: rejected cycles.* A field leads to the struct of its element
 type, through a list when some list wraps it. A cycle of fields none of
 which is through a list is rejected: a struct that holds itself, directly

@@ -79,7 +79,7 @@ def hasMethod (prog : Program) (t : Ty) (m : Name) : Bool :=
   | .list _ => ["__add__", "__mul__", "__eq__", "__ne__", "__bool__"].contains m
   | .array .. => ["__lt__", "__le__", "__gt__", "__ge__", "__eq__", "__ne__"].contains m
   | .struct s => (findStruct prog s).any fun sd => (findMethod sd m).isSome
-  | .noneType => false
+  | .noneType | .unknown => false
   | .str => true
 
 /-- Whether the method `m` of a value of type `t` has several overloads,
@@ -122,7 +122,7 @@ where
       pure ((methodSig prog (← placeTy prog p) m args.length).toOption.map (·.result))
     | .unary op _ => pure (some (if op == .neg then .int else .bool))
     | .binary op _ _ => pure (some (binaryResult op))
-    | .list .noneType (e :: es) => do
+    | .list .unknown (e :: es) => do
       let u ← formTy e
       pure (if ← sameTy u es then u.map (.array · (es.length + 1)) else none)
     | .list .int [_] => pure (some .int)
@@ -222,6 +222,17 @@ arguments checked: the compiler requires a destination that may change
 then, whatever the convention of the method's `self` (#191). -/
 def requireInPlace (f : Name) (args : List Expr) : CheckM Unit := do
   if let (true, .place p :: _) := (inPlaceCallee f, args) then requireMutable p
+
+/-- Rejects `p.copy()` when `p` has the type `None`, once `typing` has
+typed `p` in `State.typing`: `None` has no `.copy()`, and the compiler
+says that it has no attributes as it types the call, before it reads `p`
+(#131). An error found while typing `p` is left to the checks that follow,
+and the state is restored. -/
+def rejectNoneCopy (prog : Program) (p : Place) (typing : CheckM Unit) : CheckM Unit := do
+  let s ← get
+  let t ← try (do modify State.typing; typing; placeTy prog p) catch _ => pure .unknown
+  set s
+  if t == .noneType then throw (CheckError.unknownAttribute (typeName t) "copy")
 
 /-- Rejects a call of `f` when a variable in scope of that name hides the
 function, `len`, `range`, `print` or the struct `f`, and its type has no

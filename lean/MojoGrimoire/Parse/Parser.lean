@@ -11,9 +11,9 @@ total; a run that spends it all reports a program too deeply nested to
 parse. Fuel of a few times the number of tokens is always enough, since
 each call either reads a token or descends a fixed number of levels.
 
-A type left for inference is written `noneType`: no variable of the subset
-has the type `None`, so the placeholder cannot be confused with a type the
-program declares. Inference replaces it.
+A type left for inference is written `unknown`, which is no Mojo type, so
+the placeholder cannot be confused with a type the program declares, such
+as `None` (#131). Inference replaces it.
 -/
 
 namespace MojoGrimoire.Parse
@@ -85,6 +85,14 @@ def name : P Name := do
   | .ident x => if keywords.contains x then fail s!"`{x}` is a keyword" else pure x
   | _ => fail "expected a name"
 
+/-- A type argument of `List` or `Array` as the parser reads it: `None`
+there is a value where Mojo expects a type, which the compiler rejects. It
+is read as `unknown`, which the checker rejects as `invalidType`, as it
+did before `None` was a type a variable may have (#183). -/
+def typeArgument : Ty → Ty
+  | .noneType => .unknown
+  | t => t
+
 /-- Reads a type: `Int`, `Bool`, `None`, `List[T]`, `Array[T, N]` with
 `N` a literal, or the name of a struct. -/
 def ty : Nat → P Ty
@@ -98,14 +106,14 @@ def ty : Nat → P Ty
       expectSym "["
       let t ← ty fuel
       expectSym "]"
-      pure (.list t)
+      pure (.list (typeArgument t))
     | "Array" => do
       expectSym "["
       let t ← ty fuel
       expectSym ","
       let .int n ← next | fail "expected the size of an array"
       expectSym "]"
-      pure (.array t n)
+      pure (.array (typeArgument t) n)
     | s => pure (.struct s)
 
 end MojoGrimoire.Parse

@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "cannot implicitly convert 'IntLiteral[1]' value to 'None' in 'var' initializer"
+}
