@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15753755224725291379")
+:::moduleDocs (fingerprint := "5359169806149198755")
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "6671373162125942704")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "51066898229860360")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, or $`\mathsf{Int}` for the element of
@@ -63,7 +63,8 @@ an $`\mathsf{Int}`, and so is either operand of an operator other than
 (#160). A literal compared with an array or a list is expected to have
 that operand's type when it fits it: on the right, of the left operand,
 and on the left, of a right operand that is no literal and whose
-comparison conforms (#166). The right operand of $`==` or $`!=` whose
+comparison conforms (#166), unless either operand is a literal that
+holds a place whose value is not implicitly copyable. The right operand of $`==` or $`!=` whose
 left operand is a list is expected to have the list's type unless it
 does not fit it, as the argument of its `__eq__` or `__ne__` (#185). Each
 operand that is not a literal is inferred first, with no type expected,
@@ -95,7 +96,7 @@ be built takes nothing. A call with no signature has the type of a
 struct the program declares, `len`'s $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "9361728928013075244")
+:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "14783131021048654060")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 $`\mathsf{None}` for a call that returns nothing (#131),
 and `ref x = e` binds $`x` with the type of $`e`; $`x` may change what

@@ -112,11 +112,10 @@ it to lists. Part 1 of #166 and #185 model the element types `Int`,
   does not fit is a type mismatch, found before the operands are read:
   `a == [[]]`, `[[1]] == [1]`, `xs == [True]`, `a == [p + p, 2]` with
   `p + p` a struct. A literal on the left that keeps its own type, as it
-  does not fit or the comparison converts none, is built first: an
-  implicit copy in it comes first, as in `[ys] == xs` or `[ys] < xss` with
-  `ys` a list, and then the right operand, which fits it no better, is a
-  type mismatch: `[1, 2, 3] == a`, `[True] == xs`, `[ys^] == xs`, and
-  `[[1]] < v` with `v` an array of lists. An inner literal of another
+  does not fit or the comparison converts none, makes the right operand,
+  which fits it no better, a type mismatch: `[1, 2, 3] == a`,
+  `[True] == xs`, `[ys^] == xs`, and `[[1]] < v` with `v` an array of
+  lists. An inner literal of another
   length where an `Int` is expected on the right, `a == [[1, 2], 3]`, fits
   no initializer of `Int` (`noMatchingInit`), but only once `a` is read,
   as in a call: beside an uninitialized `a` it is `uninitializedUse`.
@@ -153,6 +152,14 @@ and `1 < True` fits none of the literal's overloads.
 Not yet modelled. Each stays rejected, with a class that is still not
 the compiler's; where #185 changed the class, the bullet says so:
 
+- A comparison of which either operand is a literal that holds a place
+  whose value is not implicitly copyable, at any depth, such as `ys` or
+  `a` in `[ys] == xs`, `[[ys]] == 1`, `[a] == [[1], [2]]` or
+  `xs == [ys]`. The compiler builds the literal, and copies the place,
+  in an order against the literal's conversion and the misfit that
+  waits for #96. The comparison keeps every check it had before #166
+  (`keepsBefore`): most are `implicitCopy`, as the compiler says, but
+  `xs == [ys]`, a type mismatch for the compiler, is `implicitCopy` too.
 - A literal on the left that holds an inner literal of another length
   where an `Int` is expected, `[[1, 2], 3] == a`. The compiler converts
   it, fails SIMD's constraint (`noMatchingInit`) in a later pass than its

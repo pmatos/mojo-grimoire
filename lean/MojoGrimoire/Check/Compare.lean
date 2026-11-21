@@ -25,10 +25,13 @@ comparison does not conform (`convertsTo`, `literalFits`, `operandFit`).
 Inference gives a literal that fits that type, and the checker checks
 one on the right against the parameter of the method (`rightParam`). One
 that does not fit is a type mismatch, found before the operands are
-read, after an implicit copy that a literal on the left, built with its
-own type, makes (`copyMisfit`). A literal on the left that holds an
-inner literal of another length than one where an `Int` is expected is
-not converted: the order of SIMD's failure and the reads waits for #96. An element type that holds a struct waits for its
+read. A comparison with a literal that holds a place whose value is not
+implicitly copyable keeps the checks it had before #166 (`keepsBefore`):
+the compiler builds the literal, and copies the place, in an order
+against its conversion that waits for #96. A literal on the left that
+holds an inner literal of another length than one where an `Int` is
+expected is not converted: the order of SIMD's failure and the reads
+waits for #96. An element type that holds a struct waits for its
 conformances (#194), and a literal that would initialize a `Bool` for
 #165: those comparisons keep the checks they had before #166. A list of
 structs compared with an empty literal, `List[P]() == []`, is a type
@@ -190,40 +193,89 @@ def placesOf : List Expr → List Place
   | e :: es => literalPlaces e ++ placesOf es
 end
 
-/-- The implicit copy that building the literal `e` with its own type
-makes, and that the compiler rejects: of the first place in it whose
-value is not implicitly copyable. -/
-def copyMisfit (prog : Program) (e : Expr) : CheckM (Option CheckError) := do
+/-- Whether the literal `e` holds, at any depth, a place whose value is not
+implicitly copyable (`literalPlaces`). -/
+def heldCopy (prog : Program) (e : Expr) : CheckM Bool := do
+  unless e matches .list .. do return false
   for p in literalPlaces e do
     if let some t ← operandTy prog (.place p) then
-      if copyingOf prog t != .implicit then return some (.implicitCopy t)
-  pure none
+      if copyingOf prog t != .implicit then return true
+  pure false
+
+/-- Whether the comparison `op` of `a` and `b` keeps the checks it had
+before #166 (`Before`): when either operand is a literal that holds a
+place whose value is not implicitly copyable (`heldCopy`). The compiler
+builds such a literal, and copies the place, in an order against its
+conversion and its misfit that waits for #96. -/
+def keepsBefore (prog : Program) (op : BinOp) (a b : Expr) : CheckM Bool := do
+  pure (compares op && ((← heldCopy prog a) || (← heldCopy prog b)))
+
+namespace Before
+
+/-- Whether the expression `e` is an open literal that holds a literal. -/
+def holdsLiteral : Expr → Bool
+  | .list .unknown es => es.any (· matches .list ..)
+  | _ => false
+
+/-- Whether the comparison `op` of `a` and `b`, of types `ta` and `tb`
+found from their forms, has a literal that the compiler converts to the
+other operand's type: one that holds a literal, with types not known to
+be the same, or one with no type compared with a list. -/
+def convertsLiteral (op : BinOp) (a b : Expr) (ta tb : Option Ty) : Bool :=
+  compares op && ((holdsLiteral a || holdsLiteral b) && (ta.isNone || ta != tb) ||
+    a matches .list .unknown _ && tb matches some (.list _) ||
+    b matches .list .unknown _ && ta matches some (.list _))
+
+/-- The error of `op` that the forms of `a` and `b` give, before #166's
+conversions: a literal that the compiler converts is left to the checks
+that follow. -/
+def operandMisfit (prog : Program) (op : BinOp) (a b : Expr) : CheckM (Option CheckError) := do
+  let ta ← if intLiteral a then pure none else operandTy prog a
+  let tb ← if compares op && b matches .list .unknown [] then pure (some .unknown)
+    else operandTy prog b
+  let tb := if convertsLiteral op a b ta tb then none else tb
+  pure (binaryMisfit prog op ta tb)
+
+/-- Whether the operand `e` of `op` is passed by reference, before #166's
+conversions: not beside a literal that the compiler converts. -/
+def byRef (prog : Program) (op : BinOp) (e other : Expr) : CheckM Bool := do
+  if !compares op then return false
+  let t ← operandTy prog e
+  if convertsLiteral op e other t (← operandTy prog other) then return false
+  pure (t.bind (seqCompare op)).isSome
+
+/-- The parameter that the right operand `b` is checked against, before
+#166's conversions: only a list's `other` of `==` and `!=`. -/
+def rightParam (op : BinOp) (a b : Expr) (ta : Ty) : Option (Fit × Param) :=
+  if intLiteral a && op != .and && op != .or then
+    some (.overload (binaryMethod op), ⟨.read, "rhs", .int⟩)
+  else if (op == .eq || op == .ne) && ta matches .list _ && b matches .list (.list _) _ then
+    some (.call, ⟨.read, "other", ta⟩)
+  else none
+
+end Before
 
 /-- The error of the operator `op` that the forms of its operands `a` and
 `b` give (`operandTy`), before they are read (`binaryMisfit`). A literal
 on the left of a comparison is converted to the type of the right
 operand, unless that is a literal too, and a literal on the right to the
 type of the left one (`operandFit`), as the compiler converts the
-argument of the method: one that does not fit is a type mismatch. A
-literal on the left that keeps its own type beside an array or a list,
-as it does not fit or the comparison converts none, is built first, so
-an implicit copy that it makes comes before its misfit (`copyMisfit`);
-one with no type of its own, which the compiler reports as a list it
-cannot type, keeps the checks it had before. An integer literal's
-comparison with an array or a list is left to its overloads. -/
+argument of the method: one that does not fit is a type mismatch, but a
+literal on the left with no type of its own, which the compiler reports
+as a list it cannot type, keeps the checks it had before. A comparison
+with a literal that holds a place whose value is not implicitly copyable
+keeps them all (`keepsBefore`). An integer literal's comparison with an
+array or a list is left to its overloads. -/
 def operandMisfit (prog : Program) (op : BinOp) (a b : Expr) : CheckM (Option CheckError) := do
+  if ← keepsBefore prog op a b then return ← Before.operandMisfit prog op a b
   let ta ← if intLiteral a then pure none else operandTy prog a
   let tb ← operandTy prog b
   let fa ← if b matches .list .. then pure none else operandFit prog op a tb true
   let ta' := fitTy fa tb ta
   let fb ← operandFit prog op b ta'
-  let misfit := if fa == some (some false) && ta.isSome || fb == some (some false) then
-      some (.typeMismatch (ta'.getD .unknown) (tb.getD .unknown))
-    else binaryMisfit prog op (if fa == some (some false) then none else ta') (fitTy fb ta' tb)
-  if misfit.isSome && compares op && a matches .list .. && !(b matches .list ..) &&
-      fa != some (some true) && tb matches some (.list _) | some (.array ..) then
-    if let some err ← copyMisfit prog a then return some err
-  pure misfit
+  if fa == some (some false) && ta.isSome || fb == some (some false) then
+    return some (.typeMismatch (ta'.getD .unknown) (tb.getD .unknown))
+  pure (binaryMisfit prog op (if fa == some (some false) then none else ta') (fitTy fb ta' tb))
 
 /-- Whether the operand `e` of the operator `op`, whose other operand is
 `other`, is passed by reference, uncopied, as the comparisons of `Array`
@@ -235,6 +287,7 @@ checks it had before #166, a copy. `left` holds when `other` is on the
 left. -/
 def byRef (prog : Program) (op : BinOp) (e other : Expr) (left := false) : CheckM Bool := do
   if !compares op then return false
+  if ← keepsBefore prog op e other then return ← Before.byRef prog op e other
   let t ← operandTy prog e
   if (← operandFit prog op other t left) == some none && literalTy other != t &&
       (holdsLiteral other || t matches some (.list _)) then
@@ -271,9 +324,10 @@ gives their types, once the places they read are checked again for what
 changed after (`recheckPlaces`). -/
 def compareOperands (prog : Program) (op : BinOp) (a b : Expr) (checkA checkB : Bool → CheckM Ty)
     (argB : Fit → Param → CheckM Unit) : CheckM (Ty × Ty) := do
+  let before ← keepsBefore prog op a b
   let ta ← checkA (← byRef prog op a b)
   let ka ← mark
-  let tb ← match rightParam op a b ta with
+  let tb ← match (if before then Before.rightParam else rightParam) op a b ta with
     | some (fit, prm) => do argB fit prm; pure prm.ty
     | none => checkB (← byRef prog op b a true)
   let kb ← mark

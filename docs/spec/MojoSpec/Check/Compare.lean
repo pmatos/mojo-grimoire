@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17109501401130498907")
+:::moduleDocs (fingerprint := "16565483026404157407")
 :::
 
 :::readable MojoGrimoire.Check.compares MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "12823475274059033023")
@@ -73,7 +73,7 @@ expected: the order of SIMD's failure and the reads waits for #96, and
 such a literal keeps the checks it had before #166.
 :::
 
-:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.copyMisfit MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "2654032989309477854")
+:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "14571024578248442231")
 *Rule: operands of a comparison of arrays or lists.* The misfit of a
 binary operator is found from its operands' forms before they are read
 (`operandTy`). A literal on the right of a comparison is converted to
@@ -83,11 +83,9 @@ that type (`operandFit`, `fitTy`). A literal on the right that does not
 fit, or one on the left that does not fit and has a type of its own, is
 a type mismatch, before the operands are read. A literal on the left
 that does not fit keeps its own type, and the right operand is then
-converted to it. A literal on the left beside an array or a list that
-keeps its own type, as it does not fit or the comparison converts none,
-is built first: when the comparison has a misfit, a place in the literal
-whose value is not implicitly copyable is first `implicitCopy` of that
-value's type (`copyMisfit`). A literal whose fit is unknown gives no type, and is
+converted to it. A comparison with a literal that holds a place whose
+value is not implicitly copyable takes the checks it had before #166
+(`keepsBefore`). A literal whose fit is unknown gives no type, and is
 left to the checks that follow, as before #166. An integer literal on
 the left gives no type, so that its overloads report a comparison with
 an array or a list (`noMatchingMethod`). An operand compared as an array
@@ -96,6 +94,21 @@ or a list is passed by reference, as the comparisons of `Array` and
 reference, is read, uncopied; but not beside a literal whose fit is
 unknown and which inference did not give the operand's type, beside a
 list, or an array when that literal holds a literal.
+:::
+
+:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "16522449740450748819")
+*Rule: comparisons that keep the checks they had before #166.* A
+literal holds the places that are its elements, at any depth. A
+comparison of which either operand is a literal that holds a place whose
+value is not implicitly copyable keeps every check it had before #166:
+the compiler builds such a literal, and copies the place, in an order
+against the literal's conversion and the comparison's misfit that waits
+for #96. Before #166, a comparison with a literal that the compiler
+converts, one that holds a literal with types not known to be the same,
+or one with no type of its own beside a list, found no misfit from the
+forms of its operands, passed neither by reference, and checked only a
+literal on the right of $`==` or $`!=` of a list as the argument `other`
+of the list's type.
 :::
 
 :::readable MojoGrimoire.Check.rightParam (fingerprint := "5344092844104288245")
@@ -120,7 +133,7 @@ again from the checked types; otherwise such a comparison gives a
 $`\mathsf{Bool}`, and any other operator's result is `binaryTy`'s.
 :::
 
-:::readable MojoGrimoire.Check.compareOperands (fingerprint := "1948407746432204459")
+:::readable MojoGrimoire.Check.compareOperands (fingerprint := "8628745417993079286")
 *Rule: the order of a comparison's operands.* The left operand is
 checked, then the right one, as an argument when `rightParam` says so,
 and the places they read are checked again for what changed after them.

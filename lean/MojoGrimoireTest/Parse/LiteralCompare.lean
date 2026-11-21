@@ -106,4 +106,19 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["var ys: List[Int] = [1]", "var xss: List[List[Int]] = [[1]]", "print([ys] < xss)"]
   (.implicitCopy (.list .int))
 
+-- A comparison with a literal that holds a place whose value is not
+-- implicitly copyable keeps the checks it had before #166: the compiler
+-- builds the literal and copies the place first, which these follow.
+#guard rejects ["var y: List[Int] = [1]", "print([y] == [[1], [2]])"] (.implicitCopy (.list .int))
+#guard rejects ["var y: List[Int] = [1]", "print([y] < [[1]])"] (.implicitCopy (.list .int))
+#guard rejects ["var b = [1]", "print([b] == [[1], [2]])"] (.implicitCopy (.array .int 1))
+#guard rejects ["var y: List[Int] = [1]", "print([[y]] == [1])"] (.implicitCopy (.list .int))
+#guard rejects ["var y: List[Int] = [1]", "print([[y]] == 1)"] (.implicitCopy (.list .int))
+#guard rejects ["var y: List[Int] = [1]", "var x = 1", "print([[y]] < x)"]
+  (.implicitCopy (.list .int))
+#guard rejects ["var y: List[Int] = [1]", "var v: Array[List[Int], 1] = [[1]]", "print(v < [y])"]
+  (.violatedConstraint (.array (.list .int) 1) "__lt__")
+#guard rejects ["var y: List[Int] = [1]", "print([y.copy()] < [y])"]
+  (.violatedConstraint (.array (.list .int) 1) "__lt__")
+
 end MojoGrimoireTest.Parse.LiteralCompare

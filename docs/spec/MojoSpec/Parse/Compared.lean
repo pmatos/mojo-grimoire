@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expected types of literals: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3575438904985884810")
+:::moduleDocs (fingerprint := "2793904399368221008")
 :::
 
 :::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected (fingerprint := "17740833371835876722")
@@ -31,7 +31,7 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv.leafTy MojoGrimoire.Parse.TyEnv.literalFit MojoGrimoire.Parse.converts (fingerprint := "6293860924381182479")
+:::readable MojoGrimoire.Parse.TyEnv.leafTy MojoGrimoire.Parse.TyEnv.literalFit MojoGrimoire.Parse.TyEnv.heldCopy MojoGrimoire.Parse.converts (fingerprint := "14857081779414229261")
 *Rule: the fit of a compared literal.* The literal is inferred once with
 no type expected, so that an operator or a call of a struct in it is a
 call of the method it calls. An element of it then has the type its form
@@ -43,10 +43,13 @@ but `len`, have none. From these, a literal fits the type of the operand
 it is compared with or not, as the checker decides it
 (`MojoGrimoire.Check.literalFits`), when the comparison converts a
 literal to it, on the left only when the comparison conforms
-(`MojoGrimoire.Check.convertsTo`).
+(`MojoGrimoire.Check.convertsTo`). A comparison with a literal that
+holds a place whose value is not implicitly copyable, as the checker's
+`MojoGrimoire.Check.heldCopy` finds it, keeps the expectations it had
+before #166.
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv.retype MojoGrimoire.Parse.TyEnv.retypeList MojoGrimoire.Parse.TyEnv.compared (fingerprint := "16253087408763987415")
+:::readable MojoGrimoire.Parse.TyEnv.retype MojoGrimoire.Parse.TyEnv.retypeList MojoGrimoire.Parse.TyEnv.compared (fingerprint := "12263387979191851559")
 *Rule: a compared literal's type.* A literal that fits the type $`t` of
 the operand it is compared with takes $`t`, and so does one on the right
 of $`==` or $`!=` of a list whose fit is not known (#185). Inference does
