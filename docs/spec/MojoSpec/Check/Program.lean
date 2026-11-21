@@ -80,7 +80,7 @@ functions' bodies, `main`'s signature and the methods of the structs up
 to it, and before its later passes and a missing `main`; the rest of its
 order is left to #96 (#164). A type that a variable hides in a struct's
 initializer, destructor or method, `valueAsType`, is reported there too,
-just before that struct's fields: the compiler checks those bodies after
+just before that struct's copyability check: the compiler checks those bodies after
 the functions'. The bodies of the structs after it are then not checked,
 since the compiler reports their errors later; their fields still are
 (#193). Otherwise the program is rejected with the first error found, and

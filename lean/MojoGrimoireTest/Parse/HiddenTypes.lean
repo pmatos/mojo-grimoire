@@ -127,7 +127,7 @@ private def prints (pre body : List String) (out : List String) : Bool :=
 #guard rejects ["var P = 5", "var q: P = zz"] (.valueAsType "P")
 #guard rejects ["var P = 5", "var P: P = mk()"] (.valueAsType "P")
 -- Inside a struct's method, initializer or destructor, it comes after the
--- functions' bodies, before the struct's fields are checked, and the
+-- functions' bodies, before that struct's copyability check, and the
 -- methods of later structs are not checked.
 private def method (body : List String) : List String :=
   ["@fieldwise_init", "struct Q(Copyable, Movable):", "    var x: Int",

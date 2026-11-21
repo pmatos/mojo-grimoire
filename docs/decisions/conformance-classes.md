@@ -181,16 +181,19 @@ The model reports the error in program order: after an earlier error in
 the body, and before the declaration's initializer, its reuse of a name
 and the arguments of `List[T](...)`, as the compiler does. In a struct's
 initializer, destructor or method, it reports it after the functions'
-bodies and `main`'s signature, just before that struct's fields, and does
+bodies and `main`'s signature, just before that struct's copyability
+check, and does
 not check the methods of the structs after it, since the compiler checks
-those bodies after the functions'. Three cases differ. A later pass's
+those bodies after the functions'. Four cases differ. A later pass's
 error before it, such as a use of an uninitialized value, comes first in
 the model (#96). The compiler resolves a function's or a method's
 signature where a body first refers to it, and a struct's `__init__`
 signature with the struct, in declaration order, where the model checks a
-signature with its body (#231). And a hidden type in a function comes
+signature with its body (#231). A hidden type in a function comes
 after an error in a struct's method in the model, which checks structs
-first (#96).
+first (#96). And `ref r = List[T]()` stays `notAReference`, since the
+model rejects a `ref` binding to what is not a location before it checks
+the expression.
 
 A variable named `List` or `Array` makes `List[...]` a subscript of the
 variable, which the compiler reports with other errors. The model does

@@ -135,9 +135,9 @@ the functions' bodies, `main`'s signature and the methods of the structs
 up to it, and before its later passes and a missing `main`; the rest of
 its order is left to #96 (#164). A type that a variable hides in a
 struct's initializer, destructor or method, `valueAsType`, is reported
-there too, before the struct's fields, and the methods of the structs
-after it are not checked, since the compiler reports their errors later
-(#193). -/
+there too, before that struct's copyability check, and the methods of
+the structs after it are not checked, since the compiler reports their
+errors later (#193). -/
 def checkProgram (prog : Program) : Except Rejection Unit := do
   (checkDistinct (prog.structs.map (·.name) ++ prog.funs.map (·.name))).mapError (⟨"", ·⟩)
   let mut hidden : Option (Name × Rejection) := none
