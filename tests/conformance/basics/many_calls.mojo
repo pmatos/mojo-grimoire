@@ -5,7 +5,7 @@ def inc(k: Int) -> Int:
 def main():
     var i = 0
     var s = 0
-    while i < 400000:
+    while i < 800000:
         s = inc(s)
         i += 1
     print(s)
