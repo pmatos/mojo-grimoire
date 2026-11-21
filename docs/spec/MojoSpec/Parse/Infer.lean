@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3896187359174246925")
+:::moduleDocs (fingerprint := "3635157916161148811")
 :::
 
 :::readable MojoGrimoire.Parse.foldable (fingerprint := "1995746572076948755")
@@ -24,7 +24,7 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "3563289020766669602")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "8846287375144703530")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, or $`\mathsf{Int}` for the element of
@@ -68,12 +68,15 @@ them; the checker rejects it (#153, #154). A function that returns
 a reference expects no type of the values it returns. An index is expected to be
 an $`\mathsf{Int}`, and so is either operand of an operator other than
 `and` and `or` whose other operand is an $`\mathsf{Int}`, as Mojo reads it
-(#160). The right operand of $`==` or $`!=` whose left operand is a list
-is expected to have the list's type, as the argument of its `__eq__` or
-`__ne__` (#185). Each
+(#160). A literal compared with an array or a list is expected to have
+that operand's type when it fits it (`comparedTy`): on the right, of the
+left operand, and on the left, of a right operand that is no literal
+(#166). The right operand of $`==` or $`!=` whose left operand is a list
+is expected to have the list's type unless it does not fit it, as the
+argument of its `__eq__` or `__ne__` (#185). Each
 operand that is not a literal is inferred first, with no type expected,
-and a literal operand once, with $`\mathsf{Int}` or the list's type
-expected when the rules above say so.
+and a literal operand once, with $`\mathsf{Int}` or the other operand's
+type expected when the rules above say so.
 $`\mathsf{List}[u](e^+)` is a list of $`u`, whose arguments are expected
 to have no type. Its one argument $`p\,\hat{}` becomes the place
 $`p\,\hat{}`, which Mojo borrows, since the initializer takes it by `ref`
@@ -102,7 +105,19 @@ with no signature has the type of a struct the program declares, `len`'s
 $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "5961927545704265853")
+:::readable MojoGrimoire.Parse.TyEnv.leafTy MojoGrimoire.Parse.TyEnv.literalFit MojoGrimoire.Parse.TyEnv.comparedTy (fingerprint := "17788468353907915695")
+*Rule: the type expected of a compared literal.* An element of a literal
+has the type its form gives, with no inference inside it: a literal's
+constant, a place's declared type, the result of a call or a method
+call that the program declares, and an operator's result; a literal, and
+a call of a name that a variable hides, have none. From these, a literal
+fits the type of the operand it is compared with or not, as the checker
+decides it (`MojoGrimoire.Check.literalFits`), and a literal that fits is
+expected to have that type, when the comparison converts a literal to it
+(`MojoGrimoire.Check.convertsTo`). Otherwise its elements decide its type.
+:::
+
+:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "12803779649137615047")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 $`\mathsf{None}` for a call that returns nothing (#131),
 and `ref x = e` binds $`x` with the type of $`e`; $`x` may change what

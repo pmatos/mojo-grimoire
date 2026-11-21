@@ -50,9 +50,10 @@ type:
   right operand of an operator whose left operand is an integer literal
   expression (`intLiteral`), but `and` and `or`, is passed as to a `read`
   $`\mathsf{Int}` parameter of a method with several overloads: one that
-  is no $`\mathsf{Int}` is `noMatchingMethod` (#88). The literal on the
-  right of $`==` or $`!=` whose left operand is a list is passed as the
-  list's `other` parameter of the list's type (`rightParam`, #185). The
+  is no $`\mathsf{Int}` is `noMatchingMethod` (#88). A literal on the
+  right of a comparison that converts it to the type of an array or a
+  list on the left, and that inference gave that type, is passed as the
+  method's `other` parameter of that type (`rightParam`, #166, #185). The
   misfit of a comparison of two arrays or two lists is found from the
   operands' types too (`operandMisfit`), and an operand compared as an
   array or a list, a place or a call that returns a reference, is read by

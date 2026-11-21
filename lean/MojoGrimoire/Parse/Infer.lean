@@ -1,4 +1,5 @@
 import MojoGrimoire.Parse.Dispatch
+import MojoGrimoire.Check.Compare
 import MojoGrimoire.Parse.HiddenTypes
 
 /-!
@@ -28,9 +29,13 @@ its elements, as SIMD's initializer takes them; the checker rejects it
 (#153, #154). An `Int`
 is also expected by an index, and by either operand of an operator other
 than `and` and `or` whose other operand is an `Int`, as Mojo reads it
-(#160). The right operand of `==` or `!=` whose left operand is a list
-is expected to have the list's type, as the argument of its `__eq__` or
-`__ne__` (#185). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
+(#160). A literal compared with an array or a list is expected to have
+that operand's type, as the argument of its comparison method, when it
+fits it (`MojoGrimoire.Check.literalFits`): on the right, of the left
+operand, and on the left, of a right operand that is no literal (#166).
+The right operand of `==` or `!=` whose left operand is a list is
+expected to have the list's type unless it does not fit it, also when its
+fit is not known (#185). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
 the type `t` of the first, as in Mojo: inference gives that type to what
 holds the literal, and leaves the literal's own type `unknown`, so that the
 checker tells a literal that initializes an expected type from one that
@@ -88,6 +93,43 @@ def unsignedResult (prog : Program) (f : Name) : Option Ty :=
   if (findStruct prog f).isSome then some (.struct f)
   else if f == "len" then some .int
   else none
+
+/-- The type of the operand `e` that its form gives, with no inference
+inside it: what `MojoGrimoire.Check.literalFits` needs of the elements of
+a literal compared with an array or a list. A literal, and a call of a
+name that a variable hides, have none. -/
+def TyEnv.leafTy (prog : Program) (env : TyEnv) : Expr → Option Ty
+  | .int _ => some .int
+  | .bool _ => some .bool
+  | .str _ => some .str
+  | .place p | .copy p | .transfer p => env.placeTy prog p
+  | .call f _ =>
+    if (env.lookup f).isSome then none
+    else match callSig prog f with
+      | .ok sig => some sig.result
+      | .error _ => unsignedResult prog f
+  | .method p m args =>
+    (env.placeTy prog p).bind fun t => (methodSig prog t m args.length).toOption.map (·.result)
+  | .unary op _ => some (if op == .neg then .int else .bool)
+  | .binary op _ _ => some (binaryResult op)
+  | _ => none
+
+/-- Whether the literal `lit` fits the type `t`, as the elements' forms
+give it (`MojoGrimoire.Check.literalFits`). -/
+def TyEnv.literalFit (prog : Program) (env : TyEnv) (t : Ty) (lit : Expr) : Option Bool :=
+  (literalFits (m := Id) (fun e => env.leafTy prog e) t lit).run
+
+/-- The type that the literal `lit`, compared by `op` with an operand of
+type `t`, is expected to have: `t` when the comparison converts a literal
+to it and `lit` fits it, and otherwise `unknown`, which its elements
+decide (#166). -/
+def TyEnv.comparedTy (prog : Program) (env : TyEnv) (op : BinOp) (t : Option Ty)
+    (lit : Expr) : Ty :=
+  match t with
+  | some t =>
+    if compares op && convertsTo op t && env.literalFit prog t lit == some true then t
+    else .unknown
+  | none => .unknown
 
 /-- Whether the expression `e` is made only of literals and operators, so
 that it reads no place and calls nothing: a literal `[e]` of type `Int`
@@ -166,13 +208,15 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
       (.call (methodCallee s m reflected) [a', b'], some fd.result)
     | none =>
     let (a', ta) := if a matches .list .. then
-        inferExpr prog env (if tb₀ == some .int then .int else .unknown) a
+        inferExpr prog env (if tb₀ == some .int then .int else env.comparedTy prog op tb₀ a) a
       else (a₀, ta₀)
     let b' := if b matches .list .. then
         (inferExpr prog env (match ta with
           | some .int => .int
-          | some t@(.list _) => if op == .eq || op == .ne then t else .unknown
-          | _ => .unknown) b).1
+          | some t@(.list _) =>
+            if (op == .eq || op == .ne) && env.literalFit prog t b != some false then t
+            else .unknown
+          | t => env.comparedTy prog op t b) b).1
       else b₀
     (.binary op a' b', some (binaryResult op))
   | .list t es =>

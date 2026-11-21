@@ -92,15 +92,28 @@ it to lists. Part 1 of #166 and #185 model the element types `Int`,
   both operands are evaluated, as any operand, so `a == bump(a)` sees what
   `bump` changed. A value whose last use is the comparison is destroyed
   once it is done, as for a `read` argument.
-- A literal on either side of an array is an array, unless the other
-  operand is an `Int` (see [semantics-lists.md](semantics-lists.md#arrays)).
-  A literal on the right of a list is the argument of the list's `__eq__`
-  or `__ne__`, converted to the list's type as a call's argument is:
-  `xs == [1, 2]`, `xss == [[1], []]` and, with `xs` a list of `Int`s,
-  `xs == [[1]]` run; an element of another type, `xs == [True]`, is a
-  type mismatch, and an inner literal of another length where an `Int`
-  is expected, `xs == [[1, 2]]`, fits no initializer of `Int`
-  (`noMatchingInit`), as in a call.
+- A literal compared with an array or a list is converted to the other
+  operand's type, element by element, as a call converts its argument
+  (part 2 of #166, `literalFits`): an array of `n` elements takes `n`
+  that each fit its element type, a list any number, and an `Int`, a
+  literal of `Int`s, as `var x: Int = [1]` does. A literal on the right
+  takes the left operand's type, and one on the left the right operand's,
+  unless that is a literal too: then the left keeps its own type, an
+  array of its first element's type. With `a = [1, 2]` and `xs` a list
+  of `Int`s, `a == [[1], [2]]`, `a == [[1], 2]`, `[[1], [2]] == a`,
+  `[1, 2] == [[1], [2]]`, `[[1]] == [[[1]]]`, `[1] == xs`, `[] == xs`,
+  `xs == [1, 2]` and `xs == [[1]]` run. A list has no `<`, so a literal
+  compared with it by `<` keeps its own type. The literal is checked as
+  the method's argument (`rightParam`); one that does not fit is a type
+  mismatch, found before the operands are read: `a == [[]]`,
+  `[[1]] == [1]`, `xs == [True]`. A literal on the left that does not fit
+  keeps its own type, and the right operand fits it no better:
+  `[1, 2] == a` and `[True] == xs` are type mismatches too. An inner
+  literal of another length where an `Int` is expected, `a == [[1, 2]]`
+  or `[[1, 2]] == a`, fits no initializer of `Int` (`noMatchingInit`),
+  after the reads, as in a call. Otherwise a literal is an array, unless
+  the other operand is an `Int` (see
+  [semantics-lists.md](semantics-lists.md#arrays)).
 - An operand of another type, an array or a list of another length or
   element type, an `Int`, a `Bool` or, beside an array, a list, is the
   compiler's "cannot be converted", `typeMismatch`. So are an `Int` or a
@@ -132,15 +145,10 @@ and `1 < True` fits none of the literal's overloads.
 Not yet modelled. Each stays rejected, with a class that is still not
 the compiler's; where #185 changed the class, the bullet says so:
 
-- A literal compared with an operand whose type its form does not show
-  to be the same, and that the compiler converts to that operand's type:
-  one on the left of a list, `[1] == xs`, which the compiler converts to
-  a list, and one that holds a literal beside an array, `a == [[1], [2]]`,
-  `a == [[1], 2]` or `[[1]] == a`, with `a` an array of `Int`s, which run,
-  each `[1]` initializing an `Int`, where `a == [[]]` and
-  `a == [[1, 2]]` are type mismatches. The model still copies a named
-  operand (`implicitCopy`), and otherwise gives `typeMismatch` or
-  `invalidType`. Part 2 of #166 covers them (`convertsLiteral`).
+- A literal on the left with no type of its own that does not fit the
+  right operand, `[[]] == a` or `[] == []`, which the compiler cannot
+  type ("cannot emit an empty list without a contextual type", a message
+  no pattern classifies); the model keeps its result, `invalidType`.
 - An element type that holds a struct. The compiler requires the
   struct's conformance to `Equatable` or `Comparable`, not the methods it
   declares, and calls the struct's `__eq__` and `__lt__` element by
@@ -155,12 +163,12 @@ the compiler's; where #185 changed the class, the bullet says so:
   from `implicitCopy` to `unknownVariable` with #185, since `xs` is now
   read uncopied and the model has no `None` expression; the compiler
   gives `typeMismatch`.
-- The literal on the right of a list is checked as a call checks its
-  argument, with that check's gaps: on the right of an uninitialized
-  list, an element that does not fit comes after the uninitialized use
-  (#96), and an inner literal that initializes a `Bool`,
-  `bs == [[True]]`, is a type mismatch, where the compiler finds no
-  initializer (`noMatchingInit`, #165).
+- An inner literal that initializes a `Bool`, `bs == [[True]]`,
+  `a == [[True]]` or `[[True]] == a`, with `a` an array of `Bool`s,
+  where the compiler finds no initializer (`noMatchingInit`, #165). `literalFits` leaves its fit
+  unknown, so the comparison keeps the checks it had before part 2: a
+  type mismatch beside a list on the left, and `implicitCopy` of a named
+  array, or of a list on the right.
 
 ## What is not yet modelled
 

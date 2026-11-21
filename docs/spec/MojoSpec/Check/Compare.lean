@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16876984616171267366")
+:::moduleDocs (fingerprint := "14281092503759778358")
 :::
 
 :::readable MojoGrimoire.Check.compares MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "12823475274059033023")
@@ -50,34 +50,56 @@ $`\mathsf{or}`, so is a right operand whose type lacks `__bool__`
 (`seqMisfit`).
 :::
 
-:::readable MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.convertsLiteral MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "15047511542355886965")
-*Rule: operands of a comparison of arrays or lists.* The misfit of a
-binary operator is found from its operands' forms before they are read
-(`operandTy`). An integer literal on the left gives no type, so that its
-overloads report a comparison with an array or a list
-(`noMatchingMethod`), and an empty literal with no type on the right of
-a comparison has a type that fits no array. A literal with no type
-compared with a list, which the compiler converts to a list, is left to
-the checks that follow, as before #166, and so is a literal that holds a
-literal compared with an operand whose type its form does not show to be
-the same, which the compiler converts element by element (part 2 of
-#166): its operands are not passed by reference either. Any other
-operand compared as an array or a list is passed by reference, as the
-comparisons of `Array` and `List` take a `read` argument: a place, or a
-call that returns a reference, is read, uncopied.
+:::readable MojoGrimoire.Check.convertsTo MojoGrimoire.Check.literalFits MojoGrimoire.Check.elemsFit (fingerprint := "15730226056708354533")
+*Rule: a literal that fits the other operand's type.* A comparison
+converts a literal operand to the type $`t` of its other operand when it
+compares $`t` (`seqCompare`) and $`t` is an array, or a list compared by
+$`==` or $`!=`, the methods a list has (#166). The literal fits $`t`
+element by element, as a call converts its argument: an array of $`n`
+elements of $`u` takes $`n` elements that each fit $`u`; a list of $`u`
+any number of them; and $`\mathsf{Int}`, whose initializer from a literal
+takes $`\mathsf{Int}`s (#103), any number of elements that fit
+$`\mathsf{Int}`, their count checked later (#170). Any other element fits
+only its own type, as the operand's form gives it. A literal fits no
+other type, except that whether one fits $`\mathsf{Bool}` is left to
+#165: that fit, and the fit of an element whose type the form does not
+give, is unknown, and so is the fit of a literal with an unknown element
+and no element that does not fit.
 :::
 
-:::readable MojoGrimoire.Check.rightParam (fingerprint := "15852281047781063043")
+:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "9097070698273118013")
+*Rule: operands of a comparison of arrays or lists.* The misfit of a
+binary operator is found from its operands' forms before they are read
+(`operandTy`). A literal on the right of a comparison is converted to
+the type of the left operand, and one on the left to the type of the
+right operand unless that is a literal too; a literal that fits takes
+that type (`operandFit`, `fitTy`). A literal on the right that does not
+fit, or one on the left that does not fit and has a type of its own, is
+a type mismatch, before the operands are read. A literal on the left
+that does not fit keeps its own type, and the right operand is then
+converted to it. A literal whose fit is unknown gives no type, and is
+left to the checks that follow, as before #166. An integer literal on
+the left gives no type, so that its overloads report a comparison with
+an array or a list (`noMatchingMethod`). An operand compared as an array
+or a list is passed by reference, as the comparisons of `Array` and
+`List` take a `read` argument: a place, or a call that returns a
+reference, is read, uncopied; but not beside a literal whose fit is
+unknown and which inference did not give the operand's type, beside a
+list, or an array when that literal holds a literal.
+:::
+
+:::readable MojoGrimoire.Check.rightParam (fingerprint := "11705055220119305697")
 *Rule: a right operand checked as an argument.* When the left operand of
 a binary operator other than $`\mathsf{and}` and $`\mathsf{or}` is an
 integer literal, the right one is the argument `rhs`, an
 $`\mathsf{Int}`, of a method with several overloads, whose misfit is
-`noMatchingMethod`. When the left operand of $`==` or $`!=` is a list
-and the right one a literal that inference typed as such a list, the
-literal is the argument `other` of the list's `__eq__` or `__ne__`, of
-the list's type, converted to it as a call's argument is (#185): an
-element of another type is a type mismatch, and an inner literal where
-an $`\mathsf{Int}` is expected follows the rules of such literals.
+`noMatchingMethod`. When the left operand's comparison converts a
+literal to its type $`t` (`convertsTo`), and the right operand is a
+literal that inference typed $`t`, the literal is the argument `other`
+of the method, of type $`t`, converted to it as a call's argument is
+(#166, #185): an element of another type is a type mismatch, and an
+inner literal where an $`\mathsf{Int}` is expected follows the rules of
+such literals.
 :::
 
 :::readable MojoGrimoire.Check.methodBinaryTy (fingerprint := "10037846033912567083")

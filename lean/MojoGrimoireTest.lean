@@ -12,6 +12,7 @@ import MojoGrimoireTest.Interp.Run
 import MojoGrimoireTest.Parse.Programs
 import MojoGrimoireTest.Parse.ArrayCompare
 import MojoGrimoireTest.Parse.ListCompare
+import MojoGrimoireTest.Parse.LiteralCompare
 import MojoGrimoireTest.Parse.Arrays
 import MojoGrimoireTest.Parse.TrivialTransfer
 import MojoGrimoireTest.Parse.ListPop
