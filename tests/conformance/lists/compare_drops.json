@@ -1,0 +1,16 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "del 2",
+    "del 1",
+    "False",
+    "del 4",
+    "del 3",
+    "True",
+    "del 6",
+    "del 5",
+    "False True"
+  ],
+  "class": null,
+  "diagnostic": null
+}

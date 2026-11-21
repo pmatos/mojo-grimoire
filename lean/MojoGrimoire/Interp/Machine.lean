@@ -13,7 +13,8 @@ change through them is a change to that place. Locations are never reused.
 `Int` is Mojo's 64-bit signed integer: arithmetic wraps around, `//` rounds
 toward negative infinity and `%` takes the sign of the divisor, as in Mojo.
 Both give 0 for a zero divisor, as Mojo's standard library defines them.
-Two arrays compare lexicographically, element by element (#166).
+Two `Bool`s compare with `False` first, and two arrays or two lists
+lexicographically, element by element (#166, #185).
 -/
 
 namespace MojoGrimoire.Interp
@@ -107,9 +108,10 @@ def emit (line : String) : EvalM Unit :=
 def wrap (n : Int) : Int := (n + 2 ^ 63) % 2 ^ 64 - 2 ^ 63
 
 mutual
-/-- The order of two values that an array may hold and compare: `Int`s by
-value, `Bool`s with `False` first, and arrays lexicographically, as
-`Array`'s comparisons order them (#166); `none` for any other pair. -/
+/-- The order of two values that an array or a list may hold and compare:
+`Int`s by value, `Bool`s with `False` first, and arrays and lists
+lexicographically, as the comparisons of `Array` and `List` order them
+(#166, #185); `none` for any other pair. -/
 def Value.order : Value → Value → Option Ordering
   | .int x, .int y => some (compare x y)
   | .bool x, .bool y => some (compare x.toNat y.toNat)
@@ -139,9 +141,9 @@ def ordered (op : BinOp) (o : Ordering) : Option Bool :=
   | _ => none
 
 /-- The result of the arithmetic or comparison operator `op` on `Int`s, of
-`==` and `!=` on `Bool`s, or of a comparison of two arrays, in their order
-(`Value.order`). `and` and `or` are evaluated elsewhere, since they
-short-circuit. -/
+a comparison of two `Bool`s, `False` first (#185), or of a comparison of
+two arrays or two lists, in their order (`Value.order`). `and` and `or`
+are evaluated elsewhere, since they short-circuit. -/
 def binary (op : BinOp) (a b : Value) : EvalM Value :=
   match op.arith, op, a, b with
   | some f, _, .int x, .int y => pure (.int (wrap (f x y)))
@@ -151,11 +153,12 @@ def binary (op : BinOp) (a b : Value) : EvalM Value :=
   | _, .ge, .int x, .int y => pure (.bool (decide (x ≥ y)))
   | _, .eq, .int x, .int y => pure (.bool (x == y))
   | _, .ne, .int x, .int y => pure (.bool (x != y))
-  | _, .eq, .bool x, .bool y => pure (.bool (x == y))
-  | _, .ne, .bool x, .bool y => pure (.bool (x != y))
+  | _, op, .bool x, .bool y => match ordered op (compare x.toNat y.toNat) with
+    | some r => pure (.bool r)
+    | none => stuck "operands of the wrong type"
   | _, op, .list xs, .list ys => match (Value.orderList xs ys).bind (ordered op) with
     | some r => pure (.bool r)
-    | none => stuck "arrays that do not compare"
+    | none => stuck "sequences that do not compare"
   | _, _, _, _ => stuck "operands of the wrong type"
 
 /-- The result of the unary operator `op`. -/

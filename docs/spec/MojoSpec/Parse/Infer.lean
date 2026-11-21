@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9963661163126948793")
+:::moduleDocs (fingerprint := "3896187359174246925")
 :::
 
 :::readable MojoGrimoire.Parse.foldable (fingerprint := "1995746572076948755")
@@ -24,7 +24,7 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "8640770150110739010")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "3563289020766669602")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, or $`\mathsf{Int}` for the element of
@@ -68,10 +68,12 @@ them; the checker rejects it (#153, #154). A function that returns
 a reference expects no type of the values it returns. An index is expected to be
 an $`\mathsf{Int}`, and so is either operand of an operator other than
 `and` and `or` whose other operand is an $`\mathsf{Int}`, as Mojo reads it
-(#160). Each
+(#160). The right operand of $`==` or $`!=` whose left operand is a list
+is expected to have the list's type, as the argument of its `__eq__` or
+`__ne__` (#185). Each
 operand that is not a literal is inferred first, with no type expected,
-and a literal operand once, with $`\mathsf{Int}` expected when the rule
-above says so.
+and a literal operand once, with $`\mathsf{Int}` or the list's type
+expected when the rules above say so.
 $`\mathsf{List}[u](e^+)` is a list of $`u`, whose arguments are expected
 to have no type. Its one argument $`p\,\hat{}` becomes the place
 $`p\,\hat{}`, which Mojo borrows, since the initializer takes it by `ref`

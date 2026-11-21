@@ -8,10 +8,11 @@ and `!=` of two arrays of the same type, whose elements are `Int`s,
 by reference. Arrays of another length or element type are a type
 mismatch, and arrays whose element type does not conform to the trait
 the operator needs, `None` or, to order them, a list, `violatedConstraint`.
-An element type that holds a struct, and the equality of arrays of lists,
-keep the result they had before. Each verdict is the pinned compiler's
-for the program, probed on the nightly 1.3.0.dev2026111905, but for the
-last ones, which parts 2 and 3 of #166 and #185 cover.
+An element type that holds a struct keeps the result it had before. Each
+verdict is the pinned compiler's for the program, probed on the nightly
+1.3.0.dev2026111905, but for the last ones, which parts 2 and 3 of #166
+cover. The comparisons of lists, and of arrays of lists, are tested in
+`MojoGrimoireTest.Parse.ListCompare` (#185).
 -/
 
 namespace MojoGrimoireTest.Parse.ArrayCompare
@@ -100,13 +101,10 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
   (.violatedConstraint (.array (.list .int) 1) "__lt__")
 #guard rejects ["print([f()] == [1])"] (.typeMismatch (.array .noneType 1) (.array .int 1))
 
--- Not yet: a struct element (part 3 of #166, after #194), the equality of
--- lists (#185) and the order of `Bool`s, which keep their result.
+-- Not yet: a struct element (part 3 of #166, after #194), which keeps its
+-- result.
 #guard rejects ["print([P(1)] == [P(1)])"] (.typeMismatch .int (.array (.struct "P") 1))
 #guard rejects ["var a = [P(1)]", "print(a < a)"] (.implicitCopy (.array (.struct "P") 1))
-#guard rejects ["print([List[Int]()] == [List[Int]()])"]
-  (.typeMismatch .int (.array (.list .int) 1))
-#guard rejects ["print(True < False)"] (.typeMismatch .int .bool)
 -- Nor a literal compared with a list, or one that holds a literal, which
 -- the compiler converts (part 2).
 #guard rejects ["var l: List[Int] = [1]", "print([1] == l)"] (.implicitCopy (.list .int))

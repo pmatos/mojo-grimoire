@@ -19,11 +19,7 @@ def binaryTy (op : BinOp) (a b : Ty) : Except CheckError Ty :=
     unless a == .int do throw (.typeMismatch .int a)
     unless b == .int do throw (.typeMismatch .int b)
     pure .int
-  | .lt | .le | .gt | .ge => do
-    unless a == .int do throw (.typeMismatch .int a)
-    unless b == .int do throw (.typeMismatch .int b)
-    pure .bool
-  | .eq | .ne => do
+  | .lt | .le | .gt | .ge | .eq | .ne => do
     unless a == .int || a == .bool do throw (.typeMismatch .int a)
     unless b == a do throw (.typeMismatch a b)
     pure .bool

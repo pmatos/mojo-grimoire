@@ -13,6 +13,7 @@ import MojoSpec.Check.Transfer
 import MojoSpec.Check.Pass
 import MojoSpec.Check.Operators
 import MojoSpec.Check.Methods
+import MojoSpec.Check.Compare
 import MojoSpec.Check.Expr
 import MojoSpec.Check.Ref
 import MojoSpec.Check.Stmt
