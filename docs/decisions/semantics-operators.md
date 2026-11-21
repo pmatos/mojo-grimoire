@@ -129,7 +129,8 @@ Two `Bool`s also compare with `<`, `<=`, `>` and `>=`, `False` first, as
 `Int`s do (#185). A `Bool` compared with an `Int` is a type mismatch,
 and `1 < True` fits none of the literal's overloads.
 
-Not yet modelled, each keeping the result it had before:
+Not yet modelled. Each stays rejected, with a class that is still not
+the compiler's; where #185 changed the class, the bullet says so:
 
 - A literal compared with an operand whose type its form does not show
   to be the same, and that the compiler converts to that operand's type:
@@ -144,9 +145,16 @@ Not yet modelled, each keeping the result it had before:
   struct's conformance to `Equatable` or `Comparable`, not the methods it
   declares, and calls the struct's `__eq__` and `__lt__` element by
   element. Conformances come with #194; part 3 of #166 follows it, for
-  arrays and lists.
+  arrays and lists. A list of structs compared with an empty literal,
+  `List[P]() == []` or `!= []`, went from `invalidType` to
+  `typeMismatch` with #185, since the literal now takes the list's type;
+  the compiler gives `violatedConstraint` for a struct without the
+  conformance.
 - A list of `None`, `List[NoneType]`, and `xs == None`, which need `None`
-  as a type and an expression (#183).
+  as a type and an expression (#183). `xs == None` and `xs != None` went
+  from `implicitCopy` to `unknownVariable` with #185, since `xs` is now
+  read uncopied and the model has no `None` expression; the compiler
+  gives `typeMismatch`.
 - The literal on the right of a list is checked as a call checks its
   argument, with that check's gaps: on the right of an uninitialized
   list, an element that does not fit comes after the uninitialized use

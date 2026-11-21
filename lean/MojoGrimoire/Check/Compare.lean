@@ -23,8 +23,11 @@ it that type, and the checker checks it against that parameter
 (`rightParam`). An element type that holds a struct waits for its
 conformances (#194), and any other literal that the compiler converts to
 the other operand's type, on the left of a list or holding a literal, for
-part 2 of #166 (`convertsLiteral`): such comparisons keep the checks they
-had before.
+part 2 of #166 (`convertsLiteral`): such comparisons stay rejected, with
+a class that is still not the compiler's. A list of structs compared
+with an empty literal, `List[P]() == []`, is now a type mismatch where it
+was `invalidType`, since the literal takes the list's type; the compiler
+gives `violatedConstraint` (#194).
 -/
 
 namespace MojoGrimoire.Check

@@ -8,9 +8,9 @@ same type, whose elements are `Int`s, `Bool`s, lists or arrays of them,
 are equal when their elements are, both read by reference, and a literal
 on the right is converted to the list's type. Another type is a type
 mismatch, found before an operand is read, and a list has no order
-(`missingMethod`). A list of structs, and a literal on the left of a list,
-keep the result they had before (#194, part 2 of #166), and so do the
-gaps of a call's literal argument (#96, #165). Each verdict is
+(`missingMethod`). A list of structs, a literal on the left of a list
+and the gaps of a call's literal argument stay rejected, with a class
+that is not yet the compiler's (#194, part 2 of #166, #96, #165). Each verdict is
 the pinned compiler's for the program, probed on the nightly
 1.3.0.dev2026111905, but for those last ones.
 -/

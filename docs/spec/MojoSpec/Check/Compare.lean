@@ -26,8 +26,9 @@ arrays of them conform, and lists of them to `Equatable`; `None` does
 not. A list has no order: it lacks the methods, and does not conform to
 `Comparable` as an element (#185). An element type that holds a struct,
 itself or through lists and arrays, is not modelled yet, since its
-conformances come with #194: the comparison keeps the rules it had
-before #166.
+conformances come with #194: the comparison is left to the rules of
+other operators, which reject it, with a class that is not yet the
+compiler's.
 :::
 
 :::readable MojoGrimoire.Check.seqMisfit (fingerprint := "11246379863837844341")
