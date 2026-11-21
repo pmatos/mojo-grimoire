@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14343171178977340674")
+:::moduleDocs (fingerprint := "5820294513603318199")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "4845031522016519524")
@@ -38,7 +38,7 @@ $`\mathsf{alias}(p^*, m)`: it may point into the places $`p^*`, its
 origins, and may be changed when $`m` holds.
 :::
 
-:::readable MojoGrimoire.Check.ShapeStep MojoGrimoire.Check.Shape (fingerprint := "6801575715281342423")
+:::readable MojoGrimoire.Check.ShapeStep MojoGrimoire.Check.Shape (fingerprint := "17175472047769601315")
 *Definition: shapes.* The shape of a place is its variable and the steps
 down from it, with indices left out:
 
@@ -47,9 +47,12 @@ down from it, with indices left out:
 field      .f
 listElem   [\cdot]_{\mathsf{list}}
 arrayElem  [\cdot]_{\mathsf{array}}
+intElem    [\cdot]_{\mathsf{Int}}
 ```
 
-Two places that differ only in their indices have the same shape.
+Two places that differ only in their indices have the same shape. The
+element of an $`\mathsf{Int}` is a step of its own, since it is no
+location (#127).
 :::
 
 :::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.State MojoGrimoire.Check.CheckM (fingerprint := "862987152442379284")
@@ -129,10 +132,14 @@ scope with that name, if there is one, and updating a variable replaces
 the innermost variable with its name. An unknown name is rejected.
 :::
 
-:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "16540179678589216223")
+:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.indexedOf MojoGrimoire.Check.fixedLength MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "13959565986772566554")
 *Definition: reading a place.* The type of a place is the type of its
 variable, then of each field or element on the way; only a list or an
-array has elements, and $`p\,\hat{}` has the type of $`p`. Reading a place's value needs the
+array has elements, and $`p\,\hat{}` has the type of $`p`. An index
+may also go into an $`\mathsf{Int}`, a SIMD vector of width 1, whose one
+element, at index 0, is the $`\mathsf{Int}` itself (#127). An array of
+$`n` elements, and an $`\mathsf{Int}`, fix how many elements they have:
+$`n` and 1. Reading a place's value needs the
 part it names to be initialized, with no part in $`M` or $`P` at or
 below it, and is otherwise rejected as a use of an uninitialized value: a
 field moved out and refilled one sub-field at a time is still not whole,
@@ -146,15 +153,21 @@ place resolves to itself. Replacing the variable of a place keeps each
 $`\hat{}` on the way.
 :::
 
-:::readable MojoGrimoire.Check.shapeOf MojoGrimoire.Check.invalidates (fingerprint := "4708377491845332458")
+:::readable MojoGrimoire.Check.shapeOf MojoGrimoire.Check.invalidates MojoGrimoire.Check.intIndexed (fingerprint := "16656027637097560338")
 *Definition: invalidation.* The shape of $`p[e]` ends in
-$`[\cdot]_{\mathsf{list}}` when $`p` is a list, and in
-$`[\cdot]_{\mathsf{array}}` when it is an array, and $`p\,\hat{}` has
+$`[\cdot]_{\mathsf{list}}` when $`p` is a list, in
+$`[\cdot]_{\mathsf{Int}}` when it is an $`\mathsf{Int}`, and in
+$`[\cdot]_{\mathsf{array}}` otherwise, and $`p\,\hat{}` has
 the shape of $`p`. Changing a place of
 shape $`(x, \mu)` as a whole invalidates a reference into a place of
 shape $`(y, \omega)` when $`x = y`, $`\mu` is a prefix of $`\omega`,
 and the rest of $`\omega` holds a $`[\cdot]_{\mathsf{list}}`: the
 reference points into an element of a list that the changed place holds.
 Changing one element does not invalidate a reference into it, and an
-array keeps its elements in place.
+array keeps its elements in place. A place whose shape holds a
+$`[\cdot]_{\mathsf{Int}}` goes through the element of an
+$`\mathsf{Int}`, which the compiler reads with `__getitem__` and writes
+with `__setitem__`: a value with no memory origin, into which no reference
+may point. A place that cannot be typed is not one, and is left to the
+checking that reports its error.
 :::

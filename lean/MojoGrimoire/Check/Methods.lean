@@ -192,7 +192,7 @@ def methodCall (prog : Program) (asRef : Bool) (p : Place) (t : Ty) (m : Name) (
   recheckLocs prog (([p], k) :: ks)
   if let some q := consumed then let _ ← transferPlace prog q
   for q in ← changedArgs prog sig.allParams (.place p :: args) do changePlace prog q
-  refResult prog asRef sig
+  refResult prog asRef sig args
 
 /-- The type of the result of the operator `op` on operands of types `ta`
 and `tb`: a method that a type lacks first, then `binaryTy`. -/

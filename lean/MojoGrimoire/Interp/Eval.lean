@@ -84,9 +84,9 @@ def bindParams : List Param → List Arg → EvalM Env
   | prm :: prms, a :: args => do
     let rest ← bindParams prms args
     let b ← match a with
-      | .place r => pure ⟨r, false⟩
-      | .value v => do pure ⟨← alloc v, prm.conv == .owned⟩
-      | .temp v => do pure ⟨← alloc v, false⟩
+      | .place r => pure ⟨r, false, prm.ty⟩
+      | .value v => do pure ⟨← alloc v, prm.conv == .owned, prm.ty⟩
+      | .temp v => do pure ⟨← alloc v, false, prm.ty⟩
     pure ((prm.name, b) :: rest)
   | _, _ => pure []
 
@@ -117,7 +117,7 @@ def destroy (prog : Program) (fuel : Nat) (v : Value) : EvalM Unit :=
       match sd.deinit with
       | some body => do
         let r ← alloc v
-        let _ ← runBody prog n false [("self", ⟨r, false⟩)] body
+        let _ ← runBody prog n false [("self", ⟨r, false, .struct s⟩)] body
       | none => fs.forM fun (_, w) => destroy prog n w
     | .list es => es.forM (destroy prog n)
     | _ => pure ()
@@ -145,7 +145,8 @@ def destroyOwned (prog : Program) (fuel : Nat) (env : Env) : EvalM Unit :=
     if b.owned then destroy prog n (← take b.ref)
 
 /-- The reference that the place `p` names. An index is checked against the
-length of the list. -/
+length of the list, or, into an `Int`, which is its own one element, against
+1 (#127). -/
 def placeRef (prog : Program) (fuel : Nat) (env : Env) (p : Place) : EvalM Ref :=
   match fuel with
   | 0 => fail .outOfFuel
@@ -157,9 +158,12 @@ def placeRef (prog : Program) (fuel : Nat) (env : Env) (p : Place) : EvalM Ref :
     | .index q i => do
       let r ← placeRef prog n env q
       let k ← asInt (← evalExpr prog n env i)
-      let .list es ← readRef r | stuck "index into a value that is not a list"
-      let j ← position es.length k
-      pure { r with path := r.path ++ [.elem j] }
+      match ← readRef r with
+      | .list es => do
+        let j ← position es.length k
+        pure { r with path := r.path ++ [.elem j] }
+      | .int _ => do let _ ← position 1 k; pure r
+      | _ => stuck "index into a value that is not a list"
     | .transferred q => placeRef prog n env q
 
 /-- The value of the expression `e`. A call that returns a reference gives
@@ -394,11 +398,23 @@ def execStmt (prog : Program) (fuel : Nat) (refs : Bool) (env : Env) (s : Stmt) 
       let v ← match init with
         | some e => evalExpr prog n env e
         | none => blankOf prog n t
-      pure ((x, ⟨← alloc v, true⟩) :: env)
-    | .refDecl x e => do pure ((x, ⟨← evalRef prog n env e, false⟩) :: env)
+      pure ((x, ⟨← alloc v, true, t⟩) :: env)
+    | .refDecl x e => do pure ((x, ⟨← evalRef prog n env e, false, refTy prog env e⟩) :: env)
     | .assign p e => do
-      let v ← evalExpr prog n env e
-      let r ← placeRef prog n env p
+      let (v, r) ← match p with
+        | .index q i =>
+          if placeTy prog env q == some .int then do
+            let r ← placeRef prog n env q
+            let o ← evalOperand prog n env i
+            let v ← evalExpr prog n env e
+            let _ ← position 1 (← asInt (← o.load))
+            pure (v, r)
+          else do
+            let v ← evalExpr prog n env e
+            pure (v, ← placeRef prog n env p)
+        | _ => do
+          let v ← evalExpr prog n env e
+          pure (v, ← placeRef prog n env p)
       let old ← readRef r
       writeRef r v
       destroy prog n old

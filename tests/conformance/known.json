@@ -1,6 +1,11 @@
 {
   "note": "Programs whose result disagrees with the compiler's by a decision-log entry, docs/conformance/decision-log.md, with the entry's id.",
   "known": {
+    "basics/int_index_computed_out_of_bounds": "D-0009",
+    "basics/int_index_constant_out_of_bounds": "D-0009",
+    "basics/int_index_negative": "D-0009",
+    "basics/int_index_popped": "D-0009",
+    "basics/int_index_store_out_of_bounds": "D-0009",
     "lists/store_after_grow": "D-0002",
     "rejected/array_of_lists_cycle_deinit": "D-0006",
     "rejected/list_cycle_beside_self_loop_deinit": "D-0006",

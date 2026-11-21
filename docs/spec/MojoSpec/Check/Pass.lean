@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6343786735662056620")
+:::moduleDocs (fingerprint := "453936485551264812")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -38,10 +38,25 @@ instead of thrown, so that the errors of all the arguments can be reported
 in the compiler's order of passes (#121).
 :::
 
-:::readable MojoGrimoire.Check.refResult (fingerprint := "4791063665474045528")
+:::readable MojoGrimoire.Check.refResult (fingerprint := "5596166513625506680")
 *Definition: the result of a call.* A call or a method call that returns a
 reference, used as a value, gives the value it points to, which must be
-implicitly copyable, unless it is used as a reference.
+implicitly copyable, unless it is used as a reference. An argument
+through the element of an $`\mathsf{Int}` passed to a parameter that the
+origin names is $`\mathsf{notAList}`, as before #127: the element has no
+memory origin, and the model passes the $`\mathsf{Int}` itself (#222).
+:::
+
+:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "17494788173869974135")
+*Rule: the element of an $`\mathsf{Int}` where the model cannot follow
+the compiler.* A place through the element of an $`\mathsf{Int}` is
+rejected there as $`\mathsf{notAList}`, as before #127, once its indices
+are checked, a constant index out of the $`\mathsf{Int}`'s range being
+$`\mathsf{notAList}` too. So it is when passed to a `mut` or `ref`
+parameter: the compiler passes a temporary, written back after a `mut`
+call, which the model does not model yet (#222). An index is plain when
+it is an integer constant or a variable, which evaluating twice cannot
+change.
 :::
 
 :::readable MojoGrimoire.Check.passPlace (fingerprint := "2500036056060291548")

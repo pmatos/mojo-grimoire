@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14307925498757436441")
+:::moduleDocs (fingerprint := "1088106475621878226")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "17162342609242735289")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "13924924238172211726")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -123,21 +123,23 @@ than `and` and `or`, a list literal and `print`, and the origins of an
 operand among them that is a call that returns a reference and is a
 located operand, are checked again once every operand is, by
 `recheckLocs`; then the call records what it changes.
+A place through the element of an $`\mathsf{Int}` passed `mut` or `ref`
+is rejected by `rejectIntElemArg`, once its indices are checked (#222).
 Every index in a place is checked first, and must be an $`\mathsf{Int}`:
 an index of a list or an array is an argument of `__getitem__`, which has
 several overloads, checked by `checkArg`, so that a misfit is
 `noMatchingMethod` (`checkIndex`, #169), and one of an $`\mathsf{Int}` a
 type mismatch;
 a constant index may not be negative, nor, into an array of $`n`
-elements, $`n` or more. Mojo locates $`q` in $`q[i]` before it
+elements, $`n` or more, nor, into an $`\mathsf{Int}`, 1 or more (#127). Mojo locates $`q` in $`q[i]` before it
 evaluates $`i`, so $`i` may not invalidate $`q`. Each $`q\,\hat{}` in a
 place needs $`q` whole, as `p^` would, and a value that $`q\,\hat{}`
 could transfer, by the conditions above.
 Before that, $`p\,\hat{}` and each $`q\,\hat{}` in a place is rejected
 when the value has no origin of its own, as $`\mathsf{transferFromElement}`,
 once the place is typed as the compiler types it (#119): from its
-variable outward, each field, each indexed place, but an
-$`\mathsf{Int}` (#127), before its index, each index as an
+variable outward, each field, each indexed place before its index,
+each index as an
 $`\mathsf{Int}`, checked as an expression, whose own errors come first but for the later ones, and
 each inner $`r\,\hat{}` as one that could transfer $`r`, initialized or
 not, by the same rule and the `read` or `ref` parameter rule above,

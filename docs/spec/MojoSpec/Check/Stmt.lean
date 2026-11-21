@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14542082697538841758")
+:::moduleDocs (fingerprint := "16230122014580839393")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -133,7 +133,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "14915442914929159780")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "7433167122423302147")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a $`t` a variable may have
@@ -161,7 +161,15 @@ an expression, so a place is copied implicitly.
   fields are all assigned, since it is then whole, unless it was moved out
   whole first. Assigning a part below a field in $`M` does not remove it.
   Through a reference or to an element, the old value is read first, so
-  it must be initialized;
+  it must be initialized. Into the element of an $`\mathsf{Int}`, the
+  $`\mathsf{Int}` is located before the value is evaluated, so a change
+  the value makes may not invalidate it, and the index, an argument of
+  `__setitem__`, is read once the value is evaluated, so the value may not
+  invalidate a place it is read from (#127). As $`p \mathbin{op}= e`
+  is read as $`p = p \mathbin{op} e`, which evaluates the indices of $`p`
+  twice where the compiler evaluates them once (#198), such an assignment
+  into the element of an $`\mathsf{Int}` is $`\mathsf{notAList}`, as before
+  #127, unless every index of $`p` is plain;
 * an expression statement checks its expression;
 * `print`, unless a variable in scope named `print` hides it, which
   `rejectCalledVar` rejects once the arguments are typed (#176), checks

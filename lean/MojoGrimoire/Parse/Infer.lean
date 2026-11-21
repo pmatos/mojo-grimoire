@@ -106,7 +106,7 @@ def inferPlace (prog : Program) (env : TyEnv) : Place → Place × Option Ty
     (.field p' f, t.bind fun t => (fieldOf prog t f).toOption)
   | .index p i =>
     let (p', t) := inferPlace prog env p
-    (.index p' (inferExpr prog env .int i).1, t.bind fun t => (elemOf t).toOption)
+    (.index p' (inferExpr prog env .int i).1, t.bind fun t => (indexedOf t).toOption)
   | .transferred p => let (p', t) := inferPlace prog env p; (.transferred p', t)
   termination_by p => (sizeOf p, 0)
 

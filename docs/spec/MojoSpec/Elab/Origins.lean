@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The origins of references: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9228573848291175163")
+:::moduleDocs (fingerprint := "2893682860026816037")
 :::
 
-:::readable MojoGrimoire.Elab.TyEnv MojoGrimoire.Elab.placeTyOf MojoGrimoire.Elab.refCallee (fingerprint := "3982555203705002604")
+:::readable MojoGrimoire.Elab.TyEnv MojoGrimoire.Elab.placeTyOf MojoGrimoire.Elab.refCallee (fingerprint := "11596427100847495682")
 *Definition: callees.* Elaboration follows the types of the variables
 declared so far, to find the type of a place, $`p\,\hat{}` having the
 type of $`p`, and so the signature of the method a call names. A call's signature, that of a function, of a

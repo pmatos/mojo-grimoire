@@ -13,17 +13,17 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17514244129095093920")
+:::moduleDocs (fingerprint := "4216666967258081733")
 :::
 
-:::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "14136961392570647166")
+:::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "12042878878789727990")
 *Definition: arguments.* A call receives each argument as a place, passed
 by reference to a `read`, `mut`, `ref` or `out` parameter; as a value,
 moved or copied into a `var` parameter, which the callee owns, or copied
 into a `read` parameter of type $`\mathsf{Int}` or $`\mathsf{Bool}`; or
 as a temporary, a value passed to a borrowing parameter, which the caller
 destroys after the call. The callee's parameters are bound to them, each
-value at a new location.
+value at a new location, with the parameter's type.
 :::
 
 :::readable MojoGrimoire.Interp.Operand MojoGrimoire.Interp.Operand.load MojoGrimoire.Interp.Pending MojoGrimoire.Interp.Pending.loadAll (fingerprint := "3189860708977689654")
@@ -41,7 +41,7 @@ $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "2552273706626457001")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "15127080638342853936")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -57,7 +57,9 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   of declaration, after the returned value is computed.
 - *Places.* A place names a reference: a variable's, then a field or an
   element on the way, whose index is evaluated and checked against the
-  list's length; $`p\,\hat{}` names the reference of $`p`.
+  list's length; an index into an $`\mathsf{Int}`, its own one element,
+  is checked against 1 and names the $`\mathsf{Int}` (#127);
+  $`p\,\hat{}` names the reference of $`p`.
 - *Expressions.* Literals are values, and $`[e]_{\mathsf{Int}}` is the value
   of $`e`; a place is read, a transfer takes its value out, leaving its
   blank behind, and `.copy()` reads it. `and` and `or`
@@ -107,7 +109,12 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   reference or a value, and any other expression its value.
 - *Statements.* A declaration puts its value, or the blank of its type
   when it has none, at a new location the function owns. An assignment evaluates its value, then its place, writes
-  it, and destroys the old value. An expression statement destroys its
+  it, and destroys the old value; into the element of an $`\mathsf{Int}`,
+  it locates the $`\mathsf{Int}` and evaluates the index as an operand
+  first, then the value, and reads the index last and checks it against 1,
+  as the arguments of `__setitem__` are (#127). Whether the base is an
+  $`\mathsf{Int}` is decided from the place's static type, never from what
+  its lists hold. An expression statement destroys its
   result. `print` writes its arguments separated by spaces. `if` and
   `while` run their blocks in scopes of their own. `return x` of an owned
   variable takes it out. `drop p` takes the value out of $`p` and destroys

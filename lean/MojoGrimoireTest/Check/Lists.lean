@@ -93,9 +93,11 @@ private def ress : Stmt := .decl "rs" (.list res) (some (.list (.list res) [newR
 #guard verdict (prog [ints, .expr (.method (v "xs") "insert" [.int 0, .int 1])]) ==
   some (.unknownAttribute "List" "insert")
 
--- `var n = 1; n[0]`: only a list has elements.
-#guard verdict (prog [.decl "n" .int (some (.int 1)), .print [.place (at_ "n" 0)]]) ==
-  some (.notAList .int)
+-- `var n = 1; n[0]`: an `Int` is its own one element (#127), and its index
+-- is checked as an array's is.
+#guard verdict (prog [.decl "n" .int (some (.int 1)), .print [.place (at_ "n" 0)]]) == none
+#guard verdict (prog [.decl "n" .int (some (.int 1)), .print [.place (at_ "n" 1)]]) ==
+  some (.constantIndexOutOfBounds (at_ "n" 1))
 
 -- `var rs = [Res(1)]; rs.append(r^)` after `r` is moved in: `r` is not used again.
 #guard verdict (prog [.decl "r" res (some (newRes 1)), ress,

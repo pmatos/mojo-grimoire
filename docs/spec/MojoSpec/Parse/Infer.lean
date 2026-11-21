@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4924817954781577601")
+:::moduleDocs (fingerprint := "6276361299072432250")
 :::
 
 :::readable MojoGrimoire.Parse.foldable (fingerprint := "1995746572076948755")
@@ -24,10 +24,11 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "9885899747695812429")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "8640770150110739010")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
-element type of its list or array, and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
+element type of its list or array, or $`\mathsf{Int}` for the element of
+an $`\mathsf{Int}` (#127), and $`p\,\hat{}` the type of $`p`. A literal has its own type, and
 `p.copy()` the type of $`p`. A negation gives an $`\mathsf{Int}`, `not` a
 $`\mathsf{Bool}`, and a binary operator the type of its result, as above.
 A call or a method call

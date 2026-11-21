@@ -12,7 +12,8 @@ none, and one that is declared without a value, or whose value was
 transferred, has the whole variable, the empty path. Moving a field out adds
 that field's path. A part is initialized when no uninitialized part is
 above or below it. The elements of a list or an array are not parts: they
-are initialized whenever the list or array is.
+are initialized whenever the list or array is, and so is the element of an
+`Int`, the `Int` itself (#127).
 
 A variable also records the fields moved out of it with `^` that it has not
 been given again. The compiler cannot destroy a struct with such a field
@@ -86,11 +87,13 @@ structure VarState where
   deriving BEq
 
 /-- A step from a place down to a part of it, with indices left out: a
-field, an element of a list, or an element of an array. -/
+field, an element of a list, an element of an array, or the element of an
+`Int`, which is no location of its own (#127). -/
 inductive ShapeStep where
   | field (f : Name)
   | listElem
   | arrayElem
+  | intElem
   deriving BEq
 
 /-- What a place names with its indices left out: the variable it starts
@@ -231,11 +234,25 @@ def elemOf : Ty → Except CheckError Ty
   | .list t | .array t _ => pure t
   | t => throw (.notAList t)
 
+/-- The type of the elements of an indexed place of type `t`: those of a
+list or an array, or an `Int` itself. `Int` is a SIMD vector of width 1,
+whose one element, at index 0, is the `Int` (#127). -/
+def indexedOf : Ty → Except CheckError Ty
+  | .int => pure .int
+  | t => elemOf t
+
+/-- The number of elements of an indexed place of type `t` when the type
+fixes it: `n` for an array, and 1 for an `Int`. -/
+def fixedLength : Ty → Option Nat
+  | .array _ n => some n
+  | .int => some 1
+  | _ => none
+
 /-- The type of a place, given the variables in scope. -/
 def placeTy (prog : Program) : Place → CheckM Ty
   | .var x => do pure (← lookup x).ty
   | .field p f => do liftM (fieldOf prog (← placeTy prog p) f)
-  | .index p _ => do liftM (elemOf (← placeTy prog p))
+  | .index p _ => do liftM (indexedOf (← placeTy prog p))
   | .transferred p => placeTy prog p
 where
   /-- Lifts a result of the program's tables into the checker. -/
@@ -265,9 +282,19 @@ def shapeOf (prog : Program) : Place → CheckM Shape
     pure (x, steps ++ [.field f])
   | .index p _ => do
     let (x, steps) ← shapeOf prog p
-    let step := if let .list _ := ← placeTy prog p then ShapeStep.listElem else .arrayElem
+    let step := match ← placeTy prog p with
+      | .list _ => ShapeStep.listElem
+      | .int => .intElem
+      | _ => .arrayElem
     pure (x, steps ++ [step])
   | .transferred p => shapeOf prog p
+
+/-- Whether the place `p` goes through the element of an `Int`, which the
+compiler reads with `__getitem__` and writes with `__setitem__`: a value
+with no memory origin, which no reference may point into (#127). A place
+that cannot be typed is left to the checking that reports its error. -/
+def intIndexed (prog : Program) (p : Place) : CheckM Bool :=
+  tryCatch (do pure ((← shapeOf prog p).2.contains .intElem)) fun _ => pure false
 
 /-- Whether changing the place of shape `m` as a whole invalidates a
 reference into the place of shape `o`: `o` is inside an element of a list
