@@ -123,6 +123,18 @@ three deep reviews and each round of fixes brought new findings.
 Rejected: one PR per issue, which let #202 grow until no review could settle
 it.
 
+One exception holds for #96's parts, which report errors in the compiler's
+tiers. Such a part may change a program from one rejection class to another,
+even one that agreed on `main`, when the program agreed only because the
+checker stopped before a construct that the model rejects and the compiler
+accepts. The PR body lists each such program with the open issue that tracks
+that wrong rejection. The exception never covers a run that becomes a
+rejection, or the reverse. The probe sweep committed for #96 is its gate. The
+human ruled this on 2026-11-22 (#96, Q10).
+
+Rejected: holding each part until those issues are fixed, and excluding the
+constructs.
+
 ### Review depth
 
 `REVIEW.md` at the root lists the high-stakes paths. Any PR that touches one
