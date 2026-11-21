@@ -3,41 +3,18 @@ import MojoGrimoire.Interp.Args
 /-!
 The big-step evaluation of elaborated programs.
 
-Evaluation goes left to right, as in Mojo. The operands of an operation, the
-arguments of a call, the elements of a list literal or the values printed,
-are evaluated in order, and a literal of type `Int`, `[e]`, is the value
-of `e`; passed `ref`, it is read as `e` passed by value, into a temporary.
-An operand that is a place passed by value, or
-a call that returns a reference, is only located then: as in Mojo, it is
-read once every operand has been evaluated, so a call among the later
-operands may change it first. The operand of a unary operator, and those
-of `and` and `or`, are read at once; `and` and `or` on structs give the
-operand that decides (`evalLogic`). An `Int`
-or a `Bool` passed to a `read` parameter is passed by value: Mojo copies
-it. Every function of the evaluator takes fuel, which each step spends; a
-run that spends it all stops with `outOfFuel`, so every run ends, even of a
-program that loops forever. The standard library's `range`, which only
-`List[u](…)` takes (#121), reads its `Int`s as a call reads `read`
-arguments, and gives their list, whose length the fuel left at the call
-bounds: a longer range runs out of fuel before the list is built.
+Evaluation goes left to right, as in Mojo: operands, arguments, list
+elements and printed values in order; `MojoGrimoire.Interp.Args` says
+when each is read. A literal of type `Int`, `[e]`, is the value of `e`,
+read into a temporary when passed `ref`. A method callee `S.m` runs the
+method `m` of `S` on its receiver, the first argument (#191); `and` and
+`or` on structs give the operand that decides (`evalLogic`). Every
+function takes fuel, which each step spends: a run that spends it all
+stops with `outOfFuel`, so every run ends. The standard library's
+`range`, which only `List[u](…)` takes (#121), gives the list of its
+`Int`s, whose length the fuel left at the call bounds.
 
-A value is destroyed where elaboration put a `drop` or a `withDrops`, when
-it is replaced by an assignment, when a temporary passed to a borrowing
-parameter is no longer needed after its call, when a call's result is not
-used, when `len` has read the length of a list that is neither a place
-nor a reference that a call returns, or `List[u](e)` has copied the
-elements of such a list or array, and when a function returns, for
-every value it still owns. A method whose `self` is `var`, called on
-`p^`, takes the value out of `p`. Destroying a
-struct runs its `__deinit__`, whose elaborated body destroys its fields; a
-struct without one has its fields destroyed in order, and a list its
-elements. A value that holds nothing, a blank included, is not destroyed.
-A struct with some fields that hold nothing and some that hold a value is
-never destroyed: the checker rejects a program that would destroy one (R,
-D-0003). A value taken out of a place leaves its blank
-there, and a variable declared without a value starts as the blank of its
-type, so that its fields can be assigned one by one. A value that `print` writes is not destroyed after it: it holds
-only `Int`s and `Bool`s, so destroying it would do nothing.
+When values are destroyed is in `MojoGrimoire.Interp.Machine`.
 -/
 
 namespace MojoGrimoire.Interp
@@ -120,18 +97,15 @@ def evalExpr (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Value 
     | .binary .and a b => evalLogic prog n env false a b [] []
     | .binary .or a b => evalLogic prog n env true a b [] []
     | .binary op a b => do
-      let x ← evalOperand prog n env a
-      let y ← evalOperand prog n env b
-      binary op (← x.load) (← y.load)
+      let os := [← evalOperand prog n env a, ← evalOperand prog n env b]
+      let [x, y] ← loadFirst Operand.rank (loadOperand prog n env) os | stuck "two operands"
+      binary op x y
     | .list .int [e] => evalExpr prog n env e
     | .list _ es => do
       let os ← es.mapM (evalOperand prog n env)
-      pure (.list (← os.mapM Operand.load))
+      pure (.list (← os.mapM (loadOperand prog n env)))
     | .listInit _ [a] => evalListArg prog n env a
-    | e => do
-      match ← evalResult prog n env e with
-      | .value v => pure v
-      | .ref r => readRef r
+    | e => do (← evalResult prog n env e).read
 
 /-- What the expression `e` gives: for a call, what it returns, which is a
 reference for a call that returns one; for any other expression, its
@@ -167,16 +141,65 @@ def dropAll (prog : Program) (fuel : Nat) (env : Env) (ps : List Place) : EvalM 
   | n + 1 => ps.forM (dropPlace prog n env)
 
 /-- The operand `e`: a place, or a call that returns a reference, is
-located, and any other expression evaluated. -/
+located, a subscript read late has its arguments evaluated, its getter
+called once the operand is read, and any other expression is evaluated. -/
 def evalOperand (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Operand :=
   match fuel with
   | 0 => fail .outOfFuel
   | n + 1 => match e with
     | .place p => do pure (.loc (← placeRef prog n env p))
-    | e => do
-      match ← evalResult prog n env e with
-      | .ref r => pure (.loc r)
-      | .value v => pure (.val v)
+    | e => match lateCall prog e with
+      | some (f, args, pre, post) => do
+        let some fd := findCallee prog f | stuck s!"unknown function {f}"
+        pure (.getter fd (← evalArgs prog n env fd.params args) pre post)
+      | none => do
+        match ← evalResult prog n env e with
+        | .ref r => pure (.loc r)
+        | .value v => pure (.val v)
+
+/-- The value of the operand `o`, once every operand of its operation has
+been evaluated. -/
+def loadOperand (prog : Program) (fuel : Nat) (env : Env) (o : Operand) : EvalM Value :=
+  match fuel with
+  | 0 => fail .outOfFuel
+  | n + 1 => match o with
+    | .loc r => readRef r
+    | .val v => pure v
+    | .getter fd args pre post => do (← loadGetter prog n env fd args pre post).read
+
+/-- Calls the getter `fd` of a subscript read late, with the arguments
+`args`, destroying `pre` once they are read and `post` once it is done. -/
+def loadGetter (prog : Program) (fuel : Nat) (env : Env) (fd : FunDecl) (args : List Pending)
+    (pre post : List Place) : EvalM Result :=
+  match fuel with
+  | 0 => fail .outOfFuel
+  | n + 1 => do
+    let args ← loadArgs prog n env args
+    dropAll prog n env pre
+    let r ← callFun prog n fd args
+    dropAll prog n env post
+    pure r
+
+/-- The arguments of a call, once every argument has been evaluated: each
+pending operand is read, the subscripts read late first (`loadFirst`). -/
+def loadArgs (prog : Program) (fuel : Nat) (env : Env) (ps : List Pending) :
+    EvalM (List Arg) :=
+  match fuel with
+  | 0 => fail .outOfFuel
+  | n + 1 => loadFirst Pending.rank (loadArg prog n env) ps
+
+/-- The argument that the pending argument `p` gives once it is read. -/
+def loadArg (prog : Program) (fuel : Nat) (env : Env) (p : Pending) : EvalM Arg :=
+  match fuel with
+  | 0 => fail .outOfFuel
+  | n + 1 => match p with
+    | .arg a => pure a
+    | .load o | .copy o => do pure (.value (← loadOperand prog n env o))
+    | .temp (.getter fd as pre post) => do
+      match ← loadGetter prog n env fd as pre post with
+      | .ref r => pure (.place r)
+      | .value v => pure (.temp v)
+    | .temp o => do pure (.temp (← loadOperand prog n env o))
 
 /-- `a and b`, or `a or b` when `isOr`: `b` runs only when `a` does not
 decide. On structs it gives the operand that decides, which `__bool__`
@@ -185,7 +208,8 @@ or moved out of its temporary,
 which dies when `b` decides. A test of `a` that inference made gives a
 `var self` a copy (`copiedTest`), and a temporary dies once copied.
 `pre` dies once `a` is tested, after `post` when it decides; `b`
-destroys what it uses. -/
+destroys what it uses. A subscript read late is read at once, its getter
+called once, as one of a struct with no setter is (#211). -/
 def evalLogic (prog : Program) (fuel : Nat) (env : Env) (isOr : Bool) (a b : Expr)
     (pre post : List Place) : EvalM Value :=
   match fuel with
@@ -195,10 +219,15 @@ def evalLogic (prog : Program) (fuel : Nat) (env : Env) (isOr : Bool) (a b : Exp
       | some (fd, e) => do
         let v ← match ← evalOperand prog n env e with
           | .loc r => readRef r
-          | .val v => do destroy prog n v; pure v
+          | o => do let v ← loadOperand prog n env o; destroy prog n v; pure v
         pure (Operand.val (← (← callFun prog n fd [.value v]).read))
       | none => evalOperand prog n env a
     let (v, r, temp) ← match o with
+      | .getter fd as p q => do
+        match ← loadGetter prog n env fd as p q with
+        | .ref r => pure (← readRef r, some r, false)
+        | .value v@(.struct ..) => pure (v, some (← alloc v), true)
+        | .value v => pure (v, none, false)
       | .loc r => do pure (← readRef r, some r, false)
       | .val v@(.struct ..) => do pure (v, some (← alloc v), true)
       | .val v => pure (v, none, false)
@@ -235,18 +264,19 @@ def evalArgs (prog : Program) (fuel : Nat) (env : Env) :
     | n + 1 => match prms, args with
       | prm :: prms, a :: args => do
         let x ← match prm.conv, a with
-          | .owned, a => do pure (.load (← evalOperand prog n env a))
+          | .owned, a => do pure (.copy (← evalOperand prog n env a))
           | .read, .place p =>
             if prm.ty.byValue then do pure (.load (← evalOperand prog n env (.place p)))
             else do pure (.arg (.place (← placeRef prog n env p)))
           | _, .place p => do pure (.arg (.place (← placeRef prog n env p)))
           | _, .list .int [e] => do pure (.load (← evalOperand prog n env e))
-          | _, a => do
-            match ← evalResult prog n env a with
-            | .ref r =>
-              if passedByValue prm then pure (.load (.loc r))
-              else pure (.arg (.place r))
-            | .value v => pure (.arg (.temp v))
+          | _, a => match lateCall prog a with
+            | some _ => do
+              let o ← evalOperand prog n env a
+              pure (if passedByValue prm then .load o else .temp o)
+            | none => do match ← evalResult prog n env a with
+              | .ref r => if passedByValue prm then pure (.load (.loc r)) else pure (.arg (.place r))
+              | .value v => pure (.arg (.temp v))
         pure (x :: (← evalArgs prog n env prms args))
       | _, _ => pure []
 
@@ -262,9 +292,8 @@ def callFun (prog : Program) (fuel : Nat) (fd : FunDecl) (args : List Arg) : Eva
       if let .temp v := a then destroy prog n v
     pure r
 
-/-- Evaluates a call, a construction or a method call. The values in the
-places `pre` are destroyed once the arguments are read, before the call is
-made. -/
+/-- Evaluates a call, a construction or a method call, destroying `pre`
+once the arguments are read, before the call is made. -/
 def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Place) :
     EvalM Result :=
   match fuel with
@@ -276,17 +305,18 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
         match sd.init with
         | some fd => do
           let self ← alloc (← emptyStruct prog n sd)
-          let rest ← Pending.loadAll (← evalArgs prog n env fd.params.tail args)
+          let rest ← loadArgs prog n env (← evalArgs prog n env fd.params.tail args)
           dropAll prog n env pre
           let _ ← callFun prog n fd (.place self :: rest)
           pure (.value (← readRef self))
         | none => do
           let os ← args.mapM (evalOperand prog n env)
-          let vs ← os.mapM Operand.load
+          let vs ← loadFirst (fun (o, t) => fieldRank o t) (loadOperand prog n env ·.1)
+            (os.zip (sd.fields.map (·.2)))
           dropAll prog n env pre
           pure (.value (.struct sd.name (sd.fields.zip vs |>.map fun ((x, _), v) => (x, v))))
       | none, some fd, _, _ => do
-        let args ← Pending.loadAll (← evalArgs prog n env fd.params args)
+        let args ← loadArgs prog n env (← evalArgs prog n env fd.params args)
         dropAll prog n env pre
         callFun prog n fd args
       | none, none, "len", [a] => do
@@ -297,50 +327,24 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
         dropAll prog n env pre
         pure (.value (.int k))
       | none, none, "range", args => do
-        let vs ← Pending.loadAll (← evalArgs prog n env (rangeParams args.length) args)
-        let ks ← vs.mapM fun
-          | .value v | .temp v => asInt v
-          | .place _ => stuck "range reads its Ints by value"
+        let vs ← loadArgs prog n env (← evalArgs prog n env (rangeParams args.length) args)
         dropAll prog n env pre
-        let (a, b, c) ← match ks with
-          | [b] => pure (0, b, 1)
-          | [a, b] => pure (a, b, 1)
-          | [a, b, c] => pure (a, b, c)
-          | _ => stuck "range with no argument or more than three"
-        pure (.value (← rangeList n a b c))
+        pure (.value (← rangeOf n vs))
       | _, _, _, _ => stuck s!"unknown function {f}"
     | .method p m args => do
       let r ← placeRef prog n env p
       match ← readRef r with
-      | .list _ => match m, args with
-        | "append", [a] => do
-          let v ← evalExpr prog n env a
-          dropAll prog n env pre
-          let .list es ← readRef r | stuck "append to a value that is not a list"
-          writeRef r (.list (es ++ [v]))
-          pure (.value .none)
-        | "pop", [] => do
-          dropAll prog n env pre
-          let .list es ← readRef r | stuck "pop from a value that is not a list"
-          let some v := es.getLast? | fail .indexOutOfBounds
-          writeRef r (.list es.dropLast)
-          pure (.value v)
-        | "pop", [a] => do
-          let k ← asInt (← evalExpr prog n env a)
-          dropAll prog n env pre
-          let .list es ← readRef r | stuck "pop from a value that is not a list"
-          let j ← position es.length k
-          let some v := es[j]? | fail .indexOutOfBounds
-          writeRef r (.list (es.eraseIdx j))
-          pure (.value v)
-        | _, _ => stuck s!"unknown list method {m}"
+      | .list _ => do
+        let vs ← args.mapM (evalExpr prog n env)
+        dropAll prog n env pre
+        listMethodOn r m vs
       | .struct s _ => do
         let some fd := (findStruct prog s).bind (findMethod · m) | stuck s!"unknown method {m}"
         let some self := fd.params.head? | stuck "a method with no self"
         let rest ← evalArgs prog n env fd.params.tail args
         let recv ← if self.conv == .owned then do pure (Arg.value (← readRef r))
           else pure (Arg.place r)
-        let args ← Pending.loadAll rest
+        let args ← loadArgs prog n env rest
         if (consumedReceiver self.conv p).isSome then let _ ← take r
         dropAll prog n env pre
         callFun prog n fd (recv :: args)
@@ -348,9 +352,8 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
     | _ => stuck "not a call"
 
 /-- The list or `Int` that `len` reads, or the list that `List[u](e)`
-copies: a place, or the
-reference that a call returns, read where it is, or any other expression,
-whose value is then destroyed. -/
+copies: a place or a returned reference, read where it is, or a value,
+then destroyed. -/
 def evalListArg (prog : Program) (fuel : Nat) (env : Env) (a : Expr) : EvalM Value :=
   match fuel with
   | 0 => fail .outOfFuel
@@ -395,7 +398,7 @@ def execStmt (prog : Program) (fuel : Nat) (refs : Bool) (env : Env) (s : Stmt) 
             let r ← placeRef prog n env q
             let o ← evalOperand prog n env i
             let v ← evalExpr prog n env e
-            let _ ← position 1 (← asInt (← o.load))
+            let _ ← position 1 (← asInt (← loadOperand prog n env o))
             pure (v, r)
           else do
             let v ← evalExpr prog n env e
@@ -414,9 +417,10 @@ def execStmt (prog : Program) (fuel : Nat) (refs : Bool) (env : Env) (s : Stmt) 
       let os ← args.mapM fun
         | .str t => pure (Sum.inl t)
         | a => do pure (Sum.inr (← evalOperand prog n env a))
-      let parts ← os.mapM fun
+      let late := fun | Sum.inr (o : Operand) => o.rank | .inl _ => 2
+      let parts ← loadFirst late (fun
         | .inl t => pure t
-        | .inr o => do pure (← o.load).show
+        | .inr o => do pure (← loadOperand prog n env o).show) os
       emit (" ".intercalate parts)
       pure env
     | .ifElse c a b => do

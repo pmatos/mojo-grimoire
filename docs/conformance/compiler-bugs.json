@@ -301,6 +301,42 @@
         "reproduces": true,
         "result": "prints `True False`, as the pin does; Mojo 1.2.0 and the nightly 1.3.0.dev2026111705 do too"
       }
+    },
+    {
+      "issue": 211,
+      "title": "a subscript of a struct that declares __getitem__ and __setitem__, on the left of and/or, calls the getter twice when it decides",
+      "ruled": "2026-11-20",
+      "decision_log": "D-0011",
+      "suite_programs": [
+        "structs/operator_method_bool_getter_twice",
+        "structs/operator_method_bool_getter_temporary",
+        "structs/operator_method_bool_getter_drop_order",
+        "rejected/operator_method_bool_getter_consumed"
+      ],
+      "reference": {
+        "release": "1.3.0.dev2026111905",
+        "commit": "a549e6a6"
+      },
+      "reproducer": "@fieldwise_init\nstruct W(Copyable):\n    var b: Bool\n\n    def __getitem__(self, i: Int) -> Bool:\n        print(\"get\", i)\n        return self.b\n\n    def __setitem__(mut self, i: Int, v: Bool):\n        self.b = v\n\n\ndef main():\n    var w = W(True)\n    var r = w[0] or False\n    print(r)\n",
+      "compiler": "prints `get 0`, `get 0`, `True`, at the default level and -O0: the getter runs to test the operand and again for the result. With a setter the index's values also live until after the getter when the subscript does not decide, and a getter that takes its index `var` is rejected, since its second call uses the temporary the first consumed",
+      "fixed": "calls the getter once, with the destroy order of the same struct without __setitem__, so it prints `get 0`, `True`; the human ruled the destroy order and the consumed index part of the bug on 2026-11-21",
+      "model": "prints `get 0`, `True`",
+      "upstream": {
+        "status": "unfiled",
+        "draft": "https://github.com/pmatos/mojo-grimoire/issues/211#issuecomment-7067045067",
+        "tracking": 254,
+        "report": null
+      },
+      "confirmation": {
+        "status": "pending",
+        "notes": "provisional ruling, until the human has discussed it with Modular"
+      },
+      "nightly": {
+        "version": "1.3.0.dev2026112017",
+        "checked": "2026-11-20",
+        "reproduces": true,
+        "result": "prints `get 0`, `get 0`, `True`, as the pin does"
+      }
     }
   ]
 }

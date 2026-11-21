@@ -14,6 +14,21 @@ change through them is a change to that place. Locations are never reused.
 toward negative infinity and `%` takes the sign of the divisor, as in Mojo.
 Both give 0 for a zero divisor, as Mojo's standard library defines them.
 Two arrays compare lexicographically, element by element (#166).
+
+The evaluator (`MojoGrimoire.Interp.Eval`) destroys values as follows.
+A value is destroyed where elaboration put a `drop` or a `withDrops`, when
+an assignment replaces it, after its call for a temporary passed to a
+borrowing parameter, when a call's result is not used, when `len` or
+`List[u](e)` has read a list that is neither a place nor a returned
+reference, and when a function returns, for every value it still owns.
+`p^.m(…)` with `var self` takes the value out of `p`. Destroying a struct
+runs its `__deinit__`, whose elaborated body destroys its fields, or else
+destroys its fields in order, and a list its elements. A value that holds
+nothing, a blank included, needs nothing; a struct partly built is never
+destroyed, since the checker rejects a program that would (R, D-0003). A
+value taken out of a place leaves its blank there, and a variable declared
+without a value starts as the blank of its type. A value that `print`
+writes holds only `Int`s and `Bool`s, so it needs nothing.
 -/
 
 namespace MojoGrimoire.Interp

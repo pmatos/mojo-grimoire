@@ -1,0 +1,17 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "get 11 0",
+    "11 0",
+    "pr 3",
+    "get 11 2",
+    "16",
+    "get 11 0",
+    "get 11 1",
+    "del W 11",
+    "23 5",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}
