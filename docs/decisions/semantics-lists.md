@@ -271,9 +271,11 @@ and write its one element. The human ruled on 2026-11-20 that indexing an
   so a `Bool` index is `typeMismatch`.
 - The element has no memory origin: `ref r = k[0]` and a returned
   reference to it are `escapingReference`, as the compiler reports
-  "doesn't have a memory origin". `k[i] = v` evaluates `i` before `v`, as
-  `__setitem__` takes them, where a list's element is located after its
-  value (D-0002), and the value may not invalidate the place of the `Int`.
+  "doesn't have a memory origin". `k[i] = v` is `k.__setitem__(i, v)`: it
+  locates `k` and evaluates `i` before `v`, where a list's element is
+  located after its value (D-0002), and reads a place `i` last, as any
+  argument. So `v` may invalidate neither `k` nor a place `i` is read
+  from, and `k[i] = zero(i)` stores at the `i` that `zero` leaves.
   The interpreter decides this from the place's static type, never from
   what its lists hold.
 - Not modelled yet (#222): the compiler passes `k[0]` to a `mut`

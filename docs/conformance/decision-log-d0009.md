@@ -53,6 +53,13 @@ value assigned comes first, as in `x[0][1] = g()`. An unknown name after
 the index in the same expression, as in `print(k[1], zz)`, still comes
 second, as for an array, an order left to #96 and #142.
 
+A store `k[i] = v` is `k.__setitem__(i, v)`, whose index the compiler reads
+as an argument, once `v` is evaluated: with `i = 0` and `v` a call that
+sets `i` to 2, the compiler stores into `k`, ignoring the index, and the
+model fails at run time on the index 2, as the fixed compiler would check
+the index it receives. The array of one element on the pin is no guide
+here, since an array locates its element before the value.
+
 The element has no memory origin of its own: `ref r = k[0]`, and a
 reference returned to `k[0]`, are `escapingReference`, as the compiler
 reports. The compiler passes `k[0]` to a `mut` or `ref` parameter as a

@@ -47,7 +47,9 @@ returns a location within its own origin, as `withinOrigin` decides.
 
 An assignment changes its place as a whole. Into the element of an `Int`,
 it locates the `Int` before it evaluates the value, as `__setitem__` takes
-it as `self`, so the value may not invalidate that location (#127). As
+it as `self`, so the value may not invalidate that location, and reads
+the index, an argument of `__setitem__`, once the value is evaluated, so
+the value may not invalidate a place the index is read from (#127). As
 `p op= e` is read as `p = p op e`, which evaluates the indices of `p`
 twice where the compiler evaluates them once (#198), `p = p op e` into the
 element of an `Int` is rejected as `notAList`, as before #127, unless each
@@ -288,8 +290,10 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     expect (← placeTy prog p) t
     checkConstructed prog p e
     requireMutable p
-    if let .index q _ := p then
-      if (← placeTy prog q) == .int then requireUnchanged prog q k
+    if let .index q i := p then
+      if (← placeTy prog q) == .int then
+        requireUnchanged prog q k
+        recheckPlaces prog [i] [k]
     changePlace prog p
     let (x, path) := splitPlace p
     let v ← lookup x

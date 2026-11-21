@@ -37,6 +37,8 @@ private def lib : List String := [
   "def mf(mut a: Int, ref b: Int):", "    a += 10", "    print(b)",
   "def pr(n: Int) -> Int:", "    print(\"eval\", n)", "    return n",
   "def seti(mut i: Int) -> Int:", "    i = 2", "    return 6",
+  "def zero(mut i: Int) -> Int:", "    i = 0", "    return 6",
+  "def clr(mut ys: List[Int]) -> Int:", "    ys = [5, 5, 5]", "    return 6",
   "def sr(a: Int) -> ref [a] Int:", "    return a",
   "@fieldwise_init", "struct S(Copyable, Movable):", "    var k: Int",
   "    def put(self, mut x: Int):", "        x += self.k",
@@ -86,6 +88,16 @@ private def kAt (i : Int) : Place := .index (.var "k") (.int i)
 -- The order follows the place's static type, whatever its list holds.
 #guard prints ["var xss: List[List[Int]] = [[], [3], [4]]", "var i = 1",
     "xss[i][0][0] = seti(i)", "print(xss)"] ["[[], [6], [4]]"]
+-- The index is an argument of `__setitem__`, read once the value is
+-- evaluated: a place it is read from may change, but not be invalidated.
+#guard prints ["var i = 1", "k[i] = zero(i)", "print(k, i)"] ["6 0"]
+#guard failsAfter ["var i = 0", "k[i] = seti(i)"] []
+#guard rejects ["var ys: List[Int] = [0]", "k[ys[0]] = clr(ys)"]
+  (.invalidatedReference (.index (.var "ys") (.int 0)))
+#guard rejects ["var xs: List[Int] = [1]", "var ys: List[Int] = [0]", "xs[0][ys[0]] = clr(ys)"]
+  (.invalidatedReference (.index (.var "ys") (.int 0)))
+#guard prints ["var xs: List[Int] = [1]", "var ys: List[Int] = [0]",
+    "xs[0][ys[0] - 1 + 1] = clr(ys)", "xs[ys[0] - 5][0] = 4", "print(xs, ys)"] ["[4] [5, 5, 5]"]
 -- So the value may not invalidate the `Int`'s location, as in a list.
 #guard runLines (["def grow(mut xs: List[Int]) -> Int:", "    xs.append(7)", "    return 5",
     "def main():", "    var xs: List[Int] = [1, 2]", "    xs[0][0] = grow(xs)"]) ==
