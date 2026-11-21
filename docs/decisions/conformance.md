@@ -219,6 +219,14 @@ or `__call__`, is `arityMismatch`: `diagnostics.json` maps the
 compiler's "missing required argument", matched whole, to it. The human
 ruled this on 2026-11-20 (#209).
 
+A subscript, read or assigned, of a `Bool`, of `None` or of a struct
+that declares neither `__getitem__` nor `__setitem__` is "'T' is not
+subscriptable, it does not implement the `__getitem__`/`__setitem__`
+methods". `diagnostics.json` maps it, matched whole and first, to
+`notAList`, as the model reports it. The human ruled this on 2026-11-20
+(#182). The compiler reports it before any error in the index or in the
+assigned value, which the model reports first (#227).
+
 The model does not yet follow two cases of the same rules. The operator
 methods that `Equatable` and `Comparable` supply by default (`a == b` on a
 struct that conforms to `Equatable`) are not modelled: the model reports
