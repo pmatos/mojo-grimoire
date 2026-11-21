@@ -122,6 +122,8 @@ with the compiler.
 
 {includeReadable "." MojoGrimoire.Interp.Machine "The machine" MojoSpec.Interp.Machine (level := 2)}
 
+{includeReadable "." MojoGrimoire.Interp.Args "Arguments and operands" MojoSpec.Interp.Args (level := 2)}
+
 {includeReadable "." MojoGrimoire.Interp.Eval "Evaluation" MojoSpec.Interp.Eval (level := 2)}
 
 {includeReadable "." MojoGrimoire.Interp.Run "Running a program" MojoSpec.Interp.Run (level := 2)}

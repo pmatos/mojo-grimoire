@@ -45,7 +45,18 @@ is: `t < u` may give an `Int`.
   left type lacks (`missingMethod`) or the misfit of its built-in operator
   (`1 + t` is `noMatchingMethod`). `!=` never falls back to `__eq__`, nor
   any operator to another of the left operand's methods.
-- `-a` calls `__neg__`.
+- `-a` calls `__neg__`, and `not a` negates what `__bool__` gives.
+  `a and b` and `a or b` convert each struct operand with its
+  `__bool__`, unless both operands have the same struct type: then they
+  give the operand that decides, tested by reference and copied, so a
+  struct that is not `ImplicitlyCopyable` is `implicitCopy`; a
+  temporary left operand is moved out when it decides, and destroyed when
+  the right one does. The right operand is evaluated only when the left
+  one does not decide. What the left operand last uses dies once it is
+  tested, before the right one runs; when the left one decides, what the
+  right one would have used dies first. `Bool` operands follow the same
+  order, as the pin does: the human ruled on 2026-11-20 to keep this
+  order in #191.
 - An operator method that inference calls must take as many operands,
   `self` among them, as its operator: two for a binary, reflected or
   in-place operator and one for `__neg__`. The compiler rejects such a
@@ -136,9 +147,6 @@ Not yet modelled, each keeping the result it had before #166:
 
 Each of these keeps the result the model gave before #191:
 
-- `not`, `and` and `or` on a struct operand, which do not yet call its
-  `__bool__`, and the order in which `and` and `or` destroy what their
-  `Bool` operands last use. A later part of #191 models them.
 - A subscript of a struct that declares `__getitem__` or `__setitem__`,
   read or assigned, which the model rejects as `notAList`. A later part of #191 models reading and assigning it; a
   subscript used as a place beyond that, such as `p[i] op= e` or passing

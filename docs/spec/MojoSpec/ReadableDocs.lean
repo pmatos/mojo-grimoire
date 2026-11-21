@@ -23,6 +23,7 @@ import MojoSpec.Elab.Elaborate
 import MojoSpec.Elab.Strip
 import MojoSpec.Interp.Value
 import MojoSpec.Interp.Machine
+import MojoSpec.Interp.Args
 import MojoSpec.Interp.Eval
 import MojoSpec.Interp.Run
 import MojoSpec.Parse.Lexer

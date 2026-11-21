@@ -2,7 +2,7 @@ import MojoGrimoire.Parse.Infer
 import MojoGrimoire.Interp.Run
 
 /-!
-Tests of the operators and calls on a struct value, which call
+Tests of the operators, `and`, `or` and calls on a struct value, which call
 the methods that the struct declares (#191, `MojoGrimoire.Parse.Dispatch`):
 which method inference calls, and what running the program gives. Each
 verdict is the pinned compiler's for the program, probed on the nightly
@@ -100,6 +100,16 @@ private def m (name ps r ret : String) : List String :=
 -- The destination may change, checked before the method is looked up.
 #guard runLines (withT [] ["g(T(1))"] ++ ["def g(t: T):", "    t += True"]) ==
   some (.rejected ⟨"g", .immutablePlace (.var "t")⟩)
+
+-- `not`, `and` and `or`: a struct operand is converted with `__bool__`,
+-- unless both have its type.
+#guard prints [m "__bool__" "" "Bool" "self.n != 0"] ["var t = T(1)", "print(not t, t and True)"]
+  ["False True"]
+#guard rejects [m "__bool__" "" "Bool" "self.n != 0"] ["var t = T(1)", "var x = t and t", "print(x.n)"]
+  (.implicitCopy (.struct "T"))
+#guard runLines ["@fieldwise_init", "struct T(ImplicitlyCopyable):", "    var n: Int",
+    "    def __bool__(self) -> Bool:", "        return self.n != 0", "def main():",
+    "    var x = T(0) or T(3)", "    print(x.n)"] == some (.finished ["3"])
 
 -- Calls of a variable whose struct declares `__call__`, which hides the
 -- function, `len`, `print` or struct of its name.

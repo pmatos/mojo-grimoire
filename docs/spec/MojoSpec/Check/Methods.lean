@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4770595326657988530")
+:::moduleDocs (fingerprint := "13279249520178588975")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -46,12 +46,14 @@ them, negation and arithmetic, has the type `IntLiteral`, whose operators
 have several overloads too.
 :::
 
-:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "2250277455228571407")
+:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "3743439047245667153")
 *Definition: the type of an operand from its form.* The type of an
 operand is found, without checking or reading it, from its form: a
 literal's, a place's type, the result of the function, struct or method
 it calls, an $`\mathsf{Int}` for the built-in `len` that nothing hides,
-the result of its operator, an array of its first element's type for a
+the result of its operator, or, for $`\mathsf{and}` and $`\mathsf{or}`
+on operands whose forms give the same struct type, that type (#191), an
+array of its first element's type for a
 literal with no type expected each of whose elements' forms gives that
 type (one whose element's form gives none, or another type, is left to
 checking), a list or an array literal's type, an $`\mathsf{Int}` for $`[e]` of type $`\mathsf{Int}`, and
@@ -60,7 +62,7 @@ that a variable hides, and any other form, gives none, and so does a
 lookup that fails: checking the operand then reports why.
 :::
 
-:::readable MojoGrimoire.Check.compares MojoGrimoire.Check.arrayCompare MojoGrimoire.Check.arrayCompare.conforms (fingerprint := "4263272370677617613")
+:::readable MojoGrimoire.Check.compares MojoGrimoire.Check.arrayCompare MojoGrimoire.Check.arrayCompare.conforms (fingerprint := "1138209594749846065")
 *Definition: comparable arrays.* $`<`, $`\le`, $`>`, $`\ge`, $`==`
 and $`!=` compare. Two arrays compare when their element type conforms
 to `Comparable`, to order them, or to `Equatable`, for $`==` and $`!=`:
@@ -71,7 +73,7 @@ conformances come with #194, nor the equality of lists (#185): the
 comparison keeps the rules it had before #166.
 :::
 
-:::readable MojoGrimoire.Check.arrayMisfit (fingerprint := "2923997297340939390")
+:::readable MojoGrimoire.Check.arrayMisfit (fingerprint := "1406109812613426789")
 *Rule: the misfit of a comparison of arrays.* When one operand of a
 comparison is an array that compares, an operand of another type is a
 type mismatch, as the compiler cannot convert it: the right one when the
@@ -90,7 +92,7 @@ for a unary operator its operand's (#176). A binary operator's misfit is
 then that of a comparison of arrays (`arrayMisfit`).
 :::
 
-:::readable MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.convertsLiteral MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "12862265436166846129")
+:::readable MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.convertsLiteral MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "8804237164956097085")
 *Rule: operands of a comparison of arrays.* The misfit of a binary
 operator is found from its operands' forms before they are read
 (`operandTy`). An integer literal on the left gives no type, so that its
@@ -105,7 +107,7 @@ operand compared as an array is passed by reference, as `Array`'s comparisons ta
 argument: a place, or a call that returns a reference, is read, uncopied.
 :::
 
-:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "3344581529509980139")
+:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "11866000574721882157")
 *Rule: a call of `len`.* The built-in `len` takes one list, array or
 $`\mathsf{Int}`, a SIMD vector of width 1, and gives an $`\mathsf{Int}`.
 A string is left to the check of a string outside `print`. Any other type,
@@ -118,7 +120,7 @@ read. Any other number of arguments is `noMatchingInit` of $`?`, once
 they are typed.
 :::
 
-:::readable MojoGrimoire.Check.methodCall (fingerprint := "14781180816628587386")
+:::readable MojoGrimoire.Check.methodCall (fingerprint := "5560809483516187005")
 *Rule: a method call.* A call $`p.m(e^*)` of a method of signature
 $`\mathit{sig}`, once the indices of $`p` are checked, takes the method's
 receiver by its convention: $`p` is passed as a place, or, when $`p` is
@@ -136,12 +138,15 @@ receiver and the arguments are checked again once all are read, the
 places the call changes are changed, and the call gives its result.
 :::
 
-:::readable MojoGrimoire.Check.methodBinaryTy MojoGrimoire.Check.methodUnaryTy (fingerprint := "7067538993756540430")
+:::readable MojoGrimoire.Check.methodBinaryTy MojoGrimoire.Check.methodUnaryTy (fingerprint := "2587528303319945694")
 *Rule: the result of an operator, once its operands are checked.* A
 method that an operand's type lacks is `missingMethod`, and a comparison
 of arrays that does not fit is its misfit, found again from the checked
-types; otherwise a comparison of arrays gives a $`\mathsf{Bool}`, and
-any other operator's result is `binaryTy`'s or `unaryTy`'s.
+types; otherwise $`\mathsf{and}` and $`\mathsf{or}` on operands of the
+same struct type give the operand that decides, of that type: each place
+operand was copied, implicitly (#191); a comparison of arrays gives a
+$`\mathsf{Bool}`, and any other operator's result is `binaryTy`'s or
+`unaryTy`'s.
 :::
 
 :::readable MojoGrimoire.Check.rejectAfter MojoGrimoire.Check.rejectMisfit (fingerprint := "6081766398198932002")
@@ -172,7 +177,7 @@ struct type declares `__call__` never reaches this rule: inference makes
 the call one of the method (#191).
 :::
 
-:::readable MojoGrimoire.Check.requireInPlace (fingerprint := "18000915414203633187")
+:::readable MojoGrimoire.Check.requireInPlace (fingerprint := "2635740280216961138")
 *Rule: an in-place operator on a struct.* A call of a struct's
 `__iadd__`, `__isub__` or `__imul__`, which inference makes of
 $`p \mathrel{+}= e`, $`p \mathrel{-}= e` or $`p \mathrel{\times}= e`,

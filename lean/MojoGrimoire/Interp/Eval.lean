@@ -1,5 +1,4 @@
-import MojoGrimoire.Interp.Machine
-import MojoGrimoire.Check.Env
+import MojoGrimoire.Interp.Args
 
 /-!
 The big-step evaluation of elaborated programs.
@@ -12,7 +11,8 @@ An operand that is a place passed by value, or
 a call that returns a reference, is only located then: as in Mojo, it is
 read once every operand has been evaluated, so a call among the later
 operands may change it first. The operand of a unary operator, and those
-of `and` and `or`, are read at once. An `Int`
+of `and` and `or`, are read at once; `and` and `or` on structs give the
+operand that decides (`evalLogic`). An `Int`
 or a `Bool` passed to a `read` parameter is passed by value: Mojo copies
 it. Every function of the evaluator takes fuel, which each step spends; a
 run that spends it all stops with `outOfFuel`, so every run ends, even of a
@@ -43,67 +43,6 @@ only `Int`s and `Bool`s, so destroying it would do nothing.
 namespace MojoGrimoire.Interp
 
 open MojoGrimoire.Core MojoGrimoire.Check
-
-/-- An argument as a call receives it: a place, passed by reference, or a
-value, passed by moving or copying it. `temp` is a value passed to a
-borrowing parameter, which the caller destroys after the call. -/
-inductive Arg where
-  | place (r : Ref)
-  | value (v : Value)
-  | temp (v : Value)
-
-/-- An operand as evaluation first finds it: a place passed by value, or
-the reference that a call returns, located but not yet read, or the value
-of any other expression. -/
-inductive Operand where
-  | loc (r : Ref)
-  | val (v : Value)
-
-/-- The value of an operand, once every operand has been evaluated. -/
-def Operand.load : Operand → EvalM Value
-  | .loc r => readRef r
-  | .val v => pure v
-
-/-- An argument before the operands passed by value are read: `load o` is
-read into a value when the call is made. -/
-inductive Pending where
-  | arg (a : Arg)
-  | load (o : Operand)
-
-/-- The arguments of a call, once every argument has been evaluated: each
-pending operand is read. -/
-def Pending.loadAll (ps : List Pending) : EvalM (List Arg) :=
-  ps.mapM fun
-    | .arg a => pure a
-    | .load o => do pure (.value (← o.load))
-
-/-- The variables a function starts with: its parameters bound to the
-arguments, each owned when it is passed `var`. The temporaries are given
-locations of their own. -/
-def bindParams : List Param → List Arg → EvalM Env
-  | prm :: prms, a :: args => do
-    let rest ← bindParams prms args
-    let b ← match a with
-      | .place r => pure ⟨r, false, prm.ty⟩
-      | .value v => do pure ⟨← alloc v, prm.conv == .owned, prm.ty⟩
-      | .temp v => do pure ⟨← alloc v, false, prm.ty⟩
-    pure ((prm.name, b) :: rest)
-  | _, _ => pure []
-
-/-- The value of an `Int` or `Bool` written by `print`, or of a literal. -/
-def asInt : Value → EvalM Int
-  | .int n => pure n
-  | _ => stuck "expected an Int"
-
-/-- The truth value of a condition. -/
-def asBool : Value → EvalM Bool
-  | .bool b => pure b
-  | _ => stuck "expected a Bool"
-
-/-- The binding of the variable `x`. -/
-def lookupVar (env : Env) (x : Name) : EvalM Ref := do
-  let some b := env.lookup x | stuck s!"unknown variable {x}"
-  pure b.ref
 
 mutual
 /-- Destroys the value `v`. -/
@@ -178,10 +117,8 @@ def evalExpr (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Value 
     | .place p | .copy p => do readRef (← placeRef prog n env p)
     | .transfer p => do take (← placeRef prog n env p)
     | .unary op a => do unary op (← evalExpr prog n env a)
-    | .binary .and a b => do
-      if ← asBool (← evalExpr prog n env a) then evalExpr prog n env b else pure (.bool false)
-    | .binary .or a b => do
-      if ← asBool (← evalExpr prog n env a) then pure (.bool true) else evalExpr prog n env b
+    | .binary .and a b => evalLogic prog n env false a b [] []
+    | .binary .or a b => evalLogic prog n env true a b [] []
     | .binary op a b => do
       let x ← evalOperand prog n env a
       let y ← evalOperand prog n env b
@@ -205,6 +142,8 @@ def evalResult (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Resu
   | n + 1 => match e with
     | .call .. | .method .. => evalCall prog n env e []
     | .withDrops e pre post => do
+      if let .binary op a b := e then if op == .and || op == .or then
+        return .value (← evalLogic prog n env (op == .or) a b pre post)
       let r ← match e with
         | .call .. | .method .. => evalCall prog n env e pre
         | e => do
@@ -238,6 +177,40 @@ def evalOperand (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Ope
       match ← evalResult prog n env e with
       | .ref r => pure (.loc r)
       | .value v => pure (.val v)
+
+/-- `a and b`, or `a or b` when `isOr`: `b` runs only when `a` does not
+decide. On structs it gives the operand that decides, which `__bool__`
+tests by reference (#191): `a` copied, or moved out of its temporary,
+which dies when `b` decides. `pre` dies once `a` is tested, after `post`
+when it decides; `b` destroys what it uses. -/
+def evalLogic (prog : Program) (fuel : Nat) (env : Env) (isOr : Bool) (a b : Expr)
+    (pre post : List Place) : EvalM Value :=
+  match fuel with
+  | 0 => fail .outOfFuel
+  | n + 1 => do
+    let (v, r, temp) ← match ← evalOperand prog n env a with
+      | .loc r => do pure (← readRef r, some r, false)
+      | .val v@(.struct ..) => do pure (v, some (← alloc v), true)
+      | .val v => pure (v, none, false)
+    let decides ← match v, r with
+      | .struct s _, some r => do
+        let some fd := (findStruct prog s).bind (findMethod · "__bool__")
+          | stuck s!"a {s} with no __bool__"
+        pure ((← asBool (← (← callFun prog n fd [.place r]).read)) == isOr)
+      | v, _ => do pure ((← asBool v) == isOr)
+    if decides then
+      let w ← match r with
+        | some r => do
+          let w ← if temp then take r else readRef r
+          dropAll prog n env post
+          pure w
+        | none => do dropAll prog n env post; pure v
+      dropAll prog n env pre
+      pure w
+    else
+      if let (true, some r) := (temp, r) then destroy prog n (← take r)
+      dropAll prog n env pre
+      evalExpr prog n env b
 
 /-- The arguments `args` passed to the parameters `params`, before the
 places and returned references passed by value are read. A place passed

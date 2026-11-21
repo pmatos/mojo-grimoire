@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods of operators on structs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11780647484201194922")
+:::moduleDocs (fingerprint := "9109462554925444735")
 :::
 
 :::readable MojoGrimoire.Parse.declaredMethod MojoGrimoire.Parse.reflectedMethod MojoGrimoire.Parse.inPlaceMethod MojoGrimoire.Parse.otherParam (fingerprint := "4476456537020946172")
@@ -56,4 +56,10 @@ stays as it is (#191). A method fits only when its receiver and its
 other operand can be passed with their conventions: a `mut` parameter,
 `self` among them, takes only a place that may change, as in the
 compiler, so a temporary or a read-only operand moves the choice on.
+:::
+
+:::readable MojoGrimoire.Parse.toBool (fingerprint := "6158316062790451282")
+*Definition: converting to a Bool.* An operand of $`\mathsf{not}`,
+$`\mathsf{and}` or $`\mathsf{or}` whose struct declares `__bool__` is the
+call of it.
 :::

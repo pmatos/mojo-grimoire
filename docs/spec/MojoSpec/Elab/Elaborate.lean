@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16904687357827056622")
+:::moduleDocs (fingerprint := "3368134826676644093")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8076625837927918720")
@@ -68,7 +68,7 @@ to a `var self`; the receiver's type, from the variables declared so far,
 gives the method.
 :::
 
-:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "9725923883889489055")
+:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.opKeep MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "6670769228017152069")
 *Definition: what an operation destroys.* Inside a function, elaboration
 knows the program, the slots, the slots the function owns in the order they
 die, and the types of the variables declared so far. An operation uses
@@ -96,7 +96,7 @@ the slots that the method calls in it consume, at any depth, also inside
 the argument of $`\mathsf{List}[u](e)`.
 :::
 
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "7457849810698641265")
+:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "3037389477930652300")
 *Definition: elaborating expressions.* Each call, method call, operator,
 list literal, $`\mathsf{List}[u](e)` and `.copy()` is wrapped with what it
 destroys, and its operands are elaborated in turn, each with the slots that the later
@@ -105,8 +105,12 @@ $`[e]_{\mathsf{Int}}` has only its element elaborated: the operation that
 reads it destroys what its element uses. The operation at the
 top of a statement leaves what dies once it is done to the statement, as
 the compiler destroys a discarded result before those values. The right
-operand of `and` and `or` may not run, so it is not elaborated, and the
-operation destroys what it uses. A method call never destroys the slot it
+operand of `and` and `or` may not run: elaborated with the slots live
+after the operation, and those that a call of it returning a reference
+points into (`opKeep`), it destroys what it uses once it is read when it
+runs, and the operation destroys what it uses when it does not, before
+what the left operand last uses, which dies once that is tested (#191).
+A method call never destroys the slot it
 consumes, though it uses it. The argument of $`\mathsf{List}[u](e)` is
 used by reference, as that of `len`, so a value whose last use it is dies
 once the new list is built. So is an operand of a comparison of two
