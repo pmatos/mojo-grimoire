@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods of operators on structs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18309284950756854124")
+:::moduleDocs (fingerprint := "11780647484201194922")
 :::
 
 :::readable MojoGrimoire.Parse.declaredMethod MojoGrimoire.Parse.reflectedMethod MojoGrimoire.Parse.inPlaceMethod MojoGrimoire.Parse.otherParam (fingerprint := "4476456537020946172")
@@ -28,7 +28,7 @@ method of $`p \mathrel{\mathit{op}{=}} e` is `__iadd__`, `__isub__` or
 the one after `self`, of a method that takes exactly one.
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.TyEnv.lookup MojoGrimoire.Parse.TyEnv.push MojoGrimoire.Parse.TyEnv.freePlace MojoGrimoire.Parse.TyEnv.placeTy (fingerprint := "16972769437246771461")
+:::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.TyEnv.lookup MojoGrimoire.Parse.TyEnv.push MojoGrimoire.Parse.TyEnv.freePlace MojoGrimoire.Parse.TyEnv.placeTy (fingerprint := "1644828188159980859")
 *Definition: the types in scope.* Inference keeps the types of the
 variables in scope, innermost first, and the variables that may not
 change: `read` and `ref` parameters, and `ref` bindings that may not

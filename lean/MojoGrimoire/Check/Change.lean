@@ -47,7 +47,7 @@ def changedArgs (prog : Program) : List Param → List Expr → CheckM (List Pla
     let rest ← changedArgs prog prms args
     match prm.conv, a with
     | .mutable, .place q => pure (q :: rest)
-    | .ref, .place q => if ← passedMutable q then pure (q :: rest) else pure rest
+    | .ref, .place q => if ← passedMutable prog q then pure (q :: rest) else pure rest
     | .mutable, a | .ref, a =>
       match ← locOf prog a with
       | some (os, m) => pure (if prm.conv == .mutable || m then os ++ rest else rest)

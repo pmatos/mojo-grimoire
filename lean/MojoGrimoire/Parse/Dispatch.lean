@@ -60,7 +60,7 @@ def TyEnv.freePlace (env : TyEnv) (p : Place) : Bool :=
 def TyEnv.placeTy (prog : Program) (env : TyEnv) : Place → Option Ty
   | .var x => env.lookup x
   | .field p f => (env.placeTy prog p).bind fun t => (fieldOf prog t f).toOption
-  | .index p _ => (env.placeTy prog p).bind fun t => (elemOf t).toOption
+  | .index p _ => (env.placeTy prog p).bind fun t => (indexedOf t).toOption
   | .transferred p => env.placeTy prog p
 
 mutual

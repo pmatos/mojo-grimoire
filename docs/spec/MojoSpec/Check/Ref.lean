@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "References: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11824547030118940315")
+:::moduleDocs (fingerprint := "13909996044147250247")
 :::
 
-:::readable MojoGrimoire.Check.refTarget (fingerprint := "15497504020908357118")
+:::readable MojoGrimoire.Check.refTarget (fingerprint := "7073986494264997714")
 *Rule: what a reference names.* $`\mathsf{ref}~x = e` needs $`e` to be a
 place, which must be initialized, or a call or a method call whose
 signature returns a reference. A place gives a reference to itself, or
@@ -27,6 +27,9 @@ origin argument is none. A call of a name that a variable in scope hides
 is checked as a call, which rejects it when the variable's type has no
 `__call__` (#176).
 Any other expression, a struct's construction included, is rejected.
+A place through the element of an $`\mathsf{Int}` has no memory origin,
+and is $`\mathsf{escapingReference}`, in a binding or a return alike,
+once the place is typed and before any later error (#127).
 :::
 
 :::readable MojoGrimoire.Check.withinOrigin (fingerprint := "1783623240663657123")

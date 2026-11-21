@@ -283,7 +283,7 @@ def readIntElems (prog : Program) : List Expr → CheckM (List (List Place × Na
 
 /-- Checks the index expressions of the place `p`: each is an `Int`, and
 one that Mojo computes when it compiles the program may not be negative,
-nor, into an array, beyond its last element. Mojo locates `q` in `q[i]`
+nor, into an array or an `Int`, beyond its last element. Mojo locates `q` in `q[i]`
 before it evaluates `i`, so `i` may not invalidate `q`. Each `q^` in `p`
 needs `q` whole, and a value that `q^` could transfer. -/
 def checkIndices (prog : Program) : Place → CheckM Unit
@@ -296,7 +296,7 @@ def checkIndices (prog : Program) : Place → CheckM Unit
     requireUnchanged prog p k
     if let some k := constInt i then
       if k < 0 then throw (CheckError.negativeIndex (.index p i))
-      if let .array _ n := (← placeTy prog p) then
+      if let some n := fixedLength (← placeTy prog p) then
         if n ≤ k then throw (CheckError.constantIndexOutOfBounds (.index p i))
   | .transferred p => do
     requireOwnOrigin prog p
@@ -323,7 +323,7 @@ def requireOwnOrigin (prog : Program) (p : Place) : CheckM Unit := do
   termination_by (sizeOf p, 1)
 
 /-- Types the place `p` as the compiler does, from its variable outward,
-each indexed place, but an `Int` (#127), before its index, each index as
+each indexed place before its index, each index as
 an `Int`, and each `q^` in it, but of an `Int` or a `Bool`, which is the
 place `q`, as one that could transfer `q`, initialized or not. An index's error that the compiler reports later (`CheckError.late`)
 is left out: the transfer is rejected first. -/
@@ -333,7 +333,7 @@ def typePlace (prog : Program) : Place → CheckM Unit
   | .index p i => do
     typePlace prog p
     let t ← placeTy prog p
-    unless t == .int do let _ ← lift (elemOf t)
+    let _ ← lift (indexedOf t)
     try checkIndex prog (some t) i catch e => unless e.late do throw e
     let _ ← placeTy prog (.index p i)
   | .transferred p => do

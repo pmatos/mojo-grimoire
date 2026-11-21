@@ -251,3 +251,31 @@ here (#27).
 
 Rejected: keeping every literal a `List`, which would accept programs that
 the compiler rejects, such as `append` to an unannotated literal.
+
+## An index of an `Int`
+
+`Int` is `SIMD[DType.int, 1]`, whose `__getitem__` and `__setitem__` read
+and write its one element. The human ruled on 2026-11-20 that indexing an
+`Int` joins the subset (#127):
+
+- `k[0]` is the `Int` `k` itself, read or assigned, also through a field,
+  an element, a parameter, a reference, another index and `+=`. It is an
+  element of `k` for initialization and for changes, as an array's is.
+- Any other index is a compiler bug, since the nightly ignores the index
+  ([D-0009](../conformance/decision-log.md), provisional): the model
+  checks it as an array's of length 1. A constant index is rejected when
+  it is negative (`negativeIndex`) or at least 1
+  (`constantIndexOutOfBounds`), reported late as for an array; a computed
+  one other than 0 fails at run time.
+- An index must be an `Int`: `__getitem__` of an `Int` has one overload,
+  so a `Bool` index is `typeMismatch`.
+- The element has no memory origin: `ref r = k[0]` and a returned
+  reference to it are `escapingReference`, as the compiler reports
+  "doesn't have a memory origin", and `k[0]` passed to a `ref` parameter
+  gives a reference that cannot be changed. The compiler passes `k[0]` to
+  a `mut` parameter as a temporary that it writes back after the call,
+  which argument exclusivity does not cover, and to a `ref` parameter as a
+  temporary that a later change of `k` does not reach; the model passes
+  `k` itself, which agrees unless another argument aliases `k` (#222).
+- `len` of an `Int`, which the nightly gives as 1, is still `notAList`,
+  awaiting a ruling (#223).

@@ -308,3 +308,25 @@ Each move of the Mojo pin gets an entry below.
   arithmetic gives, as for every range that does not abort.
 - Upstream report: not filed yet. A draft on #121 awaits the human's
   approval; its link goes here once it is filed.
+
+### D-0009: an index of an `Int` other than 0 is ignored (provisional)
+
+- Date: 2026-11-21
+- Mojo release and commit: nightly 1.3.0.dev2026111905 (D-0007)
+- Programs: five in `tests/conformance/basics/`, `int_index_*`, listed on
+  [the detail page](decision-log-d0009.md#programs).
+- Compiler: `Int` is `SIMD[DType.int, 1]`, whose `__getitem__` and
+  `__setitem__` check no index. `k[1]`, `k[-1]` and `k[three()]` read `k`,
+  and `k[1] = 5` stores into it, with no error, also with `-O0` and
+  `-D ASSERT=all` ([detail](decision-log-d0009.md#compiler)).
+- Model: index 0 reads and writes the `Int`; any other index is checked
+  as an array's of length 1: `constantIndexOutOfBounds` or `negativeIndex`
+  for a constant one, `indexOutOfBounds` at run time for a computed one.
+- Classification: compiler bug, ruled by the human on 2026-11-20 (#127),
+  option A. The ruling is provisional, until the human has discussed it
+  with Modular.
+- Decision and rationale: the fixed compiler applies its own rule for
+  arrays on the pin, by analogy, since neither the docs nor the compiler
+  state one for `Int` ([evidence](decision-log-d0009.md#evidence)).
+- Upstream report: not filed yet. A draft on #127 awaits the human's
+  approval; its link goes here once it is filed.

@@ -145,7 +145,8 @@ def destroyOwned (prog : Program) (fuel : Nat) (env : Env) : EvalM Unit :=
     if b.owned then destroy prog n (← take b.ref)
 
 /-- The reference that the place `p` names. An index is checked against the
-length of the list. -/
+length of the list, or, into an `Int`, which is its own one element, against
+1 (#127). -/
 def placeRef (prog : Program) (fuel : Nat) (env : Env) (p : Place) : EvalM Ref :=
   match fuel with
   | 0 => fail .outOfFuel
@@ -157,9 +158,12 @@ def placeRef (prog : Program) (fuel : Nat) (env : Env) (p : Place) : EvalM Ref :
     | .index q i => do
       let r ← placeRef prog n env q
       let k ← asInt (← evalExpr prog n env i)
-      let .list es ← readRef r | stuck "index into a value that is not a list"
-      let j ← position es.length k
-      pure { r with path := r.path ++ [.elem j] }
+      match ← readRef r with
+      | .list es => do
+        let j ← position es.length k
+        pure { r with path := r.path ++ [.elem j] }
+      | .int _ => do let _ ← position 1 k; pure r
+      | _ => stuck "index into a value that is not a list"
     | .transferred q => placeRef prog n env q
 
 /-- The value of the expression `e`. A call that returns a reference gives

@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "escapingReference",
+  "diagnostic": "value of type 'Int' doesn't have a memory origin in 'ref' binding"
+}

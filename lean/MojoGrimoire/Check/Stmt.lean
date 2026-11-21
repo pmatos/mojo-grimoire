@@ -267,7 +267,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     modify fun s => { s with vars := ⟨x, t, .owned, us, [], hs, [], []⟩ :: s.vars }
   | .refDecl x e => do
     if (← get).vars.any (·.name == x) then throw (CheckError.duplicate x)
-    let (t, origins, m) ← refTarget prog e
+    let (t, origins, m) ← refTarget prog sig.name e
     modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
     let t ← if e matches .list .unknown _ || (wrongIntLiteral e).isSome then do
@@ -331,7 +331,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
       if sig.result == .noneType then throw (CheckError.invalidReturn sig.name)
       checkInitValue prog sig.result e (checkReturnValue prog e)
     | some e, some os => do
-      let (t, origins, _) ← refTarget prog e
+      let (t, origins, _) ← refTarget prog sig.name e
       expect sig.result t
       unless ← origins.allM (withinOrigin prog os) do
         throw (CheckError.escapingReference sig.name)

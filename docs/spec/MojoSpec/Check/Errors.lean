@@ -28,9 +28,10 @@ of these classes, each with the names or types it concerns:
   (`invalidType`), a struct on a cycle of fields none of which holds the next
   struct through a list (`recursiveStruct`), a type other than the one expected
   (`typeMismatch`), an index into a
-  value that is neither a list nor an array (`notAList`), an index that
+  value that is neither a list, an array nor an $`\mathsf{Int}`
+  (`notAList`), an index that
   Mojo computes when it compiles the program and that is negative
-  (`negativeIndex`) or, into an array, past its last element
+  (`negativeIndex`) or, into an array or an $`\mathsf{Int}`, past its last element
   (`constantIndexOutOfBounds`), a value that
   `print` cannot print (`notPrintable`), a string literal outside
   `print` (`stringOutsidePrint`), a call with the wrong number of

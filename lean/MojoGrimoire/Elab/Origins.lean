@@ -29,7 +29,7 @@ abbrev TyEnv := List (Name × Ty)
 def placeTyOf (prog : Program) (env : TyEnv) : Place → Option Ty
   | .var x => env.lookup x
   | .field p f => (placeTyOf prog env p).bind fun t => (fieldOf prog t f).toOption
-  | .index p _ => (placeTyOf prog env p).bind fun t => (elemOf t).toOption
+  | .index p _ => (placeTyOf prog env p).bind fun t => (indexedOf t).toOption
   | .transferred p => placeTyOf prog env p
 
 /-- The signature of what the expression `e` calls, with its arguments, the

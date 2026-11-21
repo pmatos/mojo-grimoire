@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17514244129095093920")
+:::moduleDocs (fingerprint := "18073210493618536347")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "14136961392570647166")
@@ -41,7 +41,7 @@ $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "2552273706626457001")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "3081536066507530418")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -57,7 +57,9 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   of declaration, after the returned value is computed.
 - *Places.* A place names a reference: a variable's, then a field or an
   element on the way, whose index is evaluated and checked against the
-  list's length; $`p\,\hat{}` names the reference of $`p`.
+  list's length; an index into an $`\mathsf{Int}`, its own one element,
+  is checked against 1 and names the $`\mathsf{Int}` (#127);
+  $`p\,\hat{}` names the reference of $`p`.
 - *Expressions.* Literals are values, and $`[e]_{\mathsf{Int}}` is the value
   of $`e`; a place is read, a transfer takes its value out, leaving its
   blank behind, and `.copy()` reads it. `and` and `or`
