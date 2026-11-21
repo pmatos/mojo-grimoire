@@ -180,7 +180,8 @@ def evalOperand (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Ope
 
 /-- `a and b`, or `a or b` when `isOr`: `b` runs only when `a` does not
 decide. On structs it gives the operand that decides, which `__bool__`
-tests by reference (#191): `a` copied, or moved out of its temporary,
+tests by reference, or a copy of it to a `var self` (#191): `a` copied,
+or moved out of its temporary,
 which dies when `b` decides. `pre` dies once `a` is tested, after `post`
 when it decides; `b` destroys what it uses. -/
 def evalLogic (prog : Program) (fuel : Nat) (env : Env) (isOr : Bool) (a b : Expr)
