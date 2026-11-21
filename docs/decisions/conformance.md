@@ -129,7 +129,8 @@ compiler crashed is checked by building that program again alone, with
 sweep of #242, one build crashed under parallel load and passed when built
 again. The first run found only the programs of D-0003 that read a field
 never set, whose output at `-O0` is uninitialized memory, and the program
-of D-0010.
+of D-0010; the program of D-0013, swept on its own after it was added,
+differs too.
 
 Both compare the compiler's results as the runner reads them, through one
 function. A failed assertion's line on standard output is how the run
