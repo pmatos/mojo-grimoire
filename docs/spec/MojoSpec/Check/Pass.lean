@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13522156795911338585")
+:::moduleDocs (fingerprint := "15781499674327725658")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -67,7 +67,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.typeFirst (fingerprint := "16332035283002643435")
+:::readable MojoGrimoire.Check.typeFirst (fingerprint := "2726299190013272088")
 *Rule: what a call types first.* Before a call reads its first argument,
 a place, the receiver of an in-place method that inference made is typed,
 its indices included. A subscript of a struct, which inference makes a
@@ -75,5 +75,7 @@ call of its getter, has its index typed against the getter's parameter,
 as any subscript's index is, so that an unknown name or a type that does
 not fit in it comes before a use of a moved or uninitialized receiver
 (#191). Errors that the compiler reports after the types do not count
-there, and the checker's state is left as it was.
+there, nor an index with no type there, such as a literal of
+$`\mathsf{Int}`s of the wrong length, which the call reports later; the
+checker's state is left as it was.
 :::
