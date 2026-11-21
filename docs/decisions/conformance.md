@@ -111,8 +111,13 @@ A recorded result comes from the default build, at `-O3`, but the optimizer
 can change a program's result (#235). `record` also builds each program at
 `-O0` and does not record it when the outcome, the lines printed or a
 rejection's first error differ from the default build's. The exception is a
-program that a ruled compiler bug names: `known.json` lists it under an
-entry of the decision log. It is recorded from the default build, and
+program that a ruled compiler bug names: `known.json`, or the
+`suite_programs` of a bug in
+[compiler-bugs.json](../conformance/compiler-bugs.json), lists it under an
+entry of the decision log. A bug that shows only below `-O3` is named in
+`compiler-bugs.json` alone, since the model agrees with the recorded result
+and `check` refuses a `known.json` entry for a program that agrees. No other
+list excuses a program. It is recorded from the default build, and
 `record` says that it differs. Otherwise a program that differs is either a
 compiler bug, which the human rules on, or a program to change.
 
@@ -132,8 +137,14 @@ never set, whose output at `-O0` is uninitialized memory, and the program
 of D-0010; the program of D-0013, swept on its own after it was added,
 differs too.
 
+Both refuse to run unless the wrapper builds and runs a trivial program and
+each program named is a file. A build that fails with no `error:` line from
+the compiler, such as a crash or a wrapper that cannot start, and a build or
+run that times out are never recorded and always fail the sweep, whatever
+names the program: a sweep that compared nothing must not pass.
+
 Both compare the compiler's results as the runner reads them, through one
-function. A failed assertion's line on standard output is how the run
+function in `scripts/conformance_compiler.py`. A failed assertion's line on standard output is how the run
 ended, not a printed line, at every level. A failed instantiation whose
 constraint note a build leaves out agrees with the noted one. A failed
 run's detail is not compared, as `check` does not compare it. No program is skipped. The human ruled all of this on

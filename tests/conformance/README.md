@@ -32,6 +32,7 @@ repository by `scripts/install-mojo.sh`. It writes one `NAME.json` per
 program and lists every diagnostic that no pattern of `diagnostics.json`
 classifies. A new program is recorded before it is committed, so that `check`
 compares it. `record` also builds each program at `-O0`, and refuses to record
-one whose result differs there, unless `known.json` names it under a ruled
-compiler bug; `levels` builds every program at each optimization level
+one whose result differs there, unless a ruled compiler bug names it, in
+`known.json` or in `docs/conformance/compiler-bugs.json`; `levels` builds
+every program at each optimization level
 ([conformance.md](../../docs/decisions/conformance.md#optimization-levels)).
