@@ -78,8 +78,8 @@ Each of these keeps the result the model gave before #191:
 - `not`, `and` and `or` on a struct operand, which do not yet call its
   `__bool__`, and the order in which `and` and `or` destroy what their
   `Bool` operands last use. A later part of #191 models them.
-- A subscript of a struct, read or assigned, which the model rejects as
-  `notAList`. A later part of #191 models reading and assigning it; a
+- A subscript of a struct that declares `__getitem__` or `__setitem__`,
+  read or assigned, which the model rejects as `notAList`. A later part of #191 models reading and assigning it; a
   subscript used as a place beyond that, such as `p[i] op= e` or passing
   it `mut`, stays with #198.
 - The methods that `Equatable` and `Comparable` supply by default (#194),
