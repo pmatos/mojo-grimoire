@@ -304,10 +304,16 @@ def inferStruct (prog : Program) (sd : StructDecl) : StructDecl :=
 def inferProgram (prog : Program) : Program :=
   ⟨prog.structs.map (inferStruct prog), prog.funs.map (inferFun prog)⟩
 
-/-- Parses the text of a `.mojo` file into a program of the core calculus:
-the types that a variable hides are marked (`markHidden`), then `Self` is
-resolved, then inference fills in what the program leaves open. -/
+/-- The program of the core calculus that the program `raw`, as parsed,
+stands for: the types that a variable hides are marked (`markHidden`), then
+`Self` is resolved, then inference fills in what the program leaves open. -/
+def inferRaw (raw : Program) : Program :=
+  inferProgram (resolveSelf (markHidden raw))
+
+/-- Parses the text of a `.mojo` file into a program of the core calculus,
+as `inferRaw` gives it. It does not check the constructs outside the
+subset, which `MojoGrimoire.Parse.parseSubset` does. -/
 def parse (source : String) : Except SyntaxError Program := do
-  pure (inferProgram (resolveSelf (markHidden (← parseRaw source))))
+  pure (inferRaw (← parseRaw source))
 
 end MojoGrimoire.Parse

@@ -1,4 +1,4 @@
-import MojoGrimoire.Parse.Infer
+import MojoGrimoire.Parse.Subset
 import MojoGrimoire.Interp.Run
 
 /-!
@@ -15,17 +15,29 @@ namespace MojoGrimoireTest.Parse.Methods
 
 open MojoGrimoire.Core MojoGrimoire.Check MojoGrimoire.Parse MojoGrimoire.Interp
 
-/-- Parses and runs the program whose lines are `ls`; a syntax error gives
-`none`. -/
+/-- Parses and runs the program whose lines are `ls`, as the driver does; a
+syntax error, or a construct outside the subset, gives `none`. -/
 private def runLines (ls : List String) : Option Outcome :=
-  match parse ("\n".intercalate ls) with
+  match parseSubset ("\n".intercalate ls) with
   | .ok prog => some (run prog 100000)
   | .error _ => none
+
+/-- The construct outside the subset of the program whose lines are `ls`,
+which the driver reports with exit 3. -/
+private def outsideOf (ls : List String) : Option Outside :=
+  match parseSubset ("\n".intercalate ls) with
+  | .error (.outside o) => some o
+  | _ => none
 
 /-- A struct `S` that has no methods, then `main`, whose body is `body`. -/
 private def withS (body : List String) : List String :=
   ["@fieldwise_init", "struct S(Movable):", "    var n: Int", "def main():"] ++
     body.map ("    " ++ ·)
+
+/-- Whether the line `i` of `main`'s body `body`, from 1, is outside the
+subset as the construct `m`. -/
+private def outside (body : List String) (i : Nat) (m : String) : Bool :=
+  outsideOf (withS body) == some ⟨4 + i, m⟩
 
 private def prints (body : List String) (out : List String) : Bool :=
   runLines (withS body) == some (.finished out)
@@ -49,7 +61,8 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["var xs: List[Int] = [1]", "var s = S(0)", "print(xs[s].n)"]
   (.noMatchingMethod "__getitem__")
 #guard rejects ["var a = [1, 2]", "a[False] = 3", "print(a[0])"] (.noMatchingMethod "__getitem__")
-#guard rejects ["var xs: List[Int] = [1]", "print(xs[\"a\"])"] (.noMatchingMethod "__getitem__")
+-- A string literal as the index is outside the subset (#180).
+#guard outside ["var xs: List[Int] = [1]", "print(xs[\"a\"])"] 2 outsideString
 #guard rejects ["var xs: List[Int] = [1]", "print(xs[[0, 1]])"] (.noMatchingInit .int)
 #guard rejects ["var xs: List[Int] = [1]", "print(xs.pop(0, True))"] (.noMatchingMethod "pop")
 #guard rejects ["var xs: List[Int] = [1]", "print(xs.pop([0, 1]))"] (.noMatchingInit .int)

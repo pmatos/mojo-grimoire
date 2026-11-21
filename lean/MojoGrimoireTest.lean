@@ -41,4 +41,5 @@ import MojoGrimoireTest.Parse.NoneValues
 import MojoGrimoireTest.Parse.IntIndex
 import MojoGrimoireTest.Parse.Len
 import MojoGrimoireTest.Parse.HiddenTypes
+import MojoGrimoireTest.Parse.Subset
 import MojoGrimoireCli

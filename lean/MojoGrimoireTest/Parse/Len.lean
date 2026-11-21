@@ -1,4 +1,4 @@
-import MojoGrimoire.Parse.Infer
+import MojoGrimoire.Parse.Subset
 import MojoGrimoire.Interp.Run
 
 /-!
@@ -12,12 +12,19 @@ namespace MojoGrimoireTest.Parse.Len
 
 open MojoGrimoire.Core MojoGrimoire.Check MojoGrimoire.Parse MojoGrimoire.Interp
 
-/-- Parses and runs the program whose lines are `ls`; a syntax error gives
-`none`. -/
+/-- Parses and runs the program whose lines are `ls`, as the driver does; a
+syntax error, or a construct outside the subset, gives `none`. -/
 private def runLines (ls : List String) : Option Outcome :=
-  match parse ("\n".intercalate ls) with
+  match parseSubset ("\n".intercalate ls) with
   | .ok prog => some (run prog 100000)
   | .error _ => none
+
+/-- The construct outside the subset of the program whose lines are `ls`,
+which the driver reports with exit 3. -/
+private def outsideOf (ls : List String) : Option Outside :=
+  match parseSubset ("\n".intercalate ls) with
+  | .error (.outside o) => some o
+  | _ => none
 
 private def inMain (body : List String) : List String := "def main():" :: body.map ("    " ++ ·)
 
@@ -25,6 +32,11 @@ private def inMain (body : List String) : List String := "def main():" :: body.m
 `main`. -/
 private def rejects (pre body : List String) (e : CheckError) : Bool :=
   runLines (pre ++ inMain body) == some (.rejected ⟨"main", e⟩)
+
+/-- Whether the line `i` of the body `body` of `main`, after `pre`, from 1,
+is outside the subset as the construct `m`. -/
+private def outside (pre body : List String) (i : Nat) (m : String) : Bool :=
+  outsideOf (pre ++ inMain body) == some ⟨pre.length + 1 + i, m⟩
 
 /-- Whether the body `body` of `main`, after `pre`, prints `out`. -/
 private def prints (pre body : List String) (out : List String) : Bool :=
@@ -83,7 +95,7 @@ private def decls : List String := [
 #guard rejects [] ["var x: Int = [len(True), nope]", "print(x)"] (.noMatchingInit .bool)
 #guard rejects [] ["var xs = List[Int](range(len(True)))", "print(len(xs))"]
   (.noMatchingInit .bool)
--- A string keeps its class, outside `print`.
-#guard rejects [] ["print(len(\"abc\"))"] .stringOutsidePrint
+-- A string literal outside `print` is outside the subset (#180).
+#guard outside [] ["print(len(\"abc\"))"] 1 outsideString
 
 end MojoGrimoireTest.Parse.Len
