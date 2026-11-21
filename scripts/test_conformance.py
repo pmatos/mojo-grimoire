@@ -4,11 +4,13 @@ import io
 import json
 import os
 import stat
+import subprocess
 import tempfile
 import textwrap
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 from conformance import (
     SUITE,
@@ -281,6 +283,14 @@ class Record(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("a compiler bug ruled in D-0003", out)
         self.assertIn("-O2: output", out)
+
+    def test_the_sweep_reports_a_timeout_at_every_level(self):
+        program = self.program("slow", "# PRINT a\n")
+        slow = subprocess.TimeoutExpired([self.fake, "build"], 1)
+        with mock.patch("conformance.run_compiler", side_effect=slow):
+            code, out = self.run_command(levels, program, {})
+        self.assertEqual(code, 1)
+        self.assertIn("-O0: timed out", out)
 
     def test_the_sweep_passes_when_every_level_agrees(self):
         program = self.program("stable", "# PRINT a\n# FAIL\n")

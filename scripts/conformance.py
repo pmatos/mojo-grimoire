@@ -271,13 +271,17 @@ def build_at(program: Path, mojo: str, patterns, level: str) -> Result:
 
 
 def across_levels(program: Path, mojo: str, patterns) -> list[str]:
-    """How the program's result differs between the levels of LEVELS."""
+    """How the program's result differs between the levels of LEVELS; a
+    build that timed out is reported even when every level timed out."""
     results = {level: build_at(program, mojo, patterns, level) for level in LEVELS}
     reference = results["-O3"]
-    return [
+    timeouts = [
+        f"{lv}: {r.detail}" for lv, r in results.items() if r.outcome == "error"
+    ]
+    return timeouts + [
         f"{level}: {p}"
         for level, result in results.items()
-        if level != "-O3"
+        if level != "-O3" and "error" not in (reference.outcome, result.outcome)
         for p in level_differences(reference, result, level)
     ]
 
