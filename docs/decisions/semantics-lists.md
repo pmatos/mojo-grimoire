@@ -153,8 +153,10 @@ here (#27).
   function's result, a parameter, and the element type of an enclosing
   literal or of the list that `append` adds to. A literal with no type
   expected and no elements, `var xs = []`, is rejected.
-- An array has no methods. `len` and indexing work as on a list. At run
-  time an array is a list value whose length is its size `N`.
+- An array has no methods; two arrays compare
+  ([semantics-operators.md](semantics-operators.md#comparisons-of-arrays)).
+  `len` and indexing work as on a list. At run time an array is a list
+  value whose length is its size `N`.
 - An array's size is part of its type, so `[1, 2, 3]` is not an
   `Array[Int, 2]`. The size in a type is an integer literal. A literal of
   another size, or with an element of another type, fits no initializer
@@ -184,9 +186,8 @@ here (#27).
   expects an `Int` of either operand when the other is an `Int`: `x + [2]`
   and `[2] - x` are `Int`s, and `x < [2]`, `[2] < x` and `[1] == x`
   `Bool`s. Mojo 1.2.0 read a literal on the left as an `Int` for the
-  arithmetic operators only, and rejected `[2] < x` and `[1] == x` as a
-  comparison of an array with an `Int`; the nightly pinned on 2026-11-19
-  reads them as `Int`s (#160). Where nothing is expected, such as the argument of
+  arithmetic operators only; the pinned nightly reads `[2] < x` and
+  `[1] == x` so too (#160). Where nothing is expected, such as the argument of
   `List[Int](…)`, the operand of `-`, `and` or `or`, or `print`, the
   literal stays an array.
 - The compiler reads `[e]` as it reads the operand `e`: a place in it is

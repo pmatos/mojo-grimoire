@@ -268,6 +268,39 @@
         "reproduces": true,
         "result": "accepts and prints `7 7 7`, then `5`; with `var k = [7]` the constant indices are rejected and k[three()] fails at run time"
       }
+    },
+    {
+      "issue": 235,
+      "title": "two one-element arrays compare as equal in an optimized build when a struct's __deinit__ prints",
+      "ruled": "2026-11-21",
+      "decision_log": "D-0010",
+      "suite_programs": [
+        "arrays/compare_beside_printing_deinit"
+      ],
+      "reference": {
+        "release": "1.3.0.dev2026111905",
+        "commit": "a549e6a6"
+      },
+      "reproducer": "@fieldwise_init\nstruct H(Movable):\n    var n: Int\n\n    def __deinit__(deinit self):\n        print(\"del\", self.n)\n\n\ndef get(h: H) -> Int:\n    return h.n\n\n\ndef main():\n    var h = H(1)\n    var g = H(2)\n    print([get(h)] == [get(g)], [get(h)] < [get(g)])\n",
+      "compiler": "prints `del 1`, `del 2`, `True False` in a default build: the arrays compare as equal whatever they hold. With -O0 or -D ASSERT=all it prints the right `False True`. The answers are right when the destructor is `pass`, when the values come from parameters or pop, with two-element arrays, and with plain Ints",
+      "fixed": "compares the elements one by one, as the pin does at -O0 and in every control, so it prints `del 1`, `del 2`, `False True`",
+      "model": "prints `del 1`, `del 2`, `False True`",
+      "upstream": {
+        "status": "unfiled",
+        "draft": "https://github.com/pmatos/mojo-grimoire/issues/235#issuecomment-7062466615",
+        "tracking": 240,
+        "report": null
+      },
+      "confirmation": {
+        "status": "pending",
+        "notes": "provisional ruling, until the human has discussed it with Modular"
+      },
+      "nightly": {
+        "version": "1.3.0.dev2026112017",
+        "checked": "2026-11-21",
+        "reproduces": true,
+        "result": "prints `True False`, as the pin does; Mojo 1.2.0 and the nightly 1.3.0.dev2026111705 do too"
+      }
     }
   ]
 }

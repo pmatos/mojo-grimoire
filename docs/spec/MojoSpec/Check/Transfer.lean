@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Reading and transferring: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3360571688760172665")
+:::moduleDocs (fingerprint := "10982720077204351799")
 :::
 
-:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.noOwnOrigin MojoGrimoire.Check.CheckError.late MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "3745399525283139153")
+:::readable MojoGrimoire.Check.copyPlace MojoGrimoire.Check.noOwnOrigin MojoGrimoire.Check.CheckError.late MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "9991872579265305767")
 *Rule: reading and moving a place.* Using a place $`p` as a value copies it
 implicitly: $`p` must be initialized, and its type implicitly copyable.
 Transferring it, $`p\,\hat{}`, needs $`p` initialized and a variable
@@ -33,4 +33,10 @@ type and before anything else. Its later errors, which such a transfer
 comes before, are the use of an uninitialized or invalidated value and a
 constant index out of range. These conditions, without the move, are
 what $`q\,\hat{}` before a field or a method needs of $`q`.
+:::
+
+:::readable MojoGrimoire.Check.usePlace (fingerprint := "173479358898358411")
+*Rule: using a place.* A place whose location is used, as a comparison
+of arrays uses its operands (#166), is read, uncopied; any other use
+copies it implicitly.
 :::

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4745262075387947770")
+:::moduleDocs (fingerprint := "6794066038637030517")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17131055927722852879")
@@ -53,7 +53,7 @@ compiler checks when it parses the declaration; otherwise
 `out self` of type $`S`, and it returns nothing.
 :::
 
-:::readable MojoGrimoire.Check.checkFields MojoGrimoire.Check.checkMethods (fingerprint := "10962442979836301495")
+:::readable MojoGrimoire.Check.checkFields MojoGrimoire.Check.checkMethods (fingerprint := "18082562181975108682")
 *Rule: structs.* A struct's fields and methods have distinct names, its
 fields declarable types, and no field leads to a rejected cycle back to
 the struct. Its initializer, its destructor, checked with the single
@@ -74,7 +74,7 @@ the declaration, even when nothing copies the struct (#164). A field's
 struct is copyable as it declares, whatever its own fields.
 :::
 
-:::readable MojoGrimoire.Check.checkProgram (fingerprint := "7875788320624616484")
+:::readable MojoGrimoire.Check.checkProgram (fingerprint := "6270778727287706666")
 *Rule: programs.* A program is accepted when its structs and functions have
 distinct names, every struct and function is accepted, `main`, if it is
 declared, has no parameters and returns nothing, every copyable struct's
