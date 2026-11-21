@@ -5,7 +5,8 @@ import MojoGrimoire.Interp.Run
 Tests of the new value of an assignment whose right-hand side destroys or
 consumes the old value of the same variable (#92): `s = s^.consume()`
 consumes the old value of `s`, and the new one still dies as soon as it is
-dead, as the compiler destroys it. Each expected outcome is the compiler's.
+dead, as the compiler destroys it. The old value is not live after the
+assigned expression, even when the new one is used later (#99). Each expected outcome is the compiler's.
 The programs are parsed from text, one line per string, after the shared
 declarations.
 -/
@@ -116,5 +117,20 @@ private def after : Stmt := .print [.str "after"]
     .drop (.field (.var "self") "a"), .print [.str "in deinit"]]
 #guard inMain ["    var p = Pair(Res(1), Res(2))", "    print(\"after\")"] ==
   some (.finished ["drop 2", "peek 1", "drop 1", "drop 101", "in deinit", "after"])
+
+-- `s = make(peek(s))` with `s` used later: the old value is not live after
+-- the assigned expression, so `peek`'s call destroys it once done (#99).
+#guard elabMain ["    var s = Res(1)", "    s = make(peek(s))", "    print(\"after\", s.id)"]
+  matches some [_, .assign _ (.call "make" [.withDrops (.call "peek" [.place _]) [] [_]]), _, _]
+#guard inMain ["    var s = Res(1)", "    s = make(peek(s))", "    print(\"after\", s.id)"] ==
+  some (.finished ["peek 1", "drop 1", "after 101", "drop 101"])
+#guard inMain ["    var s = Res(1)", "    var i = 0", "    while i < 2:",
+    "        s = make(peek(s))", "        print(\"in\", s.id)", "        i += 1",
+    "    print(\"after\", s.id)"] ==
+  some (.finished ["peek 1", "drop 1", "in 101", "peek 101", "drop 101", "in 201",
+    "after 201", "drop 201"])
+#guard inMain ["    var s = Res(1)", "    s = make(peek(s^.consume()))",
+    "    print(\"after\", s.id)"] ==
+  some (.finished ["consume 1", "drop 1", "peek 101", "drop 101", "after 201", "drop 201"])
 
 end MojoGrimoireTest.Elab.NewValue

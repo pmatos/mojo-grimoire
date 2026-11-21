@@ -48,10 +48,11 @@ is: `t < u` may give an `Int`.
 - `-a` calls `__neg__`, and `not a` negates what `__bool__` gives.
   `a and b` and `a or b` convert each struct operand with its
   `__bool__`, unless both operands have the same struct type: then they
-  give the operand that decides, tested by reference and copied, so a
-  struct that is not `ImplicitlyCopyable` is `implicitCopy`; a
-  temporary left operand is moved out when it decides, and destroyed when
-  the right one does. The right operand is evaluated only when the left
+  give the operand that decides, tested by reference. A place that
+  decides is copied, so a place of a struct that is not
+  `ImplicitlyCopyable` is `implicitCopy`; a temporary is moved, so a
+  `Movable` struct is accepted: a temporary left operand is moved out
+  when it decides, and destroyed when the right one does. The right operand is evaluated only when the left
   one does not decide. What the left operand last uses dies once it is
   tested, before the right one runs; when the left one decides, what the
   right one would have used dies first. `Bool` operands follow the same
@@ -62,12 +63,24 @@ is: `t < u` may give an `Int`.
   `__bool__` returns must be a `Bool`, which the compiler converts with
   `__mlir_bool__`, or the operator is `missingMethod`; a `mut self` takes
   only a place that may change (`immutablePlace`) and no temporary
-  (`notAPlace`, #81), and a `var self` gets a copy, which it destroys.
-- The value that an assignment to a whole variable replaces is not live
-  after the assigned expression, whether or not the variable is used
-  later: in `o = O(wrap(rd(o)))`, the old `o` dies once `rd` returns,
+  (`notAPlace`, #81).
+- A `var self` `__bool__` gets a copy of the left operand of `and` or
+  `or`, on either path, even of a temporary or `p^`, since the left
+  operand may be the result: a struct that is not `ImplicitlyCopyable`
+  is `implicitCopy`. A temporary converted by `__bool__` dies once it is
+  copied, before `__bool__` runs (`mk(2) and True` prints `del 2`, `bool
+  2`, `del 2`); one that the operator may give, of the same struct type
+  on both sides, lives until the test is done. The right operand and
+  `not e` move a temporary into `self`, as a call does.
+- The value that an assignment to a whole variable that the function
+  owns, a local or a `var` parameter, replaces is not live after the
+  assigned expression, whether or not the variable is used later
+  (#99): in `o = O(wrap(rd(o)))`, the old `o` dies once `rd` returns,
   in `o = O(o.f or pb(p.f))` once `o.f` is tested, and in `a = a or b`,
-  with `b` deciding, once `a` is, as the pin does at both levels. When the target is a struct operand of `and` or
+  with `b` deciding, once `a` is, as the pin does at both levels. A
+  `mut` parameter or `mut self` still loses its old value only when the
+  store replaces it, where the pin destroys it at its last use too
+  (#251). When the target is a struct operand of `and` or
   `or` that decides, as in `a = a and b` with a false `a`, or the right
   one, as in `b = a and b`, the pin destroys it before it reads it, or
   its default level and `-O0` give different values: what the model does
@@ -75,7 +88,8 @@ is: `t < u` may give an `Int`.
 - An operator method that inference calls must take as many operands,
   `self` among them, as its operator: two for a binary, reflected or
   in-place operator and one for `__neg__` and `__bool__`. The compiler
-  rejects such a declaration when it parses it ("'__add__' requires 2 operands"), used or
+  rejects such a declaration when it parses it ("'__add__' requires 2
+  operands"), used or
   not; the model rejects it as `arityMismatch`. Which class this message
   maps to is not yet settled, so no pattern matches it and no suite
   program pins it. The other operator methods that the compiler checks

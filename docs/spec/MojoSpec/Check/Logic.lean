@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8734863033552648677")
+:::moduleDocs (fingerprint := "18237080337807734158")
 :::
 
-:::readable MojoGrimoire.Check.boolTest MojoGrimoire.Check.checkedBinaryTy (fingerprint := "8734863033552648677")
+:::readable MojoGrimoire.Check.checkedBinaryTy (fingerprint := "18237080337807734158")
 *Rule: binary operations.* Once both operands are checked, the places
 among them that are read late are checked again, but for `and` and `or`,
 whose operands are read when tested; the operation then has the type
@@ -30,5 +30,8 @@ the same struct type, which the operator gives without a call of its
 own. That operand is passed to `self` as an argument of a call is, from
 the state before it was checked: a `mut self` takes only a place that
 may change (`immutablePlace`) or a mutable returned reference, and no
-temporary (`notAPlace`, #81).
+temporary (`notAPlace`, #81). A `var self` gets a copy of the left
+operand on either path, even of a temporary or a transfer, since the
+left operand may be the result: a struct that is not `ImplicitlyCopyable`
+is `implicitCopy`.
 :::

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments and operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17040301232712701240")
+:::moduleDocs (fingerprint := "2999292388053604629")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "12042878878789727990")
@@ -40,4 +40,12 @@ passed by value.
 reference points to. An index is an $`\mathsf{Int}`, a condition a
 $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
+:::
+
+:::readable MojoGrimoire.Interp.copiedTest (fingerprint := "18126999313800057970")
+*Definition: a copied test.* A test of a struct operand that inference
+made, a call of a `__bool__` whose `self` is `var`, gives `self` a copy
+of its operand when it is the left operand of `and` or `or`, as the
+compiler does, since that operand may be the result; a temporary operand
+is destroyed once it is copied, before `__bool__` runs.
 :::

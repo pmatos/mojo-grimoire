@@ -182,14 +182,23 @@ def evalOperand (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Ope
 decide. On structs it gives the operand that decides, which `__bool__`
 tests by reference, or a copy of it to a `var self` (#191): `a` copied,
 or moved out of its temporary,
-which dies when `b` decides. `pre` dies once `a` is tested, after `post`
-when it decides; `b` destroys what it uses. -/
+which dies when `b` decides. A test of `a` that inference made gives a
+`var self` a copy (`copiedTest`), and a temporary dies once copied.
+`pre` dies once `a` is tested, after `post` when it decides; `b`
+destroys what it uses. -/
 def evalLogic (prog : Program) (fuel : Nat) (env : Env) (isOr : Bool) (a b : Expr)
     (pre post : List Place) : EvalM Value :=
   match fuel with
   | 0 => fail .outOfFuel
   | n + 1 => do
-    let (v, r, temp) ← match ← evalOperand prog n env a with
+    let o ← match copiedTest prog a with
+      | some (fd, e) => do
+        let v ← match ← evalOperand prog n env e with
+          | .loc r => readRef r
+          | .val v => do destroy prog n v; pure v
+        pure (Operand.val (← (← callFun prog n fd [.value v]).read))
+      | none => evalOperand prog n env a
+    let (v, r, temp) ← match o with
       | .loc r => do pure (← readRef r, some r, false)
       | .val v@(.struct ..) => do pure (v, some (← alloc v), true)
       | .val v => pure (v, none, false)

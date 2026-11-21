@@ -125,6 +125,19 @@ private def sameT (bool : List String) : List String :=
   some (.rejected ⟨"main", .notAPlace _⟩)
 #guard runLines (sameT ["def __bool__(var self) -> Bool:", "    return self.n != 0"]) ==
   some (.finished ["3"])
+-- A `var self` gets a copy of the left operand, a temporary too: a struct
+-- that is not `ImplicitlyCopyable` is `implicitCopy`, on either path.
+private def moveT (body : List String) : List String :=
+  ["struct T(Movable):", "    var n: Int", "    def __init__(out self, n: Int):",
+    "        self.n = n", "    def __bool__(var self) -> Bool:", "        return self.n != 0",
+    "def main():"] ++ body.map ("    " ++ ·)
+#guard runLines (moveT ["var x = T(0) or T(3)", "print(x.n)"]) ==
+  some (.rejected ⟨"main", .implicitCopy (.struct "T")⟩)
+#guard runLines (moveT ["print(T(4) and True)"]) ==
+  some (.rejected ⟨"main", .implicitCopy (.struct "T")⟩)
+#guard runLines (moveT ["var t = T(4)", "print(t^ or False)"]) ==
+  some (.rejected ⟨"main", .implicitCopy (.struct "T")⟩)
+#guard runLines (moveT ["print(True and T(4), not T(0))"]) == some (.finished ["True True"])
 
 -- Calls of a variable whose struct declares `__call__`, which hides the
 -- function, `len`, `print` or struct of its name.

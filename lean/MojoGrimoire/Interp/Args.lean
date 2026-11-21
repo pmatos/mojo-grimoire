@@ -72,6 +72,16 @@ def asBool : Value → EvalM Bool
   | .bool b => pure b
   | _ => stuck "expected a Bool"
 
+/-- The `__bool__` and the operand of `e`, when `e` is a call of a `__bool__`
+whose `self` is `var` that inference made to test a struct operand
+(`MojoGrimoire.Core.boolTest`). As the left operand of `and` or `or`, the
+compiler gives `self` a copy of the operand, which may be the result,
+and destroys a temporary operand once it is copied (#191). -/
+def copiedTest (prog : Program) (e : Expr) : Option (FunDecl × Expr) :=
+  (boolTest e).bind fun (s, x) =>
+    ((findStruct prog s).bind (findMethod · "__bool__")).bind fun fd =>
+      if fd.params.head?.any (·.conv == .owned) then some (fd, x) else none
+
 /-- The binding of the variable `x`. -/
 def lookupVar (env : Env) (x : Name) : EvalM Ref := do
   let some b := env.lookup x | stuck s!"unknown variable {x}"
