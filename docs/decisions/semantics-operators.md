@@ -83,7 +83,7 @@ Each of these keeps the result the model gave before #191:
   subscript used as a place beyond that, such as `p[i] op= e` or passing
   it `mut`, stays with #198.
 - The methods that `Equatable` and `Comparable` supply by default (#194),
-  a struct or a variable named in a type position (#193), an `if` or
+  an `if` or
   `while` condition of struct type (#195), and a call of a field (#196).
 - `not` and `and` on an `Int` that `__bool__` gives, or on an `Int`
   operand beside a struct, which the compiler accepts (#179, #187).

@@ -16,7 +16,7 @@ The methods that a trait such as `Equatable` supplies are not yet
 modelled (#194). A variable that is called is such a value too: its type
 lacks `__call__`. Inside its scope a variable, or a parameter, hides a
 function, `len`, `range`, `print` or a struct of the same name in a call,
-but not yet in a type position (#193). An operator or a call whose
+and a type of its name in a type (`valueAsType`, #193). An operator or a call whose
 operand is a struct that declares the method is a call of the method,
 which inference makes (`MojoGrimoire.Parse.Dispatch`, #191): it reaches
 the checker as any other call, a method that a struct lacks only for

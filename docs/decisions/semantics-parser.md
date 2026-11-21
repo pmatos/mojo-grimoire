@@ -27,7 +27,11 @@ else. These choices hold:
   on a line of its own is the print statement, or a call of a variable
   named `print`; docstrings are skipped. Inside a struct's methods, `Self`
   is the struct, also as the constructor `Self(…)`; not yet as a field's
-  type (#203).
+  type (#203). Before that, each name in a type that a variable or a
+  parameter in scope hides is marked, and the checker rejects it as
+  `valueAsType`
+  ([conformance-classes.md](conformance-classes.md#types-that-a-variable-hides),
+  #193).
 - `^` after a term is binary XOR, as in the compiler's postfix loop
   (`ParserExprs.cpp`), when the next token can start an expression
   (`isPrimaryExprStart`), is not `.`, and lies in the same statement. XOR is

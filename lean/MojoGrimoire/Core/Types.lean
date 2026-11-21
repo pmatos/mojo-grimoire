@@ -32,6 +32,19 @@ inductive Ty where
   | unknown
   deriving DecidableEq, Repr
 
+/-- The type written as the name `x` where a variable of that name is in
+scope, which hides the type there (#193): a struct that no program
+declares, since no name of a program holds `$`. The checker rejects it as
+`valueAsType`. -/
+def hiddenTy (x : Name) : Ty := .struct ("$" ++ x)
+
+/-- The name that a variable hides in the type `t`, itself or through its
+lists and arrays (`hiddenTy`). -/
+def Ty.hidden : Ty → Option Name
+  | .struct s => if s.startsWith "$" then some (s.drop 1).toString else none
+  | .list t | .array t _ => t.hidden
+  | _ => none
+
 /-- Whether Mojo uses a value of type `t` by value where it would otherwise
 use its location: an `Int`, a `Bool` or `None`, which Mojo copies when it
 is passed to a `read` parameter, and does not move with `^` (#131). -/

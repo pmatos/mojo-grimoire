@@ -188,7 +188,7 @@ where the compiler and the manual disagree, the model follows the compiler.
   field or a method that the type of its receiver lacks, whatever that
   type, is one class, `unknownAttribute`, named with the type's name: the
   compiler reports both as "has no attribute" (#42,
-  [conformance.md](conformance.md#unknown-fields-and-methods)).
+  [conformance-classes.md](conformance-classes.md#unknown-fields-and-methods)).
 - An initialization whose arguments fit no initializer is one class,
   `noMatchingInit`, however they misfit: a construction `S(…)` with a
   wrong number of arguments, a wrong one, or a value passed to a `mut`
@@ -197,7 +197,7 @@ where the compiler and the manual disagree, the model follows the compiler.
   `Bool`; and `List[T](e1, …, en)`, unless it has one argument that is a
   list or an array of `T` that can be copied (#103). The
   compiler reports each as "no matching function in initialization" (#46,
-  [conformance.md](conformance.md#initializations-that-fit-no-initializer)),
+  [conformance-classes.md](conformance-classes.md#initializations-that-fit-no-initializer)),
   or, when the one argument has the type it initializes, as "cannot
   construct ... with itself".
 - A call of a method or an operator with several overloads, none of which
@@ -210,14 +210,15 @@ where the compiler and the manual disagree, the model follows the compiler.
   called. Within its scope a variable or a parameter hides, in a call, a
   function, `len`, `range`, `print` or a struct of its name, also before
   it is initialized (#176), and calls the struct's `__call__` when it
-  declares one, but not yet in a type position (#193). An operator or a
+  declares one. In a type, it hides a type of its name: `valueAsType`
+  (#193). An operator or a
   call on a struct calls the method it declares
   ([semantics-operators.md](semantics-operators.md), #191); operator
   methods that a trait supplies are not yet modelled (#194). The checker finds a missing method from the
   operands' types before it reads them, as the compiler does; a misfit of
   an overload set is found once the argument is read, as for any call
   (#96)
-  ([conformance.md](conformance.md#calls-that-fit-no-overload-and-methods-a-type-lacks)).
+  ([conformance-classes.md](conformance-classes.md#calls-that-fit-no-overload-and-methods-a-type-lacks)).
 - A struct may not lie on a cycle of fields with no field that holds the
   next struct through a list, such as a struct that holds itself directly
   or through arrays: the compiler rejects it, and so does the model
@@ -227,13 +228,13 @@ where the compiler and the manual disagree, the model follows the compiler.
   `@fieldwise_init` builds the initializers. The compiler rejects some
   of these cycles, depending on which of their structs have a `__deinit__`
   (D-0006, #136), and some `@fieldwise_init` forms (D-0004, #47), both
-  compiler bugs ([conformance.md](conformance.md#cycles-of-structs)). The
+  compiler bugs ([conformance-classes.md](conformance-classes.md#cycles-of-structs)). The
   ruling on #136 is provisional until the human has discussed it with
   Modular.
 - A struct that declares `Copyable`, or `ImplicitlyCopyable`, is
   rejected when a field cannot be copied so, `uncopyableField`. Where it
   comes among the compiler's errors, and where the model differs, is in
-  [conformance.md](conformance.md#copyable-structs-whose-fields-cannot-be-copied)
+  [conformance-classes.md](conformance-classes.md#copyable-structs-whose-fields-cannot-be-copied)
   (#164, #96).
 - A declaration may not reuse the name of a variable in scope, a
   parameter included, so no variable hides another. Sibling blocks may

@@ -71,13 +71,20 @@ def passValue (fit : Fit) (callee : Name) (c : Conv) : CheckM Unit := do
   if c == .out || c == .deinit then throw (CheckError.invalidConvention callee)
   if c == .mutable then throw (fit.misfit (CheckError.notAPlace callee))
 
+/-- Rejects the type `t` as `valueAsType` when a variable hides a name in
+it (`MojoGrimoire.Core.hiddenTy`): the type of a declared variable, before
+any other error of its declaration, and of `List[u](…)`, before its
+arguments are checked, as the compiler does (#193). -/
+def rejectHidden (t : Ty) : CheckM Unit := do
+  if t.hidden.isSome then throw (typeError t)
+
 /-- The element type of a literal of `n` elements that has the expected type
 `t`, which a call of fit `fit` initializes or converts it to. It rejects a
-`t` that is not a list or an array of a valid type, and an array of another
-size. -/
+`t` that is not a list or an array of a valid type, as `valueAsType` when
+a variable hides a name in it, and an array of another size. -/
 def literalElem (prog : Program) (fit : Fit) (t : Ty) (n : Nat) : CheckM Ty := do
   let .ok u := elemOf t | throw (CheckError.invalidType t)
-  unless declarableTy prog u do throw (CheckError.invalidType t)
+  unless declarableTy prog u do throw (typeError t)
   if let .array _ k := t then
     unless k == n do throw (fit.misfit (CheckError.typeMismatch t (.array u n)))
   pure u

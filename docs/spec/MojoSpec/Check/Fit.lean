@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8055925766368640643")
+:::moduleDocs (fingerprint := "17176789159644216087")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -41,10 +41,18 @@ explicitly or implicitly (#103). Any other type fits no initializer, and
 is `noMatchingInit` $`\mathsf{List}[u]`.
 :::
 
-:::readable MojoGrimoire.Check.literalElem (fingerprint := "7284588851106128790")
+:::readable MojoGrimoire.Check.rejectHidden (fingerprint := "3061063770040030119")
+*Rule: a hidden type.* A type in which a variable hides a name is
+`valueAsType` of the name: the type of a declared variable, before any
+other error of its declaration, and that of $`\mathsf{List}[u](\ldots)`,
+before its arguments are checked, as the compiler does (#193).
+:::
+
+:::readable MojoGrimoire.Check.literalElem (fingerprint := "10361419412845338351")
 *Definition: a literal of an expected type.* A literal of $`n` elements
 whose type $`t` is expected where it stands must have a list or an array
-type of an element type $`u` a variable may have (`declarableTy`), and an array type must have the size
+type of an element type $`u` a variable may have (`declarableTy`),
+otherwise `valueAsType` when a variable hides a name in $`t`, and an array type must have the size
 $`n`. A size that differs does not fit: an initialization of $`t` reports
 it as `noMatchingInit` $`t`, and a conversion for a function's parameter
 as a type mismatch.
@@ -69,7 +77,7 @@ named `range` is no such call. Such an argument of the standard library's `range
 fits none of its forms (#121).
 :::
 
-:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "2993827872815404841")
+:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "13001624560026373216")
 *Definition: what reading the arguments of a range finds.* Reading the
 arguments of `range`, once they are typed, records the errors of the
 compiler's later passes in the order it reports them: the first use of an

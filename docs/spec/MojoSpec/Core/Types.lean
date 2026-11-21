@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Names, types, conventions and operators: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15279387200446488079")
+:::moduleDocs (fingerprint := "15066610695699916859")
 :::
 
 :::readable MojoGrimoire.Core.Name (fingerprint := "17987575212195285839")
@@ -44,6 +44,15 @@ call to a function that returns nothing. $`?` is no Mojo type: it stands
 for a type that the parser leaves for inference, and stays where
 inference finds none, so that a failed inference and a real
 $`\mathsf{None}` differ (#131).
+:::
+
+:::readable MojoGrimoire.Core.hiddenTy MojoGrimoire.Core.Ty.hidden (fingerprint := "11496827655101955311")
+*Definition: a hidden type.* A type written as the name $`x` where a
+variable of that name is in scope, which hides the type there, is marked
+as a struct whose name, $`\$x`, no program can declare, since no name of a
+program holds `$`. The checker rejects it as `valueAsType` (#193). The
+hidden name of a type is that of such a mark in it, itself or inside its
+lists and arrays.
 :::
 
 :::readable MojoGrimoire.Core.Ty.byValue (fingerprint := "15121805117193340047")

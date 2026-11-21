@@ -41,8 +41,8 @@ path through it must return. -/
 def checkBody (prog : Program) (fd : FunDecl) : Except CheckError Unit := do
   checkDistinct (fd.params.map (·.name))
   for prm in fd.params do
-    unless validTy prog prm.ty do throw (.invalidType prm.ty)
-  unless fd.result == .noneType || validTy prog fd.result do throw (.invalidType fd.result)
+    unless validTy prog prm.ty do throw (typeError prm.ty)
+  unless fd.result == .noneType || validTy prog fd.result do throw (typeError fd.result)
   checkOrigin fd
   let start : State := ⟨fd.params.reverse.map paramState, true, [], []⟩
   let ((), _) ← (do
@@ -94,22 +94,37 @@ def checkInit (prog : Program) (s : Name) (fd : FunDecl) : Except CheckError Uni
   checkConventions fd.name fd.params.tail
   checkBody prog fd
 
-/-- Checks a struct: its fields, its initializer, its destructor and its
-methods. A failure is located at `S`, or at `S.m` for a method `m`. -/
-def checkStruct (prog : Program) (sd : StructDecl) : Except Rejection Unit := do
-  let at_ {α : Type} (where_ : Name) (r : Except CheckError α) : Except Rejection α :=
-    r.mapError (⟨where_, ·⟩)
-  at_ sd.name do
+/-- Checks a struct's own declaration: its names and its fields. A failure
+is located at `S`. -/
+def checkFields (prog : Program) (sd : StructDecl) : Except Rejection Unit :=
+  Except.mapError (⟨sd.name, ·⟩) do
     checkDistinct (sd.fields.map (·.1) ++ sd.methods.map (·.name))
     for (_, t) in sd.fields do
       unless validTy prog t do throw (.invalidType t)
       if rejectedCycle prog sd.name t then throw (.recursiveStruct sd.name)
-  if let some fd := sd.init then at_ (sd.name ++ ".__init__") (checkInit prog sd.name fd)
-  if let some body := sd.deinit then
-    at_ (sd.name ++ ".__deinit__")
-      (checkBody prog ⟨"__deinit__", [⟨.deinit, "self", .struct sd.name⟩], .noneType, body, none⟩)
+
+/-- Checks a struct's initializer, its destructor and its methods. A
+failure is located at `S.m` for a method `m`. The compiler checks a
+struct's members in declaration order. The model keeps that order among
+the methods, so the first of their errors is reported, but not where the
+initializer and the destructor stand among them: a type that a variable
+hides in either, `valueAsType`, is reported only when no method has
+another error (#193). -/
+def checkMethods (prog : Program) (sd : StructDecl) : Except Rejection Unit := do
+  let mut hidden : Option Rejection := none
+  let lifecycle : List (Name × Except CheckError Unit) :=
+    (sd.init.toList.map fun fd => (sd.name ++ ".__init__", checkInit prog sd.name fd)) ++
+    sd.deinit.toList.map fun body => (sd.name ++ ".__deinit__",
+      checkBody prog ⟨"__deinit__", [⟨.deinit, "self", .struct sd.name⟩], .noneType, body, none⟩)
+  for (where_, r) in lifecycle do
+    if let .error e := r then
+      if !(e matches .valueAsType _) then throw ⟨where_, e⟩
+      if hidden.isNone then hidden := some ⟨where_, e⟩
   for fd in sd.methods do
-    at_ (sd.name ++ "." ++ fd.name) (checkMethod prog sd.name fd)
+    if let .error e := checkMethod prog sd.name fd then
+      if let (.valueAsType _, some r) := (e, hidden) then throw r
+      throw ⟨sd.name ++ "." ++ fd.name, e⟩
+  if let some r := hidden then throw r
 
 /-- Checks that every field of the struct `sd` can be copied as `sd`
 declares its values are: at all for `Copyable`, implicitly for
@@ -129,15 +144,34 @@ every body and the parameters and result of `main`, and before a program
 with no `main` is rejected. The compiler checks a struct's fields after
 the functions' bodies, `main`'s signature and the methods of the structs
 up to it, and before its later passes and a missing `main`; the rest of
-its order is left to #96 (#164). -/
+its order is left to #96 (#164). A type that a variable hides in a
+struct's initializer, destructor or method, `valueAsType`, is reported
+there too, before that struct's copyability check, and the methods of
+the structs after it are not checked, since the compiler reports their
+errors later (#193). When the struct declares its own `__init__` and the
+type is in its destructor or a method, it comes after the copyability
+check: the compiler checks the copy initializer right after `__init__`,
+which the model, keeping no order between `__init__` and the methods,
+takes to come first. -/
 def checkProgram (prog : Program) : Except Rejection Unit := do
   (checkDistinct (prog.structs.map (·.name) ++ prog.funs.map (·.name))).mapError (⟨"", ·⟩)
-  for sd in prog.structs do checkStruct prog sd
+  let mut hidden : Option (Name × Rejection) := none
+  for sd in prog.structs do
+    checkFields prog sd
+    if hidden.isNone then
+      match checkMethods prog sd with
+      | .error r => if r.error matches .valueAsType _ then hidden := some (sd.name, r) else throw r
+      | .ok () => pure ()
   for fd in prog.funs do (checkFun prog fd).mapError (⟨fd.name, ·⟩)
   let main := findFun prog "main"
   if let some fd := main then
     unless fd.params.isEmpty && fd.result == .noneType do throw ⟨"main", .noMain⟩
-  for sd in prog.structs do (checkCopying prog sd).mapError (⟨sd.name, ·⟩)
+  for sd in prog.structs do
+    let deferred := hidden.bind fun (s, r) => if s == sd.name then some r else none
+    if let some r := deferred then
+      if sd.init.isNone || r.decl == sd.name ++ ".__init__" then throw r
+    (checkCopying prog sd).mapError (⟨sd.name, ·⟩)
+    if let some r := deferred then throw r
   if main.isNone then throw ⟨"", .noMain⟩
 
 end MojoGrimoire.Check

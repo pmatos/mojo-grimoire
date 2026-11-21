@@ -1,4 +1,5 @@
 import MojoGrimoire.Parse.Dispatch
+import MojoGrimoire.Parse.HiddenTypes
 
 /-!
 Type inference for what the parser leaves open: the type of a variable
@@ -303,8 +304,10 @@ def inferStruct (prog : Program) (sd : StructDecl) : StructDecl :=
 def inferProgram (prog : Program) : Program :=
   ⟨prog.structs.map (inferStruct prog), prog.funs.map (inferFun prog)⟩
 
-/-- Parses the text of a `.mojo` file into a program of the core calculus. -/
+/-- Parses the text of a `.mojo` file into a program of the core calculus:
+the types that a variable hides are marked (`markHidden`), then `Self` is
+resolved, then inference fills in what the program leaves open. -/
 def parse (source : String) : Except SyntaxError Program := do
-  pure (inferProgram (resolveSelf (← parseRaw source)))
+  pure (inferProgram (resolveSelf (markHidden (← parseRaw source))))
 
 end MojoGrimoire.Parse

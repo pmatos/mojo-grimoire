@@ -32,7 +32,10 @@ variable that is called (#176). `uncopyableField` is the field `field`, of
 type `ty`, of a struct `struct` that declares `Copyable` but whose `ty`
 cannot be copied, or declares `ImplicitlyCopyable` but whose `ty` cannot
 be copied implicitly: the compiler cannot synthesize the struct's copy
-initializer from its fields (#164). -/
+initializer from its fields (#164). `valueAsType` is a type written as
+the name `name` that a variable or a parameter in scope hides
+(`MojoGrimoire.Core.hiddenTy`): the compiler reports the variable's value
+where it expects a type (#193). -/
 inductive CheckError where
   | unknownVariable (name : Name)
   | unknownFunction (name : Name)
@@ -40,6 +43,7 @@ inductive CheckError where
   | unknownAttribute (ty attr : Name)
   | duplicate (name : Name)
   | invalidType (ty : Ty)
+  | valueAsType (name : Name)
   | recursiveStruct (name : Name)
   | uncopyableField (struct field : Name) (ty : Ty)
   | typeMismatch (expected actual : Ty)
@@ -73,6 +77,14 @@ inductive CheckError where
   | escapingReference (name : Name)
   | invalidatedReference (p : Place)
   deriving BEq
+
+/-- The error of a parameter, a result or a variable declared with the
+type `t`, which no value may have: `valueAsType` when a variable hides a
+name in it, `invalidType` otherwise. -/
+def typeError (t : Ty) : CheckError :=
+  match t.hidden with
+  | some x => .valueAsType x
+  | none => .invalidType t
 
 /-- A rejection: the error, and the declaration it was found in, a function,
 a method written `S.m`, or `S` for a struct's own declaration; empty for an
