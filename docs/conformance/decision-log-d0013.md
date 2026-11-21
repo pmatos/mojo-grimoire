@@ -21,9 +21,9 @@ The pinned nightly prints `False False`. The model prints `True False`.
 
 ## Compiler
 
-These runs were made on 2026-11-21 and 2026-11-22 with the pinned
-nightly 1.3.0.dev2026111905, each program built with `mojo build` at
-`-O0`, `-O1`, `-O2`, `-O3` and with no flag, the default, which is `-O3`.
+These runs were made on 2026-11-21 with the pinned nightly
+1.3.0.dev2026111905, each program built with `mojo build` at `-O0`, `-O1`,
+`-O2`, `-O3` and with no flag, the default, which is `-O3`.
 
 | Body of `main` | `-O3`, the default | `-O0`, `-O1`, `-O2` |
 |---|---|---|

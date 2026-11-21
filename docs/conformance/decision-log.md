@@ -267,7 +267,7 @@ Each move of the Mojo pin gets an entry below.
 
 ### D-0013: arrays of arrays of one-element arrays compare wrongly at -O3 (provisional)
 
-- Date: 2026-11-22
+- Date: 2026-11-21
 - Mojo release and commit: nightly 1.3.0.dev2026111905 (D-0007)
 - Program: `tests/conformance/arrays/compare_deep_one_element.mojo`
 - Compiler: at the default level, `-O3`, `e > z` is `False` for
