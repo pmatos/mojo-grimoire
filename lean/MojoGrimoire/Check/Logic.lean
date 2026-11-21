@@ -27,7 +27,10 @@ also passed to `self` as a call's argument, by `passSelf`, from the state
 `before` it was checked, which is then left as the operands left it. The
 compiler gives a `var self` a copy of what the left test reads, a
 temporary or a transfer too, since the left operand may be the result:
-a struct that is not `ImplicitlyCopyable` is then `implicitCopy`. -/
+a struct that is not `ImplicitlyCopyable` is then `implicitCopy`. The
+model still moves `p^` out of `p` there, where the compiler, on the left
+of a mixed `and` or `or`, only borrows it and leaves `p` initialized
+(#84). -/
 def checkedBinaryTy (prog : Program) (op : BinOp) (a b : Expr) (ta tb : Ty) (ka kb : Nat)
     (before : State) (passSelf : Param → Name → CheckM Unit) : CheckM Ty := do
   unless op == .and || op == .or do

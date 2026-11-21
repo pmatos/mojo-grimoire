@@ -67,7 +67,12 @@ is: `t < u` may give an `Int`.
 - A `var self` `__bool__` gets a copy of the left operand of `and` or
   `or`, on either path, even of a temporary or `p^`, since the left
   operand may be the result: a struct that is not `ImplicitlyCopyable`
-  is `implicitCopy`. A temporary converted by `__bool__` dies once it is
+  is `implicitCopy`. The model and the pin differ on `p^` there: the
+  model moves the value out of `p`, so a later use of `p` is
+  `uninitializedUse`, while the pin, on the left of a mixed `and` or
+  `or`, only borrows `p^`, with no warning, and leaves `p` initialized
+  (`print(a^ or False); print(a.n)` runs). That is the bare `p^` in a
+  borrowing position of #84. A temporary converted by `__bool__` dies once it is
   copied, before `__bool__` runs (`mk(2) and True` prints `del 2`, `bool
   2`, `del 2`); one that the operator may give, of the same struct type
   on both sides, lives until the test is done. The right operand and

@@ -33,5 +33,7 @@ may change (`immutablePlace`) or a mutable returned reference, and no
 temporary (`notAPlace`, #81). A `var self` gets a copy of the left
 operand on either path, even of a temporary or a transfer, since the
 left operand may be the result: a struct that is not `ImplicitlyCopyable`
-is `implicitCopy`.
+is `implicitCopy`. The model moves a transfer $`p\,\hat{}` out of
+$`p` there, where the compiler, on the left of a mixed `and` or `or`,
+only borrows it and leaves $`p` initialized (#84).
 :::
