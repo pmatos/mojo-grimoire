@@ -1,0 +1,15 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "del O False",
+    "del O True",
+    "True",
+    "del O True",
+    "del O False",
+    "pb False",
+    "False",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

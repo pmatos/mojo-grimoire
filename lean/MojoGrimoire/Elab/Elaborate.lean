@@ -206,13 +206,34 @@ def withDropsOf (e : Expr) (pre post : List Place) : Expr :=
   if pre.isEmpty && post.isEmpty then e else .withDrops e pre post
 
 mutual
+/-- The slots that the elaborated expression `e` destroys. -/
+def droppedIn : Expr → List Place
+  | .withDrops e pre post => pre ++ post ++ droppedIn e
+  | .call _ args | .method _ _ args | .list _ args | .listInit _ args => droppedList args
+  | .binary _ a b => droppedIn a ++ droppedIn b
+  | .unary _ a => droppedIn a
+  | _ => []
+
+/-- The slots that the elaborated expressions `es` destroy. -/
+def droppedList : List Expr → List Place
+  | [] => []
+  | e :: es => droppedIn e ++ droppedList es
+end
+
+/-- What the operand `e`, read once it is done, keeps alive until then:
+what a call's reference points into (#191). -/
+def opKeep (ctx : Ctx) (e : Expr) : List Place := (directOf ctx e true).1
+
+mutual
 /-- Elaborates the expression `e`, given the slots live once it is
 evaluated, `after`: each operation in it destroys the values whose last use
 it is, and a place is left as it is, for the operation or the statement
 that uses it. At the top of a statement, `top`, an operation leaves what
 dies once it is done to the statement, which destroys it with the
-statement's other values. The right operand of `and` and `or` may not run,
-so the operation destroys what it uses. -/
+statement's other values. The right operand of `and` and `or` may not run:
+it destroys what it uses once it is read when it runs, and the operation
+when it does not, before what the left one last uses, which dies once it
+is tested (#191). -/
 def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Expr :=
   match e with
   | .call f args =>
@@ -228,7 +249,10 @@ def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Expr :=
   | .binary op a b =>
     if op == .and || op == .or then
       let d := opDrops ctx.owned [directOf ctx a true, (uses ctx.sl b, false)] after
-      withDropsOf (.binary op (elabExpr ctx false a d.2.2) b) d.1 (if top then [] else d.2.1)
+      let b' := elabExpr ctx false b (union after (opKeep ctx b))
+      let rest := diff d.2.1 (droppedIn b')
+      let b'' := if rest.isEmpty then b' else .withDrops (.withDrops b' [] []) [] rest
+      withDropsOf (.binary op (elabExpr ctx false a d.2.2) b'') d.1 d.2.1
     else
       let byVal := fun e => ((refSlots ctx.prog ctx.sl ctx.env e).2.bind (arrayCompare op)).isNone
       let d := opDrops ctx.owned (directArgs ctx [a, b] [byVal a, byVal b]) after
@@ -255,21 +279,6 @@ def elabOps (ctx : Ctx) (es : List Expr) (after : List Place) : List Expr :=
   match es with
   | [] => []
   | e :: rest => elabExpr ctx false e (union after (usesList ctx.sl rest)) :: elabOps ctx rest after
-end
-
-mutual
-/-- The slots that the elaborated expression `e` destroys. -/
-def droppedIn : Expr → List Place
-  | .withDrops e pre post => pre ++ post ++ droppedIn e
-  | .call _ args | .method _ _ args | .list _ args | .listInit _ args => droppedList args
-  | .binary _ a b => droppedIn a ++ droppedIn b
-  | .unary _ a => droppedIn a
-  | _ => []
-
-/-- The slots that the elaborated expressions `es` destroy. -/
-def droppedList : List Expr → List Place
-  | [] => []
-  | e :: es => droppedIn e ++ droppedList es
 end
 
 /-- The slots that the elaborated optional expression `e` destroys. -/
@@ -303,7 +312,9 @@ def envAfter (prog : Program) (sl : Slots) (env : TyEnv) (s : Stmt) : TyEnv :=
 
 mutual
 /-- Elaborates the statement `s`, given the slots live after it. What dies at
-it, given what its expressions destroy or consume, dies right after it. -/
+it, given what its expressions destroy or consume, dies right after it. The
+value that an assignment to a whole slot replaces is not live after its
+expression, whether or not the new one is (#191). -/
 def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
   let sl := ctx.sl
   let rest (s' : Stmt) (inner : List Place) : List Stmt :=
@@ -333,7 +344,8 @@ def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
     rest (.refDecl x e') (droppedIn e' ++ consumedIn ctx e)
   | .assign p e =>
     let target := if sl.isSlot p then indexUses sl p else union (sl.of p) (indexUses sl p)
-    let e' := elabExpr ctx true e (union after target)
+    let old := if sl.isSlot p then [p] else []
+    let e' := elabExpr ctx true e (union (diff after old) target)
     rest (.assign p e') (droppedIn e' ++ consumedIn ctx e)
   | .expr e =>
     let e' := elabExpr ctx true e after

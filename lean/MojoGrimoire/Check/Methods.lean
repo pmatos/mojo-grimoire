@@ -137,7 +137,12 @@ where
     | .method p m args => do
       pure ((methodSig prog (← placeTy prog p) m args.length).toOption.map (·.result))
     | .unary op _ => pure (some (if op == .neg then .int else .bool))
-    | .binary op _ _ => pure (some (binaryResult op))
+    | .binary op a b => do
+      if op == .and || op == .or then
+        let tb ← formTy b
+        if !(tb matches some (.struct _)) then return some .bool
+        pure (if (← formTy a) == tb then tb else some .bool)
+      else pure (some (binaryResult op))
     | .list .unknown (e :: es) => do
       let u ← formTy e
       pure (if ← sameTy u es then u.map (.array · (es.length + 1)) else none)
@@ -301,11 +306,14 @@ def methodCall (prog : Program) (asRef : Bool) (p : Place) (t : Ty) (m : Name) (
 /-- The type of the result of the operator `op` on operands of types `ta`
 and `tb`: a method that a type lacks first, or the misfit of a comparison
 of arrays, then a `Bool` for such a comparison, and `binaryTy` for any
-other. -/
+other. `and` and `or` on operands of the same struct type, which has
+`__bool__`, give the operand that decides, of that type (#191). -/
 def methodBinaryTy (prog : Program) (op : BinOp) (ta tb : Ty) : Except CheckError Ty :=
   match binaryMisfit prog op (some ta) (some tb) with
   | some err => throw err
-  | none => if (arrayCompare op ta).isSome then pure .bool else binaryTy op ta tb
+  | none =>
+    if (op == .and || op == .or) && ta == tb && ta matches .struct _ then pure ta
+    else if (arrayCompare op ta).isSome then pure .bool else binaryTy op ta tb
 
 /-- The type of the result of the operator `op` on an operand of type `ta`:
 a method that the type lacks first, then `unaryTy`. -/

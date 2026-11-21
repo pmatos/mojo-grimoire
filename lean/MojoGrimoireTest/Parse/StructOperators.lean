@@ -2,7 +2,7 @@ import MojoGrimoire.Parse.Infer
 import MojoGrimoire.Interp.Run
 
 /-!
-Tests of the operators and calls on a struct value, which call
+Tests of the operators, `and`, `or` and calls on a struct value, which call
 the methods that the struct declares (#191, `MojoGrimoire.Parse.Dispatch`):
 which method inference calls, and what running the program gives. Each
 verdict is the pinned compiler's for the program, probed on the nightly
@@ -100,6 +100,44 @@ private def m (name ps r ret : String) : List String :=
 -- The destination may change, checked before the method is looked up.
 #guard runLines (withT [] ["g(T(1))"] ++ ["def g(t: T):", "    t += True"]) ==
   some (.rejected ⟨"g", .immutablePlace (.var "t")⟩)
+
+-- `not`, `and` and `or`: a struct operand is converted with `__bool__`,
+-- unless both have its type.
+#guard prints [m "__bool__" "" "Bool" "self.n != 0"] ["var t = T(1)", "print(not t, t and True)"]
+  ["False True"]
+#guard rejects [m "__bool__" "" "Bool" "self.n != 0"] ["var t = T(1)", "var x = t and t", "print(x.n)"]
+  (.implicitCopy (.struct "T"))
+#guard runLines ["@fieldwise_init", "struct T(ImplicitlyCopyable):", "    var n: Int",
+    "    def __bool__(self) -> Bool:", "        return self.n != 0", "def main():",
+    "    var x = T(0) or T(3)", "    print(x.n)"] == some (.finished ["3"])
+-- The test of the left operand of the same type is checked as a call of
+-- `__bool__`: one operand, a `Bool` result, and a `mut self` only on a
+-- place that may change.
+private def sameT (bool : List String) : List String :=
+  ["struct T(ImplicitlyCopyable):", "    var n: Int", "    def __init__(out self, n: Int):",
+    "        self.n = n"] ++ bool.map ("    " ++ ·) ++
+    ["def main():", "    var x = T(0) or T(3)", "    print(x.n)"]
+#guard runLines (sameT ["def __bool__(self, k: Int) -> Bool:", "    return True"]) ==
+  some (.rejected ⟨"T.__bool__", .arityMismatch "__bool__" 1 2⟩)
+#guard runLines (sameT (m "__bool__" "" "Int" "self.n")) ==
+  some (.rejected ⟨"main", .missingMethod .int "__mlir_bool__"⟩)
+#guard runLines (sameT ["def __bool__(mut self) -> Bool:", "    return True"]) matches
+  some (.rejected ⟨"main", .notAPlace _⟩)
+#guard runLines (sameT ["def __bool__(var self) -> Bool:", "    return self.n != 0"]) ==
+  some (.finished ["3"])
+-- A `var self` gets a copy of the left operand, a temporary too: a struct
+-- that is not `ImplicitlyCopyable` is `implicitCopy`, on either path.
+private def moveT (body : List String) : List String :=
+  ["struct T(Movable):", "    var n: Int", "    def __init__(out self, n: Int):",
+    "        self.n = n", "    def __bool__(var self) -> Bool:", "        return self.n != 0",
+    "def main():"] ++ body.map ("    " ++ ·)
+#guard runLines (moveT ["var x = T(0) or T(3)", "print(x.n)"]) ==
+  some (.rejected ⟨"main", .implicitCopy (.struct "T")⟩)
+#guard runLines (moveT ["print(T(4) and True)"]) ==
+  some (.rejected ⟨"main", .implicitCopy (.struct "T")⟩)
+#guard runLines (moveT ["var t = T(4)", "print(t^ or False)"]) ==
+  some (.rejected ⟨"main", .implicitCopy (.struct "T")⟩)
+#guard runLines (moveT ["print(True and T(4), not T(0))"]) == some (.finished ["True True"])
 
 -- Calls of a variable whose struct declares `__call__`, which hides the
 -- function, `len`, `print` or struct of its name.

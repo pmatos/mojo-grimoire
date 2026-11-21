@@ -1,0 +1,21 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "peek 1",
+    "drop 1",
+    "make 1",
+    "after 101",
+    "peek 101",
+    "drop 101",
+    "make 101",
+    "in 201",
+    "peek 201",
+    "drop 201",
+    "make 201",
+    "in 301",
+    "end 301",
+    "drop 301"
+  ],
+  "class": null,
+  "diagnostic": null
+}
