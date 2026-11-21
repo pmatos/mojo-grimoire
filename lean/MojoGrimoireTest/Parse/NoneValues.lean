@@ -77,5 +77,9 @@ private def rejects (e : CheckError) : Option Outcome := some (.rejected ⟨"mai
 -- parser reads it as `unknown`, which may not be declared (#183).
 #guard inMain ["    var xs: List[None] = [g(1)]"] == rejects (.invalidType (.list .unknown))
 #guard inMain ["    var xs: Array[None, 1] = [g(1)]"] == rejects (.invalidType (.array .unknown 1))
+#guard inMain ["    var ys = List[None]([g(1)])"] == rejects (.invalidType (.list .unknown))
+#guard inMain ["    var xs = [g(1), g(2)]", "    var ys = List[None](xs)"] ==
+  rejects (.invalidType (.list .unknown))
+#guard inMain ["    var ys = List[None]()"] == rejects (.invalidType (.list .unknown))
 
 end MojoGrimoireTest.Parse.NoneValues

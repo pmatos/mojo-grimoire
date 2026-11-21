@@ -12,7 +12,8 @@ stays a place, `transferred x`, whose fields and methods the chain goes on
 to read: the compiler reads `x^.f` as the field `f` of `x`, which it
 borrows, and `x^.m(…)` as a call on `x` that takes it only for a method
 whose `self` is `var`. The type of a literal `[…]` is left for
-inference, and `List[T]()` is an empty list of `T`. `List[T](e₁, …, eₙ)`
+inference, and `List[T]()` is an empty list of `T`, where `T` is a type
+argument (`typeArg`), so `List[None]` is not a list of `None`. `List[T](e₁, …, eₙ)`
 with arguments is read as a call of `List`'s initializer, which the checker
 accepts only for one argument, a list or an array of `T` that it copies
 (#103), or a call of the standard library's `range` (#121), and rejects
@@ -206,7 +207,7 @@ def primary (fuel : Nat) : P Term :=
     | some (.ident "List") =>
       let _ ← next
       expectSym "["
-      let t ← ty n
+      let t := typeArg (← ty n)
       expectSym "]"
       expectSym "("
       match ← exprList n ")" with

@@ -29,8 +29,7 @@ mutual
 /-- The type of the expression `e`. A string literal has no type here: it may
 only be printed, which `checkPrint` checks. A call that returns a reference
 gives the value it points to, which is copied implicitly, unless `asRef`
-holds: then the reference itself is bound, by `ref`. `None` has no
-`.copy()`: Mojo says it has no attributes (#131). -/
+holds: then the reference itself is bound, by `ref`. -/
 def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .int _ => pure .int
   | .bool _ => pure .bool

@@ -25,7 +25,8 @@ choices (#18):
   of a function or an initializer: the compiler rejects the transfer
   before it looks at the origins or matches the argument. A `ref` or a
   `read` parameter stays `transferFromBorrowed`, also passed to a `mut`
-  parameter (#85). `t^` of type `Int` or `Bool` is the place `t` (#50).
+  parameter (#85). `t^` of type `Int`, `Bool` or
+  `None` is the place `t` (#50, #131).
 - A reference may be changed when every origin allows it: a `mut`
   parameter does, a `ref` parameter as its argument does, a `read`
   parameter does not. A place reached through `p^` passed to a `ref`
