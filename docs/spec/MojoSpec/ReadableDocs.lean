@@ -33,6 +33,7 @@ import MojoSpec.Parse.Stmt
 import MojoSpec.Parse.HiddenTypes
 import MojoSpec.Parse.SelfType
 import MojoSpec.Parse.Dispatch
+import MojoSpec.Parse.Compared
 import MojoSpec.Parse.Infer
 import MojoSpec.Parse.Subset
 import MojoSpec.Driver.Main

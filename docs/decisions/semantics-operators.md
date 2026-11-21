@@ -96,23 +96,30 @@ it to lists. Part 1 of #166 and #185 model the element types `Int`,
   operand's type, element by element, as a call converts its argument
   (part 2 of #166, `literalFits`): an array of `n` elements takes `n`
   that each fit its element type, a list any number, and an `Int`, a
-  literal of `Int`s, as `var x: Int = [1]` does. A literal on the right
-  takes the left operand's type, and one on the left the right operand's,
-  unless that is a literal too: then the left keeps its own type, an
-  array of its first element's type. With `a = [1, 2]` and `xs` a list
+  literal of `Int`s, as `var x: Int = [1]` does. An element that is an
+  operator or a call fits by the result of the method it calls, also a
+  struct's `__add__`, `__lt__` or `__call__`. A literal on the right
+  takes the left operand's type. One on the left takes the right
+  operand's, unless that is a literal too, or a comparison that does not
+  conform, such as an array of lists ordered: then it keeps its own type,
+  an array of its first element's type. With `a = [1, 2]` and `xs` a list
   of `Int`s, `a == [[1], [2]]`, `a == [[1], 2]`, `[[1], [2]] == a`,
-  `[1, 2] == [[1], [2]]`, `[[1]] == [[[1]]]`, `[1] == xs`, `[] == xs`,
-  `xs == [1, 2]` and `xs == [[1]]` run. A list has no `<`, so a literal
-  compared with it by `<` keeps its own type. The literal is checked as
-  the method's argument (`rightParam`); one that does not fit is a type
-  mismatch, found before the operands are read: `a == [[]]`,
-  `[[1]] == [1]`, `xs == [True]`. A literal on the left that does not fit
-  keeps its own type, and the right operand fits it no better:
-  `[1, 2] == a` and `[True] == xs` are type mismatches too. An inner
-  literal of another length where an `Int` is expected, `a == [[1, 2]]`
-  or `[[1, 2]] == a`, fits no initializer of `Int` (`noMatchingInit`),
-  after the reads, as in a call. Otherwise a literal is an array, unless
-  the other operand is an `Int` (see
+  `[1, 2] == a`, `[1, 2] == [[1], [2]]`, `[[1]] == [[[1]]]`, `[1] == xs`,
+  `[] == xs`, `xs == [1, 2]` and `xs == [[1]]` run. A list has no `<`, so
+  a literal compared with it by `<` keeps its own type. The literal on
+  the right is checked as the method's argument (`rightParam`); one that
+  does not fit is a type mismatch, found before the operands are read:
+  `a == [[]]`, `[[1]] == [1]`, `xs == [True]`, `a == [p + p, 2]` with
+  `p + p` a struct. A literal on the left that does not fit is built with
+  its own type first: an implicit copy in it comes first, as in
+  `[ys] == xs` with `ys` a list, and then the right operand, which fits it
+  no better, is a type mismatch: `[1, 2, 3] == a`, `[True] == xs`,
+  `[ys^] == xs`, and `[[1]] < v` with `v` an array of lists. An inner
+  literal of another length where an `Int` is expected, `a == [[1, 2], 3]`
+  or `[[1, 2], 3] == a`, fits no initializer of `Int` (`noMatchingInit`),
+  but only once both operands are read, as in a call: beside an
+  uninitialized `a`, either is `uninitializedUse`. Otherwise a literal
+  is an array, unless the other operand is an `Int` (see
   [semantics-lists.md](semantics-lists.md#arrays)).
 - An operand of another type, an array or a list of another length or
   element type, an `Int`, a `Bool` or, beside an array, a list, is the
@@ -146,8 +153,8 @@ Not yet modelled. Each stays rejected, with a class that is still not
 the compiler's; where #185 changed the class, the bullet says so:
 
 - A literal on the left with no type of its own that does not fit the
-  right operand, `[[]] == a` or `[] == []`, which the compiler cannot
-  type ("cannot emit an empty list without a contextual type", a message
+  right operand, or that the comparison does not convert, `[[]] == a`,
+  `[[]] < v` or `[] == []`, which the compiler cannot type ("cannot emit an empty list without a contextual type", a message
   no pattern classifies); the model keeps its result, `invalidType`.
 - An element type that holds a struct. The compiler requires the
   struct's conformance to `Equatable` or `Comparable`, not the methods it

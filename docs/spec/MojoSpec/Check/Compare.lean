@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14281092503759778358")
+:::moduleDocs (fingerprint := "1995305847277342139")
 :::
 
 :::readable MojoGrimoire.Check.compares MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "12823475274059033023")
@@ -50,11 +50,13 @@ $`\mathsf{or}`, so is a right operand whose type lacks `__bool__`
 (`seqMisfit`).
 :::
 
-:::readable MojoGrimoire.Check.convertsTo MojoGrimoire.Check.literalFits MojoGrimoire.Check.elemsFit (fingerprint := "15730226056708354533")
+:::readable MojoGrimoire.Check.convertsTo MojoGrimoire.Check.literalFits MojoGrimoire.Check.elemsFit (fingerprint := "4517748301629835226")
 *Rule: a literal that fits the other operand's type.* A comparison
 converts a literal operand to the type $`t` of its other operand when it
 compares $`t` (`seqCompare`) and $`t` is an array, or a list compared by
-$`==` or $`!=`, the methods a list has (#166). The literal fits $`t`
+$`==` or $`!=`, the methods a list has (#166). A literal on the left is
+converted only when the comparison of $`t` also conforms: beside an
+array of lists ordered, it keeps its own type. The literal fits $`t`
 element by element, as a call converts its argument: an array of $`n`
 elements of $`u` takes $`n` elements that each fit $`u`; a list of $`u`
 any number of them; and $`\mathsf{Int}`, whose initializer from a literal
@@ -67,7 +69,7 @@ give, is unknown, and so is the fit of a literal with an unknown element
 and no element that does not fit.
 :::
 
-:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "9097070698273118013")
+:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.copyMisfit MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "2667214114178237985")
 *Rule: operands of a comparison of arrays or lists.* The misfit of a
 binary operator is found from its operands' forms before they are read
 (`operandTy`). A literal on the right of a comparison is converted to
@@ -77,7 +79,9 @@ that type (`operandFit`, `fitTy`). A literal on the right that does not
 fit, or one on the left that does not fit and has a type of its own, is
 a type mismatch, before the operands are read. A literal on the left
 that does not fit keeps its own type, and the right operand is then
-converted to it. A literal whose fit is unknown gives no type, and is
+converted to it; it is built first, so a place in it whose value is not
+implicitly copyable is first `implicitCopy` of that value's type
+(`copyMisfit`). A literal whose fit is unknown gives no type, and is
 left to the checks that follow, as before #166. An integer literal on
 the left gives no type, so that its overloads report a comparison with
 an array or a list (`noMatchingMethod`). An operand compared as an array
@@ -88,7 +92,7 @@ unknown and which inference did not give the operand's type, beside a
 list, or an array when that literal holds a literal.
 :::
 
-:::readable MojoGrimoire.Check.rightParam (fingerprint := "11705055220119305697")
+:::readable MojoGrimoire.Check.rightParam (fingerprint := "5344092844104288245")
 *Rule: a right operand checked as an argument.* When the left operand of
 a binary operator other than $`\mathsf{and}` and $`\mathsf{or}` is an
 integer literal, the right one is the argument `rhs`, an
@@ -108,4 +112,15 @@ A method that an operand's type lacks is `missingMethod`, and a
 comparison of arrays or lists that does not fit is its misfit, found
 again from the checked types; otherwise such a comparison gives a
 $`\mathsf{Bool}`, and any other operator's result is `binaryTy`'s.
+:::
+
+:::readable MojoGrimoire.Check.compareOperands (fingerprint := "190374547422127713")
+*Rule: the order of a comparison's operands.* The left operand is
+checked, then the right one, as an argument when `rightParam` says so,
+and the places they read are checked again for what changed after them.
+A literal on the left converted to the type of the right operand whose
+check fails an initializer, `noMatchingInit`, such as SIMD's constraint
+of one element, fails in a later pass than the reads: the right operand
+is read first, so that its own error, such as `uninitializedUse`, comes
+first, as for a literal on the right.
 :::

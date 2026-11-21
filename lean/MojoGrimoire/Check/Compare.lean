@@ -20,11 +20,14 @@ found the same way. A list has no order: it lacks the methods
 A literal operand is converted to the type of the other operand, element
 by element, as a call converts its argument (#166, #185): a literal on
 the right to the type of the left operand, and one on the left to the
-type of the right operand, unless that is a literal too (`literalFits`,
-`operandFit`). Inference gives a literal that fits that type, and the
-checker checks one on the right against the parameter of the method
-(`rightParam`). One that does not fit is a type mismatch, found before
-the operands are read. An element type that holds a struct waits for its
+type of the right operand, unless that is a literal too or its
+comparison does not conform (`convertsTo`, `literalFits`, `operandFit`).
+Inference gives a literal that fits that type, and the checker checks
+one on the right against the parameter of the method (`rightParam`). One
+that does not fit is a type mismatch, found before the operands are
+read, after an implicit copy that a literal on the left, built with its
+own type, makes (`copyMisfit`). A failed SIMD constraint in a converted
+literal comes once both operands are read (`compareOperands`). An element type that holds a struct waits for its
 conformances (#194), and a literal that would initialize a `Bool` for
 #165: those comparisons keep the checks they had before #166. A list of
 structs compared with an empty literal, `List[P]() == []`, is a type
@@ -90,9 +93,13 @@ def binaryMisfit (prog : Program) (op : BinOp) (ta tb : Option Ty) : Option Chec
 /-- Whether the comparison `op` converts a literal operand to the type `t`
 of its other operand: an array whose comparison is modelled
 (`seqCompare`), or a list for `==` and `!=`, the methods a list declares.
-A list compared with `<`, which it lacks, converts no literal. -/
-def convertsTo (op : BinOp) (t : Ty) : Bool :=
-  (seqCompare op t).isSome && (t matches .array .. || op == .eq || op == .ne)
+A list compared with `<`, which it lacks, converts no literal. A literal
+on the left, when `left` holds, is converted only when the comparison of
+`t` also conforms: beside an array of lists ordered, it keeps its own
+type, and the right operand is converted to it. -/
+def convertsTo (op : BinOp) (t : Ty) (left : Bool := false) : Bool :=
+  (if left then seqCompare op t == some true else (seqCompare op t).isSome) &&
+    (t matches .array .. || op == .eq || op == .ne)
 
 mutual
 /-- Whether the literal `e` fits the type `t`, as the compiler converts a
@@ -140,15 +147,15 @@ def holdsLiteral : Expr → Bool
   | .list _ es => es.any (· matches .list ..)
   | _ => false
 
-/-- How the literal operand `e` of the comparison `op` fits the type `t`
-of its other operand, once the operands' forms give it (`literalFits`,
-from `operandTy`); `none` when `e` is no literal or the comparison
-converts none to `t` (`convertsTo`). -/
-def operandFit (prog : Program) (op : BinOp) (e : Expr) (t : Option Ty) :
+/-- How the literal operand `e` of the comparison `op`, on the left when
+`left` holds, fits the type `t` of its other operand, once the operands'
+forms give it (`literalFits`, from `operandTy`); `none` when `e` is no
+literal or the comparison converts none to `t` (`convertsTo`). -/
+def operandFit (prog : Program) (op : BinOp) (e : Expr) (t : Option Ty) (left := false) :
     CheckM (Option (Option Bool)) := do
   match e, t with
   | .list .., some t =>
-    if compares op && convertsTo op t then pure (some (← literalFits (operandTy prog) t e))
+    if compares op && convertsTo op t left then pure (some (← literalFits (operandTy prog) t e))
     else pure none
   | _, _ => pure none
 
@@ -162,23 +169,49 @@ def fitTy (fit : Option (Option Bool)) (t te : Option Ty) : Option Ty :=
   | some none => none
   | _ => te
 
+mutual
+/-- The places that the literal `e` holds, in order, also in a literal it
+holds. -/
+def literalPlaces : Expr → List Place
+  | .list _ es => placesOf es
+  | .place p => [p]
+  | _ => []
+
+/-- The places that the expressions `es` are or hold (`literalPlaces`). -/
+def placesOf : List Expr → List Place
+  | [] => []
+  | e :: es => literalPlaces e ++ placesOf es
+end
+
+/-- The implicit copy that building the literal `e` with its own type
+makes, and that the compiler rejects: of the first place in it whose
+value is not implicitly copyable. -/
+def copyMisfit (prog : Program) (e : Expr) : CheckM (Option CheckError) := do
+  for p in literalPlaces e do
+    if let some t ← operandTy prog (.place p) then
+      if copyingOf prog t != .implicit then return some (.implicitCopy t)
+  pure none
+
 /-- The error of the operator `op` that the forms of its operands `a` and
 `b` give (`operandTy`), before they are read (`binaryMisfit`). A literal
 on the left of a comparison is converted to the type of the right
 operand, unless that is a literal too, and a literal on the right to the
 type of the left one (`operandFit`), as the compiler converts the
-argument of the method: one that does not fit is a type mismatch, but a
-literal on the left with no type of its own, which the compiler reports
-as a list it cannot type, keeps the checks it had before. An integer
-literal's comparison with an array or a list is left to its overloads. -/
+argument of the method: one that does not fit is a type mismatch. A
+literal on the left that does not fit is built with its own type first,
+so an implicit copy that it makes comes before (`copyMisfit`); one with
+no type of its own, which the compiler reports as a list it cannot type,
+keeps the checks it had before. An integer literal's comparison with an
+array or a list is left to its overloads. -/
 def operandMisfit (prog : Program) (op : BinOp) (a b : Expr) : CheckM (Option CheckError) := do
   let ta ← if intLiteral a then pure none else operandTy prog a
   let tb ← operandTy prog b
-  let fa ← if b matches .list .. then pure none else operandFit prog op a tb
+  let fa ← if b matches .list .. then pure none else operandFit prog op a tb true
   let ta' := fitTy fa tb ta
   let fb ← operandFit prog op b ta'
-  if fa == some (some false) && ta.isSome || fb == some (some false) then
-    return some (.typeMismatch (ta'.getD .unknown) (tb.getD .unknown))
+  let mismatch := CheckError.typeMismatch (ta'.getD .unknown) (tb.getD .unknown)
+  if fa == some (some false) && ta.isSome then return (← copyMisfit prog a).getD mismatch
+  if fb == some (some false) then return some mismatch
   pure (binaryMisfit prog op (if fa == some (some false) then none else ta') (fitTy fb ta' tb))
 
 /-- Whether the operand `e` of the operator `op`, whose other operand is
@@ -187,11 +220,12 @@ and `List` take a `read` argument: a place, or a call that returns a
 reference, compared as an array or a list (`seqCompare`). Beside a
 literal `other` whose fit is not known, and which inference left
 untyped, a list, or an array when `other` holds a literal, keeps the
-checks it had before #166, a copy. -/
-def byRef (prog : Program) (op : BinOp) (e other : Expr) : CheckM Bool := do
+checks it had before #166, a copy. `left` holds when `other` is on the
+left. -/
+def byRef (prog : Program) (op : BinOp) (e other : Expr) (left := false) : CheckM Bool := do
   if !compares op then return false
   let t ← operandTy prog e
-  if (← operandFit prog op other t) == some none && literalTy other != t &&
+  if (← operandFit prog op other t left) == some none && literalTy other != t &&
       (holdsLiteral other || t matches some (.list _)) then
     return false
   pure (t.bind (seqCompare op)).isSome
@@ -218,5 +252,30 @@ def methodBinaryTy (prog : Program) (op : BinOp) (ta tb : Ty) : Except CheckErro
   match binaryMisfit prog op (some ta) (some tb) with
   | some err => throw err
   | none => if (seqCompare op ta).isSome then pure .bool else binaryTy op ta tb
+
+/-- Checks the operands `a` and `b` of the operator `op` in order, with
+`checkA` and `checkB`, which check them read by reference or not, or with
+`argB`, which checks `b` as the argument that `rightParam` gives, and
+gives their types, once the places they read are checked again for what
+changed after (`recheckPlaces`). A literal on the left converted to the
+type of the right operand reads first, as an argument is; an inner
+literal in it that fails SIMD's constraint, `noMatchingInit`, fails in
+a later pass, so it is reported once the right operand is read too, as
+on the right (#166). -/
+def compareOperands (prog : Program) (op : BinOp) (a b : Expr) (checkA checkB : Bool → CheckM Ty)
+    (argB : Fit → Param → CheckM Unit) : CheckM (Ty × Ty) := do
+  let readB := do checkB (← byRef prog op b a true)
+  let ta ← tryCatch (do checkA (← byRef prog op a b)) fun err => do
+    if err matches .noMatchingInit _ && a matches .list .. && !(b matches .list ..) &&
+        (literalTy a).isSome && literalTy a == (← operandTy prog b) then
+      let _ ← readB
+    throw err
+  let ka ← mark
+  let tb ← match rightParam op a b ta with
+    | some (fit, prm) => do argB fit prm; pure prm.ty
+    | none => readB
+  let kb ← mark
+  unless op == .and || op == .or do recheckPlaces prog [a, b] [ka, kb]
+  pure (ta, tb)
 
 end MojoGrimoire.Check

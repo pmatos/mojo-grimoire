@@ -150,6 +150,8 @@ line, as the compiler's `mojo run` does.
 
 {includeReadable "." MojoGrimoire.Parse.Dispatch "Methods of operators on structs" MojoSpec.Parse.Dispatch (level := 2)}
 
+{includeReadable "." MojoGrimoire.Parse.Compared "Expected types of literals" MojoSpec.Parse.Compared (level := 2)}
+
 {includeReadable "." MojoGrimoire.Parse.Infer "Type inference" MojoSpec.Parse.Infer (level := 2)}
 
 {includeReadable "." MojoGrimoire.Parse.Subset "Constructs outside the subset" MojoSpec.Parse.Subset (level := 2)}

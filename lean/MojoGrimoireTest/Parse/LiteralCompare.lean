@@ -66,17 +66,29 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard prints ["var xs: List[Int] = []", "print([] == xs)"] ["True"]
 #guard prints ["var xs: List[Int] = [1]", "var x = 1", "print([x] == xs, [[1]] == xs)"]
   ["True True"]
--- Its own type, when it does not fit: the right operand is converted.
+-- Its own type, when it does not fit: it is built first, so an implicit
+-- copy in it comes first, and the right operand is converted to it.
 #guard rejects ["var a = [1]", "print([1, 2] == a)"] (.typeMismatch (.array .int 2) (.array .int 1))
 #guard rejects ["var a = [1]", "print([[True]] == a)"]
   (.typeMismatch (.array (.array .bool 1) 1) (.array .int 1))
 #guard rejects ["var xs: List[Int] = [1]", "print([True] == xs)"]
   (.typeMismatch (.array .bool 1) (.list .int))
--- A list has no order, so `<` converts no literal to it.
+#guard rejects ["var ys: List[Int] = [1]", "var xs: List[Int] = [1]", "print([ys] == xs)"]
+  (.implicitCopy (.list .int))
+#guard rejects ["var ys: List[Int] = [1]", "var xs: List[Int] = [1]", "print([ys^] == xs)"]
+  (.typeMismatch (.array (.list .int) 1) (.list .int))
+-- A list has no order, so `<` converts no literal to it, nor to an array
+-- of lists on the right, though a literal on the right converts to it.
 #guard rejects ["var xs: List[Int] = [1]", "print([1] < xs)"]
   (.typeMismatch (.array .int 1) (.list .int))
--- An inner literal of another length where an `Int` is expected.
+#guard rejects ["var v: Array[List[Int], 1] = [[1]]", "print([[1]] < v)"]
+  (.typeMismatch (.array (.array .int 1) 1) (.array (.list .int) 1))
+#guard rejects ["var v: Array[List[Int], 1] = [[1]]", "print(v < [[1]])"]
+  (.violatedConstraint (.array (.list .int) 1) "__lt__")
+-- An inner literal of another length where an `Int` is expected, after
+-- the reads of both operands.
 #guard runMain ["var a = [1]", "print([[1, 2]] == a)"] matches
   some (.rejected ⟨"main", .noMatchingInit ..⟩)
+#guard rejects ["var a: Array[Int, 1]", "print([[1, 2]] == a)"] (.uninitializedUse (.var "a"))
 
 end MojoGrimoireTest.Parse.LiteralCompare

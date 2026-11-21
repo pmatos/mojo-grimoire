@@ -33,6 +33,7 @@ import MojoGrimoire.Parse.Stmt
 import MojoGrimoire.Parse.HiddenTypes
 import MojoGrimoire.Parse.SelfType
 import MojoGrimoire.Parse.Dispatch
+import MojoGrimoire.Parse.Compared
 import MojoGrimoire.Parse.Infer
 import MojoGrimoire.Parse.Subset
 import MojoGrimoire.Driver.Main
