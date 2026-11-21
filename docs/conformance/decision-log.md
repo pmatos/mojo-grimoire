@@ -264,3 +264,20 @@ Each move of the Mojo pin gets an entry below.
 - Decision and rationale: the fixed compiler compares the elements, as
   `-O0` and every control do ([evidence](decision-log-d0010.md#evidence)).
 - Upstream report: not filed; a draft on #235 awaits the human.
+
+### D-0013: arrays of arrays of one-element arrays compare wrongly at -O3 (provisional)
+
+- Date: 2026-11-21
+- Mojo release and commit: nightly 1.3.0.dev2026111905 (D-0007)
+- Program: `tests/conformance/arrays/compare_deep_one_element.mojo`
+- Compiler: at the default level, `-O3`, `e > z` is `False` for
+  `e = [[[1]]]` and `z = [[[0]]]` when another comparison of the same
+  arrays is printed with it; `-O0`, `-O1` and `-O2` print the right `True`
+  ([detail](decision-log-d0013.md#compiler)).
+- Model: compares the elements, and prints `True False`.
+- Classification: compiler bug, ruled by the human on 2026-11-21 (#257),
+  provisional. It is a sibling of D-0010, with no printing destructor.
+- Decision and rationale: the fixed compiler compares the elements one by
+  one, as `-O0`, `-O1` and `-O2` do
+  ([evidence](decision-log-d0013.md#evidence)).
+- Upstream report: not filed; a draft on #257 awaits the human.

@@ -2,6 +2,7 @@
   "note": "Programs whose result disagrees with the compiler's by a decision-log entry, docs/conformance/decision-log.md, with the entry's id.",
   "known": {
     "arrays/compare_beside_printing_deinit": "D-0010",
+    "arrays/compare_deep_one_element": "D-0013",
     "basics/int_index_computed_out_of_bounds": "D-0009",
     "basics/int_index_constant_out_of_bounds": "D-0009",
     "basics/int_index_negative": "D-0009",
