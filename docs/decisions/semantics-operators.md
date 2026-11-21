@@ -2,7 +2,7 @@
 
 This page continues [semantics.md](semantics.md) with what an operator or
 a call means when its operand is a struct of the program, and when it
-compares two arrays.
+compares two arrays, two lists or two `Bool`s.
 
 ## Methods that a struct declares
 
@@ -116,65 +116,95 @@ is: `t < u` may give an `Int`.
   it. As the type of a field, or outside a struct, it is left as the name
   of a struct that no program declares (#203).
 
-## Comparisons of arrays
+## Comparisons of arrays and lists
 
 Two arrays of the same type compare with `<`, `<=`, `>`, `>=`, `==` and
-`!=` when their element type does, as the pinned nightly does. The human
-ruled on 2026-11-20 that the model follows the compiler fully (#166,
-option a). Part 1 of #166 models the element types `Int`, `Bool` and
-arrays of them:
+`!=` when their element type does, and two lists of the same type with
+`==` and `!=`, as the pinned nightly does. The human ruled on 2026-11-20
+that the model follows the compiler fully (#166, option a); #185 extends
+it to lists. Part 1 of #166 and #185 model the element types `Int`,
+`Bool`, and arrays and lists of them (`MojoGrimoire.Check.Compare`):
 
 - The order is lexicographic, element by element, with `False` before
-  `True`, and recursive through nested arrays: `[1, 9] < [2, 0]` and
-  `[[1]] < [[2]]` are `True`. `Array`'s methods compare elements with
+  `True`, and recursive through nested arrays and lists: `[1, 9] < [2, 0]`
+  and `[[1]] < [[2]]` are `True`, and two lists are equal when they have
+  the same length and equal elements. The methods compare elements with
   their own `__lt__` and `__eq__`; for these types only the result shows.
-- Both operands are passed by reference: a named array, an element or a
-  field is read, not copied, and so is a call that returns a reference,
-  also one whose origin is a temporary. A place is read once both
-  operands are evaluated, as any operand, so `a == bump(a)` sees what
+- Both operands are passed by reference: a named array or list, an
+  element or a field is read, not copied, and so is a call that returns a
+  reference, also one whose origin is a temporary. A place is read once
+  both operands are evaluated, as any operand, so `a == bump(a)` sees what
   `bump` changed. A value whose last use is the comparison is destroyed
   once it is done, as for a `read` argument.
-- A literal on either side is an array, unless the other operand is an
-  `Int` (see [semantics-lists.md](semantics-lists.md#arrays)).
-- An operand of another type, an array of another length or element type,
-  an `Int`, a `Bool` or a list on the right, is the compiler's "cannot be converted",
-  `typeMismatch`. So are an `Int` or a `Bool` compared with an array, and
-  `[1] == []`. An integer literal compared with an array, `1 == a`, fits
-  none of the literal's overloads (`noMatchingMethod`).
+- A literal on either side of an array is an array, unless the other
+  operand is an `Int` (see [semantics-lists.md](semantics-lists.md#arrays)).
+  A literal on the right of a list is the argument of the list's `__eq__`
+  or `__ne__`, converted to the list's type as a call's argument is:
+  `xs == [1, 2]`, `xss == [[1], []]` and, with `xs` a list of `Int`s,
+  `xs == [[1]]` run; an element of another type, `xs == [True]`, is a
+  type mismatch, and an inner literal of another length where an `Int`
+  is expected, `xs == [[1, 2]]`, fits no initializer of `Int`
+  (`noMatchingInit`), as in a call.
+- An operand of another type, an array or a list of another length or
+  element type, an `Int`, a `Bool` or, beside an array, a list, is the
+  compiler's "cannot be converted", `typeMismatch`. So are an `Int` or a
+  `Bool` compared with an array or a list, and `[1] == []`. An integer
+  literal compared with either, `1 == a`, fits none of the literal's
+  overloads (`noMatchingMethod`).
 - An element type that does not conform to `Equatable`, or to
   `Comparable` to order the arrays, is the compiler's "invalid call to
   '__eq__': violated constraint", `violatedConstraint`
   ([conformance-classes.md](conformance-classes.md#violated-constraints)):
-  `None` for every operator, and a list to order them.
+  `None` for every operator, and a list to order them. A list has no
+  order of its own: `xs < ys` is `missingMethod`.
 - The pin's optimized build compares two one-element arrays as equal
   when a struct's `__deinit__` prints, where `-O0` compares the elements.
   The human ruled this a compiler bug on 2026-11-21 (#235,
   [D-0010](../conformance/decision-log.md)); the model compares the
-  elements.
+  elements. Two lists in that position compare their elements at every
+  optimization level.
 - The checker finds both errors from the operands' types, once they are
   typed and before either is read: a mismatch first, then a constraint.
-  So `var a: Array[Int, 1]` compared with `[1, 2]` is a mismatch, not a
-  use of an uninitialized value.
+  So `var a: Array[Int, 1]` compared with `[1, 2]`, or an uninitialized
+  list compared with an array, is a mismatch, not a use of an
+  uninitialized value.
 
-Not yet modelled, each keeping the result it had before #166:
+Two `Bool`s also compare with `<`, `<=`, `>` and `>=`, `False` first, as
+`Int`s do (#185). A `Bool` compared with an `Int` is a type mismatch,
+and `1 < True` fits none of the literal's overloads.
 
-- A literal that holds a literal, on either side, compared with an
-  operand whose type its form does not show to be the same. The compiler
-  converts it to the other operand's type, element by element, as it
-  converts a call's argument: `a == [[1], [2]]`, `a == [[1], 2]` and
-  `[[1]] == a`, with `a` an array of `Int`s, run, each `[1]` initializing
-  an `Int`, and `a == [[]]` and `a == [[1, 2]]` are type mismatches; the
-  model still copies a named `a` (`implicitCopy`), and gives two literals
-  `typeMismatch` or `invalidType`. So is a literal on the left compared
-  with a list, `[1] == xs`, which the compiler converts to a list. Part 2
-  of #166 covers them (`convertsLiteral`).
+Not yet modelled. Each stays rejected, with a class that is still not
+the compiler's; where #185 changed the class, the bullet says so:
+
+- A literal compared with an operand whose type its form does not show
+  to be the same, and that the compiler converts to that operand's type:
+  one on the left of a list, `[1] == xs`, which the compiler converts to
+  a list, and one that holds a literal beside an array, `a == [[1], [2]]`,
+  `a == [[1], 2]` or `[[1]] == a`, with `a` an array of `Int`s, which run,
+  each `[1]` initializing an `Int`, where `a == [[]]` and
+  `a == [[1, 2]]` are type mismatches. The model still copies a named
+  operand (`implicitCopy`), and otherwise gives `typeMismatch` or
+  `invalidType`. Part 2 of #166 covers them (`convertsLiteral`).
 - An element type that holds a struct. The compiler requires the
   struct's conformance to `Equatable` or `Comparable`, not the methods it
   declares, and calls the struct's `__eq__` and `__lt__` element by
-  element. Conformances come with #194; part 3 of #166 follows it.
-- `==` and `!=` of arrays of lists, which need the equality of lists, a
-  list compared with an array, `xs == a`, whose list is still copied, and
-  the order of two `Bool`s outside an array (#185).
+  element. Conformances come with #194; part 3 of #166 follows it, for
+  arrays and lists. A list of structs compared with an empty literal,
+  `List[P]() == []` or `!= []`, went from `invalidType` to
+  `typeMismatch` with #185, since the literal now takes the list's type;
+  the compiler gives `violatedConstraint` for a struct without the
+  conformance.
+- A list of `None`, `List[NoneType]`, and `xs == None`, which need `None`
+  as a type and an expression (#183). `xs == None` and `xs != None` went
+  from `implicitCopy` to `unknownVariable` with #185, since `xs` is now
+  read uncopied and the model has no `None` expression; the compiler
+  gives `typeMismatch`.
+- The literal on the right of a list is checked as a call checks its
+  argument, with that check's gaps: on the right of an uninitialized
+  list, an element that does not fit comes after the uninitialized use
+  (#96), and an inner literal that initializes a `Bool`,
+  `bs == [[True]]`, is a type mismatch, where the compiler finds no
+  initializer (`noMatchingInit`, #165).
 
 ## What is not yet modelled
 

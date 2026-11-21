@@ -44,19 +44,8 @@ uninitialized argument of the wrong type is still `uninitializedUse`
 first, where the compiler reports `noMatchingMethod`: that order across
 the compiler's passes is left to #96.
 
-Two arrays compare with `<`, `<=`, `>`, `>=`, `==` and `!=`, which `Array`
-declares, when they have the same type and their element type conforms to
-`Comparable`, or for `==` and `!=` to `Equatable`: `Int`, `Bool` and
-arrays of them (`arrayCompare`, #166). Each operand is passed by
-reference: a place is read, uncopied (`byRef`). Another type is a type
-mismatch, found from the operands' types, as an `Int` compared with an
-array is; an element type that does not conform, `None` or, to order
-them, a list, is the compiler's "violated constraint",
-`violatedConstraint`, found the same way. An element type that holds a
-struct waits for its conformances (#194), the equality of lists for
-#185, and a literal that the compiler converts to the other operand's type
-for part 2 of #166 (`convertsLiteral`): such comparisons keep the checks
-they had before.
+The comparisons of arrays and lists, and the operands they read by
+reference, are `MojoGrimoire.Check.Compare`'s.
 -/
 
 namespace MojoGrimoire.Check
@@ -162,92 +151,6 @@ def lacks (prog : Program) (m : Name) : Option Ty → Option CheckError
   | some t => if hasMethod prog t m then none else some (.missingMethod t m)
   | none => none
 
-/-- Whether the operator `op` compares: `<`, `<=`, `>`, `>=`, `==` or
-`!=`. -/
-def compares (op : BinOp) : Bool :=
-  op matches .lt | .le | .gt | .ge | .eq | .ne
-
-/-- Whether the comparison `op` of two arrays of type `t` is modelled, and
-then whether `t`'s element type conforms to the trait that `op` needs:
-`Comparable` to order, `Equatable` for `==` and `!=`. `Int`, `Bool` and
-arrays of them conform; `None` does not, nor a list to order. An element
-type that holds a struct is not modelled yet (#194), nor the equality of
-lists (#185). -/
-def arrayCompare (op : BinOp) : Ty → Option Bool
-  | .array u _ => if compares op && !(elemBase u matches .struct _) then conforms u else none
-  | _ => none
-where
-  /-- Whether the element type `u` conforms, when that is modelled. -/
-  conforms : Ty → Option Bool
-    | .int | .bool => some true
-    | .array u _ => conforms u
-    | .noneType => some false
-    | .list _ => if op == .eq || op == .ne then none else some false
-    | _ => none
-
-/-- The error of the comparison `op` of operands of types `ta` and `tb`,
-when one is an array whose comparison is modelled (`arrayCompare`): a
-type mismatch when the other is of another type, as the compiler cannot
-convert it, the left one an array, an `Int` or a `Bool`, then `violatedConstraint`
-when their element type does not conform. -/
-def arrayMisfit (op : BinOp) : Option Ty → Option Ty → Option CheckError
-  | some ta, some tb =>
-    match arrayCompare op ta, arrayCompare op tb with
-    | some ok, _ =>
-      if ta != tb then some (.typeMismatch ta tb)
-      else if ok then none else some (.violatedConstraint ta (binaryMethod op))
-    | none, some _ => if ta == .int || ta == .bool then some (.typeMismatch ta tb) else none
-    | none, none => none
-  | _, _ => none
-
-/-- The error of the operator `op` that the types `ta` and `tb` of its
-operands give, when they are known: the method that the left operand's
-type lacks, or, for `and` and `or`, `__bool__` that the right one's
-lacks, then the misfit of a comparison of arrays (`arrayMisfit`). -/
-def binaryMisfit (prog : Program) (op : BinOp) (ta tb : Option Ty) : Option CheckError :=
-  lacks prog (binaryMethod op) ta <|>
-    (if op == .and || op == .or then lacks prog (binaryMethod op) tb else none) <|>
-    arrayMisfit op ta tb
-
-/-- Whether the expression `e` is a literal that holds a literal. -/
-def holdsLiteral : Expr → Bool
-  | .list .unknown es => es.any (· matches .list ..)
-  | _ => false
-
-/-- Whether the comparison `op` of `a` and `b`, of types `ta` and `tb`
-found from their forms, has a literal that holds a literal and types not
-known to be the same. The compiler converts such a literal to the other
-operand's type, element by element, which part 2 of #166 models: until
-then the comparison keeps the checks it had before #166. -/
-def convertsLiteral (op : BinOp) (a b : Expr) (ta tb : Option Ty) : Bool :=
-  compares op && (holdsLiteral a || holdsLiteral b) && (ta.isNone || ta != tb)
-
-/-- The error of the operator `op` that the forms of its operands `a` and
-`b` give (`operandTy`), before they are read (`binaryMisfit`). An integer
-literal's comparison with an array is left to its overloads, and an empty
-literal compared with an array has no type that fits it. A literal
-compared with a list, which the compiler converts to a list, and a
-literal that the compiler converts (`convertsLiteral`), are left to the
-checks that follow, as before #166. -/
-def operandMisfit (prog : Program) (op : BinOp) (a b : Expr) : CheckM (Option CheckError) := do
-  let ta ← if intLiteral a then pure none else operandTy prog a
-  let tb ← if compares op && b matches .list .unknown [] then pure (some .unknown)
-    else operandTy prog b
-  let tb := if a matches .list .unknown _ && tb matches some (.list _) then none else tb
-  let tb := if convertsLiteral op a b ta tb then none else tb
-  pure (binaryMisfit prog op ta tb)
-
-/-- Whether the operand `e` of the operator `op`, whose other operand is
-`other`, is passed by reference, uncopied, as `Array`'s comparisons take
-a `read` argument: a place, or a call that returns a reference, compared
-as an array (`arrayCompare`), unless a literal is converted
-(`convertsLiteral`). -/
-def byRef (prog : Program) (op : BinOp) (e other : Expr) : CheckM Bool := do
-  if !compares op then return false
-  let t ← operandTy prog e
-  if convertsLiteral op e other t (← operandTy prog other) then return false
-  pure (t.bind (arrayCompare op)).isSome
-
 /-- The error of the operator `op` that the type `ta` of its operand
 gives, when it is known: the method that the type lacks. -/
 def unaryMisfit (prog : Program) (op : UnOp) (ta : Option Ty) : Option CheckError :=
@@ -302,18 +205,6 @@ def methodCall (prog : Program) (asRef : Bool) (p : Place) (t : Ty) (m : Name) (
   if let some q := consumed then let _ ← transferPlace prog q
   for q in ← changedArgs prog sig.allParams (.place p :: args) do changePlace prog q
   refResult prog asRef sig args
-
-/-- The type of the result of the operator `op` on operands of types `ta`
-and `tb`: a method that a type lacks first, or the misfit of a comparison
-of arrays, then a `Bool` for such a comparison, and `binaryTy` for any
-other. `and` and `or` on operands of the same struct type, which has
-`__bool__`, give the operand that decides, of that type (#191). -/
-def methodBinaryTy (prog : Program) (op : BinOp) (ta tb : Ty) : Except CheckError Ty :=
-  match binaryMisfit prog op (some ta) (some tb) with
-  | some err => throw err
-  | none =>
-    if (op == .and || op == .or) && ta == tb && ta matches .struct _ then pure ta
-    else if (arrayCompare op ta).isSome then pure .bool else binaryTy op ta tb
 
 /-- The type of the result of the operator `op` on an operand of type `ta`:
 a method that the type lacks first, then `unaryTy`. -/

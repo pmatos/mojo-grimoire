@@ -58,7 +58,10 @@ as an argument, once `v` is evaluated: with `i = 0` and `v` a call that
 sets `i` to 2, the compiler stores into `k`, ignoring the index, and the
 model fails at run time on the index 2, as the fixed compiler would check
 the index it receives. The array of one element on the pin is no guide
-here, since an array locates its element before the value.
+here, since an array locates its element before the value. The human ruled
+this late read on 2026-11-21 (#127). The evidence is the pin's own order of
+evaluation for a wider vector: on a `SIMD[DType.int, 4]`, `v[i] = seti(i)`
+writes lane 2, at the default level and at `-O0` alike.
 
 The element has no memory origin of its own: `ref r = k[0]`, and a
 reference returned to `k[0]`, are `escapingReference`, as the compiler

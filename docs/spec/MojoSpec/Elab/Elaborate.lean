@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10293296347420508496")
+:::moduleDocs (fingerprint := "3361941380931013638")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8076625837927918720")
@@ -96,7 +96,7 @@ the slots that the method calls in it consume, at any depth, also inside
 the argument of $`\mathsf{List}[u](e)`.
 :::
 
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "3037389477930652300")
+:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "2000229492295173798")
 *Definition: elaborating expressions.* Each call, method call, operator,
 list literal, $`\mathsf{List}[u](e)` and `.copy()` is wrapped with what it
 destroys, and its operands are elaborated in turn, each with the slots that the later
@@ -114,9 +114,9 @@ A method call never destroys the slot it
 consumes, though it uses it. The argument of $`\mathsf{List}[u](e)` is
 used by reference, as that of `len`, so a value whose last use it is dies
 once the new list is built. So is an operand of a comparison of two
-arrays, a place or a call that returns a reference, which the comparison
-reads by reference (`MojoGrimoire.Check.byRef`, #166): what it last uses
-dies once the comparison is done.
+arrays or two lists, a place or a call that returns a reference, which
+the comparison reads by reference (`MojoGrimoire.Check.byRef`, #166,
+#185): what it last uses dies once the comparison is done.
 :::
 
 :::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.envAfter (fingerprint := "12467781390826100905")

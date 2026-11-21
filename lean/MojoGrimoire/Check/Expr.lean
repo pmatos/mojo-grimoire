@@ -17,8 +17,9 @@ changes, are checked as `MojoGrimoire.Check.Change` says. An argument that
 does not fit is reported as `MojoGrimoire.Check.Fit` says, which also gives
 the rules of literals, of `List[u](…)` and of its `range` argument. An
 operator or a call that its operands' types reject, a method that a type
-lacks or no overload that fits, is reported before they are read, as
-`MojoGrimoire.Check.Methods` says.
+lacks, no overload that fits or a comparison that does not fit, is
+reported before they are read, as
+`MojoGrimoire.Check.Methods` and `MojoGrimoire.Check.Compare` say.
 -/
 
 namespace MojoGrimoire.Check
@@ -80,11 +81,9 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     let s ← get
     let ta ← checkExprAs prog (← byRef prog op a b) a
     let ka ← mark
-    let tb ← if intLiteral a && op != .and && op != .or then do
-        let m := binaryMethod op
-        let _ ← checkArg prog (.overload m) m ⟨.read, "rhs", .int⟩ b
-        pure .int
-      else checkExprAs prog (← byRef prog op b a) b
+    let tb ← match rightParam op a b ta with
+      | some (fit, prm) => do let _ ← checkArg prog fit (binaryMethod op) prm b; pure prm.ty
+      | none => checkExprAs prog (← byRef prog op b a) b
     checkedBinaryTy prog op a b ta tb ka (← mark) s fun p f => do
       let _ ← checkArg prog .call f p a
   | .list .unknown [] => throw (CheckError.invalidType .unknown)

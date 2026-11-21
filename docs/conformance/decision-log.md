@@ -21,6 +21,12 @@ Every compiler bug that the human rules on is also listed in
 state of its upstream report, so that it can be confirmed later on a newer
 compiler. Upstream reports are filed only with the human's approval.
 
+Each entry below keeps a summary, with the heading `### D-NNNN: <title>`
+that `scripts/conformance.py` looks for when `known.json` cites the entry.
+An entry whose detail would push this file past the file-size budget
+(ADR-2026-11-15-1901) keeps it on a page of its own,
+`decision-log-dNNNN.md`, which the summary links.
+
 ## Pinned reference
 
 | Component | Version | Commit | Where it is pinned |
@@ -66,27 +72,16 @@ Each move of the Mojo pin gets an entry below.
 - Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868);
   reproduces unchanged on the pinned nightly 1.3.0.dev2026111905 (D-0007)
 - Program: `tests/conformance/lists/store_after_grow.mojo`
-- Compiler: accepts `xs[0] = bump(xs)`, where `bump` appends to `xs` and
-  returns 5, and prints `1 3`. It locates `xs[0]` before it evaluates the
-  call, the call grows the list, and the store lands in a stale element, in
-  the buffer that the append replaced when it reallocated. When the list has capacity reserved
-  beforehand, so the append does not reallocate, the same program prints
-  `5 3`. When the call shrinks the list instead, as in
-  `xs[1] = shrink(xs)` where `shrink` pops twice from `[1, 2, 3]`, the
-  compiler stores past the new length with no error. The `ref` form,
-  `ref e = xs[0]; e = grow(xs)`, is accepted too, and its store also misses
-  the list.
-- Model: evaluates the value before it locates the element, so
-  `store_after_grow` prints `5 3`, and the shrink case fails at run time
-  with `indexOutOfBounds`. The `ref` form is rejected
-  (`invalidatedReference`): the call invalidates `e` before the store, and
-  running it could leave the interpreter stuck when the call shrinks the
-  list, since `e` would name an element that no longer exists.
+- Compiler: `xs[0] = bump(xs)`, where `bump` appends to `xs`, locates the
+  element before the call and stores into a stale buffer, printing `1 3`
+  ([detail](decision-log-d0002.md#compiler)).
+- Model: evaluates the value before it locates the element, so it prints
+  `5 3`; the shrinking and `ref` forms are on
+  [the detail page](decision-log-d0002.md#model).
 - Classification: compiler bug, ruled by the human on 2026-11-16 (#57).
-- Decision and rationale: the model keeps its behaviour. A store into a
-  stale element writes to memory the list no longer owns, and whether the
-  store is lost depends on whether the call happened to reallocate the
-  list's buffer.
+- Decision and rationale: the model keeps its behaviour, since the
+  compiler's store writes to memory the list no longer owns
+  ([detail](decision-log-d0002.md#decision-and-rationale)).
 - Upstream report: not filed yet. A draft on #57 awaits the human's
   approval; its link goes here once it is filed.
 
@@ -133,29 +128,16 @@ Each move of the Mojo pin gets an entry below.
 - Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868);
   nightly 1.3.0.dev2026111905 since D-0007
 - Program: `tests/conformance/structs/cycle_fieldwise_init_holder_first.mojo`
-- Compiler: accepts a cycle of structs with a list edge and a plain
-  by-value edge, such as `A` holding a `List[B]` and `B` holding an `A`,
-  when each initializer is written by hand, in either declaration order
-  (`structs/cycle_through_list` and `cycle_through_list_holder_first`).
-  With `@fieldwise_init` on `B`, the struct that holds the other by value,
-  and `B` declared first, it rejects the program with "field 'bs' has
-  non-'Deinitable' type 'List[B]'". With `@fieldwise_init` on `A` alone it
-  compiles (`cycle_fieldwise_init_list_holder`).
+- Compiler: rejects a cycle of structs through a list when `@fieldwise_init`
+  is on the struct that holds the other by value and that struct is
+  declared first, with "non-'Deinitable' type"; the hand-written
+  initializer compiles ([detail](decision-log-d0004.md#compiler)).
 - Model: accepts it, as it accepts the hand-written form, and prints `1`.
-  It still rejects a struct on a cycle with no list edge
-  (`recursiveStruct`), as the compiler does.
 - Classification: compiler bug, ruled by the human on 2026-11-18 (#47).
 - Decision and rationale: the decorator is documented to produce the
-  initializer that is written by hand, which compiles. The error is the
-  one of D-0006, modular/modular#7398, which probably has the same cause.
-- Fixed by the nightly: Mojo 1.2.0 also rejected the decorated forms with
-  `A` declared first, `cycle_fieldwise_init` with "invalid implicit move:
-  unexpected keyword argument 'move'": the synthesized initializer of `B`
-  called `A.__init__(move=...)`, not synthesized yet inside the cycle,
-  which resolved against `A`'s own `__init__`; and `cycle_fieldwise_init_both`,
-  with both structs decorated, with "invalid call to '__init__': no
-  candidates found". The nightly 1.3.0.dev2026111905 compiles both, and
-  each prints `1`, as the model does; `known.json` no longer lists them.
+  hand-written initializer; the error is probably D-0006's
+  ([detail](decision-log-d0004.md#decision-and-rationale); what the
+  nightly fixed is [there too](decision-log-d0004.md#fixed-by-the-nightly)).
 - Upstream report: not filed yet. A draft on #47 awaits the human's
   approval; its link goes here once it is filed.
 
@@ -165,35 +147,16 @@ Each move of the Mojo pin gets an entry below.
 - Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868)
 - Programs, in `tests/conformance/basics/`: `int_literal_length_two`,
   `int_literal_length_three` and `int_literal_length_evaluated`.
-- Compiler: `Int` is `SIMD[DType.int, 1]`, and a literal where an `Int`
-  is expected calls SIMD's `__list_literal__` initializer. The stdlib
-  documents that the number of elements must equal the vector's size, 1,
-  but 1.2.0 checked it only with an `assert`, which a default build leaves
-  out. So it accepted `var x: Int = [e1, …, en]` for every n, in every
-  position probed on 2026-11-19: an assignment, a `return`, a function
-  argument, a field of `@fieldwise_init`, `append` on a `List[Int]`, an
-  operand `x + [2, 3]`, and an element of a literal of `Int`s. For n ≥ 2
-  it evaluated every element and kept `e1`, so `[1, 2]` printed `1`; for
-  n = 0 the program crashed with a segmentation fault. With
-  `-D ASSERT=all` the program built, then trapped at run time: "mismatch
-  in the number of elements in the SIMD variadic constructor".
-- Model: rejects a literal of `Int`s of every length but 1, n = 0
-  included, in every position: `noMatchingInit` once its elements are
-  read (#154, ruled 2026-11-19).
-- Classification: compiler bug, ruled by the human on 2026-11-19 (#122).
-  The ruling is provisional, until the human has discussed it with
-  Modular.
+- Compiler: 1.2.0 accepted a list literal of any length where an `Int` is
+  expected, kept its first element, and crashed on an empty one
+  ([detail](decision-log-d0005.md#compiler)).
+- Model: rejects a literal of `Int`s of every length but 1 as
+  `noMatchingInit` (#154).
+- Classification: compiler bug, ruled by the human on 2026-11-19 (#122),
+  provisional.
 - Decision and rationale: the model rejects these literals, as the stdlib
-  documents.
-- Resolved at the nightly: 1.3.0.dev2026111905 rejects every length but 1,
-  in every position above, with "function instantiation failed" and the
-  note "constraint failed: expected 1 elements in the SIMD list literal,
-  found N" (`std/simd.mojo:1094` at `10c54f6f5b`), which
-  `diagnostics.json` classes as `noMatchingInit`. The three programs agree
-  with the model, and `known.json` no longer lists them. The model
-  follows the nightly in every position (#154), and the suite holds an
-  argument, `append` and an operand (`rejected/int_literal_length_*`,
-  `rejected/int_literal_empty_append`).
+  documents. The nightly rejects them too, so the three programs agree and
+  `known.json` no longer lists them ([detail](decision-log-d0005.md#resolved-at-the-nightly)).
 - Upstream report: none needed, since the nightly fixes it.
 
 ### D-0006: a struct cycle through a list, rejected as non-'Deinitable'
@@ -201,41 +164,19 @@ Each move of the Mojo pin gets an entry below.
 - Date: 2026-11-19
 - Mojo release and commit: 1.2.0 (527d069ee11a41ac5320af1f9402db0a66b2b868);
   reproduces unchanged on the pinned nightly 1.3.0.dev2026111905 (D-0007)
-- Programs, under `tests/conformance/rejected/`:
-  `recursive_list_field`, `recursive_list_cycle`,
-  `recursive_list_array_cycle`, `recursive_list_cycle_beside_mixed`,
-  `recursive_cycle_and_list_of_self`, `list_cycle_beside_self_loop_deinit`,
-  `list_of_self_deinit_off_cycle`, `list_of_arrays_cycle_deinit` and
-  `array_of_lists_cycle_deinit`.
+- Programs: nine under `tests/conformance/rejected/`, listed on
+  [the detail page](decision-log-d0006.md#programs).
 - Compiler: rejects a struct on a cycle of fields whose edges are lists
   and arrays only, such as `struct Node: var children: List[Node]`, with
-  "field 'children' has non-'Deinitable' type 'List[Node]'". It accepts
-  the same cycle when some structs on it have a `__deinit__` of their own,
-  but not always: it still rejects it when a struct on the cycle with no
-  `__deinit__` holds a list of itself, or is held through two containers,
-  `List[Array[B, 1]]` or `Array[List[B], 1]`, by one that has one. The
-  `__deinit__` forms that it accepts are in `tests/conformance/structs/`,
-  from `list_of_self_deinit` to `array_of_lists_cycle_both_deinit`. A
-  cycle with a by-value edge and a list edge is accepted (D-0004 aside),
-  and a cycle with no list edge, of by-value or array fields, is rejected,
-  with or without `__deinit__`. The nightlies 1.3.0.dev2026111705 and
-  1.3.0.dev2026111905, checked on 2026-11-19, give the same results.
-- Model: accepts every struct cycle with a list edge, with or without
-  `__deinit__`, and rejects every cycle with no list edge
-  (`recursiveStruct`). Each of the nine programs runs. Given an empty
-  `__deinit__` on each struct, the workaround of modular/modular#7398,
-  1.2.0 compiles each of them and prints what the model prints.
-- Classification: compiler bug, ruled by the human on 2026-11-19 (#136).
-  The ruling is provisional until the human has discussed it with Modular.
+  "has non-'Deinitable' type", and accepts some of these cycles when
+  structs on it have a `__deinit__` ([detail](decision-log-d0006.md#compiler)).
+- Model: accepts every struct cycle with a list edge, and rejects every
+  cycle with no list edge (`recursiveStruct`).
+- Classification: compiler bug, ruled by the human on 2026-11-19 (#136),
+  provisional.
 - Decision and rationale: the fixed compiler accepts every struct cycle
-  with at least one list edge. The manual bases the ban on recursive
-  structs on layout, and a list field has a fixed size. Modular tracks the
-  rejection as modular/modular#7398, triaged by the Mojo compiler team:
-  the synthesized `__deinit__` rejects a struct that holds itself through
-  a conditionally `Deinitable` type, and a user-written `__deinit__` works
-  around it. modular/modular#7290 reports a struct that cannot hold a
-  `List` of itself. The D-0004 form with `B` declared first fails with the
-  same message, probably from the same cause.
+  with at least one list edge, since a list field has a fixed size
+  ([detail](decision-log-d0006.md#decision-and-rationale)).
 - Upstream report: modular/modular#7398 and modular/modular#7290, filed by
   others; no new report is needed.
 
@@ -272,40 +213,19 @@ Each move of the Mojo pin gets an entry below.
 - Date: 2026-11-19
 - Mojo release and commit: nightly 1.3.0.dev2026111905 (D-0007); 1.2.0
   (527d069ee11a41ac5320af1f9402db0a66b2b868) aborts the same way
-- Programs: none in the suite. The runtime writes the abort on standard
-  output, and `scripts/conformance.py` records it as a printed line, with
-  the first line of the stack trace, which holds an address and a local
-  path, as the failure's detail. So the cases are pinned by `#guard` tests
-  in `lean/MojoGrimoireTest/Parse/ListRange.lean`, and the reproducer is
-  `print("before")` followed by
-  `print(List[Int](range(-1, 9223372036854775807, 9223372036854775807)))`.
+- Programs: none in the suite; `#guard` tests in
+  `lean/MojoGrimoireTest/Parse/ListRange.lean` pin the cases
+  ([why](decision-log-d0008.md#programs)).
 - Compiler: `List[Int](range(start, end, step))` aborts at run time when
   the range is not empty and `start - end` is ±2^63, such as
-  `range(-1, Int.MAX, Int.MAX)` or `range(0, Int.MIN, Int.MIN)`, with
-  ``ABORT: Mojo/stdlib/std/memory/alloc.mojo:1021:18: Layout: `length`
-  must be >= 0`` (1.2.0: `alloc.mojo:888:14: alloc: Layout.count() must be
-  >= 0`). Lines printed before it are kept. At `10c54f6f5b` the
-  initializer of `List` from an iterable reserves the lower bound that
-  `bounds()` gives (`std/collections/list.mojo:548`), which
-  `_StridedRange._signed_count` computes from `abs(start - end)`
-  (`std/builtin/range.mojo:371`). That difference wraps to `Int.MIN`, the
-  count comes out negative, and the allocation aborts. The elements, from
-  `__next__`, are right, and every neighbour that does not abort, such as
-  `range(Int.MIN, Int.MAX, Int.MAX)`, gives the plain list. The boundary
-  is exact: a span above 2^63, as in `range(Int.MIN, Int.MAX, 2^62)`,
-  wraps to a small positive count, which only under-reserves, and builds
-  the right list (`lists/range_wide`). A `TODO` there
-  names the wrap, tracked internally as MSTDL-3087.
+  `range(-1, Int.MAX, Int.MAX)` ([detail](decision-log-d0008.md#compiler)).
 - Model: builds the plain list, `[-1, 9223372036854775806]` for
-  `range(-1, Int.MAX, Int.MAX)`, so the reproducer prints `before` and
-  that list.
-- Classification: compiler bug, ruled by the human on 2026-11-19 (#121).
-  The ruling is provisional, until the human has discussed it with
-  Modular.
+  `range(-1, Int.MAX, Int.MAX)`.
+- Classification: compiler bug, ruled by the human on 2026-11-19 (#121),
+  provisional.
 - Decision and rationale: the fixed compiler builds the range's elements,
-  each of which lies between `start` and `end`, so no element overflows;
-  only the reserved size does. The model builds the list that unbounded
-  arithmetic gives, as for every range that does not abort.
+  none of which overflows; only the reserved size does
+  ([detail](decision-log-d0008.md#decision-and-rationale)).
 - Upstream report: not filed yet. A draft on #121 awaits the human's
   approval; its link goes here once it is filed.
 

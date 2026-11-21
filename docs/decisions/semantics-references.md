@@ -71,9 +71,9 @@ choices (#18):
   builds its result in place unless it returns an `Int`, a `Bool`,
   `None` or a reference. `pop` always does, since its result has a generic type.
 - A call that returns a reference, used as a value, copies the value
-  implicitly, but as an operand of a comparison of two arrays, which reads
-  it by reference
-  ([semantics-operators.md](semantics-operators.md#comparisons-of-arrays)).
+  implicitly, but as an operand of a comparison of two arrays or two
+  lists, which reads it by reference
+  ([semantics-operators.md](semantics-operators.md#comparisons-of-arrays-and-lists)).
   Printed, an operand of a binary operator other than `and`
   and `or`, an argument passed by value or an element of a list or an
   array literal, it is read only once every operand of the operation is

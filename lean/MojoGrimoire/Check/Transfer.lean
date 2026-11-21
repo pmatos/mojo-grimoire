@@ -3,9 +3,10 @@ import MojoGrimoire.Check.Change
 /-!
 Reading a place as a value, and transferring the value out of it, Mojo's
 `p^`. A read copies the value implicitly, unless the place's location is
-used, as a comparison of arrays uses its operands (#166). A transfer needs a value with an
-origin of its own, initialized, in a variable that the function owns or
-holds `mut`, and leaves the place uninitialized.
+used, as a comparison of arrays or lists uses its operands (#166, #185).
+A transfer needs a value with an origin of its own, initialized, in a
+variable that the function owns or holds `mut`, and leaves the place
+uninitialized.
 -/
 
 namespace MojoGrimoire.Check

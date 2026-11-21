@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.Methods
+import MojoGrimoire.Check.Compare
 
 /-!
 The test of a struct operand of `and` and `or` (#191). The compiler tests

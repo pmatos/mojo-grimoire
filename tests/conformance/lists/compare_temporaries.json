@@ -1,0 +1,12 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "mk 1",
+    "mk 2",
+    "mk 3",
+    "mk 3",
+    "True False False"
+  ],
+  "class": null,
+  "diagnostic": null
+}

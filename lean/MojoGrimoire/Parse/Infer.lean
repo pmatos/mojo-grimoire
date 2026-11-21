@@ -28,7 +28,9 @@ its elements, as SIMD's initializer takes them; the checker rejects it
 (#153, #154). An `Int`
 is also expected by an index, and by either operand of an operator other
 than `and` and `or` whose other operand is an `Int`, as Mojo reads it
-(#160). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
+(#160). The right operand of `==` or `!=` whose left operand is a list
+is expected to have the list's type, as the argument of its `__eq__` or
+`__ne__` (#185). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
 the type `t` of the first, as in Mojo: inference gives that type to what
 holds the literal, and leaves the literal's own type `unknown`, so that the
 checker tells a literal that initializes an expected type from one that
@@ -172,7 +174,10 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
         inferExpr prog env (if tb₀ == some .int then .int else .unknown) a
       else (a₀, ta₀)
     let b' := if b matches .list .. then
-        (inferExpr prog env (if ta == some .int then .int else .unknown) b).1
+        (inferExpr prog env (match ta with
+          | some .int => .int
+          | some t@(.list _) => if op == .eq || op == .ne then t else .unknown
+          | _ => .unknown) b).1
       else b₀
     (.binary op a' b', some (binaryResult op))
   | .list t es =>
