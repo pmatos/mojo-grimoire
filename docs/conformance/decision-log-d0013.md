@@ -1,14 +1,14 @@
-# D-0012 in detail: arrays of arrays of one-element arrays compare wrongly at -O3
+# D-0013 in detail: arrays of arrays of one-element arrays compare wrongly at -O3
 
 This page holds the program and the evidence for
-[D-0012](decision-log.md#d-0012-arrays-of-arrays-of-one-element-arrays-compare-wrongly-at--o3-provisional).
+[D-0013](decision-log.md#d-0013-arrays-of-arrays-of-one-element-arrays-compare-wrongly-at--o3-provisional).
 The decision log keeps only the summary, so that it stays within the
 file-size budget.
 
 ## Program
 
 `tests/conformance/arrays/compare_deep_one_element.mojo`, listed in
-`known.json` under D-0012:
+`known.json` under D-0013:
 
 ```mojo
 def main():
@@ -21,9 +21,9 @@ The pinned nightly prints `False False`. The model prints `True False`.
 
 ## Compiler
 
-These runs were made on 2026-11-21 with the pinned nightly
-1.3.0.dev2026111905, each program built with `mojo build` at `-O0`, `-O1`,
-`-O2`, `-O3` and with no flag, the default, which is `-O3`.
+These runs were made on 2026-11-21 and 2026-11-22 with the pinned
+nightly 1.3.0.dev2026111905, each program built with `mojo build` at
+`-O0`, `-O1`, `-O2`, `-O3` and with no flag, the default, which is `-O3`.
 
 | Body of `main` | `-O3`, the default | `-O0`, `-O1`, `-O2` |
 |---|---|---|
@@ -41,8 +41,10 @@ arrays is printed with it, and only for arrays three or more levels deep
 with one element at each level. No printing `__deinit__` is needed, unlike
 D-0010.
 
-Mojo 1.2.0 and the nightly 1.3.0.dev2026112017 give the same results at
-every level. The probes are recorded on #257.
+The nightly 1.3.0.dev2026112017 gives the same results at every level.
+So does Mojo 1.2.0, but for one row: two levels, `[[1]]` against `[[0]]`,
+is wrong there too, `False False` at `-O3`. The probes are recorded on
+#257.
 
 ## Evidence
 
