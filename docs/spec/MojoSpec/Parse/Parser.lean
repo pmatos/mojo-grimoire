@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The parser's monad: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16354309902834107166")
+:::moduleDocs (fingerprint := "348320798360165538")
 :::
 
 :::readable MojoGrimoire.Parse.P MojoGrimoire.Parse.peek MojoGrimoire.Parse.peek2 MojoGrimoire.Parse.curLine MojoGrimoire.Parse.fail MojoGrimoire.Parse.next (fingerprint := "15318810866958537351")
@@ -39,7 +39,7 @@ compiler; the parser reads `imm` and `read` specially where a parameter
 starts.
 :::
 
-:::readable MojoGrimoire.Parse.ty MojoGrimoire.Parse.typeArg (fingerprint := "6876850910721930525")
+:::readable MojoGrimoire.Parse.ty MojoGrimoire.Parse.typeArgument (fingerprint := "16201436253138290857")
 *Definition: types.*
 
 $$`\begin{array}{lcl}
@@ -53,6 +53,6 @@ name of a struct, which the checker looks up. In the
 parser's output, $`?` stands for a type that the program leaves to
 inference (#131). $`\mathsf{None}` as the type argument of a list or an
 array is a value where Mojo expects a type, which the compiler rejects:
-`typeArg` reads it as $`?`, which the checker rejects as `invalidType`
+`typeArgument` reads it as $`?`, which the checker rejects as `invalidType`
 (#183).
 :::

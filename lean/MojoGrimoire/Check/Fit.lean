@@ -77,7 +77,7 @@ def passValue (fit : Fit) (callee : Name) (c : Conv) : CheckM Unit := do
 size. -/
 def literalElem (prog : Program) (fit : Fit) (t : Ty) (n : Nat) : CheckM Ty := do
   let .ok u := elemOf t | throw (CheckError.invalidType t)
-  unless validTy prog u do throw (CheckError.invalidType t)
+  unless declarableTy prog u do throw (CheckError.invalidType t)
   if let .array _ k := t then
     unless k == n do throw (fit.misfit (CheckError.typeMismatch t (.array u n)))
   pure u

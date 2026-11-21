@@ -89,7 +89,7 @@ def name : P Name := do
 there is a value where Mojo expects a type, which the compiler rejects. It
 is read as `unknown`, which the checker rejects as `invalidType`, as it
 did before `None` was a type a variable may have (#183). -/
-def typeArg : Ty → Ty
+def typeArgument : Ty → Ty
   | .noneType => .unknown
   | t => t
 
@@ -106,14 +106,14 @@ def ty : Nat → P Ty
       expectSym "["
       let t ← ty fuel
       expectSym "]"
-      pure (.list (typeArg t))
+      pure (.list (typeArgument t))
     | "Array" => do
       expectSym "["
       let t ← ty fuel
       expectSym ","
       let .int n ← next | fail "expected the size of an array"
       expectSym "]"
-      pure (.array (typeArg t) n)
+      pure (.array (typeArgument t) n)
     | s => pure (.struct s)
 
 end MojoGrimoire.Parse

@@ -68,8 +68,8 @@ choices (#18):
 - An assignment into a list element is rejected (`argumentExclusivity`)
   when the value is a call that builds its result in place and is passed
   `mut` the list, or a place that holds it: `xs[0] = xs.pop()`. A call
-  builds its result in place unless it returns an `Int`, a `Bool` or a
-  reference. `pop` always does, since its result has a generic type.
+  builds its result in place unless it returns an `Int`, a `Bool`,
+  `None` or a reference. `pop` always does, since its result has a generic type.
 - A call that returns a reference, used as a value, copies the value
   implicitly. Printed, an operand of a binary operator other than `and`
   and `or`, an argument passed by value or an element of a list or an

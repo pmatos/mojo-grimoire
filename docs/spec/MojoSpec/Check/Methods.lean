@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3854396264829635623")
+:::moduleDocs (fingerprint := "3952530486783823671")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -99,6 +99,15 @@ operands, before they are read, is reported once the operands are typed
 in `State.typing`: an error inside an operand, which the compiler finds as
 it types it, comes first, and an error of a later pass than typing, such
 as a read of an uninitialized value, comes after it.
+:::
+
+:::readable MojoGrimoire.Check.rejectNoneCopy (fingerprint := "4407985107055440063")
+*Rule: no copy of `None`.* $`p.\mathsf{copy}()` with $`p` of type
+$`\mathsf{None}` is an unknown attribute: `None` has no `.copy()`, and
+the compiler says that it has no attributes as it types the call, before
+it reads $`p` (#131). So $`p` is typed first, in `State.typing`; an
+error found while typing it is left to the checks that follow, and the
+state is restored.
 :::
 
 :::readable MojoGrimoire.Check.rejectCalledVar (fingerprint := "3043078157478825986")

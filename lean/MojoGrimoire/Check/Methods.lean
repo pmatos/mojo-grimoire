@@ -223,6 +223,17 @@ then, whatever the convention of the method's `self` (#191). -/
 def requireInPlace (f : Name) (args : List Expr) : CheckM Unit := do
   if let (true, .place p :: _) := (inPlaceCallee f, args) then requireMutable p
 
+/-- Rejects `p.copy()` when `p` has the type `None`, once `typing` has
+typed `p` in `State.typing`: `None` has no `.copy()`, and the compiler
+says that it has no attributes as it types the call, before it reads `p`
+(#131). An error found while typing `p` is left to the checks that follow,
+and the state is restored. -/
+def rejectNoneCopy (prog : Program) (p : Place) (typing : CheckM Unit) : CheckM Unit := do
+  let s ← get
+  let t ← try (do modify State.typing; typing; placeTy prog p) catch _ => pure .unknown
+  set s
+  if t == .noneType then throw (CheckError.unknownAttribute (typeName t) "copy")
+
 /-- Rejects a call of `f` when a variable in scope of that name hides the
 function, `len`, `range`, `print` or the struct `f`, and its type has no
 `__call__`, once `typing` has typed the call's arguments: the compiler

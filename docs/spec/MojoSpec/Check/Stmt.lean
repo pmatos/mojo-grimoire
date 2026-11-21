@@ -106,8 +106,8 @@ $`\mathsf{argumentExclusivity}` when $`p` is inside an element of a list,
 and $`e` is a call that builds its result in place and is passed `mut`, or
 `ref` when it may change it, the list or a place that holds it, or a call
 that returns a reference to one: the change would invalidate $`p`. A call of a function or a method builds its result
-in place unless it returns an $`\mathsf{Int}`, a $`\mathsf{Bool}` or a
-reference, and so does a struct's `__init__`; a call whose signature has
+in place unless it returns an $`\mathsf{Int}`, a $`\mathsf{Bool}`, a
+$`\mathsf{None}` or a reference, and so does a struct's `__init__`; a call whose signature has
 a generic result, such as a list method that gives an element, always
 does. $`\mathsf{List}[u](e)` builds its result in place, and passes $`e`
 by `ref` (#103).

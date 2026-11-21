@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9762286477741136296")
+:::moduleDocs (fingerprint := "11717772980221419843")
 :::
 
 :::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "1675389372256504091")
@@ -107,7 +107,7 @@ function's result, unless it is `None`, and the elements of a list or an
 array type that a program writes.
 :::
 
-:::readable MojoGrimoire.Check.declarableTy (fingerprint := "6517988001215517462")
+:::readable MojoGrimoire.Check.declarableTy (fingerprint := "9281051138973713621")
 *Definition: the types of variables.* A variable may have a type that a
 parameter may have, $`\mathsf{None}`, the type of a call that returns
 nothing, or a list or an array of values of such a type, as the nightly

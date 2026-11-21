@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9812431287666085160")
+:::moduleDocs (fingerprint := "14307925498757436441")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "12711595615319357232")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "17162342609242735289")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -24,8 +24,8 @@ type:
   `print`;
 * $`p` is copied implicitly, $`p\,\hat{}` transferred, and
   $`p.\mathsf{copy}()` needs an initialized place of a copyable type,
-  other than $`\mathsf{None}`, which has no `.copy()`: Mojo says it has
-  no attributes, an unknown attribute (#131);
+  other than $`\mathsf{None}`, which has no `.copy()`, as
+  `rejectNoneCopy` reports before anything else (#131);
 * $`f(e^*)` and $`p.m(e^*)` pass their arguments to the parameters of
   their signature, $`p` first, by the convention of the method's `self`,
   and have its result type; when $`f` names a struct, the call is an

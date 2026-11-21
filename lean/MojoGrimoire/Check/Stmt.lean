@@ -204,7 +204,8 @@ def checkPrintArg (prog : Program) : Expr → CheckM Unit
 element of a list when `e` is a call that builds its result in `p` and is
 passed `mut` that list, or a place that holds it: Mojo reports the result
 as aliased with the argument. A call, an initializer included, builds its
-result in place unless the result is an `Int`, a `Bool` or a reference; a
+result in place unless the result is an `Int`, a `Bool`, `None` or a
+reference; a
 generic result, such as the element that a list method gives, always is.
 `List[u](e)` builds its result in place too, and passes `e` by `ref`
 (#103). -/

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10759225068738046253")
+:::moduleDocs (fingerprint := "8055925766368640643")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -41,10 +41,10 @@ explicitly or implicitly (#103). Any other type fits no initializer, and
 is `noMatchingInit` $`\mathsf{List}[u]`.
 :::
 
-:::readable MojoGrimoire.Check.literalElem (fingerprint := "14549337660327734768")
+:::readable MojoGrimoire.Check.literalElem (fingerprint := "7284588851106128790")
 *Definition: a literal of an expected type.* A literal of $`n` elements
 whose type $`t` is expected where it stands must have a list or an array
-type of a valid element type $`u`, and an array type must have the size
+type of an element type $`u` a variable may have (`declarableTy`), and an array type must have the size
 $`n`. A size that differs does not fit: an initialization of $`t` reports
 it as `noMatchingInit` $`t`, and a conversion for a function's parameter
 as a type mismatch.

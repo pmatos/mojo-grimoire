@@ -51,6 +51,10 @@ private def rejects (e : CheckError) : Option Outcome := some (.rejected ⟨"mai
 #guard inMain ["    var xs = [g(1)]", "    var y = xs[0]", "    xs[0] = g(3)", "    print(len(xs))"] ==
   some (.finished ["1"])
 #guard inMain ["    var xs = [[g(1)], [g(2)]]", "    print(len(xs))"] == some (.finished ["2"])
+#guard inMain ["    var xs = [g(1), g(2)]", "    xs = [g(3), g(4)]", "    print(len(xs))"] ==
+  some (.finished ["2"])
+#guard inMain ["    var xs = [[g(1)], [g(2)]]", "    xs[0] = [g(3)]", "    print(len(xs))"] ==
+  some (.finished ["2"])
 #guard inMain ["    var xs = [g(1), g(2)]", "    var ys = xs.copy()", "    print(len(ys))"] ==
   some (.finished ["2"])
 
@@ -64,6 +68,10 @@ private def rejects (e : CheckError) : Option Outcome := some (.rejected ⟨"mai
 #guard inMain ["    var u = f()", "    var v = u.copy()"] ==
   rejects (.unknownAttribute "NoneType" "copy")
 #guard inMain ["    var u: None", "    var v = u"] == rejects (.uninitializedUse (.var "u"))
+#guard inMain ["    var u: None", "    var v = u.copy()"] ==
+  rejects (.unknownAttribute "NoneType" "copy")
+#guard inMain ["    var xs = [g(1)]", "    var k: Int", "    var v = xs[k].copy()"] ==
+  rejects (.unknownAttribute "NoneType" "copy")
 #guard inMain ["    var u = f()", "    u = 1"] == rejects (.typeMismatch .noneType .int)
 #guard inMain ["    var u: None = 1"] == rejects (.typeMismatch .noneType .int)
 #guard inMain ["    var x: Int = f()"] == rejects (.typeMismatch .int .noneType)

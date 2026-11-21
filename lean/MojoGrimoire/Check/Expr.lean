@@ -37,9 +37,9 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .place p => do checkIndices prog p; copyPlace prog p
   | .transfer p => do requireOwnOrigin prog p; checkIndices prog p; transferPlace prog p
   | .copy p => do
+    rejectNoneCopy prog p (typePlace prog p)
     checkIndices prog p
     let t ← readPlace prog p
-    if t == .noneType then throw (CheckError.unknownAttribute (typeName t) "copy")
     if copyingOf prog t == .none then throw (CheckError.notCopyable t)
     pure t
   | .call f args => do
