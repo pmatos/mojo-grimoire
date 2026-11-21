@@ -8,7 +8,8 @@ A program is accepted when its names are declared once, its types are
 those it declares, no struct lies on a cycle of fields that the fixed compiler
 rejects, every function and method has parameters of the conventions its
 kind allows, every operator method that inference calls takes as many
-operands as its operator, every body is accepted, and it has a `main` that takes
+operands as its operator, every body is accepted, every field of a struct that declares `Copyable`
+or `ImplicitlyCopyable` can be copied so, and it has a `main` that takes
 nothing and returns nothing. A rejection names the first error found, and
 where.
 -/
@@ -110,15 +111,33 @@ def checkStruct (prog : Program) (sd : StructDecl) : Except Rejection Unit := do
   for fd in sd.methods do
     at_ (sd.name ++ "." ++ fd.name) (checkMethod prog sd.name fd)
 
+/-- Checks that every field of the struct `sd` can be copied as `sd`
+declares its values are: at all for `Copyable`, implicitly for
+`ImplicitlyCopyable`. The first field that cannot is the error, since the
+compiler cannot synthesize the copy initializer from it (#164). -/
+def checkCopying (prog : Program) (sd : StructDecl) : Except CheckError Unit :=
+  for (f, t) in sd.fields do
+    let ok := match sd.copying with
+      | .none => true
+      | .explicit => copyingOf prog t != Copying.none
+      | .implicit => copyingOf prog t == Copying.implicit
+    unless ok do throw (CheckError.uncopyableField sd.name f t)
+
 /-- Checks a program: it is accepted, or rejected with the first error found
-and where it was found. -/
+and where it was found. The fields of copyable structs are checked after
+every body and the parameters and result of `main`, and before a program
+with no `main` is rejected. The compiler checks a struct's fields after
+the functions' bodies, `main`'s signature and the methods of the structs
+up to it, and before its later passes and a missing `main`; the rest of
+its order is left to #96 (#164). -/
 def checkProgram (prog : Program) : Except Rejection Unit := do
   (checkDistinct (prog.structs.map (·.name) ++ prog.funs.map (·.name))).mapError (⟨"", ·⟩)
   for sd in prog.structs do checkStruct prog sd
   for fd in prog.funs do (checkFun prog fd).mapError (⟨fd.name, ·⟩)
-  match findFun prog "main" with
-  | some fd =>
+  let main := findFun prog "main"
+  if let some fd := main then
     unless fd.params.isEmpty && fd.result == .noneType do throw ⟨"main", .noMain⟩
-  | none => throw ⟨"", .noMain⟩
+  for sd in prog.structs do (checkCopying prog sd).mapError (⟨sd.name, ·⟩)
+  if main.isNone then throw ⟨"", .noMain⟩
 
 end MojoGrimoire.Check

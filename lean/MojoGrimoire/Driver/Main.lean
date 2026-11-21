@@ -35,6 +35,7 @@ def CheckError.className : CheckError → String
   | .duplicate .. => "duplicate"
   | .invalidType .. => "invalidType"
   | .recursiveStruct .. => "recursiveStruct"
+  | .uncopyableField .. => "uncopyableField"
   | .typeMismatch .. => "typeMismatch"
   | .notAList .. => "notAList"
   | .negativeIndex .. => "negativeIndex"

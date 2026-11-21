@@ -229,6 +229,11 @@ where the compiler and the manual disagree, the model follows the compiler.
   compiler bugs ([conformance.md](conformance.md#cycles-of-structs)). The
   ruling on #136 is provisional until the human has discussed it with
   Modular.
+- A struct that declares `Copyable`, or `ImplicitlyCopyable`, is
+  rejected when a field cannot be copied so, `uncopyableField`. Where it
+  comes among the compiler's errors, and where the model differs, is in
+  [conformance.md](conformance.md#copyable-structs-whose-fields-cannot-be-copied)
+  (#164, #96).
 - A declaration may not reuse the name of a variable in scope, a
   parameter included, so no variable hides another. Sibling blocks may
   reuse a name. ASAP elaboration relies on this, since it tracks

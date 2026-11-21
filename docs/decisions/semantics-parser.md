@@ -11,8 +11,11 @@ model covers and fails with a syntax error, line and message, on anything
 else. These choices hold:
 
 - A struct's conformances give its copying: `ImplicitlyCopyable` implicit,
-  `Copyable` explicit, and otherwise none. Other conformances, `raises` and
-  the decorator `@fieldwise_init` aside, are read and ignored.
+  and so `TrivialRegisterPassable`, which implies it on the pinned
+  nightly (#164); `Copyable` explicit; and otherwise none. The other
+  rules of `TrivialRegisterPassable` types are not modelled yet (#217).
+  Other conformances, `raises` and the decorator `@fieldwise_init` aside,
+  are read and ignored.
 - `imm` is the immutable convention, which the checker calls `read`, as
   is a parameter with no convention; `var` is owned; `self` may omit its
   type. As in the compiler, `read` where a parameter starts, `imm` with no

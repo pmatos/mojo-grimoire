@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and declarations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17932044053658070223")
+:::moduleDocs (fingerprint := "6125613075225936277")
 :::
 
 :::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.augCallee MojoGrimoire.Parse.exprStmt (fingerprint := "14674107341489909627")
@@ -67,7 +67,7 @@ errors. A result `ref [a, b] T` is a reference with the origins of the
 parameters named; it names at least one.
 :::
 
-:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "3597653097922544660")
+:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "14677026556332698606")
 *Definition: structs.*
 
 $$`\begin{array}{lcl}
@@ -76,8 +76,9 @@ $$`\begin{array}{lcl}
 \end{array}`
 
 A struct's conformances say how its values are copied: `ImplicitlyCopyable`
-implicitly, `Copyable` explicitly, and otherwise not at all; other
-conformances, such as `Movable`, are read and ignored. Parentheses after
+implicitly, and so `TrivialRegisterPassable`, which implies it (#164);
+`Copyable` explicitly; and otherwise not at all. Other conformances, such
+as `Movable`, are read and ignored. Parentheses after
 the name hold at least one conformance. The method `__init__` is the
 initializer and the body of `__deinit__` is the destructor; every other
 function is a method.

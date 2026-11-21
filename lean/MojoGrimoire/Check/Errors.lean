@@ -26,7 +26,11 @@ several overloads, none of which its arguments fit, a wrong number of them
 included: the compiler reports only that none fits (#88).
 `missingMethod` is a method that an operator or a call needs and the type
 `ty` lacks: an operator's method on its operand, or `__call__` on a
-variable that is called (#176). -/
+variable that is called (#176). `uncopyableField` is the field `field`, of
+type `ty`, of a struct `struct` that declares `Copyable` but whose `ty`
+cannot be copied, or declares `ImplicitlyCopyable` but whose `ty` cannot
+be copied implicitly: the compiler cannot synthesize the struct's copy
+initializer from its fields (#164). -/
 inductive CheckError where
   | unknownVariable (name : Name)
   | unknownFunction (name : Name)
@@ -35,6 +39,7 @@ inductive CheckError where
   | duplicate (name : Name)
   | invalidType (ty : Ty)
   | recursiveStruct (name : Name)
+  | uncopyableField (struct field : Name) (ty : Ty)
   | typeMismatch (expected actual : Ty)
   | notAList (ty : Ty)
   | negativeIndex (p : Place)

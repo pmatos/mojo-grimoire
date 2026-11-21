@@ -242,6 +242,39 @@ Rejected: mapping either message to an existing class, `noMatchingInit`,
 `typeMismatch` or `unknownAttribute`, which would merge errors that the
 compiler tells apart.
 
+### Copyable structs whose fields cannot be copied
+
+The compiler synthesizes the copy initializer of a struct that declares
+`Copyable` from its fields, and rejects the struct at its declaration,
+even when nothing copies it, when a field cannot be copied: "cannot
+synthesize copy constructor because field 'F' has non-copyable type
+'T'". For `ImplicitlyCopyable` it rejects a field that cannot be copied
+implicitly, such as a `List[Int]` or a `Copyable` struct: "cannot
+synthesize implicit copy constructor because field 'F' has
+non-implicitly-copyable type 'T'". The error points at the first such
+field. A struct's copyability is what it declares, so a struct that holds
+a rejected struct is not rejected for it, and a method `copy` that the
+struct writes changes nothing. `diagnostics.json` maps both messages,
+matched whole, to `uncopyableField`. The human ruled this on 2026-11-20
+(#164). A hand-written copy initializer, `__init__(out self, *, copy:
+Self)`, which the compiler accepts, is not yet parsed (#184).
+
+In its first pass, the compiler checks the bodies of the functions and
+`main`'s signature, wherever they are declared, then each struct in
+declaration order: its methods, then its copy initializer. Its later
+passes, such as a use of an uninitialized value or a missing return, and
+a missing `main` come after. The model checks every struct, then every
+function and `main`'s signature, then these fields, then that `main` exists.
+Three cases differ, as on `main`, and are left to #96. A later pass's
+error in a body comes first in the model (`uninitializedUse`,
+`missingReturn`). So does a first-pass error in a method of a struct
+declared after the bad one. And "attempt to resolve a recursive reference
+to declaration" is ordered with this error by declaration, where the
+model reports `recursiveStruct` first.
+
+Rejected: an existing class, `notCopyable` or `implicitCopy`, which would
+merge an error at a struct's declaration with an error at a copy.
+
 ### Rejections made while parsing
 
 A program that the compiler rejects while parsing, and that the model

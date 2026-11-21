@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "uncopyableField",
+  "diagnostic": "cannot synthesize copy constructor because field 'i' has non-copyable type 'Inner'"
+}

@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "uncopyableField",
+  "diagnostic": "cannot synthesize copy constructor because field 'r' has non-copyable type 'List[Res]'"
+}

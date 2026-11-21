@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "592774327768273263")
+:::moduleDocs (fingerprint := "10025700717692363691")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -69,7 +69,7 @@ named `range` is no such call. Such an argument of the standard library's `range
 fits none of its forms (#121).
 :::
 
-:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "9468303853430784741")
+:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "2993827872815404841")
 *Definition: what reading the arguments of a range finds.* Reading the
 arguments of `range`, once they are typed, records the errors of the
 compiler's later passes in the order it reports them: the first use of an
