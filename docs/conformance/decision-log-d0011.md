@@ -11,8 +11,10 @@ The pin disagrees with the model on these six programs, which
 `known.json` lists:
 
 - `structs/operator_method_bool_getter_twice`: the getter runs twice when
-  the subscript decides. It runs with the left operand's values, with a
-  temporary argument, and under `print`.
+  the subscript decides: for `and` and for `or`, with a right operand on
+  the same receiver, with a call of a user function in the index, and
+  with a subscript read late in the index. Each result is bound with
+  `var` and then printed; no subscript sits under `print`.
 - `structs/operator_method_bool_getter_temporary`: an index built as a
   temporary is read twice and destroyed once.
 - `structs/operator_method_bool_getter_drop_order`: the subscript does not
@@ -40,24 +42,26 @@ index expression runs once. The reproducer prints `get 0`, `get 0`,
 1.3.0.dev2026112017.
 
 With a setter, the pin also keeps the index's values alive for the second
-read, even when the subscript does not decide. Probed with `t = T(-5)` and
-`w = W(2)`:
+read, even when the subscript does not decide. Probed with `w = W(2)`,
+whose getter prints `get` and returns `self.n + i > 0`, as in
+`structs/operator_method_bool_getter_drop_order`, and the `t` that each
+row names, at the default level and at `-O0`:
 
-| Expression | With `__setitem__` | Without |
-| --- | --- | --- |
-| `var r = w[t.n]` | del T, get, del W | del T, get, del W |
-| `if w[t.n]:` | del T, get, del W | del T, get, del W |
-| `not w[t.n]` | del T, get, del W | del T, get, del W |
-| `False or w[t.n]` | del T, get, del W | del T, get, del W |
-| `w[t.n] or False`, not deciding | get, del W, del T | del T, get, del W |
-| `w[t.n] and True`, not deciding | get, del W, del T | del T, get, del W |
-| `w[t.n] or False`, deciding | get, del T, get, del W | del T, get, del W |
+| Expression | `t` | With `__setitem__` | Without |
+| --- | --- | --- | --- |
+| `var r = w[t.n]` | `T(-5)` | del T, get, del W | del T, get, del W |
+| `if w[t.n]:` | `T(-5)` | del T, get, del W | del T, get, del W |
+| `not w[t.n]` | `T(-5)` | del T, get, del W | del T, get, del W |
+| `False or w[t.n]` | `T(-5)` | del T, get, del W | del T, get, del W |
+| `w[t.n] or False`, not deciding | `T(-5)` | get, del W, del T | del T, get, del W |
+| `w[t.n] and True`, not deciding | `T(5)` | get, del W, del T | del T, get, del W |
+| `w[t.n] or False`, deciding | `T(5)` | get, del T, get, del W | del T, get, del W |
 
-A getter that takes its index as `var k: K`, read as `v[K(5)] or False`,
-is rejected with "use of uninitialized value '(expression temporary)'",
-because the second call uses the temporary that the first consumed.
-Without a setter the pin accepts it and prints `get 1 5`, `del K 5`,
-`True`.
+A getter that takes its index as `var k: K`, read as `v[K(5)] or False`
+in `rejected/operator_method_bool_getter_consumed`, is rejected with "use
+of uninitialized value '(expression temporary)'", because the second call
+uses the temporary that the first consumed. Without a setter the pin
+accepts that program and prints `get 1 5`, `del K 5`, `True`.
 
 Without a setter, the pin calls each getter once and accepts the last
 two. `structs/operator_method_bool_getter_var_self` agrees with the pin:
@@ -76,8 +80,9 @@ at the default level and at `-O0`.
 
 - `and` and `or` never write, so whether the struct has a setter cannot
   matter to them. Without `__setitem__`, the pin calls the getter once.
-- With or without a setter, `if w[0]:`, `not w[0]`, `w[0] == True` and
-  `w[0] + 1` call the getter once.
+- With or without a setter, `if w[0]:`, `not w[0]` and `w[0] == True`
+  call the reproducer's getter, which returns `Bool`, once; so does
+  `w[0] + 1` with a getter that returns `Int`.
 - With a getter that changes state, `def __getitem__(mut self, i: Int) ->
   Int` incrementing `self.n`, `w[0] or 9` tests 1 and returns 2, a value
   it never tested.

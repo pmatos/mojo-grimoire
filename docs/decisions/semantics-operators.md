@@ -99,9 +99,12 @@ is: `t < u` may give an `Int`.
   with a getter that changes `x` prints the changed `x.n`; a list
   literal reads its elements in order. An argument copied into a `var`
   parameter, or into a struct field of a `@fieldwise_init` construction,
-  is copied before the getters. A getter that returns a value
-  destroys what it last uses right after it, in any operation and in a
-  `return`; one that returns a reference leaves that to the operation.
+  is copied before the getters. A getter destroys what it last uses
+  right after it, in any operation and in a `return`, but what a getter
+  that returns a reference points into, which lives until the operation
+  is done, as for any call that returns a reference. The index of a
+  subscript read late, such as `w[h(s)]`, is evaluated in operand order,
+  so what the later operands use lives while it is.
   With no setter it is a value, and the getter is called in order.
 - On the left of `and` or `or`, a subscript of a struct with a setter is
   read as one with no setter is: its getter is called once, as it is

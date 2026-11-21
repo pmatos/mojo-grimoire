@@ -126,7 +126,7 @@ theorem stripExprs_elabOps (ctx : Ctx) (es : List Expr) (after held : List Place
     simp only [elabOps]
     split
     · simp [stripExprs, stripExpr_elabLate, stripExprs_elabOps ctx rest after]
-    · simp [stripExprs, stripExpr_elabExpr, stripExprs_elabOps ctx rest after held]
+    · simp [stripExprs, stripExpr_elabExpr, stripExprs_elabOps ctx rest after]
 termination_by structural es
 
 /-- Elaborating a subscript read late only inserts drops. -/

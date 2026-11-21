@@ -21,8 +21,9 @@ pins their fingerprint; the build fails when the Lean changes under it.
 `__getitem__` and `__setitem__` is a call of its getter that Mojo makes
 when its operation reads the operand (`lateGetter`, #191). The places
 among the getter's arguments, with the slots their indices use, and those
-of the subscripts read late among them, live until then. When the getter
-returns a value, it destroys what it last uses right after it is called;
-when it returns a reference, the operation does, as for any call that
-returns one.
+of the subscripts read late among them, live until then, and so does what
+the later operands use while its arguments are evaluated. The getter
+destroys what it last uses right after it is called; when it returns a
+reference, what the reference points into lives until the operation is
+done, as for any call that returns one.
 :::
