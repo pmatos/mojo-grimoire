@@ -89,6 +89,8 @@ compared with the compiler's diagnostics.
 
 {includeReadable "." MojoGrimoire.Check.Methods "Methods" MojoSpec.Check.Methods (level := 2)}
 
+{includeReadable "." MojoGrimoire.Check.Logic "The test of a struct operand" MojoSpec.Check.Logic (level := 2)}
+
 {includeReadable "." MojoGrimoire.Check.Expr "Expressions and arguments" MojoSpec.Check.Expr (level := 2)}
 
 {includeReadable "." MojoGrimoire.Check.Ref "References" MojoSpec.Check.Ref (level := 2)}

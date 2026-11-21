@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3368134826676644093")
+:::moduleDocs (fingerprint := "10293296347420508496")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8076625837927918720")
@@ -127,12 +127,14 @@ the variables after a statement, which a declaration or a `ref` binding
 extends.
 :::
 
-:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "6989357578241574068")
+:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "1324478406119127177")
 *Definition: elaboration.* Given the slots live after a statement:
 
 - a simple statement's expressions are elaborated, and the statement is
   followed by the drops of the slots that die at it, given what its
-  expressions destroy or consume;
+  expressions destroy or consume. The value that an assignment to a whole
+  slot replaces is not live after its expression, whether or not the new
+  one is;
 - the test of an `if` is elaborated with the slots live at the start of
   either branch live after it, and each branch starts with the drops of
   the slots live before the `if` that the test neither moves, destroys nor

@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.Methods
+import MojoGrimoire.Check.Logic
 
 /-!
 The checking of expressions and of the arguments of calls.
@@ -77,6 +77,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     lift (methodUnaryTy prog op (← checkExprAs prog false a))
   | .binary op a b => do
     rejectMisfit (← operandMisfit prog op a b) (do let _ ← typeArg prog a; let _ ← typeArg prog b)
+    let s ← get
     let ta ← checkExprAs prog (← byRef prog op a b) a
     let ka ← mark
     let tb ← if intLiteral a && op != .and && op != .or then do
@@ -84,9 +85,8 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         let _ ← checkArg prog (.overload m) m ⟨.read, "rhs", .int⟩ b
         pure .int
       else checkExprAs prog (← byRef prog op b a) b
-    let kb ← mark
-    unless op == .and || op == .or do recheckPlaces prog [a, b] [ka, kb]
-    lift (methodBinaryTy prog op ta tb)
+    checkedBinaryTy prog op a b ta tb ka (← mark) s fun p f => do
+      let _ ← checkArg prog .call f p a
   | .list .unknown [] => throw (CheckError.invalidType .unknown)
   | .list .unknown (e :: es) => do
     let u ← checkExprAs prog false e

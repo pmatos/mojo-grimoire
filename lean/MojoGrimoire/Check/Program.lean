@@ -64,9 +64,10 @@ def checkFun (prog : Program) (fd : FunDecl) : Except CheckError Unit := do
 
 /-- The number of operands, `self` among them, that the operator method
 `m` takes, for the operator methods that inference calls (#191): two for
-a binary, reflected or in-place operator, one for `__neg__`. -/
+a binary, reflected or in-place operator, one for `__neg__` and
+`__bool__`. -/
 def operatorArity (m : Name) : Option Nat :=
-  if m == "__neg__" then some 1
+  if m == "__neg__" || m == "__bool__" then some 1
   else if ["__add__", "__sub__", "__mul__", "__floordiv__", "__mod__", "__lt__", "__le__",
       "__gt__", "__ge__", "__eq__", "__ne__", "__radd__", "__rsub__", "__rmul__",
       "__rfloordiv__", "__rmod__", "__iadd__", "__isub__", "__imul__"].contains m then some 2

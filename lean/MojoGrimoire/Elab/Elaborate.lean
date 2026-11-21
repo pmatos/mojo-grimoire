@@ -312,7 +312,9 @@ def envAfter (prog : Program) (sl : Slots) (env : TyEnv) (s : Stmt) : TyEnv :=
 
 mutual
 /-- Elaborates the statement `s`, given the slots live after it. What dies at
-it, given what its expressions destroy or consume, dies right after it. -/
+it, given what its expressions destroy or consume, dies right after it. The
+value that an assignment to a whole slot replaces is not live after its
+expression, whether or not the new one is (#191). -/
 def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
   let sl := ctx.sl
   let rest (s' : Stmt) (inner : List Place) : List Stmt :=
@@ -342,7 +344,8 @@ def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
     rest (.refDecl x e') (droppedIn e' ++ consumedIn ctx e)
   | .assign p e =>
     let target := if sl.isSlot p then indexUses sl p else union (sl.of p) (indexUses sl p)
-    let e' := elabExpr ctx true e (union after target)
+    let old := if sl.isSlot p then [p] else []
+    let e' := elabExpr ctx true e (union (diff after old) target)
     rest (.assign p e') (droppedIn e' ++ consumedIn ctx e)
   | .expr e =>
     let e' := elabExpr ctx true e after

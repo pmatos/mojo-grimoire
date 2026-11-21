@@ -110,6 +110,21 @@ private def m (name ps r ret : String) : List String :=
 #guard runLines ["@fieldwise_init", "struct T(ImplicitlyCopyable):", "    var n: Int",
     "    def __bool__(self) -> Bool:", "        return self.n != 0", "def main():",
     "    var x = T(0) or T(3)", "    print(x.n)"] == some (.finished ["3"])
+-- The test of the left operand of the same type is checked as a call of
+-- `__bool__`: one operand, a `Bool` result, and a `mut self` only on a
+-- place that may change.
+private def sameT (bool : List String) : List String :=
+  ["struct T(ImplicitlyCopyable):", "    var n: Int", "    def __init__(out self, n: Int):",
+    "        self.n = n"] ++ bool.map ("    " ++ ·) ++
+    ["def main():", "    var x = T(0) or T(3)", "    print(x.n)"]
+#guard runLines (sameT ["def __bool__(self, k: Int) -> Bool:", "    return True"]) ==
+  some (.rejected ⟨"T.__bool__", .arityMismatch "__bool__" 1 2⟩)
+#guard runLines (sameT (m "__bool__" "" "Int" "self.n")) ==
+  some (.rejected ⟨"main", .missingMethod .int "__mlir_bool__"⟩)
+#guard runLines (sameT ["def __bool__(mut self) -> Bool:", "    return True"]) matches
+  some (.rejected ⟨"main", .notAPlace _⟩)
+#guard runLines (sameT ["def __bool__(var self) -> Bool:", "    return self.n != 0"]) ==
+  some (.finished ["3"])
 
 -- Calls of a variable whose struct declares `__call__`, which hides the
 -- function, `len`, `print` or struct of its name.

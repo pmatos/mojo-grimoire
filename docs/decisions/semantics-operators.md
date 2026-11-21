@@ -57,15 +57,29 @@ is: `t < u` may give an `Int`.
   right one would have used dies first. `Bool` operands follow the same
   order, as the pin does: the human ruled on 2026-11-20 to keep this
   order in #191.
+- The test of the left operand, when both have the same struct type, is
+  checked as the call of `__bool__` that the other operands get: what
+  `__bool__` returns must be a `Bool`, which the compiler converts with
+  `__mlir_bool__`, or the operator is `missingMethod`; a `mut self` takes
+  only a place that may change (`immutablePlace`) and no temporary
+  (`notAPlace`, #81), and a `var self` gets a copy, which it destroys.
+- The value that an assignment to a whole variable replaces is not live
+  after the assigned expression, whether or not the variable is used
+  later: in `o = O(o.f or pb(p.f))`, the old `o` dies once `o.f` is
+  tested, and in `a = a or b`, with `b` deciding, once `a` is, as the pin
+  does at both levels. When the target is a struct operand of `and` or
+  `or` that decides, as in `a = a and b` with a false `a`, or the right
+  one, as in `b = a and b`, the pin destroys it before it reads it, or
+  its default level and `-O0` give different values: what the model does
+  there waits for the human's ruling (#248).
 - An operator method that inference calls must take as many operands,
   `self` among them, as its operator: two for a binary, reflected or
-  in-place operator and one for `__neg__`. The compiler rejects such a
-  declaration when it parses it ("'__add__' requires 2 operands"), used or
+  in-place operator and one for `__neg__` and `__bool__`. The compiler
+  rejects such a declaration when it parses it ("'__add__' requires 2 operands"), used or
   not; the model rejects it as `arityMismatch`. Which class this message
   maps to is not yet settled, so no pattern matches it and no suite
   program pins it. The other operator methods that the compiler checks
-  in the same way, such as `__truediv__` or `__bool__`, are not yet
-  checked.
+  in the same way, such as `__truediv__`, are not yet checked.
 - `p += e`, `p -= e` and `p *= e` on a struct call `__iadd__`, `__isub__`
   and `__imul__`, with no fallback to `__add__`: a struct that lacks the
   method is `missingMethod`. The destination must be a place that may
@@ -154,7 +168,7 @@ Each of these keeps the result the model gave before #191:
 - The methods that `Equatable` and `Comparable` supply by default (#194),
   an `if` or
   `while` condition of struct type (#195), and a call of a field (#196).
-- `not` and `and` on an `Int` that `__bool__` gives, or on an `Int`
+- `not` on an `Int` that `__bool__` gives, and `and` or `or` on an `Int`
   operand beside a struct, which the compiler accepts (#179, #187).
 - The order of the compiler's passes across a call: an uninitialized
   receiver comes before an argument's type error in the model (#96), and

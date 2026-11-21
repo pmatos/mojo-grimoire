@@ -196,7 +196,8 @@ def evalLogic (prog : Program) (fuel : Nat) (env : Env) (isOr : Bool) (a b : Exp
       | .struct s _, some r => do
         let some fd := (findStruct prog s).bind (findMethod · "__bool__")
           | stuck s!"a {s} with no __bool__"
-        pure ((← asBool (← (← callFun prog n fd [.place r]).read)) == isOr)
+        let arg := if fd.params.head?.any (·.conv == .owned) then Arg.value v else .place r
+        pure ((← asBool (← (← callFun prog n fd [arg]).read)) == isOr)
       | v, _ => do pure ((← asBool v) == isOr)
     if decides then
       let w ← match r with

@@ -1,0 +1,28 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "bool V 0",
+    "del V 0",
+    "2 0 2",
+    "del V 2",
+    "del V 2",
+    "del V 0",
+    "bool V 0",
+    "del V 0",
+    "del V 0",
+    "3",
+    "del V 3",
+    "bool V 4",
+    "del V 4",
+    "del V 4",
+    "5",
+    "del V 5",
+    "1 10 1",
+    "del M 1",
+    "del M 1",
+    "del M 10",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}
