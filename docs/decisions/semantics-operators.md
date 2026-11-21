@@ -146,7 +146,7 @@ is: `t < u` may give an `Int`.
   the getter twice when the subscript decides, and keeps the index's
   values alive for the second call even when it does not: a compiler bug
   (#211, [D-0011](../conformance/decision-log-d0011.md), provisional),
-  which `known.json` lists for its four programs.
+  which `known.json` lists for its six programs.
 - `p[i] = v` calls `__setitem__` when the struct declares both, evaluating
   `i` before `v`. The compiler first checks the types of the getter call
   `p[i]`, then the type of `v` against the getter's result, then the

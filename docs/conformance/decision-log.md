@@ -270,7 +270,7 @@ Each move of the Mojo pin gets an entry below.
 
 - Date: 2026-11-21
 - Mojo release and commit: nightly 1.3.0.dev2026111905 (D-0007)
-- Programs: four in `tests/conformance/`, listed on
+- Programs: six in `tests/conformance/`, listed on
   [the detail page](decision-log-d0011.md#programs).
 - Compiler: when a struct declares `__getitem__` and `__setitem__`, a
   subscript `w[i]` on the left of `and` or `or` that decides calls the
