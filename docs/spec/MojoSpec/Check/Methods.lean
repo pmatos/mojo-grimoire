@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5750283737347701585")
+:::moduleDocs (fingerprint := "17123713055245921165")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -66,6 +66,19 @@ operand's type is known and lacks the operator's method is
 `missingMethod` of that type and method. For $`\mathsf{and}` and
 $`\mathsf{or}`, so is a right operand whose type lacks `__bool__`, and
 for a unary operator its operand's (#176).
+:::
+
+:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "17923407630855063083")
+*Rule: a call of `len`.* The built-in `len` takes one list, array or
+$`\mathsf{Int}`, a SIMD vector of width 1, and gives an $`\mathsf{Int}`.
+A string is left to the check of a string outside `print`. Any other type,
+a $`\mathsf{Bool}`, `None` or a struct, fits none of its overloads:
+`noMatchingInit` of that type (#190). The model ignores a struct's
+`Sized` conformance, which the compiler accepts (#230). The misfit is
+found from the argument's form once the arguments are typed, so that an
+error inside one comes first, and again from its checked type once it is
+read. Any other number of arguments is `noMatchingInit` of $`?`, once
+they are typed.
 :::
 
 :::readable MojoGrimoire.Check.methodCall (fingerprint := "1527231176191769200")

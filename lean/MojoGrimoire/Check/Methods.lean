@@ -36,7 +36,9 @@ reads them only in a later pass. So the checker finds a missing method
 from the operands' types (`operandTy`) before it reads them; the operands
 are then typed, so that an error inside one comes first (`rejectAfter`).
 It finds it again once the operands are read, from their checked types,
-when their form did not give one. A misfit of an overload set is found as
+when their form did not give one. A misfit of the built-in `len` is found
+the same way (`lenCall`), and a wrong number of its arguments once they
+are typed (#190). A misfit of a method's overload set is found as
 an ordinary call finds its misfit, once its argument is read, so an
 uninitialized argument of the wrong type is still `uninitializedUse`
 first, where the compiler reports `noMatchingMethod`: that order across
@@ -154,6 +156,16 @@ gives, when it is known: the method that the type lacks. -/
 def unaryMisfit (prog : Program) (op : UnOp) (ta : Option Ty) : Option CheckError :=
   lacks prog (unaryMethod op) ta
 
+/-- The misfit of the built-in `len` whose one argument has the type `t`.
+A list, an array and an `Int`, a SIMD vector of width 1, fit; a string is
+left to the check of a string outside `print`, and an unknown type to
+checking. Any other type is `noMatchingInit` of `t`: a `Bool`, `None` and a
+struct, which the model does not tell apart by its `Sized` conformance
+(#190, #230). -/
+def lenMisfit : Ty → Option CheckError
+  | .list _ | .array .. | .int | .str | .unknown => none
+  | t => some (.noMatchingInit t)
+
 /-- Rejects with `err`, found from the types of operands, once `typing`
 has typed them in `State.typing`: an error inside an operand, which the
 compiler finds as it types it, comes first. -/
@@ -214,6 +226,19 @@ def rejectMisfit (misfit : Option CheckError) (typing : CheckM Unit) : CheckM Un
   match misfit with
   | some err => rejectAfter typing err
   | none => pure ()
+
+/-- Checks a call of the built-in `len` with the arguments `args`, which
+`typing` types, and gives its `Int`. With one argument, a misfit found from
+its form comes first, once they are typed (`rejectMisfit`); `reading` then
+checks and reads it, and its checked type must fit (`lenMisfit`). Any other
+number of arguments is `noMatchingInit` of `unknown`, once they are typed
+(#190). -/
+def lenCall (prog : Program) (args : List Expr) (typing : CheckM Unit)
+    (reading : CheckM Ty) : CheckM Ty := do
+  let [e] := args | rejectAfter typing (.noMatchingInit .unknown)
+  rejectMisfit ((← operandTy prog e).bind lenMisfit) typing
+  if let some err := lenMisfit (← reading) then throw err
+  pure .int
 
 /-- Rejects the call of the in-place method `f` of a struct, `p += e`
 (`MojoGrimoire.Core.inPlaceCallee`), whose receiver `p` may not change,

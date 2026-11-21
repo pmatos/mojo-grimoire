@@ -306,9 +306,12 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
         dropAll prog n env pre
         callFun prog n fd args
       | none, none, "len", [a] => do
-        let .list es ← evalListArg prog n env a | stuck "len of a value that is not a list"
+        let k ← match ← evalListArg prog n env a with
+          | .list es => pure es.length
+          | .int _ => pure 1
+          | _ => stuck "len of a value that is not a list or an Int"
         dropAll prog n env pre
-        pure (.value (.int es.length))
+        pure (.value (.int k))
       | none, none, "range", args => do
         let vs ← Pending.loadAll (← evalArgs prog n env (rangeParams args.length) args)
         let ks ← vs.mapM fun
@@ -360,7 +363,8 @@ def evalCall (prog : Program) (fuel : Nat) (env : Env) (e : Expr) (pre : List Pl
       | _ => stuck "a method call on a value that is not a struct"
     | _ => stuck "not a call"
 
-/-- The list that `len` reads, or that `List[u](e)` copies: a place, or the
+/-- The list or `Int` that `len` reads, or the list that `List[u](e)`
+copies: a place, or the
 reference that a call returns, read where it is, or any other expression,
 whose value is then destroyed. -/
 def evalListArg (prog : Program) (fuel : Nat) (env : Env) (a : Expr) : EvalM Value :=

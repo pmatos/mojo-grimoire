@@ -38,4 +38,5 @@ import MojoGrimoireTest.Parse.FieldByField
 import MojoGrimoireTest.Parse.UnannotatedInit
 import MojoGrimoireTest.Parse.NoneValues
 import MojoGrimoireTest.Parse.IntIndex
+import MojoGrimoireTest.Parse.Len
 import MojoGrimoireCli
