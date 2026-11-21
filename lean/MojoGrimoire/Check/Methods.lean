@@ -36,7 +36,9 @@ reads them only in a later pass. So the checker finds a missing method
 from the operands' types (`operandTy`) before it reads them; the operands
 are then typed, so that an error inside one comes first (`rejectAfter`).
 It finds it again once the operands are read, from their checked types,
-when their form did not give one. A misfit of an overload set is found as
+when their form did not give one. A misfit of the built-in `len` is found
+the same way (`lenMisfit`), and a wrong number of its arguments once they
+are typed (#190). A misfit of a method's overload set is found as
 an ordinary call finds its misfit, once its argument is read, so an
 uninitialized argument of the wrong type is still `uninitializedUse`
 first, where the compiler reports `noMatchingMethod`: that order across
@@ -153,6 +155,22 @@ def binaryMisfit (prog : Program) (op : BinOp) (ta tb : Option Ty) : Option Chec
 gives, when it is known: the method that the type lacks. -/
 def unaryMisfit (prog : Program) (op : UnOp) (ta : Option Ty) : Option CheckError :=
   lacks prog (unaryMethod op) ta
+
+/-- The misfit of the built-in `len` whose one argument has the type `t`:
+`noMatchingInit` of `t` for a `Bool`, `None` or a struct, even one that
+declares `__len__`, since no overload of `len` takes them (#190). A list,
+an array and an `Int`, a SIMD vector of width 1, fit; a string is left to
+the check of a string outside `print`. -/
+def lenMisfit : Ty → Option CheckError
+  | t@(.bool) | t@(.noneType) | t@(.struct _) => some (.noMatchingInit t)
+  | _ => none
+
+/-- The type of `len(e)`, an `Int`, with `e` of the checked type `t`, or its
+misfit (`lenMisfit`). -/
+def lenOf (t : Ty) : Except CheckError Ty :=
+  match lenMisfit t with
+  | some err => throw err
+  | none => pure .int
 
 /-- Rejects with `err`, found from the types of operands, once `typing`
 has typed them in `State.typing`: an error inside an operand, which the

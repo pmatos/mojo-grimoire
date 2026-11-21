@@ -145,14 +145,16 @@ the first message where it initializes the `Int`, and "cannot be converted
 from list literal" where it is converted (#153). The table of positions is
 on [semantics-lists.md](semantics-lists.md).
 
-It gives a fourth for `List[T](range(…))` whose arguments fit no form of
-the standard library's `range`, of any number or type: "no matching
-function in call to 'range'". Which of the two messages a misfit gets
-depends on whether every argument converts to the type of the first, which
-the model does not follow. The human ruled on 2026-11-19 (#121) that
-`diagnostics.json` maps it, matched whole, to `noMatchingInit`, so that
-every `range` argument that does not fit is one class. Each of the four
-messages still reaches only that class.
+It gives a fourth, "no matching function in call to 'NAME'", for a call
+that fits no overload of a function, a wrong number of arguments
+included: `List[T](range(…))` whose arguments fit no form of `range`,
+and `len` of anything but a list, an array or an `Int`. Which of the two
+messages a `range` misfit gets depends on whether every argument
+converts to the first's type, which the model does not follow. The human
+ruled on 2026-11-19 (#121) that `diagnostics.json` maps it, matched
+whole, to `noMatchingInit`, and on 2026-11-20 widened it to any name
+(#190). It is tried first, as the name could match a later pattern. Each
+of the four messages reaches only that class.
 
 Ordinary calls keep their classes, since the compiler names the misfit
 there: `typeMismatch` and `arityMismatch`. So does a literal passed to a

@@ -17,8 +17,10 @@ reports both alike, so the model does not tell them apart. For the same
 reason, `noMatchingInit` is any initialization of the type `ty` whose
 arguments fit no initializer: a construction `S(…)` with a wrong number of
 arguments or a wrong one, a literal whose elements do not fit the list or
-array it initializes, or that initializes another type, and
-`List[u](e₁, …, eₙ)`. `transferFromElement` is a transfer out of an element
+array it initializes, or that initializes another type,
+`List[u](e₁, …, eₙ)`, and a call of the built-in `len` that no overload
+fits, of its one argument's type, or of `unknown` for another number of
+arguments (#190). `transferFromElement` is a transfer out of an element
 of a list or an array, or through a reference bound with `ref`: the compiler
 reports both alike, as an expression with no origin of its own.
 `noMatchingMethod` is a call of the method or operator `method` that has

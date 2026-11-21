@@ -61,11 +61,11 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     | .error err =>
       match f, args, err with
       | "len", [e], .unknownFunction _ => do
-        let _ ← lift (elemOf (← match e with
+        rejectMisfit ((← operandTy prog e).bind lenMisfit) (typeArgs prog args)
+        lift (lenOf (← match e with
           | .place p => do checkIndices prog p; readPlace prog p
           | e => do checkExprAs prog (← locOf prog e).isSome e))
-        pure .int
-      | "len", _, .unknownFunction _ => throw (CheckError.arityMismatch f 1 args.length)
+      | "len", _, .unknownFunction _ => rejectAfter (typeArgs prog args) (.noMatchingInit .unknown)
       | _, _, .missingMethod .. => rejectAfter (typeArgs prog args) err
       | _, _, _ => throw err
   | .method p m args => do

@@ -39,8 +39,8 @@ of these classes, each with the names or types it concerns:
   arguments fit no initializer (`noMatchingInit`, one class however they
   misfit, since the compiler reports them alike): a construction with
   wrong arguments, a literal that does not fit the list or array it
-  initializes, or that initializes another type, and `List[u](e1, …, en)`,
-  a call of a method or an operator with several overloads, none of which
+  initializes, or that initializes another type, `List[u](e1, …, en)`,
+  and a call of the built-in `len` that no overload fits (#190), a call of a method or an operator with several overloads, none of which
   its arguments fit, a wrong number of them included (`noMatchingMethod`,
   one class for the same reason, #88), and a method that a type lacks, an
   operator's on its operand's type or `__call__` on a variable that is
