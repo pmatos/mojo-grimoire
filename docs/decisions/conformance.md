@@ -243,6 +243,16 @@ Rejected: mapping either message to an existing class, `noMatchingInit`,
 `typeMismatch` or `unknownAttribute`, which would merge errors that the
 compiler tells apart.
 
+### Subscripts of types that cannot be indexed
+
+A subscript, read or assigned, of a `Bool`, of `None` or of a struct
+that declares neither `__getitem__` nor `__setitem__` is "'T' is not
+subscriptable, it does not implement the `__getitem__`/`__setitem__`
+methods". `diagnostics.json` maps it, matched whole and first, to
+`notAList`, as the model reports it. The human ruled this on 2026-11-20
+(#182). The compiler reports it before any error in the index or in the
+assigned value, which the model reports first (#227).
+
 ### Copyable structs whose fields cannot be copied
 
 The compiler synthesizes the copy initializer of a struct that declares
