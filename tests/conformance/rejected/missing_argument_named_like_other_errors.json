@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "arityMismatch",
+  "diagnostic": "invalid call to 'copy': missing required argument: 'immutable'"
+}

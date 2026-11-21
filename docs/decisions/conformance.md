@@ -214,9 +214,10 @@ A struct that declares the method is called instead, and so is the
 arguments is reported as an ordinary call reports it, and the suite's
 `structs/operator_method_*`, `structs/call_method*` and
 `rejected/operator_method_*` and `rejected/call_method_*` programs pin
-it. The compiler's "missing required argument" is unclassified on the pin
-(#189), so a call of `__call__` with too few arguments has no suite
-program.
+it. A call that leaves out a required argument, of a function, a method
+or `__call__`, is `arityMismatch`: the compiler's "missing required
+argument", matched whole and first, names only the first one missing.
+The human ruled this on 2026-11-20 (#209).
 
 The model does not yet follow two cases of the same rules. The operator
 methods that `Equatable` and `Comparable` supply by default (`a == b` on a
