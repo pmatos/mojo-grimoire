@@ -110,6 +110,12 @@
       "entry": "compiler-bugs/d0010.json"
     },
     {
+      "decision_log": "D-0011",
+      "issue": 211,
+      "title": "a subscript of a struct that declares __getitem__ and __setitem__, on the left of and/or, calls the getter twice when it decides",
+      "entry": "compiler-bugs/d0011.json"
+    },
+    {
       "decision_log": "D-0012",
       "issue": 248,
       "title": "an assignment whose value is the target itself destroys the old value before copying it",

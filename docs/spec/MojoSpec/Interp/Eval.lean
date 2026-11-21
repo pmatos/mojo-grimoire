@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16234780108546972845")
+:::moduleDocs (fingerprint := "1118563446052112348")
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalLogic MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "6944330141521991425")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.loadOperand MojoGrimoire.Interp.loadGetter MojoGrimoire.Interp.loadArgs MojoGrimoire.Interp.loadArg MojoGrimoire.Interp.evalLogic MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "2973679937991341404")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -46,12 +46,22 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   test of the left operand that inference made gives a `var self` a copy
   (`copiedTest`), and destroys a temporary once it is copied. What
   the left operand last uses dies once it is tested, after what the right
-  one would have used when the left one decides.
+  one would have used when the left one decides. A subscript read late on
+  the left is read at once, its getter called once, as one of a struct
+  with no setter is; the compiler calls it twice there, a bug (D-0011,
+  #211).
   The operands of an operator, the elements of a list literal and the
   values printed are evaluated left to right, and those that are places,
   or calls that return a reference, are read after the last one is
-  evaluated. The operand of a unary operator, `and` or `or` is read at
-  once.
+  evaluated; a subscript of a struct that is read late (`lateGetter`)
+  has its arguments evaluated then, and calls its getter, with its drops,
+  when it is read. An operator, a call, a construction and `print` call
+  the getters of the subscripts read late among their operands before
+  they read the others, but the copies into `var` parameters and into
+  struct fields of a `@fieldwise_init` construction, which come first
+  (`loadFirst`, #191); a list literal reads its
+  elements in order. The operand of a unary operator, `and` or `or` is
+  read at once.
   $`\mathsf{drops}(e; p^*; q^*)` evaluates $`e`, destroying the values in
   $`p^*` once a call's arguments are read, before it is made, and those in
   $`q^*` once $`e` is done; for an operation that is not a call, both once
@@ -74,7 +84,8 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   $`\mathsf{Bool}` passed `read`, which is read when the call is made, as
   it is for a `var` parameter, and a literal $`[e]_{\mathsf{Int}}` passed
   to any other parameter is $`e` passed by value, read when the call is
-  made, into a temporary (#103); temporaries are
+  made, into a temporary (#103); a subscript read late is read when the
+  call is made, by value or into a temporary; temporaries are
   destroyed after the call. `append` adds a
   value at the end of a list, `pop()` removes the last element and gives
   it back, failing with $`\mathsf{indexOutOfBounds}` on an empty list,

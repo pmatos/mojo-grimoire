@@ -94,9 +94,13 @@ def TyEnv.mutableArgs (prog : Program) (env : TyEnv) (os : List Name) :
 end
 
 /-- Whether the operand `e` may be passed to the parameter `prm` with its
-convention: a `mut` parameter takes only what may change. -/
+convention: a `mut` parameter takes only what may change. A subscript of
+a struct with a setter is let through, for the checker to reject: its
+write-back is not yet modelled (#198). -/
 def TyEnv.canPass (prog : Program) (env : TyEnv) (e : Expr) (prm : Param) : Bool :=
-  prm.conv != .mutable || env.mutableAt prog e
+  prm.conv != .mutable || env.mutableAt prog e || match e with
+    | .call g _ => lateGetter prog g
+    | _ => false
 
 /-- The struct named by the type `t`, and its method `m`, when `t` is a
 struct that declares it. -/

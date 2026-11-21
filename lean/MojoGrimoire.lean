@@ -17,10 +17,12 @@ import MojoGrimoire.Check.Compare
 import MojoGrimoire.Check.Logic
 import MojoGrimoire.Check.Expr
 import MojoGrimoire.Check.Ref
+import MojoGrimoire.Check.Subscript
 import MojoGrimoire.Check.Stmt
 import MojoGrimoire.Check.Program
 import MojoGrimoire.Elab.Live
 import MojoGrimoire.Elab.Origins
+import MojoGrimoire.Elab.Late
 import MojoGrimoire.Elab.Elaborate
 import MojoGrimoire.Elab.Strip
 import MojoGrimoire.Interp.Value

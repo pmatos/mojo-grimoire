@@ -65,6 +65,12 @@ def requireUnchanged (prog : Program) (p : Place) (k : Nat) : CheckM Unit := do
       let o ← shapeOf prog q
       if later.any (invalidates · o) then throw (CheckError.invalidatedReference p)
 
+/-- The origins of the call `e` that returns a reference, those of its
+origin arguments that are temporaries left out; none for any other
+expression. -/
+def locsOf (prog : Program) (e : Expr) : CheckM (List Place) := do
+  pure (((← locOfAs prog false e).map (·.1)).getD [])
+
 /-- Rejects a place among the operands' locations `ls` that a later operand
 left uninitialized or invalidated: Mojo reads a place operand only once
 every operand of its operation is evaluated, and a reference argument is
@@ -75,13 +81,23 @@ def recheckLocs (prog : Program) (ls : List (List Place × Nat)) : CheckM Unit :
     let _ ← readPlace prog p
     requireUnchanged prog p k
 
+mutual
 /-- The places that the operand `e` is read from once every operand of its
 operation is evaluated: a place itself, or the origins of a call that
 returns a reference, those of its origin arguments that are temporaries
-left out. Mojo reads such a call's reference only then. -/
+left out. Mojo reads such a call's reference only then. A subscript that
+Mojo reads late reads those of its getter's arguments then, when it calls
+the getter (`lateGetter`, #191). -/
 def lateLocs (prog : Program) : Expr → CheckM (List Place)
   | .place p => pure [p]
-  | e => do pure (((← locOfAs prog false e).map (·.1)).getD [])
+  | .call f args => if lateGetter prog f then lateLocsList prog args else locsOf prog (.call f args)
+  | e => locsOf prog e
+
+/-- The places that the operands `es` are read from late (`lateLocs`). -/
+def lateLocsList (prog : Program) : List Expr → CheckM (List Place)
+  | [] => pure []
+  | e :: es => do pure ((← lateLocs prog e) ++ (← lateLocsList prog es))
+end
 
 /-- Rechecks the operands among `es`, read from their `lateLocs`, with
 `recheckLocs`. `ks` holds, for each operand, how many changes were recorded

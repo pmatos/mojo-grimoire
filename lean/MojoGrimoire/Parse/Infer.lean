@@ -46,8 +46,9 @@ that a variable in scope hides follows no signature and has no type: the
 checker rejects it, once it has typed the arguments (#176), unless the
 variable's struct declares `__call__`.
 
-An operator, an in-place operator and a call whose operand is a struct
-that declares the method become calls of the method, as
+An operator, a subscript read or assigned, an in-place operator and a
+call whose operand is a struct that declares the method become calls of
+the method, as
 `MojoGrimoire.Parse.Dispatch` decides (#191); a literal operand is
 inferred as an argument of the method's other parameter (`inferArg`), so
 that one passed `mut` or `ref` stays a temporary. `not`, `and` and `or`
@@ -59,7 +60,11 @@ operand cannot be passed to is not chosen: a `ref` binding may change
 what it points to when its target, once inferred, may, such as a call of
 a method that returns a reference through a `mut` parameter, or a place
 of a variable that may change, also through `q^`, whose transfer has no
-effect there, as the checker's `refTarget` reads it.
+effect there, as the checker's `refTarget` reads it. The value of an
+assignment through a setter is read as it is evaluated (`eagerValue`). A
+subscript passed `mut` or `ref`, bound with `ref` or returned as a
+reference stays a place, which the model does not yet read through a
+getter (#198).
 
 Inference also gives `p^` its meaning when `p` is an `Int`, a `Bool` or
 `None` (#131).
@@ -122,6 +127,14 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
   | .int k => (.int k, some .int)
   | .bool b => (.bool b, some .bool)
   | .str s => (.str s, some .str)
+  | .place (.index q i) =>
+    let (q', qt) := inferPlace prog env q
+    match declaredMethod prog qt "__getitem__" with
+    | some (s, fd) =>
+      let i' := (inferExpr prog env (((otherParam fd).map (·.ty)).getD .unknown) i).1
+      (.call (methodCallee s "__getitem__") [.place q', i'], some fd.result)
+    | none =>
+      (.place (.index q' (inferExpr prog env .int i).1), qt.bind fun t => (indexedOf t).toOption)
   | .place p => let (p', t) := inferPlace prog env p; (.place p', t)
   | .transfer p =>
     let (p', t) := inferPlace prog env p
@@ -207,7 +220,9 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
 
 /-- Infers inside the arguments `args` of a call, passed to the parameters
 `params` in order, or with no type expected past their end. A place
-passed `mut` or `ref` stays a place. A literal `[e]` that inference replaced by `e` is a literal again when
+passed `mut` or `ref` stays a place: a subscript of a struct there is not
+read through its getter, which the model does not yet write back (#198).
+A literal `[e]` that inference replaced by `e` is a literal again when
 it is passed `mut` or `ref`: Mojo passes a temporary there, not the place
 or the reference `e` names. -/
 def inferArgs (prog : Program) (env : TyEnv) : List Param → List Expr → List Expr
@@ -237,6 +252,22 @@ def inferList (prog : Program) (env : TyEnv) (exps : List Ty) :
   termination_by es => (sizeOf es, 2)
 end
 
+/-- Infers inside the expression `e`, expected to have the type `exp`, that
+a `ref` binds or a function that returns a reference returns: a place
+stays a place, so a subscript of a struct is not read through its getter. -/
+def inferTarget (prog : Program) (env : TyEnv) (exp : Ty) (e : Expr) : Expr × Option Ty :=
+  match e with
+  | .place p => let (p', t) := inferPlace prog env p; (.place p', t)
+  | e => inferExpr prog env exp e
+
+/-- The value `e` of `q[i] = e`, which the compiler reads before it calls
+the getters of the subscripts read late in `i` (#191): such a subscript is
+a call of its getter as a method, made as `e` is evaluated. -/
+def eagerValue (prog : Program) : Expr → Expr
+  | .call g (.place r :: args) =>
+    if lateGetter prog g then .method r "__getitem__" args else .call g (.place r :: args)
+  | e => e
+
 mutual
 /-- Infers inside the statement `s` of a function whose result type is
 `result`, and gives the types in scope after it. -/
@@ -246,13 +277,24 @@ def inferStmt (prog : Program) (result : Ty) (env : TyEnv) : Stmt → Stmt × Ty
     let t' := if t == .unknown then ((init'.bind (·.2)).getD .unknown) else t
     (.decl x t' (init'.map (·.1)), env.push x t')
   | .refDecl x e =>
-    let (e', t) := inferExpr prog env .unknown e
+    let (e', t) := inferTarget prog env .unknown e
     let mutable := match e' with
       | .place p => !env.fixed.contains (splitPlace p).1
       | e' => env.mutableAt prog e'
     (.refDecl x e', match t with
       | some t => { env.push x t with fixed := if mutable then env.fixed else x :: env.fixed }
       | none => env)
+  | .assign (.index q i) e =>
+    let (q', qt) := inferPlace prog env q
+    match declaredMethod prog qt "__getitem__", declaredMethod prog qt "__setitem__" with
+    | some _, some (s, fd) =>
+      let args := match inferArgs prog env fd.params.tail [i, e] with
+        | [i', e'] => [i', eagerValue prog e']
+        | args => args
+      (.expr (.call (methodCallee s "__setitem__") (.place q' :: args)), env)
+    | _, _ =>
+      let (p', t) := inferPlace prog env (.index q i)
+      (.assign p' (inferExpr prog env (t.getD .unknown) e).1, env)
   | .assign p e =>
     let (p', t) := inferPlace prog env p
     (.assign p' (inferExpr prog env (t.getD .unknown) e).1, env)
@@ -282,7 +324,8 @@ def inferStmt (prog : Program) (result : Ty) (env : TyEnv) : Stmt → Stmt × Ty
   | .whileLoop c body =>
     (.whileLoop (inferExpr prog env .unknown c).1 (inferBlock prog result env body), env)
   | .ret value =>
-    (.ret (value.map fun e => (inferExpr prog env result e).1), env)
+    (.ret (value.map fun e => (if result == .unknown then inferTarget prog env result e
+      else inferExpr prog env result e).1), env)
   | .pass => (.pass, env)
   | .drop p => (.drop p, env)
 

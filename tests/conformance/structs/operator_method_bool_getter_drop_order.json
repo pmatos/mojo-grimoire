@@ -1,0 +1,11 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "get 2 -5",
+    "del W 2",
+    "del T -5",
+    "False"
+  ],
+  "class": null,
+  "diagnostic": null
+}
