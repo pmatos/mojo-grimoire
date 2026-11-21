@@ -150,6 +150,8 @@ line, as the compiler's `mojo run` does.
 
 {includeReadable "." MojoGrimoire.Parse.Infer "Type inference" MojoSpec.Parse.Infer (level := 2)}
 
+{includeReadable "." MojoGrimoire.Parse.Subset "Constructs outside the subset" MojoSpec.Parse.Subset (level := 2)}
+
 {includeReadable "." MojoGrimoire.Driver.Main "The command-line driver" MojoSpec.Driver.Main (level := 2)}
 
 # Architecture decision records

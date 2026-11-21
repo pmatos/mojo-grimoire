@@ -161,9 +161,10 @@ where the compiler and the manual disagree, the model follows the compiler.
   which the compiler also reads then (#76; see
   [semantics-references.md](semantics-references.md)).
 - `print` takes string literals and values it can write: `Int`, `Bool`,
-  and lists and arrays of them, nested ones included (#41). It reads a
-  place by reference, so it copies nothing: a list may be printed from a
-  `read` parameter or a `ref` binding. A struct, or a list or an array of
+  and lists and arrays of them, nested ones included (#41); other
+  strings are outside the subset (#180). It reads a place by reference,
+  so it copies nothing: a list may be printed from a `read` parameter or a
+  `ref` binding. A struct, or a list or an array of
   structs, is rejected as `notPrintable`, as the compiler rejects a value
   that does not conform to `Writable`.
 - `return x` moves a variable the function owns. Any other returned place

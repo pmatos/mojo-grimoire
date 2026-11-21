@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "violatedConstraint",
+  "diagnostic": "invalid call to '__eq__': violated constraint"
+}

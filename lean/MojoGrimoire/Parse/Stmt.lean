@@ -10,7 +10,9 @@ the `else` block. `print(…)` is a statement of its own, and `x += e`,
 `x` and `e`, which inference replaces: by `x.__iadd__(e)` when `x` is a
 struct, and otherwise by `x = x + e`, `x = x - e` or `x = x * e` (#191).
 No name of a program is such a callee. A string literal on a line of its
-own, a docstring, is skipped.
+own, a docstring, is skipped. The line where each statement starts is
+recorded with its function, for the check of the constructs outside the
+subset (`MojoGrimoire.Parse.Subset`).
 
 A struct's `self` parameters may be written without a type: the struct is
 their type. A struct's conformances say how it is copied:
@@ -74,11 +76,13 @@ def exprTail (fuel : Nat) (e : Expr) : P Expr :=
       | none => pure e
     orRest n (← andRest n e)
 
-/-- Reads a statement and the end of its line. -/
+/-- Reads a statement and the end of its line, and records where it
+starts. -/
 def stmt (fuel : Nat) : P Stmt :=
   match fuel with
   | 0 => fail "a statement too deeply nested"
   | n + 1 => do
+    markStmt
     if ← acceptKw "if" then ifRest n
     else if ← acceptKw "while" then
       let c ← expr n
@@ -88,18 +92,22 @@ def stmt (fuel : Nat) : P Stmt :=
       expectNewline
       pure s
 
-/-- Reads the rest of an `if` or `elif`, after its keyword. -/
+/-- Reads the rest of an `if` or `elif`, after its keyword. An `elif` is a
+statement of its own, in the `else` block, and is recorded so. -/
 def ifRest (fuel : Nat) : P Stmt :=
   match fuel with
   | 0 => fail "a statement too deeply nested"
   | n + 1 => do
     let c ← expr n
     let a ← block n
-    if ← acceptKw "elif" then pure (.ifElse c a [← ifRest n])
+    if ← acceptKw "elif" then
+      markStmt
+      pure (.ifElse c a [← ifRest n])
     else if ← acceptKw "else" then pure (.ifElse c a (← block n))
     else pure (.ifElse c a [])
 
-/-- Reads a block, from its `:`. -/
+/-- Reads a block, from its `:`. A simple statement on the same line is
+recorded where it starts. -/
 def block (fuel : Nat) : P (List Stmt) :=
   match fuel with
   | 0 => fail "a block too deeply nested"
@@ -111,6 +119,7 @@ def block (fuel : Nat) : P (List Stmt) :=
       let _ ← next
       stmts n
     else
+      markStmt
       let s ← simpleStmt n
       expectNewline
       pure [s]
@@ -179,8 +188,9 @@ def originNames : Nat → P (List Name)
       pure [x]
 
 /-- Reads a function, from its `def` or `fn`, with the type of `self` for a
-method. -/
+method, and records it with the lines where its statements start. -/
 def funDecl (selfTy : Option Ty) (fuel : Nat) : P FunDecl := do
+  modify fun s => { s with lines := [] }
   let f ← name
   expectSym "("
   let ps ← params selfTy fuel
@@ -193,7 +203,9 @@ def funDecl (selfTy : Option Ty) (fuel : Nat) : P FunDecl := do
       else pure (none, ← ty fuel)
     else pure (none, .noneType)
   let body ← block fuel
-  pure ⟨f, ps, result, body, origin⟩
+  let fd : FunDecl := ⟨f, ps, result, body, origin⟩
+  modify fun s => { s with bodies := (fd, s.lines.reverse) :: s.bodies }
+  pure fd
 
 /-- Reads the conformances of a struct, after its `(`, and gives how its
 values are copied. -/
@@ -208,6 +220,15 @@ def conformances : Nat → Copying → P Copying
     if ← acceptSym "," then conformances n c' else
       expectSym ")"
       pure c'
+
+/-- The state `st` with the destructor of the struct `s` just recorded
+given `self` alone as its parameter: the later passes check its body with
+`self` alone in scope, whatever its parameters. -/
+def PState.deinitScope (s : Name) (st : PState) : PState :=
+  match st.bodies with
+  | (fd, ls) :: rest =>
+    { st with bodies := ({ fd with params := [⟨.deinit, "self", .struct s⟩] }, ls) :: rest }
+  | [] => st
 
 /-- Reads the members of a struct up to the dedent that ends them: fields,
 methods, `pass` and docstrings. -/
@@ -230,7 +251,9 @@ def members (s : Name) : Nat → StructDecl → P StructDecl
       let fd ← funDecl (some (.struct s)) n
       match fd.name with
       | "__init__" => members s n { sd with init := some fd }
-      | "__deinit__" => members s n { sd with deinit := some fd.body }
+      | "__deinit__" => do
+        modify (PState.deinitScope s)
+        members s n { sd with deinit := some fd.body }
       | _ => members s n { sd with methods := sd.methods ++ [fd] }
     | _ => fail "expected a field or a method"
 
@@ -267,10 +290,17 @@ def decls : Nat → Program → P Program
       decls n { prog with funs := prog.funs ++ [← funDecl none n] }
     | _ => fail "expected a struct or a function"
 
+/-- Parses the text of a `.mojo` file, before inference, and gives each
+function, method, initializer and destructor in the order of the file,
+with the lines where its statements start, in the order that a walk of its
+body visits them, each statement before the statements it holds. -/
+def parseLines (source : String) : Except SyntaxError (Program × List (FunDecl × List Nat)) := do
+  let toks ← lex source
+  let (prog, st) ← (decls (10 * toks.length + 100) ⟨[], []⟩).run ⟨toks, [], []⟩
+  pure (prog, st.bodies.reverse)
+
 /-- Parses the text of a `.mojo` file, before inference. -/
 def parseRaw (source : String) : Except SyntaxError Program := do
-  let toks ← lex source
-  let (prog, _) ← (decls (10 * toks.length + 100) ⟨[], []⟩).run toks
-  pure prog
+  pure (← parseLines source).1
 
 end MojoGrimoire.Parse

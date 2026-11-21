@@ -5,7 +5,9 @@ compiler ([docs/decisions/conformance.md](../../docs/decisions/conformance.md#th
 
 - `AREA/NAME.mojo` is one program, with a `main`. It stays inside the subset
   that the model covers: what the parser reads is listed in
-  [semantics-parser.md](../../docs/decisions/semantics-parser.md#the-parser-and-the-driver).
+  [semantics-parser.md](../../docs/decisions/semantics-parser.md#the-parser-and-the-driver),
+  less the constructs [outside the subset](../../docs/decisions/semantics-parser.md#outside-the-subset),
+  which end with exit 3, a result the suite cannot compare.
 - `AREA/NAME.json` is its expected result, recorded from the compiler. Do
   not write it by hand.
 - `diagnostics.json` maps the compiler's first error to a class of error.

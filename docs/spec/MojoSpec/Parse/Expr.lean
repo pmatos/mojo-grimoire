@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7563914837128895159")
+:::moduleDocs (fingerprint := "17885557337010263068")
 :::
 
 :::readable MojoGrimoire.Parse.Term MojoGrimoire.Parse.Term.toExpr (fingerprint := "13183905014692490612")
@@ -22,7 +22,7 @@ and indices of a name, and an expression once it reads anything else. A
 place used where an expression is expected is read as a value.
 :::
 
-:::readable MojoGrimoire.Parse.compOps MojoGrimoire.Parse.addOps MojoGrimoire.Parse.mulOps MojoGrimoire.Parse.acceptOp (fingerprint := "6467674933063426272")
+:::readable MojoGrimoire.Parse.compOps MojoGrimoire.Parse.addOps MojoGrimoire.Parse.mulOps MojoGrimoire.Parse.acceptOp (fingerprint := "4579658870066396123")
 *Definition: operators.* The binary operators fall in three levels:
 comparisons `<`, `<=`, `>`, `>=`, `==`, `!=`; additive `+`, `-`; and
 multiplicative `*`, `//`, `%`. The parser reads an operator of a level
@@ -43,7 +43,7 @@ lexer reads. The end of a logical line and a change of indentation start
 no expression.
 :::
 
-:::readable MojoGrimoire.Parse.expr MojoGrimoire.Parse.orRest MojoGrimoire.Parse.andExpr MojoGrimoire.Parse.andRest MojoGrimoire.Parse.notExpr MojoGrimoire.Parse.sum MojoGrimoire.Parse.sumRest MojoGrimoire.Parse.product MojoGrimoire.Parse.productRest MojoGrimoire.Parse.unaryExpr MojoGrimoire.Parse.chain MojoGrimoire.Parse.trailers MojoGrimoire.Parse.primary MojoGrimoire.Parse.exprList (fingerprint := "10355017012211168106")
+:::readable MojoGrimoire.Parse.expr MojoGrimoire.Parse.orRest MojoGrimoire.Parse.andExpr MojoGrimoire.Parse.andRest MojoGrimoire.Parse.notExpr MojoGrimoire.Parse.sum MojoGrimoire.Parse.sumRest MojoGrimoire.Parse.product MojoGrimoire.Parse.productRest MojoGrimoire.Parse.unaryExpr MojoGrimoire.Parse.chain MojoGrimoire.Parse.trailers MojoGrimoire.Parse.primary MojoGrimoire.Parse.exprList (fingerprint := "15901863289427067586")
 *Definition: expressions.*
 
 $$`\begin{array}{lcl}

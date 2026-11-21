@@ -70,8 +70,9 @@ Lists, `List[T]`, follow the rules of
   explicitly or implicitly. A literal argument whose elements differ in
   type, also inside a nested literal, fits no initializer, since the
   compiler infers the literal's type while it looks for one. Any other
-  argument in the subset, an empty literal and a string among them, fits
-  no initializer either (`noMatchingInit`). The compiler reports a
+  argument in the subset, an empty literal among them, fits no
+  initializer either (`noMatchingInit`); a string literal is outside the
+  subset (#180). The compiler reports a
   `List[T]` source whose elements cannot be copied as "cannot construct
   'List[T]' with itself", which the suite also maps to `noMatchingInit`
   ([conformance-classes.md](conformance-classes.md#initializations-that-fit-no-initializer)).
@@ -81,10 +82,10 @@ Lists, `List[T]`, follow the rules of
   and without it, or down to it for a negative step; a step of 0 gives
   `[]`. The human ruled on 2026-11-19 that the model takes `range` only
   as the argument of `List[T](…)` (#121). A range is not a value of its
-  own: `range` anywhere else, as in `var r = range(3)` or
-  `len(range(3))`, is `unknownFunction`, the class the model gives a call
-  of a function the program does not declare, though the compiler accepts
-  both. A function or a struct of the program, or a variable in scope,
+  own: `range` anywhere else, as in `var r = range(3)`,
+  `len(range(3))` or `range(range(3))`, is outside the subset, exit 3
+  ([semantics-parser.md](semantics-parser.md#outside-the-subset), #180),
+  though the compiler accepts the first two. A function or a struct of the program, or a variable in scope,
   named `range` is used instead; called, a variable is rejected as
   `missingMethod`, as the compiler reports that its type has no
   `__call__` (#176). Any other iterable that
@@ -94,13 +95,10 @@ Lists, `List[T]`, follow the rules of
   evaluated, and a literal `[e]` is the `Int` `e`. `T` must be `Int`.
   Errors come in the order of the compiler's passes, which differs from
   the order of the arguments. First, an error of typing in any argument:
-  an unknown name or attribute, or a misfit of a call inside it, also
-  inside an argument that holds a string or a `range`. Then a misfit of
-  `range`, `noMatchingInit`: a wrong number of arguments, an argument that
-  is not an `Int`, though it is uninitialized or reads such a value or a
-  constant index out of range, one that holds a string or a call of
-  `range` at any depth (through an operator, the model's choice; see
-  below), or a `T` other than `Int`: every argument is typed before any
+  an unknown name or attribute, or a misfit of a call inside it. Then a
+  misfit of `range`, `noMatchingInit`: a wrong number of arguments, an
+  argument that is not an `Int`, though it is uninitialized or reads such
+  a value or a constant index out of range, or a `T` other than `Int`: every argument is typed before any
   is read. An open literal is a misfit too, unless every element that is
   not a literal, at any depth, is an `Int` and, as the first argument, it
   is not empty and its first element, at any depth, is not an empty
@@ -109,8 +107,9 @@ Lists, `List[T]`, follow the rules of
   Then a use of an uninitialized or invalidated value; the elements of a
   literal are read late, as an operation's operands, so a later argument
   that changes their list invalidates them. Then that literal,
-  `noMatchingInit` again. Then a constant index out of range. A string
-  inside a call keeps the model's class for a string outside `print`. The
+  `noMatchingInit` again. Then a constant index out of range. An argument
+  that holds a string literal or a call of `range`, at any depth, is
+  outside the subset, whatever error comes first (#180). The
   compiler reports the misfits as "no matching function in call to
   'range'" or "no matching function in initialization", and the literal
   as "function instantiation failed"; the suite maps each to
@@ -124,10 +123,7 @@ Lists, `List[T]`, follow the rules of
   index into an array comes before the literal and before an index into a
   list on the compiler, and the model reports it as any index. A nested
   `List[Int](range([1, 2]))` fails at once in the model, before a use of
-  an uninitialized value in another argument. And an operator over an
-  `Int` and a string or a range, outside the subset, is a misfit of
-  `range` in the model, where the compiler reports the operator's type
-  mismatch. The list is the one that unbounded
+  an uninitialized value in another argument. The list is the one that unbounded
   arithmetic gives, also at the extreme values of `Int`. A non-empty range
   whose start and end lie exactly 2^63 apart aborts on the compiler, a
   compiler bug by a provisional ruling ([D-0008](../conformance/decision-log.md)):
@@ -153,8 +149,10 @@ here (#27).
   function's result, a parameter, and the element type of an enclosing
   literal or of the list that `append` adds to. A literal with no type
   expected and no elements, `var xs = []`, is rejected.
-- An array has no methods. `len` and indexing work as on a list. At run
-  time an array is a list value whose length is its size `N`.
+- An array has no methods; two arrays compare
+  ([semantics-operators.md](semantics-operators.md#comparisons-of-arrays)).
+  `len` and indexing work as on a list. At run time an array is a list
+  value whose length is its size `N`.
 - An array's size is part of its type, so `[1, 2, 3]` is not an
   `Array[Int, 2]`. The size in a type is an integer literal. A literal of
   another size, or with an element of another type, fits no initializer
@@ -184,9 +182,8 @@ here (#27).
   expects an `Int` of either operand when the other is an `Int`: `x + [2]`
   and `[2] - x` are `Int`s, and `x < [2]`, `[2] < x` and `[1] == x`
   `Bool`s. Mojo 1.2.0 read a literal on the left as an `Int` for the
-  arithmetic operators only, and rejected `[2] < x` and `[1] == x` as a
-  comparison of an array with an `Int`; the nightly pinned on 2026-11-19
-  reads them as `Int`s (#160). Where nothing is expected, such as the argument of
+  arithmetic operators only; the pinned nightly reads `[2] < x` and
+  `[1] == x` so too (#160). Where nothing is expected, such as the argument of
   `List[Int](…)`, the operand of `-`, `and` or `or`, or `print`, the
   literal stays an array.
 - The compiler reads `[e]` as it reads the operand `e`: a place in it is
@@ -300,6 +297,6 @@ and write its one element. The human ruled on 2026-11-20 that indexing an
   a struct without `Sized`, even one that declares `__len__`, or with a
   wrong number of arguments, is "no matching function in call to 'len'",
   which the suite maps to `noMatchingInit` (#190). The misfit comes after
-  an error of typing in an argument and before any read. A string keeps
-  the class of a string outside `print`. A `Sized` struct is still
+  an error of typing in an argument and before any read. A string literal
+  is outside the subset (#180). A `Sized` struct is still
   `noMatchingInit`, though the compiler accepts it (#230).

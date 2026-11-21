@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Errors: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9530126369629551503")
+:::moduleDocs (fingerprint := "7978961595469069275")
 :::
 
-:::readable MojoGrimoire.Check.CheckError (fingerprint := "2690262131078755379")
+:::readable MojoGrimoire.Check.CheckError (fingerprint := "6577089619069243287")
 *Definition: the classes of error.* The checker rejects a program with one
 of these classes, each with the names or types it concerns:
 
@@ -36,7 +36,8 @@ of these classes, each with the names or types it concerns:
   (`negativeIndex`) or, into an array or an $`\mathsf{Int}`, past its last element
   (`constantIndexOutOfBounds`), a value that
   `print` cannot print (`notPrintable`), a string literal outside
-  `print` (`stringOutsidePrint`), a call with the wrong number of
+  `print` (`stringOutsidePrint`, which the driver never reports, since it
+  finds such a program outside the subset first, #180), a call with the wrong number of
   arguments (`arityMismatch`), and an initialization of a type whose
   arguments fit no initializer (`noMatchingInit`, one class however they
   misfit, since the compiler reports them alike): a construction with
@@ -46,7 +47,9 @@ of these classes, each with the names or types it concerns:
   its arguments fit, a wrong number of them included (`noMatchingMethod`,
   one class for the same reason, #88), and a method that a type lacks, an
   operator's on its operand's type or `__call__` on a variable that is
-  called (`missingMethod`, #176);
+  called (`missingMethod`, #176), and a call of a method whose constraint
+  on its type's parameters fails, two arrays compared whose element type
+  does not conform to the operator's trait (`violatedConstraint`, #166);
 * declarations: a parameter of a convention its function may not have
   (`invalidConvention`), a method or initializer whose `self` is wrong
   (`invalidSelf`), a construction of a struct with no initializer

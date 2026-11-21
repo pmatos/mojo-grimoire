@@ -1,24 +1,32 @@
-import MojoGrimoire.Parse.Infer
+import MojoGrimoire.Parse.Subset
 import MojoGrimoire.Interp.Run
 
 /-!
 Tests of `List[T](range(…))` with one, two or three `Int` arguments (#121).
 The nightly 1.3.0.dev2026111905 builds the list of the plain definition, and
-a range is not a value of its own in the model: `range` anywhere else is an
-unknown function. A range whose start and end lie exactly 2^63 apart aborts
-on the compiler, a compiler bug (D-0008); the model builds the list.
+a range is not a value of its own in the model: `range` anywhere else is
+outside the subset (#180). A range whose start and end lie exactly 2^63
+apart aborts on the compiler, a compiler bug (D-0008); the model builds the
+list.
 -/
 
 namespace MojoGrimoireTest.Parse.ListRange
 
 open MojoGrimoire.Core MojoGrimoire.Check MojoGrimoire.Parse MojoGrimoire.Interp
 
-/-- Parses and runs the program whose lines are `ls`; a syntax error gives
-`none`. -/
+/-- Parses and runs the program whose lines are `ls`, as the driver does; a
+syntax error, or a construct outside the subset, gives `none`. -/
 private def runLines (ls : List String) : Option Outcome :=
-  match parse ("\n".intercalate ls) with
+  match parseSubset ("\n".intercalate ls) with
   | .ok prog => some (run prog 100000)
   | .error _ => none
+
+/-- The construct outside the subset of the program whose lines are `ls`,
+which the driver reports with exit 3. -/
+private def outsideOf (ls : List String) : Option Outside :=
+  match parseSubset ("\n".intercalate ls) with
+  | .error (.outside o) => some o
+  | _ => none
 
 /-- The body of `main` once the program whose lines are `ls` is parsed. -/
 private def mainBody (ls : List String) : Option (List Stmt) :=
@@ -45,6 +53,11 @@ private def prints (body : List String) (out : List String) : Bool :=
 /-- Whether `main`, running `body`, is rejected with the error `e`. -/
 private def rejects (body : List String) (e : CheckError) : Bool :=
   runLines (inMain body) == some (.rejected ⟨"main", e⟩)
+
+/-- Whether the line `i` of `main`'s body `body`, from 1, is outside the
+subset as the construct `m`. -/
+private def outside (body : List String) (i : Nat) (m : String) : Bool :=
+  outsideOf (inMain body) == some ⟨lib.length + 1 + i, m⟩
 
 /-- `Int.MAX` and `Int.MIN`, written out. -/
 private def maxS : String := "9223372036854775807"
@@ -123,25 +136,23 @@ private def minS : String := "-9223372036854775808"
 #guard rejects ["var xs = List[Bool](range(3))"] (.noMatchingInit (.list .bool))
 #guard rejects ["var xs = List[Int](range(True))"] (.noMatchingInit (.list .int))
 #guard rejects ["var b = True", "var xs = List[Int](range(1, b))"] (.noMatchingInit (.list .int))
-#guard rejects ["var xs = List[Int](range(\"a\"))"] (.noMatchingInit (.list .int))
 #guard rejects ["var ys: List[Int] = [1]", "var xs = List[Int](range(ys))"]
   (.noMatchingInit (.list .int))
 #guard rejects ["var xs = List[Int](range(P(1)))"] (.noMatchingInit (.list .int))
 #guard rejects ["var xs = List[Int](range())"] (.noMatchingInit (.list .int))
 #guard rejects ["var xs = List[Int](range(1, 2, 3, 4))"] (.noMatchingInit (.list .int))
-#guard rejects ["var xs = List[Int](range(range(3)))"] (.noMatchingInit (.list .int))
 #guard rejects ["var xs = List[Int](range([1, 2]))"] (.noMatchingInit (.list .int))
 
--- A string inside a call keeps the model's class for a string outside
--- `print`, where the compiler reports the call's own misfit.
-#guard rejects ["var xs = List[Int](range(f(\"a\")))"] .stringOutsidePrint
-#guard rejects ["var xs = List[Int](range(f(\"a\"), \"b\"))"] .stringOutsidePrint
--- `len(range(3))` is outside the subset by the ruling of 2026-11-19, so the
--- model gives it its class for `range` used elsewhere, `unknownFunction`,
--- also as an argument of `range`. The compiler, which takes it, reports
--- these two programs as `noMatchingInit`: this pins the model's choice.
-#guard rejects ["var xs = List[Int](range(len(range(3))))"] (.unknownFunction "range")
-#guard rejects ["var xs = List[Int](range(len(range(3)), range(2)))"] (.unknownFunction "range")
+-- A string literal, or a call of `range`, among the arguments of `range` is
+-- outside the subset (#180): a string outside `print`, and `range` outside
+-- `List[T](…)` by the ruling of 2026-11-19. The compiler rejects the first
+-- two as `noMatchingInit`, and the others for the misfit of `range` too.
+#guard outside ["var xs = List[Int](range(\"a\"))"] 1 outsideString
+#guard outside ["var xs = List[Int](range(range(3)))"] 1 outsideRange
+#guard outside ["var xs = List[Int](range(f(\"a\")))"] 1 outsideString
+#guard outside ["var xs = List[Int](range(f(\"a\"), \"b\"))"] 1 outsideString
+#guard outside ["var xs = List[Int](range(len(range(3))))"] 1 outsideRange
+#guard outside ["var xs = List[Int](range(len(range(3)), range(2)))"] 1 outsideRange
 
 -- A variable or a parameter named `range` hides the standard library's:
 -- an `Int` has no `__call__` (#176).
@@ -152,10 +163,10 @@ private def minS : String := "-9223372036854775808"
 #guard prints ["print(List[Int](range(3)))", "var range = 5", "print(range)"]
   ["[0, 1, 2]", "5"]
 
--- Anywhere else, `range` is an unknown function: a range is not a value.
-#guard rejects ["var r = range(3)"] (.unknownFunction "range")
-#guard rejects ["print(len(range(3)))"] (.unknownFunction "range")
-#guard rejects ["var xs = List[Int](range(3), 4)"] (.unknownFunction "range")
+-- Anywhere else, `range` is outside the subset: a range is not a value.
+#guard outside ["var r = range(3)"] 1 outsideRange
+#guard outside ["print(1)", "print(len(range(3)))"] 2 outsideRange
+#guard outside ["var xs = List[Int](range(3), 4)"] 1 outsideRange
 
 -- A function of the program named `range` is called instead.
 #guard runLines (["def range(n: Int) -> List[Int]:", "    return [n, n]", "def main():",

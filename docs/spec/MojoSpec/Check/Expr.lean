@@ -13,16 +13,17 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6337786940695855914")
+:::moduleDocs (fingerprint := "14959660509555517134")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "10562859102285461858")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "6299137549332400050")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
 * a literal has its type, but a string literal is rejected outside
   `print`;
-* $`p` is copied implicitly, $`p\,\hat{}` transferred, and
+* $`p` is copied implicitly, or read by reference where its location is
+  used (`usePlace`), $`p\,\hat{}` transferred, and
   $`p.\mathsf{copy}()` needs an initialized place of a copyable type,
   other than $`\mathsf{None}`, which has no `.copy()`, as
   `rejectNoneCopy` reports before anything else (#131);
@@ -49,7 +50,10 @@ type:
   right operand of an operator whose left operand is an integer literal
   expression (`intLiteral`), but `and` and `or`, is passed as to a `read`
   $`\mathsf{Int}` parameter of a method with several overloads: one that
-  is no $`\mathsf{Int}` is `noMatchingMethod` (#88);
+  is no $`\mathsf{Int}` is `noMatchingMethod` (#88). A comparison of
+  two arrays is found from the operands' types too (`operandMisfit`), and
+  an operand compared as an array, a place or a call that returns a
+  reference, is read by reference, uncopied (`byRef`, #166);
 * $`[e^*]_t`, with $`t` a list or an array of $`u` and $`u` a type a
   variable may have, initializes $`t`: it passes each element as to a `var`
   parameter of type $`u`, and an array must have as many elements as its
@@ -106,7 +110,8 @@ type:
   an argument, is `noMatchingInit`, as the compiler
   fails only when it instantiates the call; then a constant index out of
   range. `range` anywhere else is an unknown function, unless a variable
-  hides it: a range is not a value of its own;
+  hides it: a range is not a value of its own, and the driver finds such
+  a program outside the subset first (#180);
 * $`\mathsf{List}[u](e^+)` with more than one argument checks each
   argument on its own, locating a place without reading it, and is then
   rejected as `noMatchingInit` $`\mathsf{List}[u]`: no initializer of

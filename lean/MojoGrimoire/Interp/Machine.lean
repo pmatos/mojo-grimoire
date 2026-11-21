@@ -13,6 +13,7 @@ change through them is a change to that place. Locations are never reused.
 `Int` is Mojo's 64-bit signed integer: arithmetic wraps around, `//` rounds
 toward negative infinity and `%` takes the sign of the divisor, as in Mojo.
 Both give 0 for a zero divisor, as Mojo's standard library defines them.
+Two arrays compare lexicographically, element by element (#166).
 -/
 
 namespace MojoGrimoire.Interp
@@ -105,9 +106,42 @@ def emit (line : String) : EvalM Unit :=
 /-- An integer wrapped to 64-bit two's complement. -/
 def wrap (n : Int) : Int := (n + 2 ^ 63) % 2 ^ 64 - 2 ^ 63
 
-/-- The result of the arithmetic or comparison operator `op` on `Int`s, or
-of `==` and `!=` on `Bool`s. `and` and `or` are evaluated elsewhere, since
-they short-circuit. -/
+mutual
+/-- The order of two values that an array may hold and compare: `Int`s by
+value, `Bool`s with `False` first, and arrays lexicographically, as
+`Array`'s comparisons order them (#166); `none` for any other pair. -/
+def Value.order : Value → Value → Option Ordering
+  | .int x, .int y => some (compare x y)
+  | .bool x, .bool y => some (compare x.toNat y.toNat)
+  | .list xs, .list ys => Value.orderList xs ys
+  | _, _ => Option.none
+
+/-- The lexicographic order of two lists of values (`Value.order`). -/
+def Value.orderList : List Value → List Value → Option Ordering
+  | [], [] => some .eq
+  | [], _ :: _ => some .lt
+  | _ :: _, [] => some .gt
+  | x :: xs, y :: ys => match Value.order x y with
+    | some .eq => Value.orderList xs ys
+    | o => o
+end
+
+/-- Whether two values in the order `o` satisfy the comparison `op`;
+`none` when `op` does not compare. -/
+def ordered (op : BinOp) (o : Ordering) : Option Bool :=
+  match op with
+  | .lt => some (o == .lt)
+  | .le => some (o != .gt)
+  | .gt => some (o == .gt)
+  | .ge => some (o != .lt)
+  | .eq => some (o == .eq)
+  | .ne => some (o != .eq)
+  | _ => none
+
+/-- The result of the arithmetic or comparison operator `op` on `Int`s, of
+`==` and `!=` on `Bool`s, or of a comparison of two arrays, in their order
+(`Value.order`). `and` and `or` are evaluated elsewhere, since they
+short-circuit. -/
 def binary (op : BinOp) (a b : Value) : EvalM Value :=
   match op.arith, op, a, b with
   | some f, _, .int x, .int y => pure (.int (wrap (f x y)))
@@ -119,6 +153,9 @@ def binary (op : BinOp) (a b : Value) : EvalM Value :=
   | _, .ne, .int x, .int y => pure (.bool (x != y))
   | _, .eq, .bool x, .bool y => pure (.bool (x == y))
   | _, .ne, .bool x, .bool y => pure (.bool (x != y))
+  | _, op, .list xs, .list ys => match (Value.orderList xs ys).bind (ordered op) with
+    | some r => pure (.bool r)
+    | none => stuck "arrays that do not compare"
   | _, _, _, _ => stuck "operands of the wrong type"
 
 /-- The result of the unary operator `op`. -/

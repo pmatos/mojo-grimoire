@@ -1,4 +1,4 @@
-import MojoGrimoire.Parse.Infer
+import MojoGrimoire.Parse.Subset
 import MojoGrimoire.Interp.Run
 
 /-!
@@ -11,12 +11,19 @@ namespace MojoGrimoireTest.Parse.ListFromIterable
 
 open MojoGrimoire.Core MojoGrimoire.Check MojoGrimoire.Parse MojoGrimoire.Interp
 
-/-- Parses and runs the program whose lines are `ls`; a syntax error gives
-`none`. -/
+/-- Parses and runs the program whose lines are `ls`, as the driver does; a
+syntax error, or a construct outside the subset, gives `none`. -/
 private def runLines (ls : List String) : Option Outcome :=
-  match parse ("\n".intercalate ls) with
+  match parseSubset ("\n".intercalate ls) with
   | .ok prog => some (run prog 100000)
   | .error _ => none
+
+/-- The construct outside the subset of the program whose lines are `ls`,
+which the driver reports with exit 3. -/
+private def outsideOf (ls : List String) : Option Outside :=
+  match parseSubset ("\n".intercalate ls) with
+  | .error (.outside o) => some o
+  | _ => none
 
 /-- The body of `main` once the program whose lines are `ls` is parsed. -/
 private def mainBody (ls : List String) : Option (List Stmt) :=
@@ -48,6 +55,11 @@ private def prints (body : List String) (out : List String) : Bool :=
 /-- Whether `main`, running `body`, is rejected with the error `e`. -/
 private def rejects (body : List String) (e : CheckError) : Bool :=
   runLines (inMain body) == some (.rejected ⟨"main", e⟩)
+
+/-- Whether the line `i` of `main`'s body `body`, from 1, is outside the
+subset as the construct `m`. -/
+private def outside (body : List String) (i : Nat) (m : String) : Bool :=
+  outsideOf (inMain body) == some ⟨lib.length + 1 + i, m⟩
 
 -- `List[T](e^)` borrows `e`: the argument is the place `e^`.
 #guard mainBody (inMain ["var ys: List[Int] = [1]", "var xs = List[Int](ys^)"]) ==
@@ -106,7 +118,7 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard prints ["var x = 2", "var xs = List[Int]([x, 3])", "print(xs)"] ["[2, 3]"]
 -- A value that is neither a list nor an array fits no initializer.
 #guard rejects ["var xs = List[Int]([])"] (.noMatchingInit (.list .int))
-#guard rejects ["var xs = List[Int](\"ab\")"] (.noMatchingInit (.list .int))
+#guard outside ["var xs = List[Int](\"ab\")"] 1 outsideString
 #guard rejects ["var n = 3", "var xs = List[Int](n)"] (.noMatchingInit (.list .int))
 #guard rejects ["var ys: List[C] = [C(1)]", "var xs = List[C](ys[0])"]
   (.noMatchingInit (.list (.struct "C")))

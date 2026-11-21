@@ -5,7 +5,8 @@ import MojoGrimoire.Core.Program
 The parser's monad, its token helpers, and the parsing of types.
 
 The parser reads tokens from the front of a list and may fail with a
-syntax error at the line of the token it stopped at. Every recursive
+syntax error at the line of the token it stopped at. It also records where
+each statement starts. Every recursive
 function of the parser takes fuel, which each call spends, so parsing is
 total; a run that spends it all reports a program too deeply nested to
 parse. Fuel of a few times the number of tokens is always enough, since
@@ -20,26 +21,40 @@ namespace MojoGrimoire.Parse
 
 open MojoGrimoire.Core
 
-/-- The parser's monad: the tokens left to read, and failure with a syntax
-error. -/
-abbrev P := StateT (List Token) (Except SyntaxError)
+/-- The parser's state: the tokens left to read; the lines where the
+statements of the function being read start, last first; and each function
+read so far, with those lines in order, last first. The check of the
+constructs outside the subset reports a line from them
+(`MojoGrimoire.Parse.Subset`). -/
+structure PState where
+  toks : List Token
+  lines : List Nat
+  bodies : List (FunDecl × List Nat)
+
+/-- The parser's monad: its state, and failure with a syntax error. -/
+abbrev P := StateT PState (Except SyntaxError)
 
 /-- The next token, if any. -/
-def peek : P (Option Tok) := do pure ((← get).head?.map (·.tok))
+def peek : P (Option Tok) := do pure ((← get).toks.head?.map (·.tok))
 
 /-- The token after the next one, if any. -/
-def peek2 : P (Option Tok) := do pure ((← get).drop 1 |>.head? |>.map (·.tok))
+def peek2 : P (Option Tok) := do pure ((← get).toks.drop 1 |>.head? |>.map (·.tok))
 
 /-- The line of the next token. -/
-def curLine : P Nat := do pure ((← get).head?.map (·.line) |>.getD 0)
+def curLine : P Nat := do pure ((← get).toks.head?.map (·.line) |>.getD 0)
+
+/-- Records that a statement starts at the next token. -/
+def markStmt : P Unit := do
+  let l ← curLine
+  modify fun s => { s with lines := l :: s.lines }
 
 /-- Fails with a syntax error at the next token. -/
 def fail {α : Type} (message : String) : P α := do throw ⟨← curLine, message⟩
 
 /-- Reads the next token. -/
 def next : P Tok := do
-  match ← get with
-  | t :: rest => set rest; pure t.tok
+  match (← get).toks with
+  | t :: rest => modify (fun s => { s with toks := rest }); pure t.tok
   | [] => fail "unexpected end of file"
 
 /-- Whether the next token is the symbol `s`. -/

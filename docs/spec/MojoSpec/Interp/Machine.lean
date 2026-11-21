@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The machine: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2336600503871602383")
+:::moduleDocs (fingerprint := "2382298473379727178")
 :::
 
 :::readable MojoGrimoire.Interp.Ref MojoGrimoire.Interp.Binding MojoGrimoire.Interp.Env (fingerprint := "10228878087589298434")
@@ -53,12 +53,23 @@ linear in $`n`. `emit` adds a printed
 line.
 :::
 
-:::readable MojoGrimoire.Interp.wrap MojoGrimoire.Interp.binary MojoGrimoire.Interp.unary (fingerprint := "12579659857558170853")
+:::readable MojoGrimoire.Interp.Value.order MojoGrimoire.Interp.Value.orderList MojoGrimoire.Interp.ordered (fingerprint := "16410843023315055946")
+*Definition: the order of array elements.* $`\mathsf{Int}`s are ordered
+by value, $`\mathsf{Bool}`s with $`\mathsf{False}` first, and lists,
+which hold arrays, lexicographically: the first elements that differ
+decide, and a list that is a prefix of the other comes first. A
+comparison holds of two values in an order as its operator says: $`<`
+when the first comes first, $`\le` unless it comes after, and $`==`
+when neither comes first (#166).
+:::
+
+:::readable MojoGrimoire.Interp.wrap MojoGrimoire.Interp.binary MojoGrimoire.Interp.unary (fingerprint := "18219798171152194205")
 *Definition: arithmetic.* $`\mathsf{Int}` is 64-bit: an arithmetic operator
 computes its integer function, and the result is wrapped into
 $`[-2^{63}, 2^{63})`.
-Comparisons give a $`\mathsf{Bool}`, and `==` and `!=` also compare two
-$`\mathsf{Bool}`s. Negation wraps too, and `not` negates a
+Comparisons give a $`\mathsf{Bool}`, `==` and `!=` also compare two
+$`\mathsf{Bool}`s, and every comparison compares two arrays in their
+order. Negation wraps too, and `not` negates a
 $`\mathsf{Bool}`.
 :::
 
