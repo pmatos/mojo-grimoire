@@ -10,6 +10,7 @@ import MojoGrimoireTest.Check.Refs
 import MojoGrimoireTest.Check.PartialMoves
 import MojoGrimoireTest.Interp.Run
 import MojoGrimoireTest.Parse.Programs
+import MojoGrimoireTest.Parse.ArrayCompare
 import MojoGrimoireTest.Parse.Arrays
 import MojoGrimoireTest.Parse.TrivialTransfer
 import MojoGrimoireTest.Parse.ListPop

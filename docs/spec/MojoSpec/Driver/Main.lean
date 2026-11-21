@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The command-line driver: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16972737175175177950")
+:::moduleDocs (fingerprint := "17030054563889616026")
 :::
 
-:::readable MojoGrimoire.Driver.CheckError.className MojoGrimoire.Driver.RunError.name (fingerprint := "6534231796128194727")
+:::readable MojoGrimoire.Driver.CheckError.className MojoGrimoire.Driver.RunError.name (fingerprint := "14063824239728033635")
 *Definition: names of errors.* The driver names a class of static error,
 and a run-time error, by its constructor, so that the conformance suite can
 compare it with the class of the compiler's diagnostic. The name of a

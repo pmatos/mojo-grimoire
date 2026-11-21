@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "invalid call to '__eq__': value passed to 'other' cannot be converted from list literal to 'Array[Int, Int(1)]'"
+}

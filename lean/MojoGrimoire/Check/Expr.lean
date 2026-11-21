@@ -29,12 +29,12 @@ mutual
 /-- The type of the expression `e`. A string literal has no type here: it may
 only be printed, which `checkPrint` checks. A call that returns a reference
 gives the value it points to, which is copied implicitly, unless `asRef`
-holds: then the reference itself is bound, by `ref`. -/
+holds: then the reference itself is bound, by `ref`, and a place is read. -/
 def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .int _ => pure .int
   | .bool _ => pure .bool
   | .str _ => throw CheckError.stringOutsidePrint
-  | .place p => do checkIndices prog p; copyPlace prog p
+  | .place p => do checkIndices prog p; usePlace prog asRef p
   | .transfer p => do requireOwnOrigin prog p; checkIndices prog p; transferPlace prog p
   | .copy p => do
     rejectNoneCopy prog p (typePlace prog p)
@@ -76,15 +76,14 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     rejectMisfit (unaryMisfit prog op (← operandTy prog a)) (do let _ ← typeArg prog a)
     lift (methodUnaryTy prog op (← checkExprAs prog false a))
   | .binary op a b => do
-    rejectMisfit (binaryMisfit prog op (← operandTy prog a) (← operandTy prog b))
-      (do let _ ← typeArg prog a; let _ ← typeArg prog b)
-    let ta ← checkExprAs prog false a
+    rejectMisfit (← operandMisfit prog op a b) (do let _ ← typeArg prog a; let _ ← typeArg prog b)
+    let ta ← checkExprAs prog (← byRef prog op a b) a
     let ka ← mark
     let tb ← if intLiteral a && op != .and && op != .or then do
         let m := binaryMethod op
         let _ ← checkArg prog (.overload m) m ⟨.read, "rhs", .int⟩ b
         pure .int
-      else checkExprAs prog false b
+      else checkExprAs prog (← byRef prog op b a) b
     let kb ← mark
     unless op == .and || op == .or do recheckPlaces prog [a, b] [ka, kb]
     lift (methodBinaryTy prog op ta tb)

@@ -330,3 +330,17 @@ Each move of the Mojo pin gets an entry below.
   state one for `Int` ([evidence](decision-log-d0009.md#evidence)).
 - Upstream report: not filed yet. A draft on #127 awaits the human's
   approval; its link goes here once it is filed.
+
+### D-0010: one-element arrays compare equal beside a printing destructor (provisional)
+
+- Date: 2026-11-21
+- Mojo release and commit: nightly 1.3.0.dev2026111905 (D-0007)
+- Program: `tests/conformance/arrays/compare_beside_printing_deinit.mojo`
+- Compiler: an optimized build compares two one-element arrays as equal
+  when a struct's `__deinit__` prints ([detail](decision-log-d0010.md)).
+- Model: compares the elements.
+- Classification: compiler bug, ruled by the human on 2026-11-21 (#235),
+  provisional.
+- Decision and rationale: the fixed compiler compares the elements, as
+  `-O0` and every control do ([evidence](decision-log-d0010.md#evidence)).
+- Upstream report: not filed; a draft on #235 awaits the human.

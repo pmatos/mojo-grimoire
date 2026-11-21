@@ -28,7 +28,10 @@ several overloads, none of which its arguments fit, a wrong number of them
 included: the compiler reports only that none fits (#88).
 `missingMethod` is a method that an operator or a call needs and the type
 `ty` lacks: an operator's method on its operand, or `__call__` on a
-variable that is called (#176). `uncopyableField` is the field `field`, of
+variable that is called (#176). `violatedConstraint` is a call of the
+method `method` of the type `ty` whose constraint on `ty`'s parameters
+fails: two arrays compared whose element type does not conform to the
+trait that the operator needs (#166). `uncopyableField` is the field `field`, of
 type `ty`, of a struct `struct` that declares `Copyable` but whose `ty`
 cannot be copied, or declares `ImplicitlyCopyable` but whose `ty` cannot
 be copied implicitly: the compiler cannot synthesize the struct's copy
@@ -56,6 +59,7 @@ inductive CheckError where
   | noMatchingInit (ty : Ty)
   | noMatchingMethod (method : Name)
   | missingMethod (ty : Ty) (method : Name)
+  | violatedConstraint (ty : Ty) (method : Name)
   | invalidConvention (name : Name)
   | invalidSelf (name : Name)
   | noInitializer (struct : Name)

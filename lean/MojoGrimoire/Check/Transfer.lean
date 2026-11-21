@@ -2,7 +2,8 @@ import MojoGrimoire.Check.Change
 
 /-!
 Reading a place as a value, and transferring the value out of it, Mojo's
-`p^`. A read copies the value implicitly. A transfer needs a value with an
+`p^`. A read copies the value implicitly, unless the place's location is
+used, as a comparison of arrays uses its operands (#166). A transfer needs a value with an
 origin of its own, initialized, in a variable that the function owns or
 holds `mut`, and leaves the place uninitialized.
 -/
@@ -17,6 +18,11 @@ def copyPlace (prog : Program) (p : Place) : CheckM Ty := do
   let t ← readPlace prog p
   unless copyingOf prog t == .implicit do throw (CheckError.implicitCopy t)
   pure t
+
+/-- Reads the place `p` by reference, uncopied, when `asRef` holds, and
+copies it otherwise (`copyPlace`). -/
+def usePlace (prog : Program) (asRef : Bool) (p : Place) : CheckM Ty :=
+  if asRef then readPlace prog p else copyPlace prog p
 
 /-- Whether the value in the place `p` has no origin of its own, so that
 `p^` cannot transfer it out: `p` goes through an element of a list or an
