@@ -13,17 +13,18 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16671261702832449285")
+:::moduleDocs (fingerprint := "8493855474499774398")
 :::
 
-:::readable MojoGrimoire.Check.binaryOperands (fingerprint := "2024248288456751047")
+:::readable MojoGrimoire.Check.binaryOperands (fingerprint := "2547842348004514096")
 *Rule: an operator's types come before a use of an uninitialized value.*
 The compiler finds that a binary operator rejects its operands' types as
 it types them, before the later pass that finds a use of an
-uninitialized value. So when checking the operands gives
-$`\mathsf{uninitializedUse}`, and the forms of both, neither of them a
-literal, give types (`operandTy`) that the operator rejects, that error
-is reported instead: in
+uninitialized value. So when checking the operands of an operator other
+than $`\mathsf{and}` and $`\mathsf{or}` gives
+$`\mathsf{uninitializedUse}`, both have a shape and one holds a test of
+a struct (`logicShape`), and their forms give types (`operandTy`) that
+the operator rejects, that error is reported instead, as on `main`: in
 $`k + ((t(0)~\mathsf{and}~x\,\hat{})~\mathsf{or}~x.f)` with $`k` an
 $`\mathsf{Int}`, the $`\mathsf{Bool}` that $`+` does not take. A right
 operand passed as an argument (`rightParam`), such as the one of an

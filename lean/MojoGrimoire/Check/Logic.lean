@@ -13,25 +13,34 @@ argument (`MojoGrimoire.Check.checkArg`).
 
 The compiler finds that a binary operator rejects its operands' types as
 it types them, before the later pass that finds a use of an uninitialized
-value; the checker finds it from their forms then (`binaryOperands`).
+value. When an operand holds a test of a struct, the checker finds it
+from their forms then (`binaryOperands`), as `main` rejected such an
+operand as a mismatch before it reached that use; the general order is
+#96's.
 -/
 
 namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
 
-/-- Checks the operands `a` and `b` of the binary operator `op` by `check`.
-When `check` throws `uninitializedUse`, and the forms of `a` and `b`,
-neither of them a literal, give types (`operandTy`) that `op` rejects,
-as in `k + ((t(0) and x^) or x.f)` with `k` an `Int`, that error is
-reported instead: the compiler finds it as it types the operands, before
-the later pass that finds the uninitialized use. A right operand passed
-as an argument (`rightParam`) misfits as the argument does (`expectArg`),
-and any other operation as `methodBinaryTy` says. -/
+/-- Checks the operands `a` and `b` of the binary operator `op`, neither
+`and` nor `or`, by `check`. When `check` throws `uninitializedUse`, an
+operand holds a test of a struct that part 2 of #191 adds and both have
+a `logicShape`, and their forms give types (`operandTy`) that `op`
+rejects, as in `k + ((t(0) and x^) or x.f)` with `k` an `Int`, that error
+is reported instead: the compiler finds it as it types the operands,
+before the later pass that finds the uninitialized use, and `main`
+rejected such an operand as a mismatch before it reached that use. A
+right operand passed as an argument (`rightParam`) misfits as the
+argument does (`expectArg`), and any other operation as `methodBinaryTy`
+says. Any other operation leaves the error as it is, as on `main`. -/
 def binaryOperands {α : Type} (prog : Program) (op : BinOp) (a b : Expr) (check : CheckM α) :
     CheckM α :=
   tryCatch check fun err => do
-    if err matches .uninitializedUse _ && !(a matches .list ..) && !(b matches .list ..) then
+    let shapes := (← logicShape prog a, ← logicShape prog b)
+    if err matches .uninitializedUse _ && op != .and && op != .or &&
+        (shapes == (some true, some true) || shapes == (some true, some false) ||
+          shapes == (some false, some true)) then
       if let (some ta, some tb) := (← operandTy prog a, ← operandTy prog b) then
         match rightParam op a b ta with
         | some (fit, prm) => expectArg fit prm.ty tb

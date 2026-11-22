@@ -160,15 +160,20 @@ struct, list or array operand is never copied first. It finds a misfit of
 an overload set as an ordinary call finds a misfit, once the argument is
 read, so `var b: Bool; xs[b]` is `uninitializedUse` in the model and
 `noMatchingMethod` in the compiler. That order across the compiler's
-passes is left to #96. A value that is not a place converts to the type
+passes is left to #96. One case comes first already, so that the shapes
+that part 2 of #191 makes reachable keep `main`'s result: a value that
+holds a test of a struct with its `__bool__` (`logicShape`), every part
+of it an `Int`, a `Bool` or a struct. Such a value converts to the type
 it initializes, of a declared variable, an assigned place, a function's
 result or a parameter, as the compiler types it, before any of it is
 read. So `y = (t(0) and x^) or x.f`, with `y` a struct, is `typeMismatch`
-in the model as in the compiler, though the model finds `x` uninitialized
-in `x.f`: the type that the value's form gives comes first
-(`checkValue`, #191). So does a binary operator's misfit of the types
-that its operands' forms give, as in `k + ((t(0) and x^) or x.f)` with
-`k` an `Int` (`binaryOperands`).
+in the model as in the compiler and on `main`, though the model finds
+`x` uninitialized in `x.f` (`checkValue`). So is a binary operator's
+misfit of such an operand, as in `k + ((t(0) and x^) or x.f)` with `k`
+an `Int` (`binaryOperands`). Any other value keeps `main`'s order: a list
+or `Int` operands of `and` and `or`, which the model types with known
+gaps (#187, #188), and `var b: Bool; print(1 + b)`, `uninitializedUse`
+in the model and `noMatchingMethod` in the compiler.
 
 Rejected: mapping either message to an existing class, `noMatchingInit`,
 `typeMismatch` or `unknownAttribute`, which would merge errors that the

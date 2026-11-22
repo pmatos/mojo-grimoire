@@ -155,8 +155,14 @@ private def moved (body : List String) : List String :=
   some (.rejected ⟨"main", .typeMismatch .int .bool⟩)
 #guard runLines (moved ["var k = 1", "var n = k < ((True and x^) or x.n > 0)"]) ==
   some (.rejected ⟨"main", .typeMismatch .int .bool⟩)
+-- Without a test of a struct, `main`'s order stays: the pin's
+-- `noMatchingMethod` for `1 + b` comes from its passes' order (#96), and a
+-- value of a list or of `Int`s under `and` is typed with known gaps
+-- (#187, #188).
 #guard runLines (withT [] ["var b: Bool", "print(1 + b)"]) ==
-  some (.rejected ⟨"main", .noMatchingMethod "__add__"⟩)
+  some (.rejected ⟨"main", .uninitializedUse (.var "b")⟩)
+#guard runLines (withT [] ["var j = 0", "var k: Int", "print(j or k)"]) ==
+  some (.rejected ⟨"main", .uninitializedUse (.var "k")⟩)
 #guard runLines (moved ["var b = False", "b = (x^ or T(3)) and x.n > 0"]) ==
   some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "n")⟩)
 #guard runLines (moved ["var b = (x^ or T(3)) and x.n > 0"]) ==

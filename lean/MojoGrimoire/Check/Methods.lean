@@ -42,11 +42,14 @@ are typed (#190). A misfit of a method's overload set is found as
 an ordinary call finds its misfit, once its argument is read, so an
 uninitialized place passed as an argument of the wrong type is still
 `uninitializedUse` first, where the compiler reports `noMatchingMethod`:
-that order across the compiler's passes is left to #96, but for an
-operand of a binary operator (`MojoGrimoire.Check.binaryOperands`). A value that is
-not a place converts to the type it initializes, or to its parameter's,
-as the compiler types it, so a mismatch that its form shows comes before
-a use of an uninitialized value inside it (`checkValue`).
+that order across the compiler's passes is left to #96. One case comes
+first already, so that the shapes part 2 of #191 makes reachable keep
+`main`'s result: a value that holds a test of a struct (`logicShape`)
+converts to the type it initializes, or to its parameter's, as the
+compiler types it, so a mismatch that its form shows comes before a use
+of an uninitialized value inside it (`checkValue`), and so does a binary
+operator's misfit of such an operand
+(`MojoGrimoire.Check.binaryOperands`).
 
 The comparisons of arrays and lists, and the operands they read by
 reference, are `MojoGrimoire.Check.Compare`'s.
@@ -149,21 +152,73 @@ where
     | [] => pure true
     | e :: es => do pure ((← formTy e) == u && (← sameTy u es))
 
+/-- Whether the type `t` is one whose form the model types reliably: an
+`Int`, a `Bool` or a struct. -/
+def plainTy : Ty → Bool
+  | .int | .bool | .struct _ => true
+  | _ => false
+
+mutual
+/-- Whether the expression `e` has the shape that part 2 of #191 makes
+reachable, when the form of each of its parts gives a `plainTy`
+(`operandTy`): arithmetic of `Int`s, a comparison of two `Int`s or two
+`Bool`s, `not` of a `Bool`, and `and` or `or` of `Bool`s and structs.
+It is `some true` when it holds a test of a struct with its `__bool__`,
+or `and` or `or` of two operands of the same struct type, `some false`
+when it holds neither, and `none` when a part's type is not one of these:
+a list, a string or a literal, which the model does not always type as
+the compiler does (#187, #188). -/
+def logicShape (prog : Program) (e : Expr) : CheckM (Option Bool) := do
+  let some t ← operandTy prog e | return none
+  unless plainTy t do return none
+  match e with
+  | .int _ | .bool _ | .place _ | .copy _ | .transfer _ => pure (some false)
+  | .call f args =>
+    pure ((← logicShapes prog args).map (· || (calleeMethod f).any (·.2.1 == "__bool__")))
+  | .method _ _ args => logicShapes prog args
+  | .unary op a => do
+    let ta ← operandTy prog a
+    unless ta == some (if op == .neg then .int else .bool) do return none
+    logicShape prog a
+  | .binary op a b => do
+    let (ta, tb) := (← operandTy prog a, ← operandTy prog b)
+    let logic := op == .and || op == .or
+    let fits (u : Option Ty) := if logic then u == some .bool || u matches some (.struct _)
+      else if op.arith.isSome then u == some .int else u == some .int || u == some .bool
+    unless fits ta && fits tb && (logic || ta == tb) do return none
+    let (some fa, some fb) := (← logicShape prog a, ← logicShape prog b) | return none
+    pure (some (fa || fb || logic && ta == tb && ta matches some (.struct _)))
+  | .withDrops a _ _ => logicShape prog a
+  | _ => pure none
+  termination_by (sizeOf e, 0)
+
+/-- `logicShape` of each of the expressions `es`: `none` when one has
+none, and else whether one holds a test of a struct. -/
+def logicShapes (prog : Program) : List Expr → CheckM (Option Bool)
+  | [] => pure (some false)
+  | e :: es => do
+    let (some f, some fs) := (← logicShape prog e, ← logicShapes prog es) | return none
+    pure (some (f || fs))
+  termination_by es => (sizeOf es, 1)
+end
+
 /-- Checks the value `e` by `value`, which gives its type, where `expected`
 gives the type that it converts to. The compiler converts the value as it
 types it, before the later pass that finds a use of an uninitialized
-value. So when `value` throws `uninitializedUse` and the form of `e` gives
-a type (`operandTy`) other than the expected one, that mismatch is
-reported instead, as a call of fit `fit` reports it (`expectArg`), as in
-`y = (t(0) and x^) or x.f` with `y` a struct. An expected type that is
-`unknown`, or that `expected` fails to give, leaves the error as it is. -/
+value. So when `value` throws `uninitializedUse`, `e` holds a test of a
+struct that part 2 of #191 adds (`logicShape`), and its form gives a type
+(`operandTy`) other than the expected one, both `plainTy`, that mismatch
+is reported instead, as a call of fit `fit` reports it (`expectArg`), as
+in `y = (t(0) and x^) or x.f` with `y` a struct: `main` rejected such a
+value as a mismatch before it reached the uninitialized use. Any other
+value leaves the error as it is, as on `main`. -/
 def checkValue (prog : Program) (fit : Fit) (expected : CheckM Ty) (e : Expr)
     (value : CheckM Ty) : CheckM Ty :=
   tryCatch value fun err => do
-    if err matches .uninitializedUse _ then
+    if err matches .uninitializedUse _ && (← logicShape prog e) == some true then
       if let some u ← operandTy prog e then
         let t ← tryCatch expected fun _ => pure .unknown
-        unless t == .unknown do expectArg fit t u
+        if plainTy t then expectArg fit t u
     throw err
 
 /-- Checks the value `e` by `value` where the type `t` is expected, and
