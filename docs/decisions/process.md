@@ -149,6 +149,20 @@ human ruled this on 2026-11-22 (#260).
 Rejected: an exception for #260 alone, and holding #260 until the other
 statements are fixed.
 
+The second exception also covers a program whose parts each agree with the
+compiler alone, and which goes wrong only by the order of its errors: the
+compiler reports a type error anywhere in the program before a later-pass
+error, and the model does not yet (#96). The other part may be a statement,
+a loop body, another function or a function's exit. The PR body lists each
+such program with split evidence: each part alone agrees with the compiler
+on the PR, and the program without the fixed part disagrees with the
+compiler in the same way on `main` and on the PR. It names the open issue
+that tracks the order. The same limits hold: never a run that becomes a
+rejection, or the reverse, and never a suite program. The human ruled this
+on 2026-11-22 (#247, #260).
+
+Rejected: allowing #247 and #260 alone, and holding both until #96 part 4.
+
 ### Review depth
 
 `REVIEW.md` at the root lists the high-stakes paths. Any PR that touches one
