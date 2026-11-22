@@ -24,10 +24,15 @@ expected output from the Isabelle formalisation's suite
 ```sh
 scripts/conformance.py check            # the model against the recorded results
 scripts/conformance.py record --mojo "$(scripts/install-mojo.sh ../mojo-reference)" [PROGRAM...]
+scripts/conformance.py levels --mojo WRAPPER [--jobs N] [PROGRAM...]   # whenever the pin moves
 ```
 
 `record` needs the compiler: the pinned nightly wheel, installed outside this
 repository by `scripts/install-mojo.sh`. It writes one `NAME.json` per
 program and lists every diagnostic that no pattern of `diagnostics.json`
 classifies. A new program is recorded before it is committed, so that `check`
-compares it.
+compares it. `record` also builds each program at `-O0`, and refuses to record
+one whose result differs there, unless a ruled compiler bug names it, in
+`known.json` or in `docs/conformance/compiler-bugs.json`; `levels` builds
+every program at each optimization level
+([conformance.md](../../docs/decisions/conformance.md#optimization-levels)).

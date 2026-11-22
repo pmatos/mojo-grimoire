@@ -9,6 +9,7 @@
     "`upstream.status`: unfiled, filed, fixed-upstream. Only the human files upstream reports.",
     "`nightly` records the last check of the reproducer on a Mojo nightly, before the human meets Modular.",
     "`upstream.tracking` is this project's issue that tracks the report, or the upstream issues that track the bug when others filed it. `upstream.related` lists upstream issues that probably share the bug's cause.",
+    "`suite_programs` names the suite programs that show the bug. `scripts/conformance.py record` and `levels` excuse a difference between optimization levels in them, so a bug that shows only below -O3 is listed here even when known.json cannot list it (docs/decisions/conformance.md#optimization-levels).",
     "`compiler` says what the current pin, the nightly 1.3.0.dev2026111905 since D-0007, does with the reproducer; `reference` keeps the pin it was ruled at."
   ],
   "bugs": [

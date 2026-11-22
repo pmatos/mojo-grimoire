@@ -19,8 +19,8 @@ the driver, the compiler and the standard library have their pinned sha256.
 That build's own commit is not public; the source is read at the nearest
 public commit of `modular/modular`, `10c54f6f5b`, "[Release] Pin lockfiles
 to Mojo 1.3.0.dev2026111905". The pin moves forward to newer nightlies as
-needed; each move updates the conformance suite's recorded results, the
-script, the decision log and this page in the same PR. The human chose the
+needed, each move in one PR, by the steps of
+[conformance.md](conformance.md#moving-the-pin). The human chose the
 1.2 release line on 2026-11-15, and on 2026-11-19 moved the pin to the
 latest nightly, as a wheel (#160). The model follows the compiler,
 and [the decision log](../conformance/decision-log.md) records each place

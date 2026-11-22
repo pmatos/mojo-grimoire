@@ -4,26 +4,35 @@ import io
 import json
 import os
 import stat
+import subprocess
 import tempfile
 import textwrap
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest import mock
 
+import conformance_compiler
 from conformance import (
     SUITE,
-    Result,
     check_known,
-    classify,
     compare,
-    failed_output,
-    first_error,
+    levels,
     load_patterns,
     model_result,
     name_of,
     programs,
     record,
+    ruled_bugs,
     runs_cleanly,
+)
+from conformance_compiler import (
+    Result,
+    classify,
+    failed_output,
+    first_error,
+    level_differences,
+    same_first_error,
 )
 
 
@@ -133,6 +142,40 @@ class Compare(unittest.TestCase):
         self.assertIn("could not run", compare(Result("finished", ()), act)[0])
 
 
+class Levels(unittest.TestCase):
+    NOTED = "function instantiation failed: constraint failed: negative index"
+
+    def test_the_same_result(self):
+        r = Result("finished", ("1",))
+        self.assertEqual(level_differences(r, r, "-O0"), [])
+
+    def test_outcome_output_and_first_error_differ(self):
+        ok = Result("finished", ("1",))
+        found = level_differences(ok, Result("failed", ("1",)), "-O1")
+        self.assertIn("outcome: finished at -O3, failed at -O1", found[0])
+        self.assertIn("output", level_differences(ok, Result("finished", ()), "-O0")[0])
+        a = Result("rejected", (), "x", "use of uninitialized value 'a'")
+        b = Result("rejected", (), "x", "use of uninitialized value 'b'")
+        self.assertIn("first error", level_differences(a, b, "-O2")[0])
+
+    def test_a_missing_constraint_note_is_no_difference(self):
+        self.assertTrue(same_first_error(self.NOTED, "function instantiation failed"))
+        self.assertTrue(same_first_error("function instantiation failed", self.NOTED))
+        bare = Result("rejected", (), None, "function instantiation failed")
+        noted = Result("rejected", (), None, self.NOTED)
+        self.assertEqual(level_differences(noted, bare, "-O0"), [])
+
+    def test_two_constraint_notes_differ(self):
+        other = "function instantiation failed: constraint failed: other"
+        self.assertFalse(same_first_error(self.NOTED, other))
+        self.assertFalse(same_first_error("function instantiation", self.NOTED))
+
+    def test_a_failed_runs_detail_is_not_compared(self):
+        a = Result("failed", ("before",), None, "index 3 is out of bounds")
+        b = Result("failed", ("before",), None, "#0 0x7f18 PrintStackTrace")
+        self.assertEqual(level_differences(a, b, "-O0"), [])
+
+
 class Known(unittest.TestCase):
     LOG = "### D-0002: something\n"
 
@@ -149,34 +192,62 @@ class Record(unittest.TestCase):
         self.tmp = Path(self.enterContext(tempfile.TemporaryDirectory()))
         # A stand-in compiler: it rejects a program that contains REJECT,
         # and builds any other into a script that prints its PRINT lines
-        # and fails when it contains FAIL.
+        # and fails when it contains FAIL; it prints the text of a
+        # `print("text")` too. A line `LEVEL L text` prints text only when
+        # built with the flag L, and `CRASH L` makes the build with L crash
+        # with no error. A failed run built with -O0 also writes the
+        # runtime's assertion line.
         fake = self.tmp / "mojo"
         fake.write_text(
             textwrap.dedent("""\
             #!/usr/bin/env python3
             import sys
-            src = open(sys.argv[2]).read()
+            args = sys.argv[2:]
+            path = next(a for a in args if a.endswith(".mojo"))
+            binary = args[args.index("-o") + 1]
+            src = open(path).read()
+            for l in src.splitlines():
+                if l.startswith("# CRASH ") and l.split()[2] in args:
+                    print("Segmentation fault", file=sys.stderr)
+                    sys.exit(139)
             if "REJECT" in src:
-                print(sys.argv[2] + ":1:1: error: use of uninitialized value 'a'",
+                print(path + ":1:1: error: use of uninitialized value 'a'",
                       file=sys.stderr)
                 sys.exit(1)
             out = [l.split("PRINT ", 1)[1] for l in src.splitlines() if "PRINT " in l]
+            out += [l.split('"')[1] for l in src.splitlines() if 'print("' in l]
+            for l in src.splitlines():
+                if l.startswith("# LEVEL ") and l.split()[2] in args:
+                    out.append(l.split(None, 3)[3])
             code = 1 if "FAIL" in src else 0
-            with open(sys.argv[4], "w") as f:
+            if code and "-O0" in args:
+                out.append("At: " + path + ":1:1: Assert Error: boom")
+            with open(binary, "w") as f:
                 f.write("#!/bin/sh\\n" + "".join(f"echo '{l}'\\n" for l in out)
                         + f"exit {code}\\n")
             import os
-            os.chmod(sys.argv[4], 0o755)
+            os.chmod(binary, 0o755)
             """)
         )
         fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
         self.fake = str(fake)
 
-    def recorded(self, name: str, text: str) -> dict:
+    def program(self, name: str, text: str) -> Path:
         program = self.tmp / f"{name}.mojo"
         program.write_text(text)
-        with redirect_stdout(io.StringIO()):
-            self.assertEqual(record(["--mojo", self.fake, str(program)]), 0)
+        return program
+
+    def run_command(
+        self, command, program: Path, ruled: dict, mojo: str = ""
+    ) -> tuple[int, str]:
+        out = io.StringIO()
+        with redirect_stdout(out), redirect_stderr(out):
+            code = command(["--mojo", mojo or self.fake, str(program)], ruled=ruled)
+        return code, out.getvalue()
+
+    def recorded(self, name: str, text: str, ruled: dict | None = None) -> dict:
+        program = self.program(name, text)
+        self.assertEqual(self.run_command(record, program, ruled or {})[0], 0)
         return json.loads(program.with_suffix(".json").read_text())
 
     def test_finished(self):
@@ -193,6 +264,161 @@ class Record(unittest.TestCase):
         data = self.recorded("boom", "# PRINT before\n# FAIL\n")
         self.assertEqual(data["outcome"], "failed")
         self.assertEqual(data["stdout"], ["before"])
+
+    def test_a_result_that_differs_at_O0_is_not_recorded(self):
+        program = self.program("unstable", "# PRINT a\n# LEVEL -O0 garbage\n")
+        code, out = self.run_command(record, program, {})
+        self.assertEqual(code, 1)
+        self.assertIn("output: ['a'] at -O3, ['a', 'garbage'] at -O0", out)
+        self.assertFalse(program.with_suffix(".json").exists())
+
+    def test_a_ruled_compiler_bug_is_recorded_at_O3(self):
+        name = (self.tmp / "unstable").as_posix()
+        text = "# PRINT a\n# LEVEL -O0 garbage\n"
+        data = self.recorded("unstable", text, {name: "D-0003"})
+        self.assertEqual(data["stdout"], ["a"])
+
+    def test_the_assertion_line_at_O0_is_no_difference(self):
+        data = self.recorded("assert", "# PRINT before\n# FAIL\n")
+        self.assertEqual(data["stdout"], ["before"])
+
+    def test_the_sweep_fails_on_a_difference_at_any_level(self):
+        program = self.program("o1", "# PRINT a\n# LEVEL ASSERT=all b\n")
+        code, out = self.run_command(levels, program, {})
+        self.assertEqual(code, 1)
+        self.assertIn("ASSERT=all: output: ['a'] at -O3, ['a', 'b'] at ASSERT=all", out)
+        self.assertIn("1 programs at -O0, -O1, -O2, -O3, ASSERT=all", out)
+
+    def test_the_sweep_lists_a_ruled_compiler_bug_and_passes(self):
+        program = self.program("o2", "# PRINT a\n# LEVEL -O2 b\n")
+        ruled = {(self.tmp / "o2").as_posix(): "D-0003"}
+        code, out = self.run_command(levels, program, ruled)
+        self.assertEqual(code, 0)
+        self.assertIn("a compiler bug ruled in D-0003", out)
+        self.assertIn("-O2: output", out)
+
+    def test_the_sweep_reports_a_timeout_at_every_level(self):
+        program = self.program("slow", "# PRINT a\n")
+        real = conformance_compiler.run_compiler
+
+        def slow(program, *args):
+            if program.name == "smoke.mojo":
+                return real(program, *args)
+            raise subprocess.TimeoutExpired([self.fake, "build"], 1)
+
+        with mock.patch("conformance_compiler.run_compiler", side_effect=slow):
+            code, out = self.run_command(levels, program, {name_of(program): "D-1"})
+        self.assertEqual(code, 1)
+        self.assertIn("-O0: timed out", out)
+        self.assertIn("1 could not be built", out)
+
+    def test_a_build_with_no_compiler_error_is_never_compared(self):
+        program = self.program("crash", "# PRINT a\n# CRASH -O1\n")
+        code, out = self.run_command(levels, program, {name_of(program): "D-1"})
+        self.assertEqual(code, 1)
+        self.assertIn("-O1: build exit 139: Segmentation fault", out)
+        for name, ruled in (("c0", False), ("c1", True)):
+            program = self.program(name, "# CRASH -O0\n")
+            named = {name_of(program): "D-0003"} if ruled else {}
+            code, out = self.run_command(record, program, named)
+            self.assertEqual(code, 1)
+            self.assertIn("-O0: build exit 139", out)
+            self.assertFalse(program.with_suffix(".json").exists())
+
+    def test_record_refuses_a_ruled_program_whose_build_times_out(self):
+        program = self.program("slow0", "# PRINT a\n")
+        real = conformance_compiler.run_compiler
+
+        def slow(program, mojo, patterns, flags=()):
+            if "-O0" in flags:
+                raise subprocess.TimeoutExpired([self.fake, "build"], 1)
+            return real(program, mojo, patterns, flags)
+
+        with mock.patch("conformance_compiler.run_compiler", side_effect=slow):
+            code, out = self.run_command(record, program, {name_of(program): "D-0003"})
+        self.assertEqual(code, 1)
+        self.assertIn("-O0: timed out", out)
+        self.assertFalse(program.with_suffix(".json").exists())
+
+    def test_a_broken_wrapper_compares_nothing(self):
+        broken = self.tmp / "broken"
+        broken.write_text("#!/bin/sh\necho 'mojo: not found' >&2\nexit 127\n")
+        broken.chmod(0o755)
+        program = self.program("fine", "# PRINT a\n")
+        for command in (levels, record):
+            code, out = self.run_command(command, program, {}, str(broken))
+            self.assertEqual(code, 2)
+            self.assertIn("does not build and run a trivial program", out)
+            code, out = self.run_command(command, program, {}, str(self.tmp / "none"))
+            self.assertEqual(code, 2)
+
+    def test_a_wrapper_that_rejects_everything_compares_nothing(self):
+        rejecting = self.tmp / "rejecting"
+        rejecting.write_text(
+            "#!/bin/sh\necho \"x.mojo:1:1: error: unable to locate module 'std'\" >&2\n"
+            "exit 1\n"
+        )
+        rejecting.chmod(0o755)
+        program = self.program("fine", "# PRINT a\n")
+        for command in (levels, record):
+            code, out = self.run_command(command, program, {}, str(rejecting))
+            self.assertEqual(code, 2)
+            self.assertIn("does not build and run a trivial program", out)
+
+    def test_arguments_that_are_not_programs_are_refused(self):
+        program = self.program("fine", "# PRINT a\n")
+        for args in (
+            [str(self.tmp / "nosuch.mojo")],
+            [str(program), "--bogus"],
+            [str(program), "--jobs", "2"],
+        ):
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                self.assertEqual(record(["--mojo", self.fake, *args], ruled={}), 2)
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(
+                levels(["--mojo", self.fake, str(program), "--jobs", "2"], ruled={}), 0
+            )
+
+    def test_the_excuse_rule_reads_known_compiler_bugs_and_the_log(self):
+        text = "# PRINT a\n# LEVEL -O0 garbage\n"
+        known, unentried, bug_only, bad_bug, unnamed = (
+            self.program(n, text) for n in ("k", "u", "b", "x", "n")
+        )
+        (self.tmp / "known.json").write_text(
+            json.dumps(
+                {"known": {name_of(known): "D-0003", name_of(unentried): "D-0099"}}
+            )
+        )
+        # A bug that shows only below -O3 names its program in
+        # compiler-bugs.json alone: the model agrees with the -O3 result.
+        bugs = [
+            {"decision_log": "D-0010", "suite_programs": [name_of(bug_only)]},
+            {"decision_log": "D-0042", "suite_programs": [name_of(bad_bug)]},
+        ]
+        (self.tmp / "bugs.json").write_text(json.dumps({"bugs": bugs}))
+        (self.tmp / "log.md").write_text("### D-0003: one\n### D-0010: two\nD-0042\n")
+        ruled = ruled_bugs(
+            self.tmp / "known.json", self.tmp / "bugs.json", self.tmp / "log.md"
+        )
+        self.assertEqual(ruled, {name_of(known): "D-0003", name_of(bug_only): "D-0010"})
+        for program, code in ((known, 0), (unentried, 1), (bug_only, 0), (bad_bug, 1)):
+            self.assertEqual(self.run_command(record, program, ruled)[0], code)
+            self.assertEqual(program.with_suffix(".json").exists(), code == 0)
+            self.assertEqual(self.run_command(levels, program, ruled)[0], code)
+        code, out = self.run_command(record, unnamed, ruled)
+        self.assertEqual(code, 1)
+        self.assertIn("no ruled compiler bug names the program", out)
+
+    def test_the_suites_ruled_bugs_are_entries_of_the_log(self):
+        ruled = ruled_bugs()
+        self.assertEqual(ruled["structs/field_by_field_unset_nested"], "D-0003")
+        self.assertTrue(set(ruled) <= {name_of(p) for p in programs()})
+
+    def test_the_sweep_passes_when_every_level_agrees(self):
+        program = self.program("stable", "# PRINT a\n# FAIL\n")
+        code, out = self.run_command(levels, program, {})
+        self.assertEqual(code, 0)
+        self.assertIn("1 the same", out)
 
 
 class Suite(unittest.TestCase):

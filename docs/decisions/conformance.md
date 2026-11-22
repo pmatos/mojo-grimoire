@@ -58,6 +58,19 @@ one variable gets results from the wrong runtime.
 job runs it until the conformance suite needs the compiler in CI, by the
 human's ruling of 2026-11-15.
 
+### Moving the pin
+
+The pin moves forward to a newer nightly
+([semantics.md](semantics.md#the-reference)) in one PR, which:
+
+- updates `scripts/install-mojo.sh`, the decision log and
+  [semantics.md](semantics.md#the-reference);
+- records the whole suite again with `scripts/conformance.py record`;
+- passes the [level sweep](#optimization-levels),
+  `scripts/conformance.py levels`;
+- builds each program of [the parse rejections](#rejections-made-while-parsing)
+  again and compares its first error with their list.
+
 ## The suite
 
 The conformance suite is `tests/conformance/` (#25): Mojo programs of the
@@ -92,6 +105,56 @@ a new program is recorded before it is committed.
 Rejected: comparing the compiler's diagnostics word for word. Their wording
 changes between releases and says nothing the class does not.
 
+### Optimization levels
+
+A recorded result comes from the default build, at `-O3`, but the optimizer
+can change a program's result (#235). `record` also builds each program at
+`-O0` and does not record it when the outcome, the lines printed or a
+rejection's first error differ from the default build's. The exception is a
+program that a ruled compiler bug names: `known.json`, or the
+`suite_programs` of a bug in
+[compiler-bugs.json](../conformance/compiler-bugs.json), lists it under an
+entry of the decision log. A bug that shows only below `-O3` is named in
+`compiler-bugs.json` alone, since the model agrees with the recorded result
+and `check` refuses a `known.json` entry for a program that agrees. No other
+list excuses a program. It is recorded from the default build, and
+`record` says that it differs. Otherwise a program that differs is either a
+compiler bug, which the human rules on, or a program to change.
+
+`scripts/conformance.py levels --mojo WRAPPER` builds every program at
+`-O0`, `-O1`, `-O2` and `-O3` and with `-D ASSERT=all`, lists each program
+whose result differs between them with the ruled entry that names it, and
+fails when a program that no ruled compiler bug names differs. It runs
+whenever the pin moves ([moving the pin](#moving-the-pin)), by hand, where
+the compiler is installed, on 4 programs at a time unless `--jobs N` says
+otherwise. No hook or CI job runs it, since it needs the compiler and took
+35 minutes on the 740 programs of 2026-11-21. A difference in which the
+compiler crashed is checked by building that program again alone, with
+`levels --mojo WRAPPER PROGRAM`, before it is reported: in the one-off
+sweep of #242, one build crashed under parallel load and passed when built
+again. The first run found only the programs of D-0003 that read a field
+never set, whose output at `-O0` is uninitialized memory, and the program
+of D-0010; the program of D-0013, swept on its own after it was added,
+differs too.
+
+Both refuse to run unless the wrapper builds and runs a trivial program and
+each program named is a file. A build that fails with no `error:` line from
+the compiler, such as a crash or a wrapper that cannot start, and a build or
+run that times out are never recorded and always fail the sweep, whatever
+names the program: a sweep that compared nothing must not pass.
+
+Both compare the compiler's results as the runner reads them, through one
+function in `scripts/conformance_compiler.py`. A failed assertion's line on standard output is how the run
+ended, not a printed line, at every level. A failed instantiation whose
+constraint note a build leaves out agrees with the noted one. A failed
+run's detail is not compared, as `check` does not compare it. No program is skipped. The human ruled all of this on
+2026-11-21 (#242), with the practice that an agent which finds the model
+and the compiler disagreeing on output builds the program at `-O0` before
+it changes the model, and stops and reports when the levels differ.
+
+Rejected: the practice alone, and the practice with the check at recording
+time but no sweep. Also rejected: a list of programs the sweep skips.
+
 ### Rejections made while parsing
 
 A program that the compiler rejects while parsing, and that the model
@@ -107,7 +170,8 @@ probed against Mojo 1.2.0 on 2026-11-18 and again against the nightly
 the guard that pins the
 model's side, named by its file and program. The guards run in every
 build. When the Mojo pin moves, build each program again with the new
-compiler and compare its first error with this list.
+compiler and compare its first error with this list
+([moving the pin](#moving-the-pin)).
 
 | Program | Compiler's first error | Guard |
 |---|---|---|
