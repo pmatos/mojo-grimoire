@@ -3,6 +3,7 @@
 import io
 import json
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -398,11 +399,11 @@ class Suite(unittest.TestCase):
 
     def test_no_loose_pattern_can_take_a_quoted_name(self):
         patterns = [pattern for pattern, _ in load_patterns()]
-        quoting = [p for p in patterns if "'[^']*'" in p or "'.*'" in p]
+        quoting = [p for p in patterns if holds_a_name(p)]
         first_loose = next(
             (i for i, p in enumerate(patterns) if not whole(p)), len(patterns)
         )
-        wrong = [p for p in quoting if not whole(p)]
+        wrong = [f"{p} is not anchored" for p in quoting if not whole(p)]
         wrong += [
             f"{p} below a loose pattern" for p in patterns[first_loose:] if p in quoting
         ]
@@ -410,8 +411,16 @@ class Suite(unittest.TestCase):
             message = recorded["diagnostic"]
             first = classify(message, [(p, p) for p in patterns])
             if "'" in message and first not in quoting:
-                wrong.append(f"{name}: no whole pattern for {message}")
+                wrong.append(f"{name}: no pattern with a name slot for {message}")
         self.assertEqual(wrong, [])
+
+    def test_name_slots_and_anchors(self):
+        for slot in ["'[^']*'", "'[^']+'", "'\\w+'", "'.*'", "'.+'", "because .* is"]:
+            self.assertTrue(holds_a_name(f"^value {slot} used$"), slot)
+        self.assertFalse(holds_a_name("^expected \\d+ elements, found \\.$"))
+        self.assertTrue(whole("^a (b|c) [|]\\|$"))
+        for loose in ["^zzz|immutable$", "a$", "^a", "^a\\$"]:
+            self.assertFalse(whole(loose), loose)
 
 
 def recorded_rejections():
@@ -424,8 +433,30 @@ def recorded_rejections():
                 yield name_of(program), recorded
 
 
+def holds_a_name(pattern: str) -> bool:
+    """Whether a pattern has a wildcard that can match a quoted name."""
+    return NAME_SLOT.search(pattern) is not None
+
+
+NAME_SLOT = re.compile(r"'(\[\^'\]|\\[wS]|\.)[*+]\??'|(?<!\\)\.[*+]")
+
+
 def whole(pattern: str) -> bool:
-    return pattern.startswith("^") and pattern.endswith("$")
+    """Whether a pattern is one ^...$, with no | outside a group or a class."""
+    depth, escaped, literal, in_class = 0, False, False, False
+    for c in pattern:
+        literal, escaped = escaped, c == "\\" and not escaped
+        if literal or escaped:
+            continue
+        if in_class:
+            in_class = c != "]"
+        elif c == "[":
+            in_class = True
+        elif c in "()":
+            depth += 1 if c == "(" else -1
+        elif c == "|" and depth == 0:
+            return False
+    return pattern.startswith("^") and pattern.endswith("$") and not literal
 
 
 if __name__ == "__main__":
