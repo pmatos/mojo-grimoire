@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and declarations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5291466686812682013")
+:::moduleDocs (fingerprint := "1207180170023051004")
 :::
 
 :::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.augCallee MojoGrimoire.Parse.exprStmt (fingerprint := "14674107341489909627")
@@ -89,7 +89,7 @@ function is a method. The destructor is recorded with `self` alone as its
 parameter (`deinitScope`), the scope in which the later passes check it.
 :::
 
-:::readable MojoGrimoire.Parse.decls MojoGrimoire.Parse.parseLines MojoGrimoire.Parse.parseRaw (fingerprint := "17787779178842599508")
+:::readable MojoGrimoire.Parse.decls MojoGrimoire.Parse.parseLines MojoGrimoire.Parse.parseRaw (fingerprint := "12826280870899432169")
 *Definition: programs.* A program is a sequence of structs and functions,
 in any order. The only decorator is `@fieldwise_init`. The parser is given
 ten times the number of tokens, plus a hundred, as fuel, which is more than

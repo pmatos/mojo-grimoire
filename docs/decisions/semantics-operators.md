@@ -155,6 +155,21 @@ Two `Bool`s also compare with `<`, `<=`, `>` and `>=`, `False` first, as
 `Int`s do (#185). A `Bool` compared with an `Int` is a type mismatch,
 and `1 < True` fits none of the literal's overloads.
 
+Within one statement, the model keeps `main`'s result wherever `main`
+agreed with the compiler, until #96 part 4 orders the model's errors as
+the compiler does (`Check.Block.bridged`). A statement, or a condition,
+that the checker rejects is checked again: when its only error is that
+of one converted comparison, that error stands; otherwise the statement
+is checked as `main` did, from the same state, with the body that
+`main`'s inference gave, and `main`'s error is reported. An error that
+the compiler finds as it types the program (a type mismatch, a missing
+method, an unknown name) stands over `main`'s implicit copy, use of an
+uninitialized value, or typing error. So `print([x] != [[1]], [[1], y]
+>= rl)` stays `typeMismatch` and `print([y^] != rl, [y, [x]] != rl)`
+stays `implicitCopy`, as `main` and the compiler say. A program of
+several statements is not bridged across statements; process.md's
+exceptions cover those.
+
 Not yet modelled. Each stays rejected, with a class that is still not
 the compiler's; where #185 changed the class, the bullet says so:
 

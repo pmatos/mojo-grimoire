@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.Stmt
+import MojoGrimoire.Check.Block
 
 /-!
 The checking of whole programs: their declarations, and the body of every
@@ -36,17 +36,18 @@ def checkDistinct : List Name → Except CheckError Unit
 
 /-- Checks the body of the function `fd`: its parameters and result must
 have declarable types, its origin must name parameters passed as locations,
-the body must be accepted, and, unless the function returns nothing, every
-path through it must return. -/
+the body must be accepted, checked beside the body that `main`'s inference
+gave it (`Program.twinBody`), and, unless the function returns nothing,
+every path through it must return. -/
 def checkBody (prog : Program) (fd : FunDecl) : Except CheckError Unit := do
   checkDistinct (fd.params.map (·.name))
   for prm in fd.params do
     unless validTy prog prm.ty do throw (typeError prm.ty)
   unless fd.result == .noneType || validTy prog fd.result do throw (typeError fd.result)
   checkOrigin fd
-  let start : State := ⟨fd.params.reverse.map paramState, true, [], []⟩
+  let start : State := { vars := fd.params.reverse.map paramState, live := true, stale := [], changes := [] }
   let ((), _) ← (do
-      checkBlock prog fd fd.body
+      checkBlock prog fd fd.body (prog.twinBody fd)
       if (← get).live then
         unless fd.result == Ty.noneType do throw (CheckError.missingReturn fd.name)
         checkExit prog).run start
@@ -115,7 +116,7 @@ def checkMethods (prog : Program) (sd : StructDecl) : Except Rejection Unit := d
   let lifecycle : List (Name × Except CheckError Unit) :=
     (sd.init.toList.map fun fd => (sd.name ++ ".__init__", checkInit prog sd.name fd)) ++
     sd.deinit.toList.map fun body => (sd.name ++ ".__deinit__",
-      checkBody prog ⟨"__deinit__", [⟨.deinit, "self", .struct sd.name⟩], .noneType, body, none⟩)
+      checkBody prog (deinitDecl sd.name body))
   for (where_, r) in lifecycle do
     if let .error e := r then
       if !(e matches .valueAsType _) then throw ⟨where_, e⟩

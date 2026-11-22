@@ -215,10 +215,11 @@ place whose value is not implicitly copyable (`heldCopy`), or an empty
 list built by `List[u]()`, which is no literal that the compiler
 converts (`emptyList`). The compiler builds such a literal, and copies
 the place, in an order against its conversion and its misfit that waits
-for #96. -/
+for #96. In a program checked as `main` did (`Program.mainMode`), every
+comparison keeps them. -/
 def keepsBefore (prog : Program) (op : BinOp) (a b : Expr) : CheckM Bool := do
-  pure (compares op &&
-    (emptyList a || emptyList b || (← heldCopy prog a) || (← heldCopy prog b)))
+  pure (compares op && (prog.mainMode ||
+    emptyList a || emptyList b || (← heldCopy prog a) || (← heldCopy prog b)))
 
 namespace Before
 
@@ -326,6 +327,19 @@ def methodBinaryTy (prog : Program) (op : BinOp) (ta tb : Ty) : Except CheckErro
   match binaryMisfit prog op (some ta) (some tb) with
   | some err => throw err
   | none => if (seqCompare op ta).isSome then pure .bool else binaryTy op ta tb
+
+/-- Checks the comparison `op` of `a` and `b` by `check`. In a probe of the
+bridge to `main`'s order (`State.probe`), the error of a comparison with
+a literal operand that holds no place whose value is not implicitly
+copyable (`heldCopy`) is let pass and counted (`State.swallowed`), and
+the comparison gives a `Bool`. -/
+def probed (prog : Program) (op : BinOp) (a b : Expr) (check : CheckM Ty) : CheckM Ty := do
+  unless (← get).probe && compares op && (a matches .list .. || b matches .list ..) do
+    return ← check
+  if (← heldCopy prog a) || (← heldCopy prog b) then return ← check
+  tryCatch check fun _ => do
+    modify fun s => { s with swallowed := s.swallowed + 1 }
+    pure .bool
 
 /-- Checks the operands `a` and `b` of the operator `op` in order, with
 `checkA` and `checkB`, which check them read by reference or not, or with

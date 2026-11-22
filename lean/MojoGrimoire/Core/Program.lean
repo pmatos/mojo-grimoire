@@ -55,10 +55,28 @@ structure StructDecl where
   methods : List FunDecl
   deriving BEq
 
-/-- A program: its structs and its functions. It runs by calling `main`. -/
+/-- A program: its structs and its functions. It runs by calling `main`.
+Inference also gives it the bodies that `main`'s inference gave, as
+functions, `twin`, for the checker's bridge to `main`'s order
+(`MojoGrimoire.Check.bridged`); `mainMode` holds in the program that
+infers and checks as `main` did. -/
 structure Program where
   structs : List StructDecl
   funs : List FunDecl
+  mainMode : Bool := false
+  twin : List FunDecl := []
   deriving BEq
+
+/-- The destructor of the struct `s`, whose body is `body`, as a function. -/
+def deinitDecl (s : Name) (body : List Stmt) : FunDecl :=
+  ⟨"__deinit__", [⟨.deinit, "self", .struct s⟩], .noneType, body, none⟩
+
+/-- The program `prog`, inferred and checked as `main` did. -/
+def Program.asMain (prog : Program) : Program := { prog with mainMode := true }
+
+/-- The body that `main`'s inference gave the function `fd` of the
+program `prog`, from its `twin`; empty when it has none. -/
+def Program.twinBody (prog : Program) (fd : FunDecl) : List Stmt :=
+  ((prog.twin.find? fun t => t.name == fd.name && t.params == fd.params).map (·.body)).getD []
 
 end MojoGrimoire.Core

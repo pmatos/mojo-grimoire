@@ -11,9 +11,9 @@ The readable blocks of the section that renders `MojoGrimoire.Check.Stmt`
 pins their fingerprint; the build fails when the Lean changes under it.
 -/
 
-#doc (Manual) "Statements and blocks: readable blocks" =>
+#doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4887886177569760108")
+:::moduleDocs (fingerprint := "14660296613388003945")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -65,13 +65,13 @@ compiler reports a parameter left uninitialized before a variable that may
 not end.
 :::
 
-:::readable MojoGrimoire.Check.endScope (fingerprint := "5094446271499096283")
+:::readable MojoGrimoire.Check.endScope (fingerprint := "16168758987743751515")
 *Rule: the end of a scope.* The variables a block declared end with it,
 each checked as above if the end of the block is reached, and leave the
 set of invalidated references.
 :::
 
-:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "3993288572809658863")
+:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "6012540623573725008")
 *Rule: joining branches.* After an `if`, a part is uninitialized when
 either branch leaves it so, and may hold a value when either branch may;
 $`M`, $`T` and $`P` are the unions of the branches' sets, and
@@ -133,8 +133,9 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "13371840907604808946")
-*Rule: statements.*
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "6974088445459692944")
+*Rule: statements.* A statement that holds no block is checked so; an
+`if` and a loop are checked by the rule of blocks, in the next section.
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a $`t` in which no variable hides
   a name, before anything else (`rejectHidden`, #193), a $`t` a variable may have
@@ -176,22 +177,10 @@ an expression, so a place is copied implicitly.
   `rejectCalledVar` rejects once the arguments are typed (#176), checks
   its arguments as above, then that its place arguments are still
   initialized and not invalidated;
-* `if` needs a $`\mathsf{Bool}` condition and joins its branches, each a
-  scope of its own; `while` needs a $`\mathsf{Bool}` condition and a
-  body that keeps what was initialized. When the body can reach its end,
-  the next iteration starts from the state before the loop with $`M`,
-  $`H`, $`T`, $`P` and the invalidated references joined with those the
-  body leaves; when that adds anything, the condition and the body are
-  checked once more from it. After the loop, which may have run any number
-  of times, the state is that one, with $`M`, $`H`, $`T` and $`P` of the
-  second check joined in too;
 * `return` needs a value of the result type exactly when the result type
   is not $`\mathsf{None}`, checks the state at a return, and makes what
   follows unreachable; a function that returns a reference returns a
   location whose origins are all within its own origin, as the previous
   section says;
 * `drop p` transfers $`p` away.
-
-A block checks its statements in order, and the changes recorded for
-operands start afresh with each statement.
 :::

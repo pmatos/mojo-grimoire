@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12061738227652241859")
+:::moduleDocs (fingerprint := "1912708455443848499")
 :::
 
 :::readable MojoGrimoire.Check.compares MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "12823475274059033023")
@@ -96,7 +96,7 @@ unknown and which inference did not give the operand's type, beside a
 list, or an array when that literal holds a literal.
 :::
 
-:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "5138753723612412073")
+:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "11081999233357894741")
 *Rule: comparisons that keep the checks they had before #166.* A
 literal holds the places that are its elements, at any depth. A
 comparison of which either operand is a literal that holds a place whose
@@ -105,7 +105,8 @@ value is not implicitly copyable, or is an empty list built by
 check it had before #166:
 the compiler builds such a literal, and copies the place, in an order
 against the literal's conversion and the comparison's misfit that waits
-for #96. Before #166, a comparison with a literal that the compiler
+for #96. In a program checked as `main` did, every comparison keeps
+them. Before #166, a comparison with a literal that the compiler
 converts, one that holds a literal with types not known to be the same,
 or one with no type of its own beside a list, found no misfit from the
 forms of its operands, passed neither by reference, and checked only a
@@ -133,6 +134,14 @@ A method that an operand's type lacks is `missingMethod`, and a
 comparison of arrays or lists that does not fit is its misfit, found
 again from the checked types; otherwise such a comparison gives a
 $`\mathsf{Bool}`, and any other operator's result is `binaryTy`'s.
+:::
+
+:::readable MojoGrimoire.Check.probed (fingerprint := "1966935561833114911")
+*Rule: a probe's comparisons.* In a probe of the bridge to `main`'s
+order, a comparison with a literal operand that holds no place whose
+value is not implicitly copyable is checked, and its error, if any, is
+let pass and counted: the comparison then gives a $`\mathsf{Bool}`. Out of a probe,
+and for any other comparison, the check is as it is.
 :::
 
 :::readable MojoGrimoire.Check.compareOperands (fingerprint := "8628745417993079286")

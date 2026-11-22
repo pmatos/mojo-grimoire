@@ -73,7 +73,7 @@ def stripStruct (sd : StructDecl) : StructDecl :=
 
 /-- A program with every `drop` erased. -/
 def stripProgram (prog : Program) : Program :=
-  ⟨prog.structs.map stripStruct, prog.funs.map stripFun⟩
+  { prog with structs := prog.structs.map stripStruct, funs := prog.funs.map stripFun }
 
 /-- Erasing drops distributes over the concatenation of blocks. -/
 theorem stripBlock_append (a b : List Stmt) :

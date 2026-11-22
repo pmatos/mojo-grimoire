@@ -17,6 +17,7 @@ import MojoSpec.Check.Compare
 import MojoSpec.Check.Expr
 import MojoSpec.Check.Ref
 import MojoSpec.Check.Stmt
+import MojoSpec.Check.Block
 import MojoSpec.Check.Program
 import MojoSpec.Elab.Live
 import MojoSpec.Elab.Origins

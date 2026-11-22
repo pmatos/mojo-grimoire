@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17705971239403810351")
+:::moduleDocs (fingerprint := "15973543951801641564")
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "11132557286140370220")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "3060004270383196943")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, or $`\mathsf{Int}` for the element of
@@ -64,7 +64,9 @@ an $`\mathsf{Int}`, and so is either operand of an operator other than
 that operand's type when it fits it: on the right, of the left operand,
 and on the left, of a right operand that is no literal and whose
 comparison conforms (#166), unless either operand is a literal that
-holds a place whose value is not implicitly copyable, or `List[u]()`. The right operand of $`==` or $`!=` whose
+holds a place whose value is not implicitly copyable, or `List[u]()`, or
+the program is in `main`'s mode, where every comparison keeps the
+expectations it had before #166. The right operand of $`==` or $`!=` whose
 left operand is a list is expected to have the list's type unless it
 does not fit it, as the argument of its `__eq__` or `__ne__` (#185). Each
 operand that is not a literal is inferred first, with no type expected,
@@ -115,13 +117,15 @@ inferred in order, each statement seeing the variables declared before it;
 the variables of an inner block do not leave it.
 :::
 
-:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.inferRaw MojoGrimoire.Parse.parse (fingerprint := "18083049466737510802")
+:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.bodies MojoGrimoire.Parse.inferRaw MojoGrimoire.Parse.parse (fingerprint := "11303823806694722010")
 *Definition: parsing a program.* Inference starts each function from its
 parameters, and each destructor from `self`. The values a function returns
 are expected to have its result type, unless it returns a reference: then
 none is expected, since a literal is no place. Parsing a program lexes and
 parses its text, marks the types whose name a variable hides
 (`markHidden`), replaces `Self` in each struct's methods (`resolveSelf`),
-and then infers inside every declaration (`inferRaw`). It does not check
+and then infers inside every declaration (`inferRaw`). It also infers
+them in `main`'s mode, and keeps the bodies that gives, each function's,
+initializer's, destructor's and method's, as the program's twin. It does not check
 the constructs outside the subset, which the driver's `parseSubset` does.
 :::

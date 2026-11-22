@@ -104,12 +104,17 @@ abbrev Shape := Name × List ShapeStep
 the current point can be reached, the references bound with `ref` that are
 invalidated, and the places changed as a whole so far in the current
 statement, in order. After a
-`return`, the current point cannot be reached. -/
+`return`, the current point cannot be reached. In a probe of the bridge
+to `main`'s order (`MojoGrimoire.Check.bridged`), `probe` holds, and
+`swallowed` counts the comparisons with a literal whose error the probe
+let pass (`MojoGrimoire.Check.probed`). -/
 structure State where
   vars : List VarState
   live : Bool
   stale : List Name
   changes : List Shape
+  probe : Bool := false
+  swallowed : Nat := 0
   deriving BEq
 
 /-- The monad of the checker: it reads and updates the state, and may reject

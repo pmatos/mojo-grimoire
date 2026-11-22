@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12442925559249693561")
+:::moduleDocs (fingerprint := "3164655617930960645")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8076625837927918720")
@@ -165,7 +165,7 @@ that the body never uses is destroyed before the body runs, and every
 other one right after its own last use, as the compiler does.
 :::
 
-:::readable MojoGrimoire.Elab.elabStruct MojoGrimoire.Elab.elabProgram (fingerprint := "8521216551808215384")
+:::readable MojoGrimoire.Elab.elabStruct MojoGrimoire.Elab.elabProgram (fingerprint := "16301212516985014332")
 *Definition: programs.* A program is elaborated function by function:
 every function, initializer, method and destructor.
 :::

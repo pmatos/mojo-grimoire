@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Functions, structs and programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11478824429510958497")
+:::moduleDocs (fingerprint := "7818169629107716470")
 :::
 
 :::readable MojoGrimoire.Core.Param (fingerprint := "15254264730588750988")
@@ -66,7 +66,19 @@ a move initializer for a struct that declares no conformance.
 Copy and move initializers are always the ones Mojo synthesizes.
 :::
 
-:::readable MojoGrimoire.Core.Program (fingerprint := "523312046829913975")
+:::readable MojoGrimoire.Core.Program (fingerprint := "7325342995571573723")
 *Definition: programs.* A program is a list of structs and a list of
-functions. It runs by calling the function $`\mathsf{main}`.
+functions. It runs by calling the function $`\mathsf{main}`. It also
+says whether it is inferred and checked as `main` did, and holds its
+twin: the bodies that inference gives in that mode, as functions, for the
+checker's bridge to `main`'s order (#166).
+:::
+
+:::readable MojoGrimoire.Core.deinitDecl MojoGrimoire.Core.Program.asMain MojoGrimoire.Core.Program.twinBody (fingerprint := "7655758454236778188")
+*Definition: twins.* A destructor is the function
+$`\mathsf{\_\_deinit\_\_}(\mathsf{deinit}~\mathsf{self})` of its
+struct that returns nothing. A program in `main`'s mode is the same
+program, inferred and checked as `main` did. The twin of a function's
+body is the body of the function of its twin with the same name and
+parameters, and is empty when there is none.
 :::
