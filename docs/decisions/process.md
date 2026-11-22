@@ -163,6 +163,18 @@ on 2026-11-22 (#247, #260).
 
 Rejected: allowing #247 and #260 alone, and holding both until #96 part 4.
 
+When the program without the fixed part agrees with the compiler, the PR
+may put a stand-in in the fixed part's place instead. A stand-in is one
+statement that, alone, gives the same result on `main`, on the PR and on
+the compiler as the fixed part gives alone on the PR, such as
+`var sy: Int = [1, 2]` for `noMatchingInit`. It may keep a declaration that
+the fixed part makes. With the stand-in in place, `main` and the PR give the
+PR's result for the program, and the compiler gives its own. The PR body
+lists each stand-in with its program. This also covers a program in which
+the PR fixes more than one part. The human ruled this on 2026-11-22 (#260).
+
+Rejected: no stand-in, which would leave most of #260's programs out.
+
 ### Review depth
 
 `REVIEW.md` at the root lists the high-stakes paths. Any PR that touches one
