@@ -18,16 +18,17 @@ args = sys.argv[2:]
 path = next(a for a in args if a.endswith(".mojo"))
 binary = args[args.index("-o") + 1]
 src = Path(path).read_text()
-for line in src.splitlines():
+lines = src.splitlines()
+for line in lines:
     if line.startswith("# CRASH ") and line.split()[2] in args:
         print("Segmentation fault", file=sys.stderr)
         sys.exit(139)
 if "REJECT" in src:
     print(path + ":1:1: error: use of uninitialized value 'a'", file=sys.stderr)
     sys.exit(1)
-out = [line.split("PRINT ", 1)[1] for line in src.splitlines() if "PRINT " in line]
-out += [line.split('"')[1] for line in src.splitlines() if 'print("' in line]
-for line in src.splitlines():
+out = [line.split("PRINT ", 1)[1] for line in lines if "PRINT " in line]
+out += [line.split('"')[1] for line in lines if 'print("' in line]
+for line in lines:
     if line.startswith("# LEVEL ") and line.split()[2] in args:
         out.append(line.split(None, 3)[3])
 code = 1 if "FAIL" in src else 0

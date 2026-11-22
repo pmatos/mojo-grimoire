@@ -3,7 +3,6 @@
 import io
 import json
 import os
-import re
 import subprocess
 import tempfile
 import unittest
@@ -400,17 +399,16 @@ class Suite(unittest.TestCase):
     def test_no_loose_pattern_can_take_a_quoted_name(self):
         patterns = [pattern for pattern, _ in load_patterns()]
         quoting = [p for p in patterns if "'[^']*'" in p or "'.*'" in p]
-        loose, wrong = [], [p for p in quoting if not whole(p)]
-        for p in patterns:
-            if p in quoting:
-                wrong += [
-                    f"{above} above {p}" for above in loose if takes_a_name(above)
-                ]
-            elif not whole(p):
-                loose.append(p)
+        first_loose = next(
+            (i for i, p in enumerate(patterns) if not whole(p)), len(patterns)
+        )
+        wrong = [p for p in quoting if not whole(p)]
+        wrong += [
+            f"{p} below a loose pattern" for p in patterns[first_loose:] if p in quoting
+        ]
         for name, recorded in recorded_rejections():
             message = recorded["diagnostic"]
-            first = next((p for p in patterns if re.search(p, message)), None)
+            first = classify(message, [(p, p) for p in patterns])
             if "'" in message and first not in quoting:
                 wrong.append(f"{name}: no whole pattern for {message}")
         self.assertEqual(wrong, [])
@@ -428,12 +426,6 @@ def recorded_rejections():
 
 def whole(pattern: str) -> bool:
     return pattern.startswith("^") and pattern.endswith("$")
-
-
-def takes_a_name(pattern: str) -> bool:
-    """Whether a loose pattern matches a quoted name made of its words."""
-    words = re.findall(r"[A-Za-z_]\w*", pattern)
-    return any(re.search(pattern, f"'{n}'") for n in [*words, "_".join(words)])
 
 
 if __name__ == "__main__":

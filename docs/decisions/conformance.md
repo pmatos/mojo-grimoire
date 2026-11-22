@@ -117,8 +117,8 @@ for a message that quotes a name is therefore matched whole, with each
 name a quoted `'[^']*'`, and placed above every loose pattern; the loose
 patterns stay below for wordings the pin has not shown. A test of the
 `conformance-test` hook fails when a pattern that quotes a name sits below
-a loose pattern that could match the name, or when a recorded message that
-quotes a name reaches a loose pattern first. The suite's
+any loose pattern, or when a recorded message that quotes a name reaches a
+loose pattern first. The suite's
 `rejected/mut_argument_named_like_other_errors` pins it. The dead
 `expected \d+ positional arguments?` pattern, which no message of the pin
 matches, is gone. The human ruled this on 2026-11-22 (#271). Rejected:
