@@ -18,8 +18,10 @@ were checked, so any error that the compiler reports in its later pass
 and that the checker finds after a struct test, in the same statement,
 was `main`'s `typeMismatch`, which is also the compiler's first error
 whenever that statement has a type error. Such an error is reported as
-`typeMismatch` still (`bridged`, `State.mainTests`); an error before the
-test is reported as it is, as on `main`. #96 part 4 removes the bridge.
+`main`'s still (`bridged`, `State.mainTests`): `typeMismatch`, or the
+misfit of an operator on the test's `Bool`, which `main` rejected once
+it had typed the operands (`mainOperator`). An error before the test is
+reported as it is, as on `main`. #96 part 4 removes the bridge.
 -/
 
 namespace MojoGrimoire.Check
@@ -39,32 +41,46 @@ def notOperand (a : Expr) (check : CheckM Ty) : CheckM Ty := do
   if let some (s, _) := boolTest a then mainTest s
   pure t
 
-/-- Rejects a struct test as `main` did, when the state replays `main`'s
-order, at the call of the operator method `f` of the struct `s` that
-inference made from an operator whose left operand is `and` or `or` of
-two operands of type `s`, with the operands `args`. `main` typed that
-left operand as a `Bool`; when the operator fits no `Bool`
-(`binaryMisfit`), it typed both operands before it read them, and so
-rejected the struct test first (`MojoGrimoire.Check.rejectAfter`). -/
-def mainOperator (prog : Program) (f : Name) (args : List Expr) : CheckM Unit := do
-  let (some (s, m, false), [.binary lop _ _, r]) := (calleeMethod f, args) | return
+/-- Follows `main`'s order, when the state replays it, at the call of the
+operator method `f` of a struct that inference made from an operator
+whose left operand, or whose one operand for `-`, is `and` or `or` of
+two operands of that struct, with the operands `args`, which `typing`
+types (`typeArgs`). `main` typed that operand as a `Bool`. When the
+operator fits no `Bool` (`binaryMisfit`, `unaryMisfit`), it typed the
+operands in `State.typing` before it read
+them, and then rejected the misfit (`MojoGrimoire.Check.rejectAfter`).
+Typing an operand stops at an error of a later pass, which it leaves
+out (`typeArg`), and at a struct test, which the replay rejects as `main`
+did (`mainTest`): so a test reached first is `typeMismatch`, and else the
+misfit itself, such as `missingMethod` for `+` on a `Bool`. -/
+def mainOperator (prog : Program) (f : Name) (args : List Expr) (typing : CheckM Unit) :
+    CheckM Unit := do
+  unless (← get).mainTests do return
+  let (some (_, m, false), .binary lop _ _ :: rest) := (calleeMethod f, args) | return
   unless lop == .and || lop == .or do return
-  let ops := [BinOp.add, .sub, .mul, .floorDiv, .mod, .lt, .le, .gt, .ge, .eq, .ne]
-  let some op := ops.find? (binaryMethod · == m) | return
-  if (binaryMisfit prog op (some .bool) (← operandTy prog r)).isSome then mainTest s
+  let misfit ← match rest with
+    | [] => pure (if m == "__neg__" then unaryMisfit prog .neg (some .bool) else none)
+    | [r] => do
+      let ops := [BinOp.add, .sub, .mul, .floorDiv, .mod, .lt, .le, .gt, .ge, .eq, .ne]
+      match ops.find? (binaryMethod · == m) with
+      | some op => pure (binaryMisfit prog op (some .bool) (← operandTy prog r))
+      | none => pure none
+    | _ => pure none
+  if let some err := misfit then rejectAfter typing err
 
 /-- Runs `check`, the check of one statement or of a condition. When it
 throws an error of the compiler's later pass (`CheckError.late`), it is
 run again from the same state replaying `main`'s order
-(`State.mainTests`): when a struct test comes first, it is reported as
-`main`'s `typeMismatch`, and else the error stands. A temporary bridge
-until #96 part 4. -/
+(`State.mainTests`), which differs only where `main` rejected a struct
+test (`mainTest`, `mainOperator`): when the replay ends in an error that
+is not of the later pass, it is `main`'s and is reported, and else the
+error stands. A temporary bridge until #96 part 4. -/
 def bridged {α : Type} (check : CheckM α) : CheckM α :=
   tryCatch check fun err => do
     unless err.late do throw err
     modify fun st => { st with mainTests := true }
     let replayed ← tryCatch (do let _ ← check; pure err) pure
-    throw (if replayed matches .typeMismatch .. then replayed else err)
+    throw (if replayed.late then err else replayed)
 
 /-- The type of the binary operation `a op b`, of operand types `ta` and `tb`
 (`methodBinaryTy`), once both operands are checked, the places among

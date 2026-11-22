@@ -174,11 +174,12 @@ compiler and `main` report it. One found before the test stays as it is,
 as on `main`: `print(x.n, y.f or y)` after `x^` is `uninitializedUse`.
 Where `main` typed an operator's operands before it read them, because
 it typed `and` or `or` of two structs as a `Bool` that the operator does
-not take, the bridge rejects that test first too (`mainOperator`):
-`(y or x) + k` after `x^`. The bridge gives up the compiler's later-pass
-error where it comes after a struct test in a statement with no type
-error, such as `b = (x^ or y) and x.f` with `b` a `Bool`, which the
-compiler reports as `uninitializedUse`.
+not take, the bridge does so too, and then rejects the misfit
+(`mainOperator`): `(y or x) + k` after `x^` is `typeMismatch`, and
+`(y or S(xs[1 - 2], True)) + y` is `missingMethod`. The bridge gives up
+the compiler's later-pass error where it comes after a struct test in a
+statement with no type error, such as `b = (x^ or y) and x.f` with `b` a
+`Bool`, which the compiler reports as `uninitializedUse`.
 
 Rejected: mapping either message to an existing class, `noMatchingInit`,
 `typeMismatch` or `unknownAttribute`, which would merge errors that the

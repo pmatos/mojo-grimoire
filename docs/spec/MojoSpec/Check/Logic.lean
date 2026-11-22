@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2677876846220635374")
+:::moduleDocs (fingerprint := "724308576665878414")
 :::
 
-:::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.notOperand MojoGrimoire.Check.mainOperator MojoGrimoire.Check.bridged (fingerprint := "11158994644876913621")
+:::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.notOperand MojoGrimoire.Check.mainOperator MojoGrimoire.Check.bridged (fingerprint := "4467519237420989325")
 *Rule: the bridge to `main`'s order (temporary, until #96 part 4).*
 `main` rejected a test of a struct, by $`\mathsf{and}`, $`\mathsf{or}` or
 $`\mathsf{not}`, as $`\mathsf{typeMismatch}` once its operands were
@@ -25,15 +25,18 @@ throws an error of the compiler's later pass (`CheckError.late`), it is
 checked again from the same state, replaying `main`'s order
 (`State.mainTests`). In that replay, a struct test is rejected as
 $`\mathsf{typeMismatch}` where `main` rejected it: once the operands of
-$`\mathsf{and}` or $`\mathsf{or}` are checked (`checkedBinaryTy`), once
-the operand of $`\mathsf{not}` is (`notOperand`), and, for an operator
-that inference made a call of a struct's method whose left operand is
-$`\mathsf{and}` or $`\mathsf{or}` of two operands of that struct type,
-before its operands are read, when the operator takes no
-$`\mathsf{Bool}` (`binaryMisfit`), since `main` typed that operand as a
-$`\mathsf{Bool}` and typed the operands first (`mainOperator`). When the
-replay reaches such a test before the error, the statement is
-$`\mathsf{typeMismatch}`, as on `main`; else the error stands.
+$`\mathsf{and}` or $`\mathsf{or}` are checked (`checkedBinaryTy`), and once
+the operand of $`\mathsf{not}` is (`notOperand`). For an operator that
+inference made a call of a struct's method whose left operand, or whose
+one operand for `-`, is $`\mathsf{and}` or $`\mathsf{or}` of two operands
+of that struct type, `main` typed that operand as a $`\mathsf{Bool}`:
+when the operator takes no $`\mathsf{Bool}` (`binaryMisfit`,
+`unaryMisfit`), it typed the operands before it read them, leaving out
+an error of the later pass and stopping at a struct test, and then
+rejected the misfit, such as $`\mathsf{missingMethod}` for `+` on a
+$`\mathsf{Bool}` (`mainOperator`). When the replay ends in an error that
+is not of the later pass, the statement has that error, as on `main`;
+else the first error stands.
 :::
 
 

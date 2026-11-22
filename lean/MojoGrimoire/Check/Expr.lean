@@ -44,7 +44,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     if copyingOf prog t == .none then throw (CheckError.notCopyable t)
     pure t
   | .call f args => do
-    mainOperator prog f args
+    mainOperator prog f args (typeArgs prog args)
     if let .place p :: _ := args then
       if inPlaceCallee f then
         let s ← get

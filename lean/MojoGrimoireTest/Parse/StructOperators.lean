@@ -149,6 +149,7 @@ private def bridge (body : List String) : Option Outcome :=
     "    def __init__(out self, n: Int, f: Bool):", "        self.n = n", "        self.f = f",
     "    def __bool__(self) -> Bool:", "        return self.f",
     "    def __add__(self, o: S) -> S:", "        return S(self.n + o.n, self.f)",
+    "    def __neg__(self) -> S:", "        return self",
     "def main():", "    var x = S(1, False)", "    var y = S(2, True)",
     "    var xs: List[Int] = [1, 2, 3]", "    var k = 1"] ++ body.map ("    " ++ ·))
 private def mainMismatch (body : List String) : Bool :=
@@ -160,6 +161,14 @@ private def mainMismatch (body : List String) : Bool :=
 #guard mainMismatch ["var w: List[Int] = (y.f or y) and xs[5] > 0"]
 #guard mainMismatch ["var w = k + ((True and x^) or x.f)"]
 #guard mainMismatch ["var b = False", "b = (x^ or S(3, True)) and x.f"]
+#guard mainMismatch ["var c = x^", "var z = -(y or x)"]
+-- Where an operator fits no `Bool`, `main` typed its operands, leaving out
+-- a later-pass error, and then rejected the misfit (`mainOperator`); the
+-- pin's `negativeIndex` comes from its passes' order (#96).
+#guard bridge ["var z = (y or S(xs[1 - 2], True)) + y"]
+  matches some (.rejected ⟨"main", .missingMethod ..⟩)
+#guard bridge ["var z = -(y or S(xs[1 - 2], True))"]
+  matches some (.rejected ⟨"main", .missingMethod ..⟩)
 #guard bridge ["var c = x^", "print(x.n, y.f or y)"] ==
   some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "n")⟩)
 #guard bridge ["var c = x^", "var w = (x.f and y.f) or y"] ==
