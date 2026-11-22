@@ -42,7 +42,8 @@ are typed (#190). A misfit of a method's overload set is found as
 an ordinary call finds its misfit, once its argument is read, so an
 uninitialized place passed as an argument of the wrong type is still
 `uninitializedUse` first, where the compiler reports `noMatchingMethod`:
-that order across the compiler's passes is left to #96. A value that is
+that order across the compiler's passes is left to #96, but for an
+operand of a binary operator (`MojoGrimoire.Check.binaryOperands`). A value that is
 not a place converts to the type it initializes, or to its parameter's,
 as the compiler types it, so a mismatch that its form shows comes before
 a use of an uninitialized value inside it (`checkValue`).

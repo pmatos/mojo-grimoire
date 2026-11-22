@@ -22,16 +22,20 @@ open MojoGrimoire.Core
 
 /-- Checks the operands `a` and `b` of the binary operator `op` by `check`.
 When `check` throws `uninitializedUse`, and the forms of `a` and `b`,
-neither of them a literal, give types (`operandTy`) that `op` rejects
-(`methodBinaryTy`), as in `k + ((t(0) and x^) or x.f)` with `k` an `Int`,
-that error is reported instead: the compiler finds it as it types the
-operands, before the later pass that finds the uninitialized use. -/
+neither of them a literal, give types (`operandTy`) that `op` rejects,
+as in `k + ((t(0) and x^) or x.f)` with `k` an `Int`, that error is
+reported instead: the compiler finds it as it types the operands, before
+the later pass that finds the uninitialized use. A right operand passed
+as an argument (`rightParam`) misfits as the argument does (`expectArg`),
+and any other operation as `methodBinaryTy` says. -/
 def binaryOperands {α : Type} (prog : Program) (op : BinOp) (a b : Expr) (check : CheckM α) :
     CheckM α :=
   tryCatch check fun err => do
     if err matches .uninitializedUse _ && !(a matches .list ..) && !(b matches .list ..) then
       if let (some ta, some tb) := (← operandTy prog a, ← operandTy prog b) then
-        if let .error e := methodBinaryTy prog op ta tb then throw e
+        match rightParam op a b ta with
+        | some (fit, prm) => expectArg fit prm.ty tb
+        | none => if let .error e := methodBinaryTy prog op ta tb then throw e
     throw err
 
 /-- The type of the binary operation `a op b`, of operand types `ta` and `tb`
