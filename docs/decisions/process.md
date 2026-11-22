@@ -135,6 +135,20 @@ human ruled this on 2026-11-22 (#96, Q10).
 Rejected: holding each part until those issues are fixed, and excluding the
 constructs.
 
+A second exception holds for any PR, for a program of several statements
+that agreed on `main` only by coincidence: `main` rejected one statement
+wrongly, with the class that the compiler gives for another. A PR that fixes
+the first statement may change such a program from one rejection class to
+another. The PR body lists each such program with split evidence: the fixed
+statement alone now agrees with the compiler, and the other statement alone
+gives the same result on `main` and on the PR. It also names the open issue
+that tracks the other statement. The exception never covers a run that
+becomes a rejection, or the reverse, and never covers a suite program. The
+human ruled this on 2026-11-22 (#260).
+
+Rejected: an exception for #260 alone, and holding #260 until the other
+statements are fixed.
+
 ### Review depth
 
 `REVIEW.md` at the root lists the high-stakes paths. Any PR that touches one
