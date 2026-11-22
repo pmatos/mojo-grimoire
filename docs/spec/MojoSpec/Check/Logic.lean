@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1771571680025282908")
+:::moduleDocs (fingerprint := "11698728972380291614")
 :::
 
 :::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.mainRead MojoGrimoire.Check.notOperand MojoGrimoire.Check.bridged (fingerprint := "6338148377418169451")
@@ -36,7 +36,7 @@ ends in an error that is not of the compiler's later pass
 the first error stands.
 :::
 
-:::readable MojoGrimoire.Check.sameTest MojoGrimoire.Check.mainFormTy MojoGrimoire.Check.methodOperator MojoGrimoire.Check.mainCallee MojoGrimoire.Check.mainOperator (fingerprint := "16305368434531992272")
+:::readable MojoGrimoire.Check.sameTest MojoGrimoire.Check.mainFormTy MojoGrimoire.Check.methodOperator MojoGrimoire.Check.mainCallee MojoGrimoire.Check.mainOperator (fingerprint := "16942837470254231290")
 *Rule: an operator on a struct test, in the replay.* An operand that is
 $`\mathsf{and}` or $`\mathsf{or}` of two operands of the same struct
 type has that type, and inference may call a method of that struct for
@@ -53,7 +53,10 @@ When it chose none, `main` rejected the operator's misfit on those types
 ($`\mathsf{missingMethod}`, `operandMisfit`; for `-`, `unaryMisfit`)
 once it had typed the operands, leaving out an error of the later pass
 and stopping at a struct test; with no misfit, it read the operands in
-order, as the call does (`mainOperator`).
+order, as the call does (`mainOperator`). An operator that inference
+left as it is, with no method of the test's struct, finds its misfit
+with the test typed as a $`\mathsf{Bool}` in the replay too
+(`mainFormTy`), as `main` did.
 :::
 
 :::readable MojoGrimoire.Check.checkedBinaryTy (fingerprint := "55630740569557395")

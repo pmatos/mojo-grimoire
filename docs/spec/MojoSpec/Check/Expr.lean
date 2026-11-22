@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10132331495612260666")
+:::moduleDocs (fingerprint := "16915458933406239133")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "11225520926410840882")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "6749741626820853425")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -45,8 +45,10 @@ type:
   lacks the method is `missingMethod`, once its arguments are typed;
 * operators have the types above, but a method that an operand's type
   lacks is `missingMethod` (#176): found from the operands' types
-  (`operandTy`, `binaryMisfit`, `unaryMisfit`) before they are read, once
-  both are typed by `typeArg`, and else from their checked types. The
+  (`operandTy`, `binaryMisfit`, `unaryMisfit`; in the bridge's replay, a
+  same-type struct test has `main`'s type, `mainFormTy`) before they are
+  read, once both are typed by `typeArg`, and else from their checked
+  types. The
   right operand of an operator whose left operand is an integer literal
   expression (`intLiteral`), but `and` and `or`, is passed as to a `read`
   $`\mathsf{Int}` parameter of a method with several overloads: one that

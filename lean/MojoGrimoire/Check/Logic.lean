@@ -18,7 +18,8 @@ were checked, so an error that the checker finds after a struct test, in
 the same statement, was `main`'s `typeMismatch`, or an error that
 `main` found first, in an order of its own. Such a statement is checked
 again replaying `main`'s order (`bridged`, `State.mainTests`), and
-`main`'s error is reported. An error of the test itself, such as a
+`main`'s error is reported, unless it is of the compiler's later pass:
+then the first error stands. An error of the test itself, such as a
 `__bool__` that returns no `Bool`, comes before `main`'s rejection in
 the replay, so it stays. #96 part 4 removes the bridge.
 -/
@@ -61,10 +62,11 @@ def sameTest (prog : Program) (e : Expr) : CheckM Bool :=
     pure ((op == .and || op == .or) && (← operandTy prog e) matches some (.struct _))
   | _ => pure false
 
-/-- The type that `main` found from the form of the operand `e`
-(`operandTy`): a `Bool` for a same-type test (`sameTest`). -/
+/-- The type of the operand `e` found from its form (`operandTy`), but a
+`Bool` for a same-type test (`sameTest`) when the state replays `main`'s
+order, as `main` typed it. -/
 def mainFormTy (prog : Program) (e : Expr) : CheckM (Option Ty) := do
-  if ← sameTest prog e then pure (some .bool) else operandTy prog e
+  if (← get).mainTests && (← sameTest prog e) then pure (some .bool) else operandTy prog e
 
 /-- The binary operator whose method, or whose reflected method when
 `reflected` holds, is `m`. -/
