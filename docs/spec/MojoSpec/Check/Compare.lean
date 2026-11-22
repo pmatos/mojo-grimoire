@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16565483026404157407")
+:::moduleDocs (fingerprint := "12061738227652241859")
 :::
 
 :::readable MojoGrimoire.Check.compares MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "12823475274059033023")
@@ -73,7 +73,7 @@ expected: the order of SIMD's failure and the reads waits for #96, and
 such a literal keeps the checks it had before #166.
 :::
 
-:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "14571024578248442231")
+:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "11155200522209564073")
 *Rule: operands of a comparison of arrays or lists.* The misfit of a
 binary operator is found from its operands' forms before they are read
 (`operandTy`). A literal on the right of a comparison is converted to
@@ -96,11 +96,13 @@ unknown and which inference did not give the operand's type, beside a
 list, or an array when that literal holds a literal.
 :::
 
-:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "16522449740450748819")
+:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "5138753723612412073")
 *Rule: comparisons that keep the checks they had before #166.* A
 literal holds the places that are its elements, at any depth. A
 comparison of which either operand is a literal that holds a place whose
-value is not implicitly copyable keeps every check it had before #166:
+value is not implicitly copyable, or is an empty list built by
+`List[u]()`, which is no literal the compiler converts, keeps every
+check it had before #166:
 the compiler builds such a literal, and copies the place, in an order
 against the literal's conversion and the comparison's misfit that waits
 for #96. Before #166, a comparison with a literal that the compiler

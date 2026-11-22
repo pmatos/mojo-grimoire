@@ -33,7 +33,7 @@ that operand's type, as the argument of its comparison method, when it
 fits it (`MojoGrimoire.Check.literalFits`): on the right, of the left
 operand, and on the left, of a right operand that is no literal and
 whose comparison conforms (#166), unless either operand is a literal that
-holds a place whose value is not implicitly copyable.
+holds a place whose value is not implicitly copyable, or `List[u]()`.
 The right operand of `==` or `!=` whose left operand is a list is
 expected to have the list's type unless it does not fit it, also when its
 fit is not known (#185). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
@@ -149,7 +149,8 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
       let m := if reflected then reflectedMethod op else binaryMethod op
       (.call (methodCallee s m reflected) [a', b'], some fd.result)
     | none =>
-    let before := compares op && (env.heldCopy prog a || env.heldCopy prog b)
+    let before := compares op && (emptyList a || emptyList b ||
+      env.heldCopy prog a || env.heldCopy prog b)
     let (a', ta) := if a matches .list .. then
         if tb₀ == some .int then inferExpr prog env .int a
         else if before then inferExpr prog env .unknown a

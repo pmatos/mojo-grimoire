@@ -26,16 +26,16 @@ Inference gives a literal that fits that type, and the checker checks
 one on the right against the parameter of the method (`rightParam`). One
 that does not fit is a type mismatch, found before the operands are
 read. A comparison with a literal that holds a place whose value is not
-implicitly copyable keeps the checks it had before #166 (`keepsBefore`):
-the compiler builds the literal, and copies the place, in an order
-against its conversion that waits for #96. A literal on the left that
-holds an inner literal of another length than one where an `Int` is
-expected is not converted: the order of SIMD's failure and the reads
-waits for #96. An element type that holds a struct waits for its
-conformances (#194), and a literal that would initialize a `Bool` for
-#165: those comparisons keep the checks they had before #166. A list of
-structs compared with an empty literal, `List[P]() == []`, is a type
-mismatch where the compiler gives `violatedConstraint` (#194).
+implicitly copyable or one with `List[u]()`, keeps the checks it had
+before #166 (`keepsBefore`): the compiler builds the literal, and copies
+the place, in an order against its conversion that waits for #96. A
+literal on the left that holds an inner literal of another length than
+one where an `Int` is expected is not converted: the order of SIMD's
+failure and the reads waits for #96. An element type that holds a struct
+waits for its conformances (#194), and a literal that would initialize a
+`Bool` for #165: those comparisons keep the checks they had before #166.
+A list of structs compared with an empty literal, `List[P]() == []`, is
+a type mismatch where the compiler gives `violatedConstraint` (#194).
 -/
 
 namespace MojoGrimoire.Check
@@ -202,13 +202,23 @@ def heldCopy (prog : Program) (e : Expr) : CheckM Bool := do
       if copyingOf prog t != .implicit then return true
   pure false
 
+/-- Whether the expression `e` is an empty list built by `List[u]()`, which
+the parser gives as a literal of its type; inference gives that form to
+an empty literal it types as a list, too. -/
+def emptyList : Expr → Bool
+  | .list (.list _) [] => true
+  | _ => false
+
 /-- Whether the comparison `op` of `a` and `b` keeps the checks it had
 before #166 (`Before`): when either operand is a literal that holds a
-place whose value is not implicitly copyable (`heldCopy`). The compiler
-builds such a literal, and copies the place, in an order against its
-conversion and its misfit that waits for #96. -/
+place whose value is not implicitly copyable (`heldCopy`), or an empty
+list built by `List[u]()`, which is no literal that the compiler
+converts (`emptyList`). The compiler builds such a literal, and copies
+the place, in an order against its conversion and its misfit that waits
+for #96. -/
 def keepsBefore (prog : Program) (op : BinOp) (a b : Expr) : CheckM Bool := do
-  pure (compares op && ((← heldCopy prog a) || (← heldCopy prog b)))
+  pure (compares op &&
+    (emptyList a || emptyList b || (← heldCopy prog a) || (← heldCopy prog b)))
 
 namespace Before
 

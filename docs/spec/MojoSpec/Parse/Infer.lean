@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5359169806149198755")
+:::moduleDocs (fingerprint := "17705971239403810351")
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "51066898229860360")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "11132557286140370220")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, or $`\mathsf{Int}` for the element of
@@ -64,7 +64,7 @@ an $`\mathsf{Int}`, and so is either operand of an operator other than
 that operand's type when it fits it: on the right, of the left operand,
 and on the left, of a right operand that is no literal and whose
 comparison conforms (#166), unless either operand is a literal that
-holds a place whose value is not implicitly copyable. The right operand of $`==` or $`!=` whose
+holds a place whose value is not implicitly copyable, or `List[u]()`. The right operand of $`==` or $`!=` whose
 left operand is a list is expected to have the list's type unless it
 does not fit it, as the argument of its `__eq__` or `__ne__` (#185). Each
 operand that is not a literal is inferred first, with no type expected,

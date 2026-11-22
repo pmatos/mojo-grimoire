@@ -121,4 +121,11 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["var y: List[Int] = [1]", "print([y.copy()] < [y])"]
   (.violatedConstraint (.array (.list .int) 1) "__lt__")
 
+-- `List[u]()` is no literal that the compiler converts: a list has no
+-- order, before any conversion.
+#guard rejects ["var a = [1, 2]", "print(List[Int]() < a)"] (.missingMethod (.list .int) "__lt__")
+#guard rejects ["var a = [True]", "print(List[Bool]() >= a)"] (.missingMethod (.list .bool) "__ge__")
+#guard rejects ["var a = [[1, 2]]", "print(List[Array[Int, 2]]() <= a)"]
+  (.missingMethod (.list (.array .int 2)) "__le__")
+
 end MojoGrimoireTest.Parse.LiteralCompare

@@ -166,6 +166,8 @@ the compiler's; where #185 changed the class, the bullet says so:
   waits for #96. The comparison keeps every check it had before #166
   (`keepsBefore`): most are `implicitCopy`, as the compiler says, but
   `xs == [ys]`, a type mismatch for the compiler, is `implicitCopy` too.
+  So does a comparison with `List[u]()`, which is no literal the
+  compiler converts: `List[Int]() < a` is `missingMethod`, as it says.
 - A literal on the left that holds an inner literal of another length
   where an `Int` is expected, `[[1, 2], 3] == a`. The compiler converts
   it, fails SIMD's constraint (`noMatchingInit`) in a later pass than its
