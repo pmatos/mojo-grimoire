@@ -104,12 +104,15 @@ abbrev Shape := Name × List ShapeStep
 the current point can be reached, the references bound with `ref` that are
 invalidated, and the places changed as a whole so far in the current
 statement, in order. After a
-`return`, the current point cannot be reached. -/
+`return`, the current point cannot be reached. `mainTests` is set only
+while a statement is checked again to replay `main`'s order, in which a
+struct test is rejected (`MojoGrimoire.Check.bridged`). -/
 structure State where
   vars : List VarState
   live : Bool
   stale : List Name
   changes : List Shape
+  mainTests : Bool := false
   deriving BEq
 
 /-- The monad of the checker: it reads and updates the state, and may reject

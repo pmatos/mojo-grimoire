@@ -244,9 +244,7 @@ def checkConstructed (prog : Program) (p : Place) (e : Expr) : CheckM Unit := do
 where `t` is not a list or an array, fits no initializer of `t`: Mojo calls
 `t`'s initializer with the elements, which none takes (#46). A literal of
 any length but 1 where an `Int` is expected initializes it, and fits no
-initializer (`rejectIntLiteral`, #153, #154). A value of another type is a
-mismatch, reported before a use of an uninitialized value inside it
-(`expectValue`). -/
+initializer (`rejectIntLiteral`, #153, #154). -/
 def checkInitValue (prog : Program) (t : Ty) (e : Expr) (value : CheckM Ty) : CheckM Unit := do
   if let some es := wrongIntLiteral e then
     rejectIntLiteral prog (.init t) (intMisfit prog es) (readIntElems prog es)
@@ -254,7 +252,7 @@ def checkInitValue (prog : Program) (t : Ty) (e : Expr) (value : CheckM Ty) : Ch
     unless t matches .list _ | .array .. do
       checkOperands prog es
       throw (CheckError.noMatchingInit t)
-  expectValue prog .call t e value
+  expect t (← value)
 
 /-- The type of the value of `return e`: a variable that the function owns
 is moved out, and any other expression is checked as usual. -/
@@ -292,7 +290,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
         let u ← placeTy prog p
         checkInitValue prog u e (checkExpr prog e)
         pure u
-      else checkValue prog .call (placeTy prog p) e (checkExpr prog e)
+      else checkExpr prog e
     checkIndices prog p
     expect (← placeTy prog p) t
     checkConstructed prog p e
@@ -324,7 +322,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark
     recheckPlaces prog args ks
   | .ifElse c thenBlock elseBlock => do
-    expect .bool (← checkExpr prog c)
+    expect .bool (← bridged (checkExpr prog c))
     let s0 ← get
     checkScope prog sig thenBlock
     let s1 ← get
@@ -332,7 +330,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     checkScope prog sig elseBlock
     set (joinStates s1 (← get))
   | .whileLoop c body => do
-    expect .bool (← checkExpr prog c)
+    expect .bool (← bridged (checkExpr prog c))
     let s0 ← get
     checkScope prog sig body
     let s1 ← get
@@ -341,7 +339,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
                                           stale := union s0.stale s1.stale } else s0
     if head != s0 then
       set head
-      expect .bool (← checkExpr prog c)
+      expect .bool (← bridged (checkExpr prog c))
       checkScope prog sig body
       let s2 ← get
       set (if s2.live then { head with vars := List.zipWith joinMay head.vars s2.vars } else head)
@@ -374,7 +372,8 @@ def checkBlock (prog : Program) (sig : FunDecl) : List Stmt → CheckM Unit
   | [] => pure ()
   | s :: rest => do
     modify fun st => { st with changes := [] }
-    checkStmt prog sig s
+    if s matches .ifElse .. | .whileLoop .. then checkStmt prog sig s
+    else bridged (checkStmt prog sig s)
     checkBlock prog sig rest
 end
 

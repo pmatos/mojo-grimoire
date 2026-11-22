@@ -13,27 +13,31 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8493855474499774398")
+:::moduleDocs (fingerprint := "2677876846220635374")
 :::
 
-:::readable MojoGrimoire.Check.binaryOperands (fingerprint := "2547842348004514096")
-*Rule: an operator's types come before a use of an uninitialized value.*
-The compiler finds that a binary operator rejects its operands' types as
-it types them, before the later pass that finds a use of an
-uninitialized value. So when checking the operands of an operator other
-than $`\mathsf{and}` and $`\mathsf{or}` gives
-$`\mathsf{uninitializedUse}`, both have a shape and one holds a test of
-a struct (`logicShape`), and their forms give types (`operandTy`) that
-the operator rejects, that error is reported instead, as on `main`: in
-$`k + ((t(0)~\mathsf{and}~x\,\hat{})~\mathsf{or}~x.f)` with $`k` an
-$`\mathsf{Int}`, the $`\mathsf{Bool}` that $`+` does not take. A right
-operand passed as an argument (`rightParam`), such as the one of an
-integer literal's operator, misfits as that argument does (`expectArg`),
-$`\mathsf{noMatchingMethod}` for the literal's overloads; any other
-operation misfits as `methodBinaryTy` says.
+:::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.notOperand MojoGrimoire.Check.mainOperator MojoGrimoire.Check.bridged (fingerprint := "11158994644876913621")
+*Rule: the bridge to `main`'s order (temporary, until #96 part 4).*
+`main` rejected a test of a struct, by $`\mathsf{and}`, $`\mathsf{or}` or
+$`\mathsf{not}`, as $`\mathsf{typeMismatch}` once its operands were
+checked. When a statement, or the condition of an `if` or a `while`,
+throws an error of the compiler's later pass (`CheckError.late`), it is
+checked again from the same state, replaying `main`'s order
+(`State.mainTests`). In that replay, a struct test is rejected as
+$`\mathsf{typeMismatch}` where `main` rejected it: once the operands of
+$`\mathsf{and}` or $`\mathsf{or}` are checked (`checkedBinaryTy`), once
+the operand of $`\mathsf{not}` is (`notOperand`), and, for an operator
+that inference made a call of a struct's method whose left operand is
+$`\mathsf{and}` or $`\mathsf{or}` of two operands of that struct type,
+before its operands are read, when the operator takes no
+$`\mathsf{Bool}` (`binaryMisfit`), since `main` typed that operand as a
+$`\mathsf{Bool}` and typed the operands first (`mainOperator`). When the
+replay reaches such a test before the error, the statement is
+$`\mathsf{typeMismatch}`, as on `main`; else the error stands.
 :::
 
-:::readable MojoGrimoire.Check.checkedBinaryTy (fingerprint := "12617917204618938053")
+
+:::readable MojoGrimoire.Check.checkedBinaryTy (fingerprint := "12342285791881911388")
 *Rule: binary operations.* Once both operands are checked, the places
 among them that are read late are checked again, but for `and` and `or`,
 whose operands are read when tested; the operation then has the type
@@ -52,5 +56,7 @@ operand on either path, even of a temporary or a transfer, since the
 left operand may be the result: a struct that is not `ImplicitlyCopyable`
 is `implicitCopy`. The model moves a transfer $`p\,\hat{}` out of
 $`p` there, where the compiler, on the left of a mixed `and` or `or`,
-only borrows it and leaves $`p` initialized (#84).
+only borrows it and leaves $`p` initialized (#84). When the state
+replays `main`'s order, a struct test is rejected once both operands are
+checked, as `main` rejected it (`mainTest`).
 :::

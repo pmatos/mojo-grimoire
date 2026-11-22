@@ -139,34 +139,38 @@ private def moveT (body : List String) : List String :=
   some (.rejected ⟨"main", .implicitCopy (.struct "T")⟩)
 #guard runLines (moveT ["print(True and T(4), not T(0))"]) == some (.finished ["True True"])
 
--- A value whose type does not convert to what it initializes is a
--- mismatch before a use of an uninitialized value inside it: the compiler
--- converts it as it types it (`checkValue`). The `and` of `x^` and a
--- `Bool` borrows `x` on the pin (#84); the conversion fails first.
-private def moved (body : List String) : List String :=
-  withT [m "__bool__" "" "Bool" "self.n > 0"] (["var x = T(1)", "var y = T(2)"] ++ body)
-#guard runLines (moved ["y = (True and x^) or x.n > 0"]) ==
-  some (.rejected ⟨"main", .typeMismatch (.struct "T") .bool⟩)
-#guard runLines (moved ["var z: Int = (True and x^) or x.n > 0"]) ==
-  some (.rejected ⟨"main", .typeMismatch .int .bool⟩)
-#guard runLines (moved ["g((True and x^) or x.n > 0)"] ++ ["def g(t: T):", "    pass"]) ==
-  some (.rejected ⟨"main", .typeMismatch (.struct "T") .bool⟩)
-#guard runLines (moved ["var k = 1", "var n = k + ((True and x^) or x.n > 0)"]) ==
-  some (.rejected ⟨"main", .typeMismatch .int .bool⟩)
-#guard runLines (moved ["var k = 1", "var n = k < ((True and x^) or x.n > 0)"]) ==
-  some (.rejected ⟨"main", .typeMismatch .int .bool⟩)
--- Without a test of a struct, `main`'s order stays: the pin's
+-- The bridge to `main`'s order (`bridged`, until #96 part 4). `main`
+-- rejected a struct test as `typeMismatch` once its operands were checked,
+-- and so did any statement whose later-pass error comes after the test,
+-- which the pin reports as `typeMismatch` too when the statement has a
+-- type error: so it is still. An error before the test stays as it is.
+private def bridge (body : List String) : Option Outcome :=
+  runLines (["struct S(ImplicitlyCopyable):", "    var n: Int", "    var f: Bool",
+    "    def __init__(out self, n: Int, f: Bool):", "        self.n = n", "        self.f = f",
+    "    def __bool__(self) -> Bool:", "        return self.f",
+    "    def __add__(self, o: S) -> S:", "        return S(self.n + o.n, self.f)",
+    "def main():", "    var x = S(1, False)", "    var y = S(2, True)",
+    "    var xs: List[Int] = [1, 2, 3]", "    var k = 1"] ++ body.map ("    " ++ ·))
+private def mainMismatch (body : List String) : Bool :=
+  bridge body matches some (.rejected ⟨"main", .typeMismatch ..⟩)
+#guard mainMismatch ["y = (True and x^) or x.f"]
+#guard mainMismatch ["var c = x^", "var w: List[Int] = (y.f or y) and x.f"]
+#guard mainMismatch ["var c = x^", "var w: Int = (y.f or y) and (len(xs) > 0) and x.f"]
+#guard mainMismatch ["var c = x^", "var w = (y or x) + k"]
+#guard mainMismatch ["var w: List[Int] = (y.f or y) and xs[5] > 0"]
+#guard mainMismatch ["var w = k + ((True and x^) or x.f)"]
+#guard mainMismatch ["var b = False", "b = (x^ or S(3, True)) and x.f"]
+#guard bridge ["var c = x^", "print(x.n, y.f or y)"] ==
+  some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "n")⟩)
+#guard bridge ["var c = x^", "var w = (x.f and y.f) or y"] ==
+  some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "f")⟩)
+-- Without a test of a struct, nothing changes from `main`: the pin's
 -- `noMatchingMethod` for `1 + b` comes from its passes' order (#96), and a
--- value of a list or of `Int`s under `and` is typed with known gaps
--- (#187, #188).
+-- value of `Int`s under `or` is typed with a known gap (#187).
 #guard runLines (withT [] ["var b: Bool", "print(1 + b)"]) ==
   some (.rejected ⟨"main", .uninitializedUse (.var "b")⟩)
 #guard runLines (withT [] ["var j = 0", "var k: Int", "print(j or k)"]) ==
   some (.rejected ⟨"main", .uninitializedUse (.var "k")⟩)
-#guard runLines (moved ["var b = False", "b = (x^ or T(3)) and x.n > 0"]) ==
-  some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "n")⟩)
-#guard runLines (moved ["var b = (x^ or T(3)) and x.n > 0"]) ==
-  some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "n")⟩)
 
 -- Calls of a variable whose struct declares `__call__`, which hides the
 -- function, `len`, `print` or struct of its name.

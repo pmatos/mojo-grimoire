@@ -160,20 +160,25 @@ struct, list or array operand is never copied first. It finds a misfit of
 an overload set as an ordinary call finds a misfit, once the argument is
 read, so `var b: Bool; xs[b]` is `uninitializedUse` in the model and
 `noMatchingMethod` in the compiler. That order across the compiler's
-passes is left to #96. One case comes first already, so that the shapes
-that part 2 of #191 makes reachable keep `main`'s result: a value that
-holds a test of a struct with its `__bool__` (`logicShape`), every part
-of it an `Int`, a `Bool` or a struct. Such a value converts to the type
-it initializes, of a declared variable, an assigned place, a function's
-result or a parameter, as the compiler types it, before any of it is
-read. So `y = (t(0) and x^) or x.f`, with `y` a struct, is `typeMismatch`
-in the model as in the compiler and on `main`, though the model finds
-`x` uninitialized in `x.f` (`checkValue`). So is a binary operator's
-misfit of such an operand, as in `k + ((t(0) and x^) or x.f)` with `k`
-an `Int` (`binaryOperands`). Any other value keeps `main`'s order: a list
-or `Int` operands of `and` and `or`, which the model types with known
-gaps (#187, #188), and `var b: Bool; print(1 + b)`, `uninitializedUse`
-in the model and `noMatchingMethod` in the compiler.
+passes is left to #96.
+
+A temporary bridge keeps `main`'s results for the struct tests that part
+2 of #191 accepts, until #96 part 4 types a function before it checks its
+flow; that part removes it. `main` rejected every test of a struct, by
+`and`, `or` or `not`, as `typeMismatch` once its operands were checked.
+So within one statement, or one condition of an `if` or a `while`, an
+error of the compiler's later pass (`CheckError.late`) that the checker
+finds after a struct test is still reported as `typeMismatch`
+(`bridged`): `y = (t(0) and x^) or x.f`, with `y` a struct, as the
+compiler and `main` report it. One found before the test stays as it is,
+as on `main`: `print(x.n, y.f or y)` after `x^` is `uninitializedUse`.
+Where `main` typed an operator's operands before it read them, because
+it typed `and` or `or` of two structs as a `Bool` that the operator does
+not take, the bridge rejects that test first too (`mainOperator`):
+`(y or x) + k` after `x^`. The bridge gives up the compiler's later-pass
+error where it comes after a struct test in a statement with no type
+error, such as `b = (x^ or y) and x.f` with `b` a `Bool`, which the
+compiler reports as `uninitializedUse`.
 
 Rejected: mapping either message to an existing class, `noMatchingInit`,
 `typeMismatch` or `unknownAttribute`, which would merge errors that the

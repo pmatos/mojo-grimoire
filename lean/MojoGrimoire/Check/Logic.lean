@@ -11,41 +11,60 @@ that decides, and the test of the left one is no call of its own: it is
 checked here as that call would be, its operand passed to `self` as an
 argument (`MojoGrimoire.Check.checkArg`).
 
-The compiler finds that a binary operator rejects its operands' types as
-it types them, before the later pass that finds a use of an uninitialized
-value. When an operand holds a test of a struct, the checker finds it
-from their forms then (`binaryOperands`), as `main` rejected such an
-operand as a mismatch before it reached that use; the general order is
-#96's.
+A struct test also bridges an order of `main`'s, until #96 part 4
+types a function before it checks its flow, as the compiler does.
+`main` rejected every struct test as `typeMismatch` once its operands
+were checked, so any error that the compiler reports in its later pass
+and that the checker finds after a struct test, in the same statement,
+was `main`'s `typeMismatch`, which is also the compiler's first error
+whenever that statement has a type error. Such an error is reported as
+`typeMismatch` still (`bridged`, `State.mainTests`); an error before the
+test is reported as it is, as on `main`. #96 part 4 removes the bridge.
 -/
 
 namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
 
-/-- Checks the operands `a` and `b` of the binary operator `op`, neither
-`and` nor `or`, by `check`. When `check` throws `uninitializedUse`, an
-operand holds a test of a struct that part 2 of #191 adds and both have
-a `logicShape`, and their forms give types (`operandTy`) that `op`
-rejects, as in `k + ((t(0) and x^) or x.f)` with `k` an `Int`, that error
-is reported instead: the compiler finds it as it types the operands,
-before the later pass that finds the uninitialized use, and `main`
-rejected such an operand as a mismatch before it reached that use. A
-right operand passed as an argument (`rightParam`) misfits as the
-argument does (`expectArg`), and any other operation as `methodBinaryTy`
-says. Any other operation leaves the error as it is, as on `main`. -/
-def binaryOperands {α : Type} (prog : Program) (op : BinOp) (a b : Expr) (check : CheckM α) :
-    CheckM α :=
+/-- Rejects a struct test, as `main` did, when the state replays `main`'s
+order (`State.mainTests`): `typeMismatch` of a `Bool` and the struct `s`. -/
+def mainTest (s : Name) : CheckM Unit := do
+  if (← get).mainTests then throw (CheckError.typeMismatch .bool (.struct s))
+
+/-- Checks the operand `a` of `not` by `check`, then rejects a test of a
+struct there as `main` did, when the state replays `main`'s order
+(`mainTest`). -/
+def notOperand (a : Expr) (check : CheckM Ty) : CheckM Ty := do
+  let t ← check
+  if let some (s, _) := boolTest a then mainTest s
+  pure t
+
+/-- Rejects a struct test as `main` did, when the state replays `main`'s
+order, at the call of the operator method `f` of the struct `s` that
+inference made from an operator whose left operand is `and` or `or` of
+two operands of type `s`, with the operands `args`. `main` typed that
+left operand as a `Bool`; when the operator fits no `Bool`
+(`binaryMisfit`), it typed both operands before it read them, and so
+rejected the struct test first (`MojoGrimoire.Check.rejectAfter`). -/
+def mainOperator (prog : Program) (f : Name) (args : List Expr) : CheckM Unit := do
+  let (some (s, m, false), [.binary lop _ _, r]) := (calleeMethod f, args) | return
+  unless lop == .and || lop == .or do return
+  let ops := [BinOp.add, .sub, .mul, .floorDiv, .mod, .lt, .le, .gt, .ge, .eq, .ne]
+  let some op := ops.find? (binaryMethod · == m) | return
+  if (binaryMisfit prog op (some .bool) (← operandTy prog r)).isSome then mainTest s
+
+/-- Runs `check`, the check of one statement or of a condition. When it
+throws an error of the compiler's later pass (`CheckError.late`), it is
+run again from the same state replaying `main`'s order
+(`State.mainTests`): when a struct test comes first, it is reported as
+`main`'s `typeMismatch`, and else the error stands. A temporary bridge
+until #96 part 4. -/
+def bridged {α : Type} (check : CheckM α) : CheckM α :=
   tryCatch check fun err => do
-    let shapes := (← logicShape prog a, ← logicShape prog b)
-    if err matches .uninitializedUse _ && op != .and && op != .or &&
-        (shapes == (some true, some true) || shapes == (some true, some false) ||
-          shapes == (some false, some true)) then
-      if let (some ta, some tb) := (← operandTy prog a, ← operandTy prog b) then
-        match rightParam op a b ta with
-        | some (fit, prm) => expectArg fit prm.ty tb
-        | none => if let .error e := methodBinaryTy prog op ta tb then throw e
-    throw err
+    unless err.late do throw err
+    modify fun st => { st with mainTests := true }
+    let replayed ← tryCatch (do let _ ← check; pure err) pure
+    throw (if replayed matches .typeMismatch .. then replayed else err)
 
 /-- The type of the binary operation `a op b`, of operand types `ta` and `tb`
 (`methodBinaryTy`), once both operands are checked, the places among
@@ -61,7 +80,9 @@ temporary or a transfer too, since the left operand may be the result:
 a struct that is not `ImplicitlyCopyable` is then `implicitCopy`. The
 model still moves `p^` out of `p` there, where the compiler, on the left
 of a mixed `and` or `or`, only borrows it and leaves `p` initialized
-(#84). -/
+(#84). Once both operands are checked, where `main` rejected a struct
+test, it is rejected so again when the state replays `main`'s order
+(`mainTest`). -/
 def checkedBinaryTy (prog : Program) (op : BinOp) (a b : Expr) (ta tb : Ty) (ka kb : Nat)
     (before : State) (passSelf : Param → Name → CheckM Unit) : CheckM Ty := do
   unless op == .and || op == .or do
@@ -72,6 +93,7 @@ def checkedBinaryTy (prog : Program) (op : BinOp) (a b : Expr) (ta tb : Ty) (ka 
     | none, .struct s, .struct s' => if s == s' then [(s, a, true, true)] else []
     | none, _, _ => []
   let right := (boolTest b).toList.map fun (s, e) => (s, e, false, false)
+  if let some (s, _, _, _) := (left ++ right).head? then mainTest s
   for (s, e, isLeft, same) in left ++ right do
     let some fd := (findStruct prog s).bind (findMethod · "__bool__") | continue
     if let some self := fd.params.head? then

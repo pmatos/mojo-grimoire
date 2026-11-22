@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1743106273076470082")
+:::moduleDocs (fingerprint := "8541500102215533739")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -60,41 +60,6 @@ checking), a list or an array literal's type, an $`\mathsf{Int}` for $`[e]` of t
 $`\mathsf{List}[u]` for $`\mathsf{List}[u](\ldots)`. A call of a name
 that a variable hides, and any other form, gives none, and so does a
 lookup that fails: checking the operand then reports why.
-:::
-
-:::readable MojoGrimoire.Check.plainTy MojoGrimoire.Check.logicShape MojoGrimoire.Check.logicShapes (fingerprint := "9625511522392555874")
-*Definition: the shape of a test of a struct.* An $`\mathsf{Int}`, a
-$`\mathsf{Bool}` and a struct are the types whose form the model types
-reliably. An expression has a shape when each of its parts' forms gives
-such a type (`operandTy`): a literal of one, a place, a call or a method
-call whose arguments have shapes, $`-` of an $`\mathsf{Int}`, $`\mathsf{not}`
-of a $`\mathsf{Bool}`, arithmetic of $`\mathsf{Int}`s, a comparison of two
-$`\mathsf{Int}`s or two $`\mathsf{Bool}`s, and $`\mathsf{and}` or
-$`\mathsf{or}` of $`\mathsf{Bool}`s and structs. The shape says whether it
-holds a test of a struct, which part 2 of #191 adds: a call of a
-struct's `__bool__` that inference made, or $`\mathsf{and}` or
-$`\mathsf{or}` of two operands of the same struct type. Lists, strings,
-list literals and $`\mathsf{Int}` operands of $`\mathsf{and}` and
-$`\mathsf{or}` have none, since the model types some of them otherwise
-than the compiler (#187, #188).
-:::
-
-:::readable MojoGrimoire.Check.checkValue MojoGrimoire.Check.expectValue (fingerprint := "9637751765405504451")
-*Rule: a conversion comes before a use of an uninitialized value.* A value
-$`e` that holds a test of a struct, with a shape (`logicShape`), and
-converts to an expected type, the type of a declared variable, of a place
-assigned to, of a function's result or of a parameter, is converted as
-the compiler types it, before the later pass that finds a use of an
-uninitialized value. So when checking $`e` gives
-$`\mathsf{uninitializedUse}` and the form of $`e` gives a type
-(`operandTy`) other than the expected one, both $`\mathsf{Int}`,
-$`\mathsf{Bool}` or a struct, the mismatch is reported instead, as a call
-of that fit reports it (`expectArg`): in
-$`y = (t(0)~\mathsf{and}~x\,\hat{})~\mathsf{or}~x.f` with $`y` a struct,
-the $`\mathsf{Bool}` that does not convert to $`y`'s type. This keeps
-`main`'s result, which rejected the struct operand as a mismatch; any
-other value leaves the error as it is, the general order being #96's.
-`expectValue` then requires the expected type of the value's type.
 :::
 
 :::readable MojoGrimoire.Check.lacks MojoGrimoire.Check.unaryMisfit (fingerprint := "8538711511074234144")

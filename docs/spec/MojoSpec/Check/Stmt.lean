@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18329208402774431745")
+:::moduleDocs (fingerprint := "5852474923387832216")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -70,13 +70,13 @@ compiler reports a parameter left uninitialized before a variable that may
 not end.
 :::
 
-:::readable MojoGrimoire.Check.endScope (fingerprint := "5094446271499096283")
+:::readable MojoGrimoire.Check.endScope (fingerprint := "5601166612959324962")
 *Rule: the end of a scope.* The variables a block declared end with it,
 each checked as above if the end of the block is reached, and leave the
 set of invalidated references.
 :::
 
-:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "3993288572809658863")
+:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "11397707252174657318")
 *Rule: joining branches.* After an `if`, a part is uninitialized when
 either branch leaves it so, and may hold a value when either branch may;
 $`M`, $`T` and $`P` are the unions of the branches' sets, and
@@ -118,7 +118,7 @@ does. $`\mathsf{List}[u](e)` builds its result in place, and passes $`e`
 by `ref` (#103).
 :::
 
-:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "13605292999250758516")
+:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "3556521052256848185")
 *Rule: initializing values.* A value that initializes a declared variable,
 a place assigned to, or a function's result must have its type. A literal
 $`[e^*]_{?}`, which has no list or array expected, where that
@@ -129,8 +129,7 @@ Mojo calls the type's initializer with the elements and the keyword
 $`[e^*]_{\mathsf{Int}}` of any length but 1 initializes an
 $`\mathsf{Int}`, and is rejected by `rejectIntLiteral` as an initializer
 of the type reports it (#153, #154). An assignment of either literal
-types its place first. A value of another type is a mismatch, reported
-before a use of an uninitialized value inside it (`expectValue`).
+types its place first.
 :::
 
 :::readable MojoGrimoire.Check.checkReturnValue (fingerprint := "6201929813473914141")
@@ -139,7 +138,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "11938897425016333987")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "3530072254363622899")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a $`t` in which no variable hides
@@ -152,9 +151,8 @@ an expression, so a place is copied implicitly.
   compiler does (#123);
 * $`\mathsf{ref}~x = e` binds $`x` to a reference, as the next section
   says; $`x` may not hide a variable in scope either;
-* $`p = e` checks $`e` first, a mismatch with the type of $`p` coming
-  before a use of an uninitialized value inside $`e` (`checkValue`), then
-  the indices of $`p`, then needs $`p` of $`e`'s type, then that $`e` does not build its result into $`p`
+* $`p = e` checks $`e` first, then the indices of $`p`, then needs $`p`
+  of $`e`'s type, then that $`e` does not build its result into $`p`
   while changing the list that holds it, then needs a place the function may change; $`p` is changed as a
   whole, its old value ends, and $`p` is initialized. The old value may
   not end, as at the end of a variable, with the parts of $`p` taken as
@@ -200,5 +198,7 @@ an expression, so a place is copied implicitly.
 * `drop p` transfers $`p` away.
 
 A block checks its statements in order, and the changes recorded for
-operands start afresh with each statement.
+operands start afresh with each statement. Each statement but `if` and
+`while`, and the condition of each of those, is checked through the
+bridge to `main`'s order (`bridged`), until #96 part 4.
 :::
