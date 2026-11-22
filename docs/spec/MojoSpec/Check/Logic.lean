@@ -13,10 +13,22 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18237080337807734158")
+:::moduleDocs (fingerprint := "13042508544979749299")
 :::
 
-:::readable MojoGrimoire.Check.checkedBinaryTy (fingerprint := "18237080337807734158")
+:::readable MojoGrimoire.Check.binaryOperands (fingerprint := "2753345473751596906")
+*Rule: an operator's types come before a use of an uninitialized value.*
+The compiler finds that a binary operator rejects its operands' types as
+it types them, before the later pass that finds a use of an
+uninitialized value. So when checking the operands gives
+$`\mathsf{uninitializedUse}`, and the forms of both, neither of them a
+literal, give types (`operandTy`) that the operator rejects
+(`methodBinaryTy`), that error is reported instead: in
+$`k + ((t(0)~\mathsf{and}~x\,\hat{})~\mathsf{or}~x.f)` with $`k` an
+$`\mathsf{Int}`, the $`\mathsf{Bool}` that $`+` does not take.
+:::
+
+:::readable MojoGrimoire.Check.checkedBinaryTy (fingerprint := "18428704037338020882")
 *Rule: binary operations.* Once both operands are checked, the places
 among them that are read late are checked again, but for `and` and `or`,
 whose operands are read when tested; the operation then has the type

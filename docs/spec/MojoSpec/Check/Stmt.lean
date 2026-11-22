@@ -13,7 +13,12 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11706173473080090140")
+:::moduleDocs (fingerprint := "18329208402774431745")
+:::
+
+:::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
+*Definition: an expression's type.* An expression used as a value is
+checked by `checkExprAs`, not as a reference, and has the type it gives.
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")

@@ -25,6 +25,6 @@
     "version": "1.3.0.dev2026112105",
     "checked": "2026-11-21",
     "reproduces": true,
-    "result": "prints the same as the pin at both levels for o = o, b = a and b, b = a or b and a = a and b; so do the nightlies 1.3.0.dev2026111705 and 1.3.0.dev2026112017, and Mojo 1.2.0 prints what the pin's default level prints"
+    "result": "prints the same as the pin at both levels for o = o, b = a and b, b = a or b and a = a and b; so do the nightlies 1.3.0.dev2026111705 and 1.3.0.dev2026112017, and Mojo 1.2.0 prints what the pin's default level prints for o = o, b = a and b and a = a and b"
   }
 }

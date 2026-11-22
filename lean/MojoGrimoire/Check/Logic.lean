@@ -10,11 +10,29 @@ call. When both have the struct type `S`, the operator gives the operand
 that decides, and the test of the left one is no call of its own: it is
 checked here as that call would be, its operand passed to `self` as an
 argument (`MojoGrimoire.Check.checkArg`).
+
+The compiler finds that a binary operator rejects its operands' types as
+it types them, before the later pass that finds a use of an uninitialized
+value; the checker finds it from their forms then (`binaryOperands`).
 -/
 
 namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
+
+/-- Checks the operands `a` and `b` of the binary operator `op` by `check`.
+When `check` throws `uninitializedUse`, and the forms of `a` and `b`,
+neither of them a literal, give types (`operandTy`) that `op` rejects
+(`methodBinaryTy`), as in `k + ((t(0) and x^) or x.f)` with `k` an `Int`,
+that error is reported instead: the compiler finds it as it types the
+operands, before the later pass that finds the uninitialized use. -/
+def binaryOperands {α : Type} (prog : Program) (op : BinOp) (a b : Expr) (check : CheckM α) :
+    CheckM α :=
+  tryCatch check fun err => do
+    if err matches .uninitializedUse _ && !(a matches .list ..) && !(b matches .list ..) then
+      if let (some ta, some tb) := (← operandTy prog a, ← operandTy prog b) then
+        if let .error e := methodBinaryTy prog op ta tb then throw e
+    throw err
 
 /-- The type of the binary operation `a op b`, of operand types `ta` and `tb`
 (`methodBinaryTy`), once both operands are checked, the places among

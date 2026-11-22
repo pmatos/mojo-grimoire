@@ -68,6 +68,9 @@ namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
 
+/-- The type of the expression `e`, used as a value. -/
+def checkExpr (prog : Program) (e : Expr) : CheckM Ty := checkExprAs prog false e
+
 /-- Whether the parts `hs` of a value of type `t` hold all of its part
 `q`: one of them is at or above `q`, or `q` is a struct and they hold each
 of its fields. A part held whole and then given a field again is recorded

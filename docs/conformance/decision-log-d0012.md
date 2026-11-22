@@ -39,9 +39,10 @@ When the value is the target itself, the pin applies the first order to
 one value: it destroys the old value and then copies it, so it reads a
 destroyed value. With `-O0` the destroyed bytes are still there and the
 program prints the old value; the default build prints what the optimizer
-left. Mojo 1.2.0 prints what the pin's default level prints, and the
-nightlies 1.3.0.dev2026111705, 1.3.0.dev2026112017 and
-1.3.0.dev2026112105 print what the pin prints, at both levels.
+left. Mojo 1.2.0 prints what the pin's default level prints for `o = o`,
+`b = a and b` and `a = a and b`, and the nightlies 1.3.0.dev2026111705,
+1.3.0.dev2026112017 and 1.3.0.dev2026112105 print what the pin prints, at
+both levels.
 
 A struct with its own copy constructor is moved at its last use instead of
 copied, so `o = o` then prints `4` and destroys nothing early. That is the

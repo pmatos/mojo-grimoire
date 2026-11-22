@@ -79,11 +79,12 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .binary op a b => do
     rejectMisfit (← operandMisfit prog op a b) (do let _ ← typeArg prog a; let _ ← typeArg prog b)
     let s ← get
-    let ta ← checkExprAs prog (← byRef prog op a b) a
-    let ka ← mark
-    let tb ← match rightParam op a b ta with
-      | some (fit, prm) => do let _ ← checkArg prog fit (binaryMethod op) prm b; pure prm.ty
-      | none => checkExprAs prog (← byRef prog op b a) b
+    let (ta, ka, tb) ← binaryOperands prog op a b do
+      let ta ← checkExprAs prog (← byRef prog op a b) a
+      let ka ← mark
+      pure (ta, ka, ← match rightParam op a b ta with
+        | some (fit, prm) => do let _ ← checkArg prog fit (binaryMethod op) prm b; pure prm.ty
+        | none => checkExprAs prog (← byRef prog op b a) b)
     checkedBinaryTy prog op a b ta tb ka (← mark) s fun p f => do
       let _ ← checkArg prog .call f p a
   | .list .unknown [] => throw (CheckError.invalidType .unknown)
@@ -411,8 +412,5 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
   termination_by e => (sizeOf e, 3)
 
 end
-
-/-- The type of the expression `e`, used as a value. -/
-def checkExpr (prog : Program) (e : Expr) : CheckM Ty := checkExprAs prog false e
 
 end MojoGrimoire.Check

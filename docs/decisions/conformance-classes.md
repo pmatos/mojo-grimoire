@@ -166,7 +166,9 @@ result or a parameter, as the compiler types it, before any of it is
 read. So `y = (t(0) and x^) or x.f`, with `y` a struct, is `typeMismatch`
 in the model as in the compiler, though the model finds `x` uninitialized
 in `x.f`: the type that the value's form gives comes first
-(`checkValue`, #191).
+(`checkValue`, #191). So does a binary operator's misfit of the types
+that its operands' forms give, as in `k + ((t(0) and x^) or x.f)` with
+`k` an `Int` (`binaryOperands`).
 
 Rejected: mapping either message to an existing class, `noMatchingInit`,
 `typeMismatch` or `unknownAttribute`, which would merge errors that the

@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16357585499181545620")
+:::moduleDocs (fingerprint := "15516275347651003176")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "8905614865384894796")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "474789038291845380")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -54,7 +54,8 @@ type:
   right of $`==` or $`!=` whose left operand is a list is passed as the
   list's `other` parameter of the list's type (`rightParam`, #185). Once
   both operands are checked, the operation is typed as `checkedBinaryTy`
-  says, which checks the test of a struct operand of `and` and `or`. The
+  says, a type that the operator rejects coming before a use of an
+  uninitialized value inside an operand (`binaryOperands`), which checks the test of a struct operand of `and` and `or`. The
   misfit of a comparison of two arrays or two lists is found from the
   operands' types too (`operandMisfit`), and an operand compared as an
   array or a list, a place or a call that returns a reference, is read by

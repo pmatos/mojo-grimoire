@@ -151,6 +151,10 @@ private def moved (body : List String) : List String :=
   some (.rejected ⟨"main", .typeMismatch .int .bool⟩)
 #guard runLines (moved ["g((True and x^) or x.n > 0)"] ++ ["def g(t: T):", "    pass"]) ==
   some (.rejected ⟨"main", .typeMismatch (.struct "T") .bool⟩)
+#guard runLines (moved ["var k = 1", "var n = k + ((True and x^) or x.n > 0)"]) ==
+  some (.rejected ⟨"main", .typeMismatch .int .bool⟩)
+#guard runLines (moved ["var k = 1", "var n = k < ((True and x^) or x.n > 0)"]) ==
+  some (.rejected ⟨"main", .typeMismatch .int .bool⟩)
 #guard runLines (moved ["var b = False", "b = (x^ or T(3)) and x.n > 0"]) ==
   some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "n")⟩)
 #guard runLines (moved ["var b = (x^ or T(3)) and x.n > 0"]) ==
