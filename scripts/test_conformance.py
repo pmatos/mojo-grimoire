@@ -428,6 +428,22 @@ class Suite(unittest.TestCase):
         self.assertTrue(all(not os.path.isabs(name_of(p)) for p in progs))
         self.assertIn("basics/arithmetic", {name_of(p) for p in progs})
 
+    def test_every_recorded_rejection_classifies_as_recorded(self):
+        patterns, seen, wrong = load_patterns(), 0, []
+        for program in programs():
+            path = program.with_suffix(".json")
+            if not path.exists():
+                continue
+            recorded = json.loads(path.read_text())
+            if recorded["outcome"] != "rejected":
+                continue
+            seen += 1
+            got = classify(recorded["diagnostic"], patterns)
+            if got != recorded["class"]:
+                wrong.append(f"{name_of(program)}: {recorded['class']} -> {got}")
+        self.assertTrue(seen)
+        self.assertEqual(wrong, [], "re-record the programs a pattern reclassifies")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -102,6 +102,14 @@ program with its decision-log entry, a compiler bug. The first results were reco
 passes `--allow-unrecorded`: a program with no recorded result fails it, so
 a new program is recorded before it is committed.
 
+The `conformance-test` hook classifies every recorded rejection again with
+the current `diagnostics.json` and fails when a class differs from the
+recorded one, so that a change to the patterns cannot move a recorded
+result to another class unnoticed. It runs whenever a recorded result or
+`diagnostics.json` changes. A PR that reclassifies a message on purpose
+records the affected programs again in the same PR. The human ruled this
+on 2026-11-22 (#219).
+
 Rejected: comparing the compiler's diagnostics word for word. Their wording
 changes between releases and says nothing the class does not.
 
