@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7467817802725510166")
+:::moduleDocs (fingerprint := "93778205459329369")
 :::
 
 :::readable MojoGrimoire.Check.compares MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "12823475274059033023")
@@ -50,10 +50,11 @@ $`\mathsf{or}`, so is a right operand whose type lacks `__bool__`
 (`seqMisfit`).
 :::
 
-:::readable MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.convertsLiteral MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "15047511542355886965")
+:::readable MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.convertsLiteral MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "833765757915179242")
 *Rule: operands of a comparison of arrays or lists.* The misfit of a
 binary operator is found from its operands' forms before they are read
-(`operandTy`). An integer literal on the left gives no type, so that its
+(`operandTy`, or the types that `main` gave them, in the bridge's replay,
+`MojoGrimoire.Check.mainFormTy`). An integer literal on the left gives no type, so that its
 overloads report a comparison with an array or a list
 (`noMatchingMethod`), and an empty literal with no type on the right of
 a comparison has a type that fits no array. A literal with no type

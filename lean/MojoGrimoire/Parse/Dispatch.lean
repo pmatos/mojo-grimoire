@@ -105,22 +105,6 @@ def declaredMethod (prog : Program) (t : Option Ty) (m : Name) : Option (Name ×
   | some (.struct s) => ((findStruct prog s).bind (findMethod · m)).map (s, ·)
   | _ => none
 
-/-- The method that the reflected binary operator `op` calls on its right
-operand. -/
-def reflectedMethod : BinOp → Name
-  | .add => "__radd__"
-  | .sub => "__rsub__"
-  | .mul => "__rmul__"
-  | .floorDiv => "__rfloordiv__"
-  | .mod => "__rmod__"
-  | .lt => "__gt__"
-  | .le => "__ge__"
-  | .gt => "__lt__"
-  | .ge => "__le__"
-  | .eq => "__eq__"
-  | .ne => "__ne__"
-  | .and | .or => "__bool__"
-
 /-- The in-place method that `p op= e` calls. -/
 def inPlaceMethod : BinOp → Name
   | .sub => "__isub__"

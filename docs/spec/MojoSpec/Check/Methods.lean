@@ -13,16 +13,21 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8541500102215533739")
+:::moduleDocs (fingerprint := "11121368867998042284")
 :::
 
-:::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
+:::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.reflectedMethod MojoGrimoire.Check.unaryMethod (fingerprint := "14078108206647463870")
 *Definition: the method of an operator.* $`a + b` calls `__add__` on
 $`a`, and likewise `__sub__`, `__mul__`, `__floordiv__` and `__mod__`
 for $`-`, $`\times`, `//` and `%`; $`<`, $`\le`, $`>`, $`\ge`, $`==`
 and $`!=` call `__lt__`, `__le__`, `__gt__`, `__ge__`, `__eq__` and
-`__ne__`. Negation calls `__neg__`, and $`\mathsf{not}`,
-$`\mathsf{and}` and $`\mathsf{or}` call `__bool__` on each operand.
+`__ne__`. The reflected method of a binary operator, called on its right
+operand, is `__radd__`, `__rsub__`, `__rmul__`, `__rfloordiv__` and
+`__rmod__` for $`+`, $`-`, $`\times`, `//` and `%`; `__gt__`, `__ge__`,
+`__lt__` and `__le__` for $`<`, $`\le`, $`>` and $`\ge`; and `__eq__`
+and `__ne__` for $`==` and $`!=`. Negation calls `__neg__`, and
+$`\mathsf{not}`, $`\mathsf{and}` and $`\mathsf{or}` call `__bool__` on
+each operand.
 :::
 
 :::readable MojoGrimoire.Check.hasMethod (fingerprint := "10449175719696369603")

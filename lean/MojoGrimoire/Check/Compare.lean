@@ -103,15 +103,17 @@ def convertsLiteral (op : BinOp) (a b : Expr) (ta tb : Option Ty) : Bool :=
     b matches .list .unknown _ && ta matches some (.list _))
 
 /-- The error of the operator `op` that the forms of its operands `a` and
-`b` give (`operandTy`), before they are read (`binaryMisfit`). An integer
+`b` give (`operandTy`, or `formTy` when given), before they are read
+(`binaryMisfit`). An integer
 literal's comparison with an array or a list is left to its overloads,
 and an empty literal with no type compared with an array has no type
 that fits it. A literal that the compiler converts (`convertsLiteral`) is
 left to the checks that follow, as before #166. -/
-def operandMisfit (prog : Program) (op : BinOp) (a b : Expr) : CheckM (Option CheckError) := do
-  let ta ← if intLiteral a then pure none else operandTy prog a
+def operandMisfit (prog : Program) (op : BinOp) (a b : Expr)
+    (formTy : Expr → CheckM (Option Ty) := operandTy prog) : CheckM (Option CheckError) := do
+  let ta ← if intLiteral a then pure none else formTy a
   let tb ← if compares op && b matches .list .unknown [] then pure (some .unknown)
-    else operandTy prog b
+    else formTy b
   let tb := if convertsLiteral op a b ta tb then none else tb
   pure (binaryMisfit prog op ta tb)
 

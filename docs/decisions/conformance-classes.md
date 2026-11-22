@@ -166,20 +166,23 @@ A temporary bridge keeps `main`'s results for the struct tests that part
 2 of #191 accepts, until #96 part 4 types a function before it checks its
 flow; that part removes it. `main` rejected every test of a struct, by
 `and`, `or` or `not`, as `typeMismatch` once its operands were checked.
-So within one statement, or one condition of an `if` or a `while`, an
-error of the compiler's later pass (`CheckError.late`) that the checker
-finds after a struct test is still reported as `typeMismatch`
-(`bridged`): `y = (t(0) and x^) or x.f`, with `y` a struct, as the
-compiler and `main` report it. One found before the test stays as it is,
-as on `main`: `print(x.n, y.f or y)` after `x^` is `uninitializedUse`.
-Where `main` typed an operator's operands before it read them, because
-it typed `and` or `or` of two structs as a `Bool` that the operator does
-not take, the bridge does so too, and then rejects the misfit
-(`mainOperator`): `(y or x) + k` after `x^` is `typeMismatch`, and
+So a statement, or a condition of an `if` or a `while`, that throws an
+error is checked again replaying `main`'s order (`bridged`), and the
+replay's error is reported unless it is of the compiler's later pass
+(`CheckError.late`). An error found after a struct test is then
+`typeMismatch`: `y = (t(0) and x^) or x.f` with `y` a struct, and
+`print(y or w, bi(w))`, as the compiler reports them. One found before
+the test stays, as on `main` (`print(x.n, y.f or y)` after `x^` is
+`uninitializedUse`), and so does an error of the test itself, such as a
+`__bool__` that returns an `Int`. Where `main` differed before the test,
+the replay follows it: it read a place that `not` or a mixed `and` or
+`or` tests as a value (`mainRead`), so `f2(not m, m or m2)`, with `m`
+`Movable`, is `implicitCopy`; and it typed `and` or `or` of two structs
+as a `Bool` when it chose an operator's method (`mainOperator`), so
+`w > (x or y)` and `(x or y) + ww` after `x^` are `typeMismatch`, and
 `(y or S(xs[1 - 2], True)) + y` is `missingMethod`. The bridge gives up
-the compiler's later-pass error where it comes after a struct test in a
-statement with no type error, such as `b = (x^ or y) and x.f` with `b` a
-`Bool`, which the compiler reports as `uninitializedUse`.
+the compiler's error where `main` reported `typeMismatch` first, such as
+`b = (x^ or y) and x.f` with `b` a `Bool` (`uninitializedUse`).
 
 Rejected: mapping either message to an existing class, `noMatchingInit`,
 `typeMismatch` or `unknownAttribute`, which would merge errors that the

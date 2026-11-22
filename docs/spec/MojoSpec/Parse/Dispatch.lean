@@ -13,16 +13,13 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods of operators on structs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9109462554925444735")
+:::moduleDocs (fingerprint := "11358577941461997830")
 :::
 
-:::readable MojoGrimoire.Parse.declaredMethod MojoGrimoire.Parse.reflectedMethod MojoGrimoire.Parse.inPlaceMethod MojoGrimoire.Parse.otherParam (fingerprint := "4476456537020946172")
+:::readable MojoGrimoire.Parse.declaredMethod MojoGrimoire.Parse.inPlaceMethod MojoGrimoire.Parse.otherParam (fingerprint := "11709485608895280507")
 *Definition: the methods an operator may call.* A struct type declares a
 method by its name. The reflected method of a binary operator, called on
-its right operand, is `__radd__`, `__rsub__`, `__rmul__`,
-`__rfloordiv__` and `__rmod__` for $`+`, $`-`, $`\times`, `//` and `%`;
-`__gt__`, `__ge__`, `__lt__` and `__le__` for $`<`, $`\le`, $`>` and
-$`\ge`; and `__eq__` and `__ne__` for $`==` and $`!=`. The in-place
+its right operand, is `MojoGrimoire.Check.reflectedMethod`. The in-place
 method of $`p \mathrel{\mathit{op}{=}} e` is `__iadd__`, `__isub__` or
 `__imul__`. The parameter that takes a binary operator's other operand is
 the one after `self`, of a method that takes exactly one.
@@ -45,7 +42,7 @@ or `ref` ones passed what may change. Only what may change is passed to a
 (#191).
 :::
 
-:::readable MojoGrimoire.Parse.chooseBinary (fingerprint := "2002475636821204314")
+:::readable MojoGrimoire.Parse.chooseBinary (fingerprint := "10626963943619472608")
 *Rule: the method of a binary operator.* $`a \mathbin{\mathit{op}} b`
 calls the method of $`a`'s struct that $`\mathit{op}` names when $`b`
 fits its parameter, else the reflected method of $`b`'s struct when $`a`

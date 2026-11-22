@@ -138,18 +138,29 @@ private def moveT (body : List String) : List String :=
 #guard runLines (moveT ["var t = T(4)", "print(t^ or False)"]) ==
   some (.rejected ⟨"main", .implicitCopy (.struct "T")⟩)
 #guard runLines (moveT ["print(True and T(4), not T(0))"]) == some (.finished ["True True"])
+-- `main` read a place that `not` tests as a value, which copies it: once a
+-- later error in the statement brings `main`'s order back, that is
+-- `implicitCopy`, before the first argument's misfit, as the pin reports
+-- for the second argument.
+#guard runLines ["struct M(Movable):", "    var f: Bool", "    def __init__(out self, f: Bool):",
+    "        self.f = f", "    def __bool__(self) -> Bool:", "        return self.f",
+    "def f2(a: Int, b: Bool) -> Int:", "    return a", "def main():", "    var m = M(True)",
+    "    var m2 = M(False)", "    print(f2(not m, m or m2))"] ==
+  some (.rejected ⟨"main", .implicitCopy (.struct "M")⟩)
 
 -- The bridge to `main`'s order (`bridged`, until #96 part 4). `main`
 -- rejected a struct test as `typeMismatch` once its operands were checked,
--- and so did any statement whose later-pass error comes after the test,
--- which the pin reports as `typeMismatch` too when the statement has a
--- type error: so it is still. An error before the test stays as it is.
+-- and so did any statement whose error comes after the test, which the
+-- pin reports as `typeMismatch` too when the statement has a type error:
+-- so it is still. An error before the test stays as it is, and so does an
+-- error of the test itself.
 private def bridge (body : List String) : Option Outcome :=
   runLines (["struct S(ImplicitlyCopyable):", "    var n: Int", "    var f: Bool",
     "    def __init__(out self, n: Int, f: Bool):", "        self.n = n", "        self.f = f",
     "    def __bool__(self) -> Bool:", "        return self.f",
     "    def __add__(self, o: S) -> S:", "        return S(self.n + o.n, self.f)",
     "    def __neg__(self) -> S:", "        return self",
+    "    def __lt__(self, o: S) -> Bool:", "        return self.n < o.n",
     "def main():", "    var x = S(1, False)", "    var y = S(2, True)",
     "    var xs: List[Int] = [1, 2, 3]", "    var k = 1"] ++ body.map ("    " ++ ·))
 private def mainMismatch (body : List String) : Bool :=
@@ -169,6 +180,12 @@ private def mainMismatch (body : List String) : Bool :=
   matches some (.rejected ⟨"main", .missingMethod ..⟩)
 #guard bridge ["var z = -(y or S(xs[1 - 2], True))"]
   matches some (.rejected ⟨"main", .missingMethod ..⟩)
+-- A test that a reflected method takes: `main` typed it as a `Bool`, so
+-- `y > (x or y)` was `y.__gt__`, which `S` lacks.
+#guard mainMismatch ["var c = x^", "var z: Int = y > (x or y)"]
+-- An error after a test that passes, not of the later pass either, was
+-- `main`'s `typeMismatch` too.
+#guard mainMismatch ["print(y or x, k)"]
 #guard bridge ["var c = x^", "print(x.n, y.f or y)"] ==
   some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "n")⟩)
 #guard bridge ["var c = x^", "var w = (x.f and y.f) or y"] ==

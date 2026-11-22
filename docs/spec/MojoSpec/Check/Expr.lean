@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16004076755599209675")
+:::moduleDocs (fingerprint := "10132331495612260666")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "17302793808421966567")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "11225520926410840882")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -56,10 +56,13 @@ type:
   both operands are checked, the operation is typed as `checkedBinaryTy`
   says, which checks the test of a struct operand of `and` and `or`, and
   `not` of a struct is rejected after its operand when the state replays
-  `main`'s order (`notOperand`); a call of an operator method that
-  inference made, whose left operand, or one operand for `-`, is such a
-  test, follows `main` there too: it types its operands first and then
-  rejects the operator's misfit on a $`\mathsf{Bool}` (`mainOperator`). The
+  `main`'s order (`notOperand`), where a place that such an operand
+  tests is read as a value, as `main` read it (`mainRead`); a call of an
+  operator method that inference made, one of whose operands is such a
+  test of two operands of the same struct type, follows `main` there
+  too: it is checked as a call of the method that `main` chose, or else
+  it types its operands first and then rejects the operator's misfit on a
+  $`\mathsf{Bool}` (`mainOperator`). The
   misfit of a comparison of two arrays or two lists is found from the
   operands' types too (`operandMisfit`), and an operand compared as an
   array or a list, a place or a call that returns a reference, is read by

@@ -68,6 +68,22 @@ def binaryMethod : BinOp → Name
   | .ne => "__ne__"
   | .and | .or => "__bool__"
 
+/-- The method that the reflected binary operator `op` calls on its right
+operand. -/
+def reflectedMethod : BinOp → Name
+  | .add => "__radd__"
+  | .sub => "__rsub__"
+  | .mul => "__rmul__"
+  | .floorDiv => "__rfloordiv__"
+  | .mod => "__rmod__"
+  | .lt => "__gt__"
+  | .le => "__ge__"
+  | .gt => "__lt__"
+  | .ge => "__le__"
+  | .eq => "__eq__"
+  | .ne => "__ne__"
+  | .and | .or => "__bool__"
+
 /-- The method that the unary operator `op` calls on its operand. -/
 def unaryMethod : UnOp → Name
   | .neg => "__neg__"
