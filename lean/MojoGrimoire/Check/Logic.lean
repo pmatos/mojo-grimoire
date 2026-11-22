@@ -20,8 +20,9 @@ the same statement, was `main`'s `typeMismatch`, or an error that
 again replaying `main`'s order (`bridged`, `State.mainTests`), and
 `main`'s error is reported, unless it is of the compiler's later pass:
 then the first error stands. An error of the test itself, such as a
-`__bool__` that returns no `Bool`, comes before `main`'s rejection in
-the replay, so it stays. #96 part 4 removes the bridge.
+`__bool__` that returns no `Bool`, stays only when the statement holds
+no other error; else `main`'s `typeMismatch` came first, and stands
+(`State.ownChecks`). #96 part 4 removes the bridge.
 -/
 
 namespace MojoGrimoire.Check
@@ -62,11 +63,12 @@ def sameTest (prog : Program) (e : Expr) : CheckM Bool :=
     pure ((op == .and || op == .or) && (← operandTy prog e) matches some (.struct _))
   | _ => pure false
 
-/-- The type of the operand `e` found from its form (`operandTy`), but a
-`Bool` for a same-type test (`sameTest`) when the state replays `main`'s
-order, as `main` typed it. -/
+/-- The type of the operand `e` found from its form (`operandTy`), but,
+when the state replays `main`'s order, with `and` and `or` typed as a
+`Bool` at any depth, as `main` typed them: a same-type test (`sameTest`)
+too, and one inside a literal, `[x or y]` an array of `Bool`. -/
 def mainFormTy (prog : Program) (e : Expr) : CheckM (Option Ty) := do
-  if (← get).mainTests && (← sameTest prog e) then pure (some .bool) else operandTy prog e
+  operandTy prog e (← get).mainTests
 
 /-- The binary operator whose method, or whose reflected method when
 `reflected` holds, is `m`. -/
@@ -135,15 +137,29 @@ def mainOperator (prog : Program) (f : Name) (args : List Expr) (typing : CheckM
 /-- Runs `check`, the check of one statement or of a condition. When it
 throws an error, it is run again from the same state replaying `main`'s
 order (`State.mainTests`), which differs only where a struct test is
-involved (`mainTest`, `mainRead`, `mainOperator`): when the replay ends
-in an error that is not of the compiler's later pass
-(`CheckError.late`), it is `main`'s and is reported, and else the first
-error stands. A temporary bridge until #96 part 4. -/
+involved (`mainTest`, `mainRead`, `mainOperator`), first with the checks
+of a struct test itself before `main`'s rejection of it, then without
+them (`State.ownChecks`), as `main` had none. When the two replays end
+differently, a test's own check failed first: its error stands only when
+the statement holds no other error, which a third run, in this PR's order
+without those checks, shows; else `main` reported the test's
+`typeMismatch`, and the second replay's error is `main`'s. A replay's
+error that is not of the compiler's later pass (`CheckError.late`) is
+reported, and else the first error stands. A temporary bridge until #96
+part 4. -/
 def bridged {α : Type} (check : CheckM α) : CheckM α :=
   tryCatch check fun err => do
-    modify fun st => { st with mainTests := true }
-    let replayed ← tryCatch (do let _ ← check; pure err) pure
-    throw (if replayed.late then err else replayed)
+    let start ← get
+    let run (main own : Bool) : CheckM (Option CheckError) := do
+      set { start with mainTests := main, ownChecks := own }
+      tryCatch (do let _ ← check; pure none) (fun e => pure (some e))
+    let withOwn ← run true true
+    let asMain ← run true false
+    let replayed ← if withOwn == asMain then pure withOwn
+      else if (← run false false).isSome then pure asMain else pure withOwn
+    match replayed with
+    | some e => throw (if e.late then err else e)
+    | none => throw err
 
 /-- The type of the binary operation `a op b`, of operand types `ta` and `tb`
 (`methodBinaryTy`), once both operands are checked, the places among
@@ -162,7 +178,9 @@ of a mixed `and` or `or`, only borrows it and leaves `p` initialized
 (#84). When the state replays `main`'s order, a struct test is then
 rejected as `main` rejected it once both operands were checked
 (`mainTest`), after those checks of the test itself, whose errors `main`
-could not report. -/
+could not report. When the state leaves those checks out
+(`State.ownChecks`), the test is rejected so, or passes with no check
+of its own, a tested call taken as a `Bool`. -/
 def checkedBinaryTy (prog : Program) (op : BinOp) (a b : Expr) (ta tb : Ty) (ka kb : Nat)
     (before : State) (passSelf : Param → Name → CheckM Unit) : CheckM Ty := do
   unless op == .and || op == .or do
@@ -173,6 +191,11 @@ def checkedBinaryTy (prog : Program) (op : BinOp) (a b : Expr) (ta tb : Ty) (ka 
     | none, .struct s, .struct s' => if s == s' then [(s, a, true, true)] else []
     | none, _, _ => []
   let right := (boolTest b).toList.map fun (s, e) => (s, e, false, false)
+  unless (← get).ownChecks do
+    if let some (s, _, _, _) := (left ++ right).head? then mainTest s
+    let mixed := left.any (!·.2.2.2)
+    return ← lift (methodBinaryTy prog op (if mixed then .bool else ta)
+      (if right.isEmpty then tb else .bool))
   for (s, e, isLeft, same) in left ++ right do
     let some fd := (findStruct prog s).bind (findMethod · "__bool__") | continue
     if let some self := fd.params.head? then

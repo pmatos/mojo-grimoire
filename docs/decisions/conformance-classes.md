@@ -163,26 +163,9 @@ read, so `var b: Bool; xs[b]` is `uninitializedUse` in the model and
 passes is left to #96.
 
 A temporary bridge keeps `main`'s results for the struct tests that part
-2 of #191 accepts, until #96 part 4 types a function before it checks its
-flow; that part removes it. `main` rejected every test of a struct, by
-`and`, `or` or `not`, as `typeMismatch` once its operands were checked.
-So a statement, or a condition of an `if` or a `while`, that throws an
-error is checked again replaying `main`'s order (`bridged`), and the
-replay's error is reported unless it is of the compiler's later pass
-(`CheckError.late`). An error found after a struct test is then
-`typeMismatch`: `y = (t(0) and x^) or x.f` with `y` a struct, and
-`print(y or w, bi(w))`, as the compiler reports them. One found before
-the test stays, as on `main` (`print(x.n, y.f or y)` after `x^` is
-`uninitializedUse`), and so does an error of the test itself, such as a
-`__bool__` that returns an `Int`. Where `main` differed before the test,
-the replay follows it: it read a place that `not` or a mixed `and` or
-`or` tests as a value (`mainRead`), so `f2(not m, m or m2)`, with `m`
-`Movable`, is `implicitCopy`; and it typed `and` or `or` of two structs
-as a `Bool` when it chose an operator's method (`mainOperator`), so
-`w > (x or y)` and `(x or y) + ww` after `x^` are `typeMismatch`, and
-`(y or S(xs[1 - 2], True)) + y` is `missingMethod`. The bridge gives up
-the compiler's error where `main` reported `typeMismatch` first, such as
-`b = (x^ or y) and x.f` with `b` a `Bool` (`uninitializedUse`).
+2 of #191 accepts, until #96 part 4
+([semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares)
+says how).
 
 Rejected: mapping either message to an existing class, `noMatchingInit`,
 `typeMismatch` or `unknownAttribute`, which would merge errors that the

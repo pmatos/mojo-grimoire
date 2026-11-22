@@ -106,13 +106,16 @@ invalidated, and the places changed as a whole so far in the current
 statement, in order. After a
 `return`, the current point cannot be reached. `mainTests` is set only
 while a statement is checked again to replay `main`'s order, in which a
-struct test is rejected (`MojoGrimoire.Check.bridged`). -/
+struct test is rejected, and `ownChecks` is cleared only while it is
+checked again without the checks of a struct test itself
+(`MojoGrimoire.Check.bridged`). -/
 structure State where
   vars : List VarState
   live : Bool
   stale : List Name
   changes : List Shape
   mainTests : Bool := false
+  ownChecks : Bool := true
   deriving BEq
 
 /-- The monad of the checker: it reads and updates the state, and may reject

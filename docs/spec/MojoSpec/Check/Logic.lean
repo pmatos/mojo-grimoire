@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11698728972380291614")
+:::moduleDocs (fingerprint := "17755364568086492621")
 :::
 
-:::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.mainRead MojoGrimoire.Check.notOperand MojoGrimoire.Check.bridged (fingerprint := "6338148377418169451")
+:::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.mainRead MojoGrimoire.Check.notOperand MojoGrimoire.Check.bridged (fingerprint := "17590098889019667583")
 *Rule: the bridge to `main`'s order (temporary, until #96 part 4).*
 `main` rejected a test of a struct, by $`\mathsf{and}`, $`\mathsf{or}` or
 $`\mathsf{not}`, as $`\mathsf{typeMismatch}` once its operands were
@@ -26,17 +26,23 @@ throws an error, it is checked again from the same state, replaying
 rejected as $`\mathsf{typeMismatch}` where `main` rejected it: once the
 operands of $`\mathsf{and}` or $`\mathsf{or}` are checked
 (`checkedBinaryTy`), and once the operand of $`\mathsf{not}` is
-(`notOperand`). The checks of the test itself come first, so an error
-of its own, which `main` could not report, stays. `main` read the
-operand that inference tests with a call of `__bool__` as a value, which
-copies a place: a struct that is not `ImplicitlyCopyable` is then
-$`\mathsf{implicitCopy}` in the replay (`mainRead`). When the replay
-ends in an error that is not of the compiler's later pass
-(`CheckError.late`), the statement has that error, as on `main`; else
-the first error stands.
+(`notOperand`). `main` read the operand that inference tests with a
+call of `__bool__` as a value, which copies a place: a struct that is
+not `ImplicitlyCopyable` is then $`\mathsf{implicitCopy}` in the replay
+(`mainRead`). The replay runs twice: with the checks of the test itself
+before that rejection, and without them (`State.ownChecks`), as `main`
+had none. When the two end alike, that is the replay's result. When they
+differ, a check of the test's own failed first, an error that `main`
+could not report: it stands only when the statement holds no other
+error, which a third run, in the model's own order without those checks,
+shows by passing; else `main` reported the test's
+$`\mathsf{typeMismatch}` first, and the replay without those checks
+gives `main`'s result. When the replay's result is an error that is not
+of the compiler's later pass (`CheckError.late`), the statement has that
+error, as on `main`; else the first error stands.
 :::
 
-:::readable MojoGrimoire.Check.sameTest MojoGrimoire.Check.mainFormTy MojoGrimoire.Check.methodOperator MojoGrimoire.Check.mainCallee MojoGrimoire.Check.mainOperator (fingerprint := "16942837470254231290")
+:::readable MojoGrimoire.Check.sameTest MojoGrimoire.Check.mainFormTy MojoGrimoire.Check.methodOperator MojoGrimoire.Check.mainCallee MojoGrimoire.Check.mainOperator (fingerprint := "4964960514335170472")
 *Rule: an operator on a struct test, in the replay.* An operand that is
 $`\mathsf{and}` or $`\mathsf{or}` of two operands of the same struct
 type has that type, and inference may call a method of that struct for
@@ -55,11 +61,13 @@ once it had typed the operands, leaving out an error of the later pass
 and stopping at a struct test; with no misfit, it read the operands in
 order, as the call does (`mainOperator`). An operator that inference
 left as it is, with no method of the test's struct, finds its misfit
-with the test typed as a $`\mathsf{Bool}` in the replay too
+in the replay with $`\mathsf{and}` and $`\mathsf{or}` typed as a
+$`\mathsf{Bool}` at any depth, a same-type test too, so that
+$`[x\ \mathsf{or}\ y]` is an array of $`\mathsf{Bool}`s
 (`mainFormTy`), as `main` did.
 :::
 
-:::readable MojoGrimoire.Check.checkedBinaryTy (fingerprint := "55630740569557395")
+:::readable MojoGrimoire.Check.checkedBinaryTy (fingerprint := "13676210965822808734")
 *Rule: binary operations.* Once both operands are checked, the places
 among them that are read late are checked again, but for `and` and `or`,
 whose operands are read when tested; the operation then has the type
@@ -81,5 +89,8 @@ $`p` there, where the compiler, on the left of a mixed `and` or `or`,
 only borrows it and leaves $`p` initialized (#84). When the state
 replays `main`'s order, a struct test is rejected as `main` rejected it
 once both operands were checked (`mainTest`), after these checks of the
-test itself, whose errors `main` could not report.
+test itself, whose errors `main` could not report. When the state leaves
+those checks out (`State.ownChecks`), the test is rejected so, or passes
+with no check of its own, a tested call of `__bool__` taken as a
+$`\mathsf{Bool}`.
 :::

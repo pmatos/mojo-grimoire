@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11121368867998042284")
+:::moduleDocs (fingerprint := "8119551463829153626")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.reflectedMethod MojoGrimoire.Check.unaryMethod (fingerprint := "14078108206647463870")
@@ -51,7 +51,7 @@ them, negation and arithmetic, has the type `IntLiteral`, whose operators
 have several overloads too.
 :::
 
-:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "3743439047245667153")
+:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "16582612392293717366")
 *Definition: the type of an operand from its form.* The type of an
 operand is found, without checking or reading it, from its form: a
 literal's, a place's type, the result of the function, struct or method
@@ -62,7 +62,9 @@ array of its first element's type for a
 literal with no type expected each of whose elements' forms gives that
 type (one whose element's form gives none, or another type, is left to
 checking), a list or an array literal's type, an $`\mathsf{Int}` for $`[e]` of type $`\mathsf{Int}`, and
-$`\mathsf{List}[u]` for $`\mathsf{List}[u](\ldots)`. A call of a name
+$`\mathsf{List}[u]` for $`\mathsf{List}[u](\ldots)`. As `main` typed
+them, $`\mathsf{and}` and $`\mathsf{or}` give a $`\mathsf{Bool}` at any
+depth when asked to (`MojoGrimoire.Check.mainFormTy`). A call of a name
 that a variable hides, and any other form, gives none, and so does a
 lookup that fails: checking the operand then reports why.
 :::
@@ -76,7 +78,7 @@ the comparisons of arrays and lists
 (`MojoGrimoire.Check.Compare`).
 :::
 
-:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "11866000574721882157")
+:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "5473277680401556836")
 *Rule: a call of `len`.* The built-in `len` takes one list, array or
 $`\mathsf{Int}`, a SIMD vector of width 1, and gives an $`\mathsf{Int}`.
 A string is left to the check of a string outside `print`. Any other type,

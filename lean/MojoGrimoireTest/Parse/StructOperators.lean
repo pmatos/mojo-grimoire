@@ -152,17 +152,17 @@ private def moveT (body : List String) : List String :=
 -- rejected a struct test as `typeMismatch` once its operands were checked,
 -- and so did any statement whose error comes after the test, which the
 -- pin reports as `typeMismatch` too when the statement has a type error:
--- so it is still. An error before the test stays as it is, and so does an
--- error of the test itself.
-private def bridge (body : List String) : Option Outcome :=
+-- so it is still. An error before the test stays as it is.
+private def bridgeWith (decls body : List String) : Option Outcome :=
   runLines (["struct S(ImplicitlyCopyable):", "    var n: Int", "    var f: Bool",
     "    def __init__(out self, n: Int, f: Bool):", "        self.n = n", "        self.f = f",
     "    def __bool__(self) -> Bool:", "        return self.f",
     "    def __add__(self, o: S) -> S:", "        return S(self.n + o.n, self.f)",
     "    def __neg__(self) -> S:", "        return self",
-    "    def __lt__(self, o: S) -> Bool:", "        return self.n < o.n",
-    "def main():", "    var x = S(1, False)", "    var y = S(2, True)",
+    "    def __lt__(self, o: S) -> Bool:", "        return self.n < o.n"] ++ decls ++
+    ["def main():", "    var x = S(1, False)", "    var y = S(2, True)",
     "    var xs: List[Int] = [1, 2, 3]", "    var k = 1"] ++ body.map ("    " ++ ·))
+private def bridge (body : List String) : Option Outcome := bridgeWith [] body
 private def mainMismatch (body : List String) : Bool :=
   bridge body matches some (.rejected ⟨"main", .typeMismatch ..⟩)
 #guard mainMismatch ["y = (True and x^) or x.f"]
@@ -188,6 +188,34 @@ private def mainMismatch (body : List String) : Bool :=
 #guard mainMismatch ["print(y or x, k)"]
 #guard bridge ["var c = x^", "print(x.n, y.f or y)"] ==
   some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "n")⟩)
+-- `main` typed a test of two structs as a `Bool` at any depth, so
+-- `[x or y]` was an array of `Bool`s, which `[k]` fits: the misfit of
+-- the comparison comes before the moved `x`, as the pin reports it.
+#guard mainMismatch ["var c = x^", "var z = [x or y] == [k]"]
+#guard mainMismatch ["var c = x^", "var z = [x or y] < [k]"]
+#guard mainMismatch ["var z = [S(xs[1 - 2], True) or y] == [k]"]
+-- An error of the test itself, a `__bool__` that returns an `Int` or takes
+-- `mut self`, stays only where the statement holds no other error: else
+-- `main` reported the test's `typeMismatch` first, which the pin gives for
+-- the index's misfit, as it types the target first.
+private def withU (body : List String) : Option Outcome :=
+  bridgeWith ["struct U(ImplicitlyCopyable):", "    var f: Bool",
+    "    def __init__(out self, f: Bool):", "        self.f = f",
+    "    def __bool__(self) -> Int:", "        return 1",
+    "struct V(ImplicitlyCopyable):", "    var f: Bool",
+    "    def __init__(out self, f: Bool):", "        self.f = f",
+    "    def __bool__(mut self) -> Bool:", "        return self.f",
+    "def bi(a: Int) -> Int:", "    return a"]
+    (["var u = U(True)", "var u2 = U(False)", "var v = V(True)",
+      "var ls: List[S] = [S(1, True)]"] ++ body)
+#guard withU ["var q = u or u2"] ==
+  some (.rejected ⟨"main", .missingMethod .int "__mlir_bool__"⟩)
+#guard withU ["ls[bi(u)] = (u or u2)"] matches some (.rejected ⟨"main", .typeMismatch ..⟩)
+#guard withU ["ls[bi(u)] = (V(True) or v)"] matches some (.rejected ⟨"main", .typeMismatch ..⟩)
+-- `main`'s `typeMismatch` here too, before the `mut self` of the
+-- temporary `V(True)`, which the pin reports.
+#guard withU ["var z = (y or S(xs[1 - 2], True)) + (V(True) or v)"]
+  matches some (.rejected ⟨"main", .typeMismatch ..⟩)
 #guard bridge ["var c = x^", "var w = (x.f and y.f) or y"] ==
   some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "f")⟩)
 -- Without a test of a struct, nothing changes from `main`: the pin's

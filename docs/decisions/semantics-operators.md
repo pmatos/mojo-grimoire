@@ -77,6 +77,36 @@ is: `t < u` may give an `Int`.
   2`, `del 2`); one that the operator may give, of the same struct type
   on both sides, lives until the test is done. The right operand and
   `not e` move a temporary into `self`, as a call does.
+- A temporary bridge keeps `main`'s results for these tests until #96
+  part 4 types a function before it checks its flow; that part removes
+  it. `main` rejected every test of a struct, by `and`, `or` or `not`, as
+  `typeMismatch` once its operands were checked. So a statement, or a
+  condition of an `if` or a `while`, that throws an error is checked
+  again replaying `main`'s order (`bridged`), and the replay's error is
+  reported unless it is of the compiler's later pass
+  (`CheckError.late`). An error found after a struct test is then
+  `typeMismatch`: `y = (t(0) and x^) or x.f` with `y` a struct, and
+  `print(y or w, bi(w))`, as the compiler reports them. One found before
+  the test stays, as on `main` (`print(x.n, y.f or y)` after `x^` is
+  `uninitializedUse`). An error of the test itself, such as a `__bool__`
+  that returns an `Int`, stays only when the statement holds no other
+  error, even one that the test's result causes: else `main` reported
+  the test's `typeMismatch` first, and so does the bridge, so
+  `lt[bi(w)] = (u or u2)`, with such a `__bool__` and a `bi` that does
+  not fit, is `typeMismatch`, as the compiler reports it. Where `main` differed
+  before the test, the replay follows it: it read a place that `not` or
+  a mixed `and` or `or` tests as a value (`mainRead`), so
+  `f2(not m, m or m2)`, with `m` `Movable`, is `implicitCopy`; and it
+  typed `and` or `or` of two structs as a `Bool`, at any depth, when it
+  chose an operator's method (`mainOperator`) or typed an operand from
+  its form (`mainFormTy`), so `w > (x or y)`, `(x or y) + ww` and
+  `[x or y] == [ww]` after `x^` are `typeMismatch`, and
+  `(y or S(xs[1 - 2], True)) + y` is `missingMethod`. The bridge gives
+  up the compiler's error where `main` reported `typeMismatch` first,
+  such as `b = (x^ or y) and x.f` with `b` a `Bool` (`uninitializedUse`),
+  and the test's own error where the statement holds another:
+  `print(u or u2, bi(w))`, `print(u or u2)`, with `U` not `Writable`, and
+  `var q: Bool = u or u2` are `missingMethod` in the compiler.
 - The value that an assignment to a whole variable that the function
   owns, a local or a `var` parameter, replaces is not live after the
   assigned expression, whether or not the variable is used later
