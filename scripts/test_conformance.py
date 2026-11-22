@@ -3,10 +3,9 @@
 import io
 import json
 import os
-import stat
+import re
 import subprocess
 import tempfile
-import textwrap
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -190,47 +189,7 @@ class Known(unittest.TestCase):
 class Record(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(self.enterContext(tempfile.TemporaryDirectory()))
-        # A stand-in compiler: it rejects a program that contains REJECT,
-        # and builds any other into a script that prints its PRINT lines
-        # and fails when it contains FAIL; it prints the text of a
-        # `print("text")` too. A line `LEVEL L text` prints text only when
-        # built with the flag L, and `CRASH L` makes the build with L crash
-        # with no error. A failed run built with -O0 also writes the
-        # runtime's assertion line.
-        fake = self.tmp / "mojo"
-        fake.write_text(
-            textwrap.dedent("""\
-            #!/usr/bin/env python3
-            import sys
-            args = sys.argv[2:]
-            path = next(a for a in args if a.endswith(".mojo"))
-            binary = args[args.index("-o") + 1]
-            src = open(path).read()
-            for l in src.splitlines():
-                if l.startswith("# CRASH ") and l.split()[2] in args:
-                    print("Segmentation fault", file=sys.stderr)
-                    sys.exit(139)
-            if "REJECT" in src:
-                print(path + ":1:1: error: use of uninitialized value 'a'",
-                      file=sys.stderr)
-                sys.exit(1)
-            out = [l.split("PRINT ", 1)[1] for l in src.splitlines() if "PRINT " in l]
-            out += [l.split('"')[1] for l in src.splitlines() if 'print("' in l]
-            for l in src.splitlines():
-                if l.startswith("# LEVEL ") and l.split()[2] in args:
-                    out.append(l.split(None, 3)[3])
-            code = 1 if "FAIL" in src else 0
-            if code and "-O0" in args:
-                out.append("At: " + path + ":1:1: Assert Error: boom")
-            with open(binary, "w") as f:
-                f.write("#!/bin/sh\\n" + "".join(f"echo '{l}'\\n" for l in out)
-                        + f"exit {code}\\n")
-            import os
-            os.chmod(binary, 0o755)
-            """)
-        )
-        fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
-        self.fake = str(fake)
+        self.fake = str(Path(__file__).resolve().with_name("fake_mojo.py"))
 
     def program(self, name: str, text: str) -> Path:
         program = self.tmp / f"{name}.mojo"
@@ -430,19 +389,51 @@ class Suite(unittest.TestCase):
 
     def test_every_recorded_rejection_classifies_as_recorded(self):
         patterns, seen, wrong = load_patterns(), 0, []
-        for program in programs():
-            path = program.with_suffix(".json")
-            if not path.exists():
-                continue
-            recorded = json.loads(path.read_text())
-            if recorded["outcome"] != "rejected":
-                continue
+        for name, recorded in recorded_rejections():
             seen += 1
             got = classify(recorded["diagnostic"], patterns)
             if got != recorded["class"]:
-                wrong.append(f"{name_of(program)}: {recorded['class']} -> {got}")
+                wrong.append(f"{name}: {recorded['class']} -> {got}")
         self.assertTrue(seen)
         self.assertEqual(wrong, [], "re-record the programs a pattern reclassifies")
+
+    def test_no_loose_pattern_can_take_a_quoted_name(self):
+        patterns = [pattern for pattern, _ in load_patterns()]
+        quoting = [p for p in patterns if "'[^']*'" in p or "'.*'" in p]
+        loose, wrong = [], [p for p in quoting if not whole(p)]
+        for p in patterns:
+            if p in quoting:
+                wrong += [
+                    f"{above} above {p}" for above in loose if takes_a_name(above)
+                ]
+            elif not whole(p):
+                loose.append(p)
+        for name, recorded in recorded_rejections():
+            message = recorded["diagnostic"]
+            first = next((p for p in patterns if re.search(p, message)), None)
+            if "'" in message and first not in quoting:
+                wrong.append(f"{name}: no whole pattern for {message}")
+        self.assertEqual(wrong, [])
+
+
+def recorded_rejections():
+    """Each recorded rejection of the suite, with its program's name."""
+    for program in programs():
+        path = program.with_suffix(".json")
+        if path.exists():
+            recorded = json.loads(path.read_text())
+            if recorded["outcome"] == "rejected":
+                yield name_of(program), recorded
+
+
+def whole(pattern: str) -> bool:
+    return pattern.startswith("^") and pattern.endswith("$")
+
+
+def takes_a_name(pattern: str) -> bool:
+    """Whether a loose pattern matches a quoted name made of its words."""
+    words = re.findall(r"[A-Za-z_]\w*", pattern)
+    return any(re.search(pattern, f"'{n}'") for n in [*words, "_".join(words)])
 
 
 if __name__ == "__main__":

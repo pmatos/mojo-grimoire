@@ -2,7 +2,9 @@
 
 This page continues [conformance.md](conformance.md) with the classes of
 the model's `CheckError` that the compiler's diagnostics map to, by the
-patterns of `tests/conformance/diagnostics.json`.
+patterns of `tests/conformance/diagnostics.json`. Every pattern for a
+message that quotes a name of the program's is matched whole and comes
+before every loose pattern ([conformance.md](conformance.md#the-suite), #271).
 
 ## Unknown fields and methods
 
