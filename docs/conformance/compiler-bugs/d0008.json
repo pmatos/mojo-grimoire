@@ -3,7 +3,6 @@
   "title": "List[Int](range(start, end, step)) aborts when the range is not empty and start - end is ±2^63",
   "ruled": "2026-11-19",
   "decision_log": "D-0008",
-  "suite_programs": [],
   "reference": {
     "release": "1.3.0.dev2026111905",
     "commit": "a549e6a6"

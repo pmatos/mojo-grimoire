@@ -3,14 +3,6 @@
   "title": "an assignment whose value is the target itself destroys the old value before copying it",
   "ruled": "2026-11-21",
   "decision_log": "D-0012",
-  "suite_programs": [
-    "structs/assign_target_self",
-    "structs/assign_target_and_right",
-    "structs/assign_target_or_right",
-    "structs/assign_target_and_left",
-    "structs/assign_target_or_right_unread",
-    "structs/assign_target_field"
-  ],
   "reference": {
     "release": "1.3.0.dev2026111905",
     "commit": "a549e6a6"

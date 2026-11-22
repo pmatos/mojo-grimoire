@@ -3,9 +3,6 @@
   "title": "arrays of arrays of one-element arrays compare wrongly at -O3 when two comparisons of them are printed together",
   "ruled": "2026-11-21",
   "decision_log": "D-0013",
-  "suite_programs": [
-    "arrays/compare_deep_one_element"
-  ],
   "reference": {
     "release": "1.3.0.dev2026111905",
     "commit": "a549e6a6"

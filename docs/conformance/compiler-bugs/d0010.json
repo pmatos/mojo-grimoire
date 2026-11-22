@@ -3,9 +3,6 @@
   "title": "two one-element arrays compare as equal in an optimized build when a struct's __deinit__ prints",
   "ruled": "2026-11-21",
   "decision_log": "D-0010",
-  "suite_programs": [
-    "arrays/compare_beside_printing_deinit"
-  ],
   "reference": {
     "release": "1.3.0.dev2026111905",
     "commit": "a549e6a6"

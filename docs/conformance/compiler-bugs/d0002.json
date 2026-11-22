@@ -3,9 +3,6 @@
   "title": "xs[i] = f(xs) stores into a stale element when f grows or shrinks xs",
   "ruled": "2026-11-16",
   "decision_log": "D-0002",
-  "suite_programs": [
-    "lists/store_after_grow"
-  ],
   "reference": {
     "release": "1.2.0",
     "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"

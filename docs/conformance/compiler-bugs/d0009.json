@@ -3,13 +3,6 @@
   "title": "indexing an Int ignores the index: k[1], k[-1] and k[n] read and write k with no error",
   "ruled": "2026-11-20",
   "decision_log": "D-0009",
-  "suite_programs": [
-    "basics/int_index_computed_out_of_bounds",
-    "basics/int_index_constant_out_of_bounds",
-    "basics/int_index_negative",
-    "basics/int_index_popped",
-    "basics/int_index_store_out_of_bounds"
-  ],
   "reference": {
     "release": "1.3.0.dev2026111905",
     "commit": "a549e6a6"

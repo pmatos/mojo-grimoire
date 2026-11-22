@@ -3,11 +3,6 @@
   "title": "var x: Int = [e1, ..., en] is accepted for every n, keeps e1 when n >= 2 and crashes at run time when n = 0",
   "ruled": "2026-11-19",
   "decision_log": "D-0005",
-  "suite_programs": [
-    "basics/int_literal_length_evaluated",
-    "basics/int_literal_length_three",
-    "basics/int_literal_length_two"
-  ],
   "reference": {
     "release": "1.2.0",
     "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
