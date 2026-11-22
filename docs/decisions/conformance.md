@@ -110,8 +110,26 @@ result to another class unnoticed. It runs whenever a recorded result or
 records the affected programs again in the same PR. The human ruled this
 on 2026-11-22 (#219).
 
-Rejected: comparing the compiler's diagnostics word for word. Their wording
-changes between releases and says nothing the class does not.
+A loose pattern is searched for anywhere in the message, so a name of the
+program's that holds its word, such as a `mut` parameter named
+`uninitialized`, would send the message to the wrong class. Every pattern
+for a message that quotes a name is therefore matched whole, with each
+name a quoted `'[^']*'`, and placed above every loose pattern; the loose
+patterns stay below for wordings the pin has not shown, and where they
+need a wildcard they use `[^']*`, which cannot span a quoted name. A test
+of the `conformance-test` hook fails when a pattern with a name slot, a
+wildcard that can match a quoted name such as `'[^']*'`, `'.+'` or a bare
+`.*`, is not a single `^...$` with no `|` outside a group, or sits below
+a loose pattern, one that is not such a single `^...$`; and when a recorded message that quotes a name reaches a pattern without a
+name slot first. The suite's `rejected/mut_argument_named_like_other_errors`
+pins it. The dead `expected \d+ positional arguments?` pattern, which no
+message of the pin matches, is gone. The human ruled this on 2026-11-22
+(#271).
+
+Rejected: comparing the compiler's diagnostics word for word, since their
+wording changes between releases and says nothing the class does not;
+anchoring and reordering the patterns without a test; keeping the dead
+pattern; and making `record` fail when a rejection has no class.
 
 ### Optimization levels
 
