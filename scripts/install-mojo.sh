@@ -6,7 +6,9 @@
 # through that wrapper.
 # Usage: scripts/install-mojo.sh <install-dir>
 # The pin is recorded in docs/conformance/decision-log.md; a move of the pin
-# edits both. Needs curl, sha256sum and uv.
+# edits both, records the suite again and runs `scripts/conformance.py
+# levels` (docs/decisions/conformance.md#moving-the-pin). Needs curl,
+# sha256sum and uv.
 set -euo pipefail
 
 readonly version="1.3.0.dev2026111905"
