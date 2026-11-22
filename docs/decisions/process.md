@@ -135,6 +135,46 @@ human ruled this on 2026-11-22 (#96, Q10).
 Rejected: holding each part until those issues are fixed, and excluding the
 constructs.
 
+A second exception holds for any PR, for a program of several statements
+that agreed on `main` only by coincidence: `main` rejected one statement
+wrongly, with the class that the compiler gives for another. A PR that fixes
+the first statement may change such a program from one rejection class to
+another. The PR body lists each such program with split evidence: the fixed
+statement alone now agrees with the compiler, and the other statement alone
+gives the same result on `main` and on the PR. It also names the open issue
+that tracks the other statement. The exception never covers a run that
+becomes a rejection, or the reverse, and never covers a suite program. The
+human ruled this on 2026-11-22 (#260).
+
+Rejected: an exception for #260 alone, and holding #260 until the other
+statements are fixed.
+
+The second exception also covers a program whose parts each agree with the
+compiler alone, and which goes wrong only by the order of its errors: the
+compiler reports a type error anywhere in the program before a later-pass
+error, and the model does not yet (#96). The other part may be a statement,
+a loop body, another function or a function's exit. The PR body lists each
+such program with split evidence: each part alone agrees with the compiler
+on the PR, and the program without the fixed part disagrees with the
+compiler in the same way on `main` and on the PR. It names the open issue
+that tracks the order. The same limits hold: never a run that becomes a
+rejection, or the reverse, and never a suite program. The human ruled this
+on 2026-11-22 (#247, #260).
+
+Rejected: allowing #247 and #260 alone, and holding both until #96 part 4.
+
+When the program without the fixed part agrees with the compiler, the PR
+may put a stand-in in the fixed part's place instead. A stand-in is one
+statement that, alone, gives the same result on `main`, on the PR and on
+the compiler as the fixed part gives alone on the PR, such as
+`var sy: Int = [1, 2]` for `noMatchingInit`. It may keep a declaration that
+the fixed part makes. With the stand-in in place, `main` and the PR give the
+PR's result for the program, and the compiler gives its own. The PR body
+lists each stand-in with its program. This also covers a program in which
+the PR fixes more than one part. The human ruled this on 2026-11-22 (#260).
+
+Rejected: no stand-in, which would leave most of #260's programs out.
+
 ### Review depth
 
 `REVIEW.md` at the root lists the high-stakes paths. Any PR that touches one
