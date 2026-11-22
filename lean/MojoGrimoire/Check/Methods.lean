@@ -40,9 +40,12 @@ when their form did not give one. A misfit of the built-in `len` is found
 the same way (`lenCall`), and a wrong number of its arguments once they
 are typed (#190). A misfit of a method's overload set is found as
 an ordinary call finds its misfit, once its argument is read, so an
-uninitialized argument of the wrong type is still `uninitializedUse`
-first, where the compiler reports `noMatchingMethod`: that order across
-the compiler's passes is left to #96.
+uninitialized place passed as an argument of the wrong type is still
+`uninitializedUse` first, where the compiler reports `noMatchingMethod`:
+that order across the compiler's passes is left to #96. A value that is
+not a place converts to the type it initializes, or to its parameter's,
+as the compiler types it, so a mismatch that its form shows comes before
+a use of an uninitialized value inside it (`checkValue`).
 
 The comparisons of arrays and lists, and the operands they read by
 reference, are `MojoGrimoire.Check.Compare`'s.
@@ -144,6 +147,30 @@ where
   sameTy (u : Option Ty) : List Expr → CheckM Bool
     | [] => pure true
     | e :: es => do pure ((← formTy e) == u && (← sameTy u es))
+
+/-- Checks the value `e` by `value`, which gives its type, where `expected`
+gives the type that it converts to. The compiler converts the value as it
+types it, before the later pass that finds a use of an uninitialized
+value. So when `value` throws `uninitializedUse` and the form of `e` gives
+a type (`operandTy`) other than the expected one, that mismatch is
+reported instead, as a call of fit `fit` reports it (`expectArg`), as in
+`y = (t(0) and x^) or x.f` with `y` a struct. An expected type that is
+`unknown`, or that `expected` fails to give, leaves the error as it is. -/
+def checkValue (prog : Program) (fit : Fit) (expected : CheckM Ty) (e : Expr)
+    (value : CheckM Ty) : CheckM Ty :=
+  tryCatch value fun err => do
+    if err matches .uninitializedUse _ then
+      if let some u ← operandTy prog e then
+        let t ← tryCatch expected fun _ => pure .unknown
+        unless t == .unknown do expectArg fit t u
+    throw err
+
+/-- Checks the value `e` by `value` where the type `t` is expected, and
+rejects any other type as a call of fit `fit` does (`checkValue`,
+`expectArg`). -/
+def expectValue (prog : Program) (fit : Fit) (t : Ty) (e : Expr) (value : CheckM Ty) :
+    CheckM Unit := do
+  expectArg fit t (← checkValue prog fit (pure t) e value)
 
 /-- `missingMethod` of the type `t` and the method `m`, when `t` is known
 and lacks `m`. -/

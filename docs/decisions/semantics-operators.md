@@ -90,9 +90,12 @@ is: `t < u` may give an `Int`.
   `a = a and b` with a false `a`, the pin destroys the old value before
   it copies it, and its default level and `-O0` print different values:
   a compiler bug (#248, [D-0012](../conformance/decision-log-d0012.md),
-  provisional). The model copies the value, then destroys the old one,
-  as the pin does for any other target; `known.json` lists the six
-  `structs/assign_target_*` programs.
+  provisional). The model copies the value, then destroys the old one.
+  As the pin does for any other target, the old value dies at its last
+  use: for a fresh target that comes before the expression, and when the
+  target is an operand, it comes inside the expression, at the copy when
+  the target decides, so the old value dies after it.
+  `known.json` lists the six `structs/assign_target_*` programs.
 - An operator method that inference calls must take as many operands,
   `self` among them, as its operator: two for a binary, reflected or
   in-place operator and one for `__neg__` and `__bool__`. The compiler

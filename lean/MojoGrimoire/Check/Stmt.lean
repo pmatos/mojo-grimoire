@@ -241,7 +241,9 @@ def checkConstructed (prog : Program) (p : Place) (e : Expr) : CheckM Unit := do
 where `t` is not a list or an array, fits no initializer of `t`: Mojo calls
 `t`'s initializer with the elements, which none takes (#46). A literal of
 any length but 1 where an `Int` is expected initializes it, and fits no
-initializer (`rejectIntLiteral`, #153, #154). -/
+initializer (`rejectIntLiteral`, #153, #154). A value of another type is a
+mismatch, reported before a use of an uninitialized value inside it
+(`expectValue`). -/
 def checkInitValue (prog : Program) (t : Ty) (e : Expr) (value : CheckM Ty) : CheckM Unit := do
   if let some es := wrongIntLiteral e then
     rejectIntLiteral prog (.init t) (intMisfit prog es) (readIntElems prog es)
@@ -249,7 +251,7 @@ def checkInitValue (prog : Program) (t : Ty) (e : Expr) (value : CheckM Ty) : Ch
     unless t matches .list _ | .array .. do
       checkOperands prog es
       throw (CheckError.noMatchingInit t)
-  expect t (← value)
+  expectValue prog .call t e value
 
 /-- The type of the value of `return e`: a variable that the function owns
 is moved out, and any other expression is checked as usual. -/
@@ -287,7 +289,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
         let u ← placeTy prog p
         checkInitValue prog u e (checkExpr prog e)
         pure u
-      else checkExpr prog e
+      else checkValue prog .call (placeTy prog p) e (checkExpr prog e)
     checkIndices prog p
     expect (← placeTy prog p) t
     checkConstructed prog p e

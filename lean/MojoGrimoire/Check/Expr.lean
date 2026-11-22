@@ -405,7 +405,7 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
           unless ← placeMutable p do
             throw (CheckError.transferFromBorrowed p)
         throw (fit.misfit (CheckError.notAPlace callee))
-      expectArg fit prm.ty (← checkExprAs prog false e)
+      expectValue prog fit prm.ty e (checkExprAs prog false e)
       let k ← mark
       pure (← lateLocs prog e, k)
   termination_by e => (sizeOf e, 3)

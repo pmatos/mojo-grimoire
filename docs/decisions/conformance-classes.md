@@ -160,7 +160,13 @@ struct, list or array operand is never copied first. It finds a misfit of
 an overload set as an ordinary call finds a misfit, once the argument is
 read, so `var b: Bool; xs[b]` is `uninitializedUse` in the model and
 `noMatchingMethod` in the compiler. That order across the compiler's
-passes is left to #96.
+passes is left to #96. A value that is not a place converts to the type
+it initializes, of a declared variable, an assigned place, a function's
+result or a parameter, as the compiler types it, before any of it is
+read. So `y = (t(0) and x^) or x.f`, with `y` a struct, is `typeMismatch`
+in the model as in the compiler, though the model finds `x` uninitialized
+in `x.f`: the type that the value's form gives comes first
+(`checkValue`, #191).
 
 Rejected: mapping either message to an existing class, `noMatchingInit`,
 `typeMismatch` or `unknownAttribute`, which would merge errors that the

@@ -139,6 +139,23 @@ private def moveT (body : List String) : List String :=
   some (.rejected ⟨"main", .implicitCopy (.struct "T")⟩)
 #guard runLines (moveT ["print(True and T(4), not T(0))"]) == some (.finished ["True True"])
 
+-- A value whose type does not convert to what it initializes is a
+-- mismatch before a use of an uninitialized value inside it: the compiler
+-- converts it as it types it (`checkValue`). The `and` of `x^` and a
+-- `Bool` borrows `x` on the pin (#84); the conversion fails first.
+private def moved (body : List String) : List String :=
+  withT [m "__bool__" "" "Bool" "self.n > 0"] (["var x = T(1)", "var y = T(2)"] ++ body)
+#guard runLines (moved ["y = (True and x^) or x.n > 0"]) ==
+  some (.rejected ⟨"main", .typeMismatch (.struct "T") .bool⟩)
+#guard runLines (moved ["var z: Int = (True and x^) or x.n > 0"]) ==
+  some (.rejected ⟨"main", .typeMismatch .int .bool⟩)
+#guard runLines (moved ["g((True and x^) or x.n > 0)"] ++ ["def g(t: T):", "    pass"]) ==
+  some (.rejected ⟨"main", .typeMismatch (.struct "T") .bool⟩)
+#guard runLines (moved ["var b = False", "b = (x^ or T(3)) and x.n > 0"]) ==
+  some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "n")⟩)
+#guard runLines (moved ["var b = (x^ or T(3)) and x.n > 0"]) ==
+  some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "n")⟩)
+
 -- Calls of a variable whose struct declares `__call__`, which hides the
 -- function, `len`, `print` or struct of its name.
 private def call : List String := m "__call__" ", k: Int" "Int" "self.n + k"

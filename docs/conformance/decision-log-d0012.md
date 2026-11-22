@@ -39,7 +39,9 @@ When the value is the target itself, the pin applies the first order to
 one value: it destroys the old value and then copies it, so it reads a
 destroyed value. With `-O0` the destroyed bytes are still there and the
 program prints the old value; the default build prints what the optimizer
-left. Mojo 1.2.0 and the nightly 1.3.0.dev2026112017 do the same.
+left. Mojo 1.2.0 prints what the pin's default level prints, and the
+nightlies 1.3.0.dev2026111705, 1.3.0.dev2026112017 and
+1.3.0.dev2026112105 print what the pin prints, at both levels.
 
 A struct with its own copy constructor is moved at its last use instead of
 copied, so `o = o` then prints `4` and destroys nothing early. That is the
@@ -47,17 +49,22 @@ move, not a rule for self-assignment.
 
 ## Model
 
-The model copies the value and then destroys the old one, as the pin does
-for a fresh target. Main already did so for `o = o`, and part 2 of #191
-does it for `and` and `or`. In `assign_target_and_left`, the model
+The model copies the value and then destroys the old one. As the pin
+does for any other target, the old value dies at its last use: for a
+fresh target that comes before the expression, and when the target is an
+operand, it comes inside the expression, at the copy when the target
+decides, so the old value dies after it. Main already did so for
+`o = o`, and part 2 of #191 does it for `and` and `or`. In `assign_target_and_left`, the model
 destroys `b`, whose last use is the right-hand side, before the replaced
 `a`, as the pin does for `a = first(a, b)` (#252).
 
 ## Evidence
 
-- A fresh target, and a value through a call, are copied and then
-  destroyed at every level, on the pin, on Mojo 1.2.0 and on the newer
-  nightly (the probes on #248).
+- Every other target's old value dies at its last use, at every level,
+  on the pin, on Mojo 1.2.0 and on the nightly 1.3.0.dev2026112017 (the
+  probes on #248). A fresh target's dies before the expression: `p = o`
+  prints `del T 8` before it copies `o`. Through a call, the old `b` of
+  `b = pick(a, b)` dies after the call, its last use.
 - The default level and `-O0` print different values for the same
   program, which no fixed compiler would do.
 - The twin `c = a and b`, whose target `c` is not an operand, prints

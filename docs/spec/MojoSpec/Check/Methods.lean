@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8541500102215533739")
+:::moduleDocs (fingerprint := "9467940098394794028")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
@@ -60,6 +60,21 @@ checking), a list or an array literal's type, an $`\mathsf{Int}` for $`[e]` of t
 $`\mathsf{List}[u]` for $`\mathsf{List}[u](\ldots)`. A call of a name
 that a variable hides, and any other form, gives none, and so does a
 lookup that fails: checking the operand then reports why.
+:::
+
+:::readable MojoGrimoire.Check.checkValue MojoGrimoire.Check.expectValue (fingerprint := "14974240001138076408")
+*Rule: a conversion comes before a use of an uninitialized value.* A value
+$`e` that converts to an expected type, the type of a declared variable,
+of a place assigned to, of a function's result or of a parameter, is
+converted as the compiler types it, before the later pass that finds a use
+of an uninitialized value. So when checking $`e` gives
+$`\mathsf{uninitializedUse}` and the form of $`e` gives a type
+(`operandTy`) other than the expected one, the mismatch is reported
+instead, as a call of that fit reports it (`expectArg`): in
+$`y = (t(0)~\mathsf{and}~x\,\hat{})~\mathsf{or}~x.f` with $`y` a struct,
+the $`\mathsf{Bool}` that does not convert to $`y`'s type. An expected
+type that is unknown, or that cannot be found, leaves the error as it is.
+`expectValue` then requires the expected type of the value's type.
 :::
 
 :::readable MojoGrimoire.Check.lacks MojoGrimoire.Check.unaryMisfit (fingerprint := "8538711511074234144")

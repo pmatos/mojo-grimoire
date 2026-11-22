@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4887886177569760108")
+:::moduleDocs (fingerprint := "11706173473080090140")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -113,7 +113,7 @@ does. $`\mathsf{List}[u](e)` builds its result in place, and passes $`e`
 by `ref` (#103).
 :::
 
-:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "3556521052256848185")
+:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "13605292999250758516")
 *Rule: initializing values.* A value that initializes a declared variable,
 a place assigned to, or a function's result must have its type. A literal
 $`[e^*]_{?}`, which has no list or array expected, where that
@@ -124,7 +124,8 @@ Mojo calls the type's initializer with the elements and the keyword
 $`[e^*]_{\mathsf{Int}}` of any length but 1 initializes an
 $`\mathsf{Int}`, and is rejected by `rejectIntLiteral` as an initializer
 of the type reports it (#153, #154). An assignment of either literal
-types its place first.
+types its place first. A value of another type is a mismatch, reported
+before a use of an uninitialized value inside it (`expectValue`).
 :::
 
 :::readable MojoGrimoire.Check.checkReturnValue (fingerprint := "6201929813473914141")
@@ -133,7 +134,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "13371840907604808946")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "11938897425016333987")
 *Rule: statements.*
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a $`t` in which no variable hides
@@ -146,8 +147,9 @@ an expression, so a place is copied implicitly.
   compiler does (#123);
 * $`\mathsf{ref}~x = e` binds $`x` to a reference, as the next section
   says; $`x` may not hide a variable in scope either;
-* $`p = e` checks $`e` first, then the indices of $`p`, then needs $`p`
-  of $`e`'s type, then that $`e` does not build its result into $`p`
+* $`p = e` checks $`e` first, a mismatch with the type of $`p` coming
+  before a use of an uninitialized value inside $`e` (`checkValue`), then
+  the indices of $`p`, then needs $`p` of $`e`'s type, then that $`e` does not build its result into $`p`
   while changing the list that holds it, then needs a place the function may change; $`p` is changed as a
   whole, its old value ends, and $`p` is initialized. The old value may
   not end, as at the end of a variable, with the parts of $`p` taken as

@@ -280,10 +280,14 @@ Each move of the Mojo pin gets an entry below.
 - Classification: compiler bug, for the whole family, the rows where the
   levels agree included; ruled by the human on 2026-11-21 (#248),
   provisional.
-- Decision and rationale: the fixed compiler copies, then destroys the
-  old value, as the pin does for a fresh target and through a call, at
-  every level ([evidence](decision-log-d0012.md#evidence)). The model did
-  so already and needed no change.
+- Decision and rationale: the fixed compiler destroys the old value at
+  its last use, as the pin does for any other target, at every level: for
+  a fresh target that comes before the expression, and through a call it
+  is the call. When the target is an operand, its last use comes inside
+  the expression, at the copy when it decides, so the fixed compiler
+  copies, then destroys the old value
+  ([evidence](decision-log-d0012.md#evidence)). The model did so already
+  and needed no change.
 - Upstream report: not filed; a draft on #248 awaits the human.
 
 ### D-0013: arrays of arrays of one-element arrays compare wrongly at -O3 (provisional)
