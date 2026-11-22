@@ -142,10 +142,11 @@ The excluded constructs, each temporary:
   supported after #96's flow parts, so that the flow checks across loop
   exits are written once. The parser reads each as a call of a callee of
   its name, which no name of a program is. As names, both are keywords: a
-  variable or a parameter named `break` or `continue` is a syntax error,
-  as the compiler fails to parse it
-  ([conformance.md](conformance.md#rejections-made-while-parsing)).
-  Supporting them is #276.
+  variable, a parameter, a function or a field named `break` or
+  `continue` is a syntax error, as the compiler fails to parse it
+  ([conformance.md](conformance.md#rejections-made-while-parsing)). A
+  method's name in a struct and the name after `.` may be either word, as
+  in the compiler. Supporting them is #276.
 
 Constructs that the checker still rejects with a class where the compiler
 accepts them, and that no ruling puts outside the subset, are not

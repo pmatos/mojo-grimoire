@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and declarations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16706364453235159763")
+:::moduleDocs (fingerprint := "5173347343371751134")
 :::
 
-:::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.augCallee MojoGrimoire.Parse.exprStmt MojoGrimoire.Parse.loopExits (fingerprint := "13085663962716860833")
+:::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.augCallee MojoGrimoire.Parse.exprStmt (fingerprint := "14674107341489909627")
 *Definition: sugar.* `p += e`, `p -= e` and `p *= e` are read as calls of
 the callees `+=`, `-=` and `*=` with $`p` and $`e`, which no name of a
 program is: inference replaces each with a call of the in-place method of
@@ -24,13 +24,13 @@ $`p`'s struct, or with `p = p + e`, `p = p - e` or `p = p * e` (#191). A
 call of `print` on a line of its own is the $`\mathsf{print}` statement;
 any other expression there is evaluated and its value discarded.
 $`\mathsf{break}` and $`\mathsf{continue}` are read as calls with no
-arguments of the callees `break` and `continue` (`loopExits`), which no
+arguments of the callees `break` and `continue`, which no
 name of a program is, since both are keywords. Both are outside the
 subset, which the check of the constructs outside it reports (#268),
 until #276 supports them.
 :::
 
-:::readable MojoGrimoire.Parse.simpleStmt MojoGrimoire.Parse.exprTail MojoGrimoire.Parse.stmt MojoGrimoire.Parse.ifRest MojoGrimoire.Parse.block MojoGrimoire.Parse.stmts (fingerprint := "15419200012305747710")
+:::readable MojoGrimoire.Parse.simpleStmt MojoGrimoire.Parse.exprTail MojoGrimoire.Parse.stmt MojoGrimoire.Parse.ifRest MojoGrimoire.Parse.block MojoGrimoire.Parse.stmts (fingerprint := "4075543082761067632")
 *Definition: statements and blocks.*
 
 $$`\begin{array}{lcl}
@@ -54,7 +54,7 @@ statement's on the line of its block's `:` included, each statement
 before the statements it holds.
 :::
 
-:::readable MojoGrimoire.Parse.conv MojoGrimoire.Parse.params MojoGrimoire.Parse.originNames MojoGrimoire.Parse.funDecl (fingerprint := "9777558907402154166")
+:::readable MojoGrimoire.Parse.conv MojoGrimoire.Parse.params MojoGrimoire.Parse.originNames MojoGrimoire.Parse.funDecl (fingerprint := "16356271122745881202")
 *Definition: functions.*
 
 $$`\begin{array}{lcl}
@@ -72,11 +72,13 @@ followed by the parameter's name, and `owned` is a name, not a convention:
 a method, whose type is its struct. A function without a result returns
 $`\mathsf{None}`. `raises` is read and ignored: the subset raises no
 errors. A result `ref [a, b] T` is a reference with the origins of the
-parameters named; it names at least one. Each function is recorded with
-the lines where the statements of its body start.
+parameters named; it names at least one. A method's name may be `break`
+or `continue`, as in the compiler, and a function's may not
+(`memberName`, #268). Each function is recorded with the lines where the
+statements of its body start.
 :::
 
-:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.PState.deinitScope MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "11028547165630557114")
+:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.PState.deinitScope MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "12612530014366367951")
 *Definition: structs.*
 
 $$`\begin{array}{lcl}

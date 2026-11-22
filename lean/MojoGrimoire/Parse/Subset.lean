@@ -123,8 +123,7 @@ construct outside the subset, and the construct, or gives the index of the
 statement after `st` and those it holds, and the names in scope after it.
 A variable declared with `var` or bound with `ref` is in scope after its
 declaration in its block, not in its own initializer. The arguments of the
-`print` statement may be string literals. `break` and `continue` are
-outside it. -/
+`print` statement may be string literals. -/
 def Stmt.outside (prog : Program) (vs : List Name) (k : Nat) :
     Stmt → Except (Nat × String) (Nat × List Name)
   | .pass | .drop _ => pure (k + 1, vs)

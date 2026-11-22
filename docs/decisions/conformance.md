@@ -219,5 +219,4 @@ subset, not rejections.
 Rejected: changing `scripts/conformance.py` so that a model syntax error
 agrees with a compiler parse error, and holding these programs in
 `tests/conformance/rejected/` under a class of `diagnostics.json`. It
-changes the checking machinery for five programs that the guards already
-pin.
+changes the checking machinery for programs that the guards already pin.

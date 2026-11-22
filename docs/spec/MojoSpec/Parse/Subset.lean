@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Constructs outside the subset: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18176861990348985330")
+:::moduleDocs (fingerprint := "10869864927373003482")
 :::
 
-:::readable MojoGrimoire.Parse.Outside MojoGrimoire.Parse.ReadError MojoGrimoire.Parse.outsideString MojoGrimoire.Parse.outsideRange MojoGrimoire.Parse.outsideLoopExit MojoGrimoire.Parse.loopExit (fingerprint := "18131438352526751641")
+:::readable MojoGrimoire.Parse.Outside MojoGrimoire.Parse.ReadError MojoGrimoire.Parse.outsideString MojoGrimoire.Parse.outsideRange MojoGrimoire.Parse.outsideLoopExit MojoGrimoire.Parse.loopExit (pin := MojoGrimoire.Parse.loopExits) (fingerprint := "18164383195230809481")
 *Definition: constructs outside the subset.* A construct outside the
 subset is reported with the line where the statement that holds it starts
 and what it is: a string literal outside `print`, a call of `range`

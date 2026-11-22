@@ -89,16 +89,30 @@ def skipNewlines : Nat → P Unit
   | 0 => pure ()
   | fuel + 1 => do if (← peek) == some .newline then let _ ← next; skipNewlines fuel
 
+/-- The statements `break` and `continue`, which are outside the subset
+until #276 supports them (#268). The parser reads each as a call of a
+callee of its name, for the check of the constructs outside the subset to
+report: no name of a program is such a callee, since both are keywords. -/
+def loopExits : List String := ["break", "continue"]
+
 /-- The keywords, which are not names. -/
 def keywords : List String :=
-  ["def", "fn", "struct", "var", "ref", "if", "elif", "else", "while", "break", "continue",
-   "return", "pass", "and", "or", "not", "True", "False", "out", "mut", "deinit", "raises"]
+  ["def", "fn", "struct", "var", "ref", "if", "elif", "else", "while", "return", "pass",
+   "and", "or", "not", "True", "False", "out", "mut", "deinit", "raises"] ++ loopExits
 
 /-- Reads a name, or fails. -/
 def name : P Name := do
   match ← next with
   | .ident x => if keywords.contains x then fail s!"`{x}` is a keyword" else pure x
   | _ => fail "expected a name"
+
+/-- Reads a name where the compiler also takes `break` and `continue`: a
+method's name in a struct, and the name of a field or a method after `.`
+(#268). -/
+def memberName : P Name := do
+  match ← peek with
+  | some (.ident x) => if loopExits.contains x then let _ ← next; pure x else name
+  | _ => name
 
 /-- A type argument of `List` or `Array` as the parser reads it: `None`
 there is a value where Mojo expects a type, which the compiler rejects. It

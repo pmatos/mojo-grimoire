@@ -192,6 +192,22 @@ private def inMain (body : List String) : List String :=
   some (.syntax ⟨1, "`continue` is a keyword"⟩)
 #guard readError (inMain ["var x = 1", "print(x + continue)"]) ==
   some (.syntax ⟨8, "`continue` is a keyword"⟩)
+-- So are a function and a field of either name, which the compiler fails to
+-- parse ("'break' cannot be used as a function name in this context",
+-- "expected name for 'var' declaration").
+#guard readError ["def break() -> Int:", "    return 1", "def main():", "    print(1)"] ==
+  some (.syntax ⟨1, "`break` is a keyword"⟩)
+#guard readError ["struct S(Movable):", "    var break: Int", "def main():", "    pass"] ==
+  some (.syntax ⟨2, "`break` is a keyword"⟩)
+-- A method's name in a struct, and the name after `.`, may be either word,
+-- as in the compiler, which prints `1` for the first program and rejects
+-- the second, "'S' value has no attribute 'continue'".
+#guard runLines ["struct S(Movable):", "    var n: Int", "    def __init__(out self):",
+  "        self.n = 1", "    def break(self) -> Int:", "        return self.n", "def main():",
+  "    var s = S()", "    print(s.break())"] == some (.finished ["1"])
+#guard runLines ["@fieldwise_init", "struct S(Movable):", "    var n: Int", "def main():",
+  "    var s = S(1)", "    print(s.continue)"] ==
+  some (.rejected ⟨"main", .unknownAttribute "S" "continue"⟩)
 -- The programs of #268, which the pin builds and runs: the first prints
 -- `3`, and the second `1`, `2`, `4` and `5`. Main read each word as a name
 -- and rejected them as `unknownVariable`.
