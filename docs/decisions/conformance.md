@@ -208,8 +208,10 @@ compiler and compare its first error with this list
 | `var y = x^ == 3` | prefix '==' is only valid in a pattern | `XorCaret.lean`: `withX "var y = x^ == 3"` |
 | `var break = 1` | unexpected token in expression | `Subset.lean`: `inMain ["var break = 1", "print(break)"]` |
 | `def g(continue: Int)` | expected argument name | `Subset.lean`: `"def g(continue: Int):"` |
+| `def break() -> Int` | 'break' cannot be used as a function name in this context | `Subset.lean`: `"def break() -> Int:"` |
+| `var break: Int`, a field | expected name for 'var' declaration | `Subset.lean`: `"    var break: Int"` |
 
-The last two rows were probed against the nightly alone, on 2026-11-22
+The last four rows were probed against the nightly alone, on 2026-11-22
 (#268).
 
 `x^ + 1` and `x^ 5`, which #54 also pins as syntax errors, are not on the
