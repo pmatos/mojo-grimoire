@@ -317,10 +317,28 @@ class Record(unittest.TestCase):
         code, out = self.run_command(levels, program, {name_of(program): "D-1"})
         self.assertEqual(code, 1)
         self.assertIn("-O1: build exit 139: Segmentation fault", out)
-        code, out = self.run_command(record, self.program("c0", "# CRASH -O0\n"), {})
+        for name, ruled in (("c0", False), ("c1", True)):
+            program = self.program(name, "# CRASH -O0\n")
+            named = {name_of(program): "D-0003"} if ruled else {}
+            code, out = self.run_command(record, program, named)
+            self.assertEqual(code, 1)
+            self.assertIn("-O0: build exit 139", out)
+            self.assertFalse(program.with_suffix(".json").exists())
+
+    def test_record_refuses_a_ruled_program_whose_build_times_out(self):
+        program = self.program("slow0", "# PRINT a\n")
+        real = conformance_compiler.run_compiler
+
+        def slow(program, mojo, patterns, flags=()):
+            if "-O0" in flags:
+                raise subprocess.TimeoutExpired([self.fake, "build"], 1)
+            return real(program, mojo, patterns, flags)
+
+        with mock.patch("conformance_compiler.run_compiler", side_effect=slow):
+            code, out = self.run_command(record, program, {name_of(program): "D-0003"})
         self.assertEqual(code, 1)
-        self.assertIn("-O0: build exit 139", out)
-        self.assertFalse((self.tmp / "c0.json").exists())
+        self.assertIn("-O0: timed out", out)
+        self.assertFalse(program.with_suffix(".json").exists())
 
     def test_a_broken_wrapper_compares_nothing(self):
         broken = self.tmp / "broken"
@@ -333,6 +351,19 @@ class Record(unittest.TestCase):
             self.assertIn("does not build and run a trivial program", out)
             code, out = self.run_command(command, program, {}, str(self.tmp / "none"))
             self.assertEqual(code, 2)
+
+    def test_a_wrapper_that_rejects_everything_compares_nothing(self):
+        rejecting = self.tmp / "rejecting"
+        rejecting.write_text(
+            "#!/bin/sh\necho \"x.mojo:1:1: error: unable to locate module 'std'\" >&2\n"
+            "exit 1\n"
+        )
+        rejecting.chmod(0o755)
+        program = self.program("fine", "# PRINT a\n")
+        for command in (levels, record):
+            code, out = self.run_command(command, program, {}, str(rejecting))
+            self.assertEqual(code, 2)
+            self.assertIn("does not build and run a trivial program", out)
 
     def test_arguments_that_are_not_programs_are_refused(self):
         program = self.program("fine", "# PRINT a\n")
