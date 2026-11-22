@@ -3,14 +3,6 @@
   "title": "a subscript of a struct that declares __getitem__ and __setitem__, on the left of and/or, calls the getter twice when it decides",
   "ruled": "2026-11-20",
   "decision_log": "D-0011",
-  "suite_programs": [
-    "structs/operator_method_bool_getter_twice",
-    "structs/operator_method_bool_getter_temporary",
-    "structs/operator_method_bool_getter_drop_order",
-    "rejected/operator_method_bool_getter_consumed",
-    "structs/operator_method_bool_getter_index_order",
-    "rejected/operator_method_bool_getter_transfer"
-  ],
   "reference": {
     "release": "1.3.0.dev2026111905",
     "commit": "a549e6a6"

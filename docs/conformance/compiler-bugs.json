@@ -113,6 +113,14 @@
       "decision_log": "D-0011",
       "issue": 211,
       "title": "a subscript of a struct that declares __getitem__ and __setitem__, on the left of and/or, calls the getter twice when it decides",
+      "suite_programs": [
+        "structs/operator_method_bool_getter_twice",
+        "structs/operator_method_bool_getter_temporary",
+        "structs/operator_method_bool_getter_drop_order",
+        "rejected/operator_method_bool_getter_consumed",
+        "structs/operator_method_bool_getter_index_order",
+        "rejected/operator_method_bool_getter_transfer"
+      ],
       "entry": "compiler-bugs/d0011.json"
     },
     {
