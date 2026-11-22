@@ -13,15 +13,18 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Constructs outside the subset: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8334351831387994156")
+:::moduleDocs (fingerprint := "18176861990348985330")
 :::
 
-:::readable MojoGrimoire.Parse.Outside MojoGrimoire.Parse.ReadError MojoGrimoire.Parse.outsideString MojoGrimoire.Parse.outsideRange (fingerprint := "9932285770768104581")
+:::readable MojoGrimoire.Parse.Outside MojoGrimoire.Parse.ReadError MojoGrimoire.Parse.outsideString MojoGrimoire.Parse.outsideRange MojoGrimoire.Parse.outsideLoopExit MojoGrimoire.Parse.loopExit (fingerprint := "18131438352526751641")
 *Definition: constructs outside the subset.* A construct outside the
 subset is reported with the line where the statement that holds it starts
-and what it is: a string literal outside `print`, or a call of `range`
-outside $`\mathsf{List}[T](\ldots)`. The text of a file is no program of
-the subset when it has a syntax error or such a construct.
+and what it is: a string literal outside `print`, a call of `range`
+outside $`\mathsf{List}[T](\ldots)`, or a $`\mathsf{break}` or
+$`\mathsf{continue}` statement (#268), which the parser reads as a call
+with no arguments of a callee of that name (`loopExit`). The text of a
+file is no program of the subset when it has a syntax error or such a
+construct.
 :::
 
 :::readable MojoGrimoire.Parse.stdRange (fingerprint := "14901185376653266137")
@@ -31,7 +34,7 @@ struct or function of the program, is named `range` (#176); the second
 half is the checker's own test, `builtinRange`.
 :::
 
-:::readable MojoGrimoire.Parse.Place.outside MojoGrimoire.Parse.Expr.outside MojoGrimoire.Parse.Expr.listOutside (fingerprint := "1834134302822624913")
+:::readable MojoGrimoire.Parse.Place.outside MojoGrimoire.Parse.Expr.outside MojoGrimoire.Parse.Expr.listOutside (fingerprint := "1072187626577693458")
 *Definition: constructs in an expression.* The first construct outside
 the subset in an expression, in the order of its text, is a string
 literal, or a call of the standard library's `range`, at any depth, also
@@ -40,14 +43,15 @@ $`\mathsf{List}[T](\mathsf{range}(\ldots))` is the call of `range` that
 the subset takes, whose own arguments are checked.
 :::
 
-:::readable MojoGrimoire.Parse.foundIn MojoGrimoire.Parse.Stmt.outside MojoGrimoire.Parse.Stmt.blockOutside (fingerprint := "18010265858091630684")
+:::readable MojoGrimoire.Parse.foundIn MojoGrimoire.Parse.Stmt.outside MojoGrimoire.Parse.Stmt.blockOutside (fingerprint := "1496206810667714673")
 *Definition: constructs in a block.* The statements are walked in the
 order of the file, each before the statements it holds, and numbered so;
 the walk stops at the first statement that holds a construct. A
 $`\mathsf{var}~x` or $`\mathsf{ref}~x` brings $`x` into scope after its
 initializer, for the rest of its block. The arguments of the `print`
 statement may be string literals, unless a variable named `print` makes
-the statement a call of it.
+the statement a call of it. A $`\mathsf{break}` or $`\mathsf{continue}`
+statement is outside the subset wherever it stands.
 :::
 
 :::readable MojoGrimoire.Parse.FunDecl.outside MojoGrimoire.Parse.outsideSubset MojoGrimoire.Parse.parseSubset (fingerprint := "7885277836923273557")

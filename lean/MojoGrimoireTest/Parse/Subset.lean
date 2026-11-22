@@ -3,8 +3,9 @@ import MojoGrimoire.Interp.Run
 
 /-!
 Tests of the check of the constructs outside the subset (#180): a string
-literal outside the `print` statement, and a call of the standard library's
-`range` outside `List[T](…)`. The driver reports such a program as
+literal outside the `print` statement, a call of the standard library's
+`range` outside `List[T](…)`, and the statements `break` and `continue`
+(#268). The driver reports such a program as
 `outside the subset: line N: MESSAGE` with exit 3, at the line where the
 statement that holds the first construct starts, in the order of the file.
 -/
@@ -146,5 +147,58 @@ private def inMain (body : List String) : List String :=
   outsideString
 #guard outside ["def main():", "    var xs: List[Int] = [5, 6]", "    print(xs.pop(\"a\"))"] 3
   outsideString
+
+-- `break` and `continue` are outside the subset wherever they stand, by the
+-- human's ruling of 2026-11-22 (#268): in a `while`, in an `if` inside it,
+-- in a block on the line of its `:`, outside any loop, in a method and in a
+-- destructor. Supporting them is #276.
+#guard outside (inMain ["while True:", "    break"]) 8 (outsideLoopExit "break")
+#guard outside (inMain ["var i = 0", "while i < 3:", "    i += 1", "    if i == 2:",
+  "        continue", "    print(i)"]) 11 (outsideLoopExit "continue")
+#guard outside (inMain ["while True: break"]) 7 (outsideLoopExit "break")
+#guard outside (inMain ["var i = 0", "while i < 3:", "    i += 1", "    if i == 2: continue"]) 10
+  (outsideLoopExit "continue")
+#guard outside (inMain ["break"]) 7 (outsideLoopExit "break")
+#guard outside (inMain ["if True:", "    pass", "else:", "    continue"]) 10
+  (outsideLoopExit "continue")
+#guard outside ["struct S(Movable):", "    var n: Int", "    def m(self):", "        while True:",
+  "            continue", "    def __init__(out self):", "        self.n = 1", "def main():",
+  "    print(1)"] 5 (outsideLoopExit "continue")
+#guard outside ["struct S(Movable):", "    var n: Int", "    def __init__(out self):",
+  "        self.n = 1", "    def __deinit__(deinit self):", "        break", "def main():",
+  "    var s = S()"] 6 (outsideLoopExit "break")
+-- The first construct in the order of the file is reported, against a
+-- string literal or a call of `range` before it or after it, also on the
+-- line of an `if` whose condition holds one.
+#guard outside (inMain ["var s = \"a\"", "while True:", "    break"]) 7 outsideString
+#guard outside (inMain ["while True:", "    break", "var r = range(3)"]) 8
+  (outsideLoopExit "break")
+#guard outside (inMain ["while True:", "    if \"a\" == \"b\": break"]) 8 outsideString
+#guard outside (inMain ["while True:", "    if True: continue", "    print(len(range(2)))"]) 8
+  (outsideLoopExit "continue")
+-- Whatever other error the program has, and a syntax error anywhere comes
+-- first.
+#guard outside (inMain ["print(nope)", "while True:", "    break"]) 9 (outsideLoopExit "break")
+#guard readError (inMain ["while True:", "    break", "var = 1"]) ==
+  some (.syntax ⟨9, "expected a name"⟩)
+#guard readError (inMain ["while True:", "    break 1"]) ==
+  some (.syntax ⟨8, "expected the end of the line"⟩)
+-- As names, both are keywords: the compiler fails to parse `var break = 1`
+-- ("unexpected token in expression") and a parameter named `continue`
+-- ("expected argument name"), and the model reads each as a syntax error.
+#guard readError (inMain ["var break = 1", "print(break)"]) ==
+  some (.syntax ⟨7, "`break` is a keyword"⟩)
+#guard readError ["def g(continue: Int):", "    pass", "def main():", "    g(1)"] ==
+  some (.syntax ⟨1, "`continue` is a keyword"⟩)
+#guard readError (inMain ["var x = 1", "print(x + continue)"]) ==
+  some (.syntax ⟨8, "`continue` is a keyword"⟩)
+-- The programs of #268, which the pin builds and runs: the first prints
+-- `3`, and the second `1`, `2`, `4` and `5`. Main read each word as a name
+-- and rejected them as `unknownVariable`.
+#guard outside ["def main():", "    var i = 0", "    while i < 5:", "        i += 1",
+  "        if i == 3:", "            break", "    print(i)"] 6 (outsideLoopExit "break")
+#guard outside ["def main():", "    var i = 0", "    while i < 5:", "        i += 1",
+  "        if i == 3:", "            continue", "        print(i)"] 6
+  (outsideLoopExit "continue")
 
 end MojoGrimoireTest.Parse.Subset

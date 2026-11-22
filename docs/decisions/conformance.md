@@ -206,6 +206,11 @@ compiler and compare its first error with this list
 | `def f(owned xs: Int)` | expected ')' in argument list | `Conventions.lean`: `withF "owned xs: Int"` |
 | `var y = x^ * 2` | can't use starred expression here | `XorCaret.lean`: `withX "var y = x^ * 2"` |
 | `var y = x^ == 3` | prefix '==' is only valid in a pattern | `XorCaret.lean`: `withX "var y = x^ == 3"` |
+| `var break = 1` | unexpected token in expression | `Subset.lean`: `inMain ["var break = 1", "print(break)"]` |
+| `def g(continue: Int)` | expected argument name | `Subset.lean`: `"def g(continue: Int):"` |
+
+The last two rows were probed against the nightly alone, on 2026-11-22
+(#268).
 
 `x^ + 1` and `x^ 5`, which #54 also pins as syntax errors, are not on the
 list: the compiler builds them and prints `2` and `6`. They are outside the

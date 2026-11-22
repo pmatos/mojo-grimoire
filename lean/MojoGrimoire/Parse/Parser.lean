@@ -91,8 +91,8 @@ def skipNewlines : Nat → P Unit
 
 /-- The keywords, which are not names. -/
 def keywords : List String :=
-  ["def", "fn", "struct", "var", "ref", "if", "elif", "else", "while", "return", "pass",
-   "and", "or", "not", "True", "False", "out", "mut", "deinit", "raises"]
+  ["def", "fn", "struct", "var", "ref", "if", "elif", "else", "while", "break", "continue",
+   "return", "pass", "and", "or", "not", "True", "False", "out", "mut", "deinit", "raises"]
 
 /-- Reads a name, or fails. -/
 def name : P Name := do

@@ -112,8 +112,9 @@ construct stands, whatever other error it has; a syntax error anywhere
 comes first. The driver prints `outside the subset: line N: MESSAGE` on
 standard error and exits with 3. `N` is the line where the statement that
 holds the first construct in the order of the file starts, and `MESSAGE`
-names the construct: `` a string literal outside `print` `` or
-`` a call of `range` outside `List[T](...)` ``.
+names the construct: `` a string literal outside `print` ``,
+`` a call of `range` outside `List[T](...)` ``, `` a `break` statement ``
+or `` a `continue` statement ``.
 
 The excluded constructs, each temporary:
 
@@ -134,6 +135,17 @@ The excluded constructs, each temporary:
   a struct or a function of the program, named `range` hides it, as in a
   call (#176). A destructor's body has `self` alone in scope, as in the
   checker. Covering a range as a value is #239.
+- The statements `break` and `continue`, wherever they stand: in a loop,
+  in a block on the line of its `:`, or outside any loop, which the
+  compiler rejects after parsing ("'break' is not inside a loop"). The
+  human ruled on 2026-11-22 (#268) that they are excluded now and
+  supported after #96's flow parts, so that the flow checks across loop
+  exits are written once. The parser reads each as a call of a callee of
+  its name, which no name of a program is. As names, both are keywords: a
+  variable or a parameter named `break` or `continue` is a syntax error,
+  as the compiler fails to parse it
+  ([conformance.md](conformance.md#rejections-made-while-parsing)).
+  Supporting them is #276.
 
 Constructs that the checker still rejects with a class where the compiler
 accepts them, and that no ruling puts outside the subset, are not

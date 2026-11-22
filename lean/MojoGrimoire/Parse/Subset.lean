@@ -8,14 +8,18 @@ class: a class claims that Mojo rejects the program, and the compiler may
 accept it. The human ruled this on 2026-11-20. Every exclusion is
 temporary, since the goal is a model of the whole of Mojo, and only the
 human adds a construct to the list on `docs/decisions/semantics-parser.md`.
-Two constructs are on it today, each a ruling or a decision page puts
+Three constructs are on it today, each a ruling or a decision page puts
 outside the subset:
 
 - a string literal anywhere but as an argument of the `print` statement:
   the Phase 1 subset has no string type, and `print` alone takes string
   literals;
 - a call of the standard library's `range` anywhere but as the one
-  argument of `List[T](…)`, by the ruling of 2026-11-19 on #121.
+  argument of `List[T](…)`, by the ruling of 2026-11-19 on #121;
+- the statements `break` and `continue`, wherever they stand, by the
+  ruling of 2026-11-22 on #268, until #276 supports them after #96's flow
+  parts. The parser reads each as a call of a callee of its name
+  (`loopExits`), which no name of a program is, since both are keywords.
 
 Telling whether `print` and `range` are the standard library's needs the
 names in scope: a variable or a parameter named `print` makes the `print`
@@ -56,6 +60,15 @@ def outsideString : String := "a string literal outside `print`"
 
 /-- What a call of the standard library's `range` outside `List[T](…)` is. -/
 def outsideRange : String := "a call of `range` outside `List[T](...)`"
+
+/-- What the statement `break` or `continue`, named `k`, is. -/
+def outsideLoopExit (k : Name) : String := s!"a `{k}` statement"
+
+/-- The statement `break` or `continue` that the expression `e` on a line
+of its own stands for, as the parser reads it, if it is one. -/
+def loopExit : Expr → Option String
+  | .call k [] => if loopExits.contains k then some (outsideLoopExit k) else none
+  | _ => none
 
 /-- Whether a call of `range`, where the names `vs` are in scope, calls the
 standard library's: no variable or parameter in scope has that name, and
@@ -110,7 +123,8 @@ construct outside the subset, and the construct, or gives the index of the
 statement after `st` and those it holds, and the names in scope after it.
 A variable declared with `var` or bound with `ref` is in scope after its
 declaration in its block, not in its own initializer. The arguments of the
-`print` statement may be string literals. -/
+`print` statement may be string literals. `break` and `continue` are
+outside it. -/
 def Stmt.outside (prog : Program) (vs : List Name) (k : Nat) :
     Stmt → Except (Nat × String) (Nat × List Name)
   | .pass | .drop _ => pure (k + 1, vs)
@@ -119,7 +133,7 @@ def Stmt.outside (prog : Program) (vs : List Name) (k : Nat) :
   | .assign p e => do
     foundIn k (Place.outside prog vs p <|> Expr.outside prog vs e)
     pure (k + 1, vs)
-  | .expr e => do foundIn k (Expr.outside prog vs e); pure (k + 1, vs)
+  | .expr e => do foundIn k (loopExit e <|> Expr.outside prog vs e); pure (k + 1, vs)
   | .print args => do
     foundIn k (Expr.listOutside prog vs
       (if vs.contains "print" then args else args.filter (!· matches .str _)))

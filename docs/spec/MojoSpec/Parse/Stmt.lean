@@ -13,23 +13,28 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and declarations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5291466686812682013")
+:::moduleDocs (fingerprint := "16706364453235159763")
 :::
 
-:::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.augCallee MojoGrimoire.Parse.exprStmt (fingerprint := "14674107341489909627")
+:::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.augCallee MojoGrimoire.Parse.exprStmt MojoGrimoire.Parse.loopExits (fingerprint := "13085663962716860833")
 *Definition: sugar.* `p += e`, `p -= e` and `p *= e` are read as calls of
 the callees `+=`, `-=` and `*=` with $`p` and $`e`, which no name of a
 program is: inference replaces each with a call of the in-place method of
 $`p`'s struct, or with `p = p + e`, `p = p - e` or `p = p * e` (#191). A
 call of `print` on a line of its own is the $`\mathsf{print}` statement;
 any other expression there is evaluated and its value discarded.
+$`\mathsf{break}` and $`\mathsf{continue}` are read as calls with no
+arguments of the callees `break` and `continue` (`loopExits`), which no
+name of a program is, since both are keywords. Both are outside the
+subset, which the check of the constructs outside it reports (#268),
+until #276 supports them.
 :::
 
-:::readable MojoGrimoire.Parse.simpleStmt MojoGrimoire.Parse.exprTail MojoGrimoire.Parse.stmt MojoGrimoire.Parse.ifRest MojoGrimoire.Parse.block MojoGrimoire.Parse.stmts (fingerprint := "13287827973192454830")
+:::readable MojoGrimoire.Parse.simpleStmt MojoGrimoire.Parse.exprTail MojoGrimoire.Parse.stmt MojoGrimoire.Parse.ifRest MojoGrimoire.Parse.block MojoGrimoire.Parse.stmts (fingerprint := "15419200012305747710")
 *Definition: statements and blocks.*
 
 $$`\begin{array}{lcl}
-s & ::= & \mathsf{pass} \mid \mathsf{return}~e^? \\
+s & ::= & \mathsf{pass} \mid \mathsf{break} \mid \mathsf{continue} \mid \mathsf{return}~e^? \\
  & \mid & \mathsf{var}~x~(:\mathit{type})^?~(= e)^? \mid \mathsf{ref}~x = e \\
  & \mid & p = e \mid p \mathrel{\mathit{op}{=}} e \mid e \\
  & \mid & \mathsf{if}~e~\mathit{block}~(\mathsf{elif}~e~\mathit{block})^*~(\mathsf{else}~\mathit{block})^? \\
