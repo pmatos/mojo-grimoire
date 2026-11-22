@@ -25,7 +25,7 @@ call of `print` on a line of its own is the $`\mathsf{print}` statement;
 any other expression there is evaluated and its value discarded.
 $`\mathsf{break}` and $`\mathsf{continue}` are read as calls with no
 arguments of the callees `break` and `continue`, which no
-name of a program is, since both are keywords. Both are outside the
+function or struct of a program has, since both are keywords. Both are outside the
 subset, which the check of the constructs outside it reports (#268),
 until #276 supports them.
 :::

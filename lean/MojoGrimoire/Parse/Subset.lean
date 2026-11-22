@@ -19,7 +19,8 @@ outside the subset:
 - the statements `break` and `continue`, wherever they stand, by the
   ruling of 2026-11-22 on #268, until #276 supports them after #96's flow
   parts. The parser reads each as a call of a callee of its name
-  (`loopExits`), which no name of a program is, since both are keywords.
+  (`loopExits`), which no function or struct of a program has, since both
+  are keywords.
 
 Telling whether `print` and `range` are the standard library's needs the
 names in scope: a variable or a parameter named `print` makes the `print`

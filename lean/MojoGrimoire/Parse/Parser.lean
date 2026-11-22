@@ -92,7 +92,8 @@ def skipNewlines : Nat → P Unit
 /-- The statements `break` and `continue`, which are outside the subset
 until #276 supports them (#268). The parser reads each as a call of a
 callee of its name, for the check of the constructs outside the subset to
-report: no name of a program is such a callee, since both are keywords. -/
+report: no function or struct of a program has either name, since both
+are keywords. -/
 def loopExits : List String := ["break", "continue"]
 
 /-- The keywords, which are not names. -/

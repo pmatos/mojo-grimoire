@@ -141,7 +141,7 @@ The excluded constructs, each temporary:
   human ruled on 2026-11-22 (#268) that they are excluded now and
   supported after #96's flow parts, so that the flow checks across loop
   exits are written once. The parser reads each as a call of a callee of
-  its name, which no name of a program is. As names, both are keywords: a
+  its name, which no function or struct of a program has. As names, both are keywords: a
   variable, a parameter, a function or a field named `break` or
   `continue` is a syntax error, as the compiler fails to parse it
   ([conformance.md](conformance.md#rejections-made-while-parsing)). A
