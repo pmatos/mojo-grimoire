@@ -132,11 +132,16 @@ arguments is reported as an ordinary call reports it, and the suite's
 it. A call that leaves out a required argument, of a function, a method
 or `__call__`, is `arityMismatch`: `diagnostics.json` maps the
 compiler's "missing required argument", matched whole, to it. The human
-ruled this on 2026-11-20 (#209). An operator method declared with the
-wrong number of operands, `self` among them, such as `__add__(self)` or
-`__bool__(self, k: Int)`, is `arityMismatch` too: `diagnostics.json`
-maps "'__X__' requires N operands", matched whole and accepting
-"operand", to it. The human ruled this on 2026-11-21 (#214).
+ruled this on 2026-11-20 (#209). A call with more positional arguments
+than its callee takes is `arityMismatch` too: the compiler's "invalid call
+to 'F': unexpected argument" is matched whole and placed with it, above
+the loose patterns, since a callee's name such as `immutable` would match
+one of them. The suite's `rejected/unexpected_argument_named_like_other_errors`
+pins it. The human ruled this on 2026-11-22 (#219). An operator method
+declared with the wrong number of operands, `self` among them, such as
+`__add__(self)` or `__bool__(self, k: Int)`, is `arityMismatch` too:
+`diagnostics.json` maps "'__X__' requires N operands", matched whole and
+accepting "operand", to it. The human ruled this on 2026-11-21 (#214).
 
 The model does not yet follow one case of the same rules. The operator
 methods that `Equatable` and `Comparable` supply by default (`a == b` on a
