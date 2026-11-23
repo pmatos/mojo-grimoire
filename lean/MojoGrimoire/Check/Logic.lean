@@ -38,13 +38,27 @@ def mainTest (s : Name) : CheckM Unit := do
 the test of a struct that the operand `a` of `and`, `or` or `not` is
 once `check` has checked it as a call of `__bool__` (`boolTest`). `main`
 read that operand as a value, which copies a place: a struct that is not
-`ImplicitlyCopyable` is then `implicitCopy`. -/
+`ImplicitlyCopyable` is then `implicitCopy`. When the state leaves out
+the checks of a struct test itself (`State.ownChecks`), the test is a
+`Bool`, whatever `__bool__` returns. -/
 def mainRead (prog : Program) (a : Expr) (check : CheckM Ty) : CheckM Ty := do
   let t ← check
-  if let some (s, .place _) := boolTest a then
-    if (← get).mainTests && copyingOf prog (.struct s) != .implicit then
+  if let some (s, e) := boolTest a then
+    if (← get).mainTests && e matches .place _ && copyingOf prog (.struct s) != .implicit then
       throw (CheckError.implicitCopy (.struct s))
+    unless (← get).ownChecks do return .bool
   pure t
+
+/-- The parameters `ps` of the callee `f`, but with `self` read, by
+reference, when `f` is the `__bool__` of a struct test (`boolTest`) and
+the state leaves out the checks of a struct test itself
+(`State.ownChecks`): its convention is then not checked, as `main` made
+no call, and its operand is only read. -/
+def testParams (f : Name) (ps : List Param) : CheckM (List Param) := do
+  if (← get).ownChecks then return ps
+  match calleeMethod f, ps with
+  | some (_, "__bool__", false), self :: rest => pure ({ self with conv := .read } :: rest)
+  | _, _ => pure ps
 
 /-- Checks the operand `a` of `not` by `check` (`mainRead`), then rejects
 a test of a struct there as `main` did, when the state replays `main`'s

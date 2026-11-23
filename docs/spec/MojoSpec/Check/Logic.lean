@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17755364568086492621")
+:::moduleDocs (fingerprint := "6902509464450052454")
 :::
 
-:::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.mainRead MojoGrimoire.Check.notOperand MojoGrimoire.Check.bridged (fingerprint := "17590098889019667583")
+:::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.mainRead MojoGrimoire.Check.testParams MojoGrimoire.Check.notOperand MojoGrimoire.Check.bridged (fingerprint := "4355055010676681703")
 *Rule: the bridge to `main`'s order (temporary, until #96 part 4).*
 `main` rejected a test of a struct, by $`\mathsf{and}`, $`\mathsf{or}` or
 $`\mathsf{not}`, as $`\mathsf{typeMismatch}` once its operands were
@@ -31,7 +31,10 @@ call of `__bool__` as a value, which copies a place: a struct that is
 not `ImplicitlyCopyable` is then $`\mathsf{implicitCopy}` in the replay
 (`mainRead`). The replay runs twice: with the checks of the test itself
 before that rejection, and without them (`State.ownChecks`), as `main`
-had none. When the two end alike, that is the replay's result. When they
+had none. Without them, a call of `__bool__` that inference made takes
+its operand by reference, whatever the convention of `self`
+(`testParams`), and gives a $`\mathsf{Bool}`, whatever `__bool__`
+returns (`mainRead`). When the two end alike, that is the replay's result. When they
 differ, a check of the test's own failed first, an error that `main`
 could not report: it stands only when the statement holds no other
 error, which a third run, in the model's own order without those checks,
@@ -42,7 +45,7 @@ of the compiler's later pass (`CheckError.late`), the statement has that
 error, as on `main`; else the first error stands.
 :::
 
-:::readable MojoGrimoire.Check.sameTest MojoGrimoire.Check.mainFormTy MojoGrimoire.Check.methodOperator MojoGrimoire.Check.mainCallee MojoGrimoire.Check.mainOperator (fingerprint := "4964960514335170472")
+:::readable MojoGrimoire.Check.sameTest MojoGrimoire.Check.mainFormTy MojoGrimoire.Check.methodOperator MojoGrimoire.Check.mainCallee MojoGrimoire.Check.mainOperator (fingerprint := "15450890028830524673")
 *Rule: an operator on a struct test, in the replay.* An operand that is
 $`\mathsf{and}` or $`\mathsf{or}` of two operands of the same struct
 type has that type, and inference may call a method of that struct for
@@ -67,7 +70,7 @@ $`[x\ \mathsf{or}\ y]` is an array of $`\mathsf{Bool}`s
 (`mainFormTy`), as `main` did.
 :::
 
-:::readable MojoGrimoire.Check.checkedBinaryTy (fingerprint := "13676210965822808734")
+:::readable MojoGrimoire.Check.checkedBinaryTy (fingerprint := "9036440222861286704")
 *Rule: binary operations.* Once both operands are checked, the places
 among them that are read late are checked again, but for `and` and `or`,
 whose operands are read when tested; the operation then has the type

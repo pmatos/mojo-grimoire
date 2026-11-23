@@ -212,6 +212,10 @@ private def withU (body : List String) : Option Outcome :=
   some (.rejected ⟨"main", .missingMethod .int "__mlir_bool__"⟩)
 #guard withU ["ls[bi(u)] = (u or u2)"] matches some (.rejected ⟨"main", .typeMismatch ..⟩)
 #guard withU ["ls[bi(u)] = (V(True) or v)"] matches some (.rejected ⟨"main", .typeMismatch ..⟩)
+-- On the mixed path and under `not` too, where inference made the call
+-- of `__bool__` that the replay without those checks leaves out.
+#guard withU ["ls[bi(u)] = (True or V(True))"] matches some (.rejected ⟨"main", .typeMismatch ..⟩)
+#guard withU ["ls[bi(u)] = (not V(True))"] matches some (.rejected ⟨"main", .typeMismatch ..⟩)
 -- `main`'s `typeMismatch` here too, before the `mut self` of the
 -- temporary `V(True)`, which the pin reports.
 #guard withU ["var z = (y or S(xs[1 - 2], True)) + (V(True) or v)"]

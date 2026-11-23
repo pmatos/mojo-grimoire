@@ -54,7 +54,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     rejectCalledVar prog f (typeArgs prog args)
     match callSig prog f with
     | .ok sig =>
-      let params := sig.params
+      let params ← testParams f sig.params
       let fit := if (findStruct prog f).isSome then Fit.init (.struct f) else .call
       checkExclusive (← locationArgs prog params args)
       recheckLocs prog (← checkArgs prog fit f params args params.length args.length)

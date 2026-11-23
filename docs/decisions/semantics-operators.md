@@ -88,8 +88,9 @@ is: `t < u` may give an `Int`.
   `typeMismatch`: `y = (t(0) and x^) or x.f` with `y` a struct, and
   `print(y or w, bi(w))`, as the compiler reports them. One found before
   the test stays, as on `main` (`print(x.n, y.f or y)` after `x^` is
-  `uninitializedUse`). An error of the test itself, such as a `__bool__`
-  that returns an `Int`, stays only when the statement holds no other
+  `uninitializedUse`). An error of the test itself, on either path or
+  under `not`, such as a `__bool__` that returns an `Int` or takes
+  `mut self` with a temporary, stays only when the statement holds no other
   error, even one that the test's result causes: else `main` reported
   the test's `typeMismatch` first, and so does the bridge, so
   `lt[bi(w)] = (u or u2)`, with such a `__bool__` and a `bi` that does
