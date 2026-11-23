@@ -1,6 +1,0 @@
-{
-  "outcome": "rejected",
-  "stdout": [],
-  "class": "typeMismatch",
-  "diagnostic": "invalid call to '__eq__': value passed to 'other' cannot be converted from 'Array[Int, Int(1)]' to 'Array[Array[Bool, Int(1)], Int(1)]'"
-}

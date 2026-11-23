@@ -1,3 +1,0 @@
-def main():
-    var a = [[1, 2]]
-    print(a == [[1]])

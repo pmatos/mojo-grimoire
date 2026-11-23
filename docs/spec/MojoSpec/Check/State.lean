@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6981124326281357286")
+:::moduleDocs (fingerprint := "5820294513603318199")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "4845031522016519524")
@@ -55,7 +55,7 @@ element of an $`\mathsf{Int}` is a step of its own, since it is no
 location (#127).
 :::
 
-:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.State MojoGrimoire.Check.CheckM (fingerprint := "17397638039394921541")
+:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.State MojoGrimoire.Check.CheckM (fingerprint := "862987152442379284")
 *Definition: the checker's state.* A path $`\pi = f_1 \dots f_n` names a
 part of a variable: the empty path $`\epsilon` is the variable itself, and
 $`f_1 \dots f_n` its field $`f_1.\dots.f_n`. For each variable in scope,
@@ -69,10 +69,7 @@ inside them was moved out or assigned; and the set $`P` of its pieces,
 the parts built from their fields, which Mojo never counts as whole. The state also says whether the current
 point can be reached; after a `return` it cannot. It holds the set of
 references bound with `ref` that are invalidated, and the shapes of the
-places changed as a whole so far in the current statement, in order. In
-a probe of the bridge to `main`'s order, it says so, counts the
-comparisons with a literal operand, and keeps the errors the probe let
-pass, each with the number of its comparison. The checker runs in a monad
+places changed as a whole so far in the current statement, in order. The checker runs in a monad
 that reads and updates this state and may reject the program.
 :::
 
@@ -129,7 +126,7 @@ uninitialized, assigning $`\rho` builds from their fields the parts from
 $`\pi` down to the part just above $`\rho`.
 :::
 
-:::readable MojoGrimoire.Check.findVar MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "194342774105849327")
+:::readable MojoGrimoire.Check.findVar MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "5327930066003656915")
 *Definition: variables in scope.* A name refers to the innermost variable in
 scope with that name, if there is one, and updating a variable replaces
 the innermost variable with its name. An unknown name is rejected.

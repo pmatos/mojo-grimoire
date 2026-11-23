@@ -328,22 +328,6 @@ def methodBinaryTy (prog : Program) (op : BinOp) (ta tb : Ty) : Except CheckErro
   | some err => throw err
   | none => if (seqCompare op ta).isSome then pure .bool else binaryTy op ta tb
 
-/-- Checks the comparison `op` of `a` and `b` by `check`. In a probe of the
-bridge to `main`'s order (`State.probe`), each comparison with a literal
-operand is counted (`State.seen`), and the error of one whose literals
-hold no place whose value is not implicitly copyable (`heldCopy`) is let
-pass and kept with its count (`State.swallowed`): the comparison then
-gives a `Bool`. -/
-def probed (prog : Program) (op : BinOp) (a b : Expr) (check : CheckM Ty) : CheckM Ty := do
-  unless (← get).probe && compares op && (a matches .list .. || b matches .list ..) do
-    return ← check
-  let n := (← get).seen
-  modify fun s => { s with seen := n + 1 }
-  if (← heldCopy prog a) || (← heldCopy prog b) then return ← check
-  tryCatch check fun e => do
-    modify fun s => { s with swallowed := s.swallowed ++ [(n, e)] }
-    pure .bool
-
 /-- Checks the operands `a` and `b` of the operator `op` in order, with
 `checkA` and `checkB`, which check them read by reference or not, or with
 `argB`, which checks `b` as the argument that `rightParam` gives, and

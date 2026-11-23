@@ -76,7 +76,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .unary op a => do
     rejectMisfit (unaryMisfit prog op (← operandTy prog a)) (do let _ ← typeArg prog a)
     lift (methodUnaryTy prog op (← checkExprAs prog false a))
-  | .binary op a b => probed prog op a b do
+  | .binary op a b => do
     rejectMisfit (← operandMisfit prog op a b) (do let _ ← typeArg prog a; let _ ← typeArg prog b)
     let (ta, tb) ← compareOperands prog op a b (checkExprAs prog · a) (checkExprAs prog · b)
       fun fit prm => do let _ ← checkArg prog fit (binaryMethod op) prm b

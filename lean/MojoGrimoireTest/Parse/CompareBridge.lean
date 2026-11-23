@@ -7,8 +7,8 @@ Tests of the bridge to `main`'s order within a statement
 with the compiler's class, by the error of a comparison with a literal
 that part 2 of #166 now converts, keeps that class while the model
 orders the statement's other errors otherwise than the compiler (#96,
-#170). A comparison's own error, when it is the statement's only error,
-stands. Each verdict is the pinned compiler's for the program, probed on
+#170). When `main`'s check of the statement passes, the statement's own
+error stands. Each verdict is the pinned compiler's for the program, probed on
 the nightly 1.3.0.dev2026111905, but where a comment says otherwise.
 -/
 
@@ -53,8 +53,10 @@ private def rejects (body : List String) (cls : CheckError → Bool) : Bool :=
 #guard rejects ["print([1, [2]] == xs, False == [])"] (· matches .typeMismatch ..)
 #guard rejects ["print([1, 2] == [[1], [2]], [List[Int](), [a[-1]]] != [3, 1])"]
   (· matches .typeMismatch ..)
--- A comparison's own error, the statement's only one, stands.
-#guard rejects ["print([1] < [[1, 2]], 1)"] (· matches .noMatchingInit _)
+-- So do comparisons inside a compared literal, and inside an operand.
+#guard rejects ["print([a == [[1], [2]], [a] == n] == [True, True])"] (· matches .implicitCopy _)
+#guard rejects ["print([1, 2] == [[1], [len([xs == [1]])]], [List[Int](), [a[-1]]] != [3, 1])"]
+  (· matches .typeMismatch ..)
 -- With another error, `main`'s is reported, here the compiler's (#170).
 #guard rejects ["print([1] < [[1, 2]], x - [True])"] (· matches .typeMismatch ..)
 -- `main`'s class stays where `main` was wrong too: the compiler reports

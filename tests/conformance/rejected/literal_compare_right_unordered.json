@@ -1,6 +1,0 @@
-{
-  "outcome": "rejected",
-  "stdout": [],
-  "class": "violatedConstraint",
-  "diagnostic": "invalid call to '__lt__': violated constraint"
-}

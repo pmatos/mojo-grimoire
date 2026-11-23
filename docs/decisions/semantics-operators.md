@@ -155,25 +155,21 @@ Two `Bool`s also compare with `<`, `<=`, `>` and `>=`, `False` first, as
 `Int`s do (#185). A `Bool` compared with an `Int` is a type mismatch,
 and `1 < True` fits none of the literal's overloads.
 
-Within one statement, the model keeps `main`'s result wherever `main`
-agreed with the compiler, until #96 part 4 orders the model's errors as
-the compiler does (`Check.Block.bridged`). A statement, or a condition,
-that the checker rejects is checked again. A probe lets the error of each
-comparison with a literal operand pass, and numbers the comparisons. When
-it finds no other error and lets exactly one comparison's error pass, and
-the same probe of the statement as `main` checked it finds no other error
-either and lets no error of the same class pass at the same comparison,
-that error stands: it is the statement's only one, and #166 changed it.
-It stands too when `main`'s first error is of its class at the same
-comparison. Otherwise the statement is
-checked as `main` did, from the same state, with the body that `main`'s
-inference gave, and `main`'s error is reported. No class of error stands
-over `main`'s by its kind. So `print([x] != [[1]], [[1], y] >= rl)`
-stays `typeMismatch`, `print([y^] != rl, [y, [x]] != rl)` stays
-`implicitCopy`, and `print(a == [[1], [2]], [a] == n)` stays
-`implicitCopy`, as `main` and the compiler say. A program of several
-statements is not bridged across statements; process.md's exceptions
-cover those.
+Until #96 part 4 orders the model's errors as the compiler does, a
+statement, or a condition, that part 2 rejects is checked again as `main`
+did, from the same state, with the body that `main`'s inference gave
+(`Check.Block.bridged`, ruled on #281). When that check fails too, `main`'s
+error is reported; otherwise part 2's stands. Each condition of an
+`if`/`elif` chain is a statement of its own here. So wherever `main` and
+part 2 both reject a statement, it gives `main`'s result: part 2 changes
+only a statement that `main` rejected and it accepts, or one that `main`
+accepted. A comparison that part 2 rejects with the compiler's class,
+where `main` rejected it with another, keeps `main`'s class until #96
+part 4: `a == [[1, 2]]` with `a = [1]` stays `implicitCopy` where the
+compiler gives `noMatchingInit`, and `[1] < xs` stays `implicitCopy`
+where it gives `typeMismatch`. #96 lists those comparisons, and the suite
+programs and tests that part 4 adds back. A program of several statements
+is not bridged across statements; process.md's exceptions cover those.
 
 Not yet modelled. Each stays rejected, with a class that is still not
 the compiler's; where #185 changed the class, the bullet says so:
@@ -202,9 +198,17 @@ the compiler's; where #185 changed the class, the bullet says so:
   with `ux` an uninitialized `Int`. The compiler fails SIMD's constraint
   (`noMatchingInit`) as it instantiates, after every other pass, and
   reports the comparison's `violatedConstraint` or the uninitialized read
-  first. The model rejects the literal at once; deferring it is #170.
-  These went from `implicitCopy`, the copy of the named operand, to
-  `noMatchingInit` with part 2 of #166.
+  first. Part 2 rejects the literal at once, and so keeps `main`'s
+  `implicitCopy`, the copy of the named operand (#170).
+- An element of an array read inside a literal compared with that
+  element, `[w[0][0]] == w[0]` with `w: Array[List[Int], 1]`, which the
+  compiler rejects as the use of an invalidated interior reference
+  (`invalidatedReference`, #282). `main` copied the array,
+  `implicitCopy`; part 2 runs the comparison.
+- A transfer in a loop's condition, `while a^ < [1, 3] and t:`, which the
+  compiler borrows and the model moves: the second check of the condition
+  is stuck at run time (#84). `while ab^ < [True, True] and t:`, with
+  `ab` an array of `Bool`s, takes that form with part 2.
 - A literal on the left with no type of its own that does not fit the
   right operand, or that the comparison does not convert, `[[]] == a`,
   `[[]] < v` or `[] == []`, which the compiler cannot type ("cannot emit an empty list without a contextual type", a message
@@ -231,9 +235,8 @@ the compiler's; where #185 changed the class, the bullet says so:
   array, or of a list on the right. A `Bool` operand compared with a
   literal, `t == [1]` or `bs[-1] >= [[3]]`, and a literal passed to a
   struct's `__eq__` that takes a `Bool`, are `noMatchingInit` for the
-  compiler too, and `typeMismatch` in the model (#165). The model now
-  reports that mismatch before it reads the `Bool`, so `bs[-1] >= [[3]]`
-  went from `negativeIndex` to `typeMismatch` with part 2 of #166.
+  compiler too, and `typeMismatch` in the model (#165); `bs[-1] >= [[3]]`
+  keeps `main`'s `negativeIndex`.
 
 ## What is not yet modelled
 
