@@ -175,6 +175,16 @@ the PR fixes more than one part. The human ruled this on 2026-11-22 (#260).
 
 Rejected: no stand-in, which would leave most of #260's programs out.
 
+For these exceptions, each condition of an `if`/`elif` chain counts as a
+statement of its own, as does an `if` nested under `else:`, since
+`elif x:` means `else:` followed by `if x:`. A program whose fixed part and
+other part sit in different conditions of one chain may therefore be listed
+with split evidence, each condition alone. The human ruled this on
+2026-11-23 (#279).
+
+Rejected: counting only an `if` nested under `else:`, and counting the
+whole chain as one statement.
+
 ### Review depth
 
 `REVIEW.md` at the root lists the high-stakes paths. Any PR that touches one
