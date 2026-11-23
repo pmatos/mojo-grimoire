@@ -56,19 +56,19 @@ def refResult (prog : Program) (asRef : Bool) (sig : Signature) (args : List Exp
   pure sig.result
 
 /-- Checks the value `e`, given `check`, which checks it as a value
-(`false`) or by reference, uncopied (`true`), and then `fit`, which
-expects its type. The compiler reports the implicit copy of the value that
+(`false`) or by reference, uncopied (`true`), and then that its type is
+`t`, else the misfit that `fit` reports (`expectArg`). The compiler reports the implicit copy of the value that
 a call returns a reference to (`refResult`) only once the type fits, so
 when the check of a call or a method call as a value reports that copy,
 `e` is checked again from the same state by reference, and a type that
 does not fit comes first. -/
-def misfitFirst (e : Expr) (fit : Ty → CheckM Unit) (check : Bool → CheckM Ty) :
+def misfitFirst (e : Expr) (fit : Fit) (t : Ty) (check : Bool → CheckM Ty) :
     CheckM Unit := do
   let s0 ← get
-  fit (← tryCatch (check false) fun err => do
+  expectArg fit t (← tryCatch (check false) fun err => do
     if err matches .implicitCopy _ && e matches .call .. | .method .. then
       set s0
-      fit (← tryCatch (check true) fun _ => throw err)
+      expectArg fit t (← tryCatch (check true) fun _ => throw err)
     throw err)
 
 /-- Rejects the place `p` through the element of an `Int` as `notAList`,

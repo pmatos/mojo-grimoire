@@ -5,7 +5,9 @@ the model takes as its reference.
 [semantics-references.md](semantics-references.md) continues it with
 references, [semantics-lists.md](semantics-lists.md) with lists and
 arrays, [semantics-operators.md](semantics-operators.md) with operators
-and calls on structs, and [semantics-parser.md](semantics-parser.md) with
+and calls on structs,
+[semantics-comparisons.md](semantics-comparisons.md) with comparisons of
+arrays and lists, and [semantics-parser.md](semantics-parser.md) with
 the parser and the driver.
 
 ## The reference
@@ -18,8 +20,8 @@ its wheel from Modular's nightly index and refuses it unless the wheels of
 the driver, the compiler and the standard library have their pinned sha256.
 That build's own commit is not public; the source is read at the nearest
 public commit of `modular/modular`, `10c54f6f5b`, "[Release] Pin lockfiles
-to Mojo 1.3.0.dev2026111905". The pin moves forward to newer nightlies as
-needed, each move in one PR, by the steps of
+to Mojo 1.3.0.dev2026111905". The pin moves forward to newer nightlies, one
+PR per move, by the steps of
 [conformance.md](conformance.md#moving-the-pin). The human chose the
 1.2 release line on 2026-11-15, and on 2026-11-19 moved the pin to the
 latest nightly, as a wheel (#160). The model follows the compiler,
@@ -58,9 +60,9 @@ Python interop, async, GPU kernels and codegen correctness are out of v1.
 The checker, `MojoGrimoire.Check`, accepts a program of the core calculus
 or rejects it with a class of error, `CheckError`. The conformance suite
 compares these classes with the compiler's diagnostics, not their wording.
-Each choice below was made from Mojo's manual at the pin, and confirmed or
-corrected against the compiler when the suite recorded its results (#25):
-where the compiler and the manual disagree, the model follows the compiler.
+Each choice below was made from Mojo's manual at the pin, and checked
+against the compiler when the suite recorded its results (#25): where the
+two disagree, the model follows the compiler.
 
 - Initialization is tracked per part of a variable: a field may be moved
   out and initialized again. The compiler destroys a struct whole, so a

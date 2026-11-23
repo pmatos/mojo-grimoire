@@ -19,6 +19,7 @@ import MojoGrimoire.Check.Expr
 import MojoGrimoire.Check.Ref
 import MojoGrimoire.Check.Subscript
 import MojoGrimoire.Check.Stmt
+import MojoGrimoire.Check.Block
 import MojoGrimoire.Check.Program
 import MojoGrimoire.Elab.Live
 import MojoGrimoire.Elab.Origins
@@ -38,6 +39,8 @@ import MojoGrimoire.Parse.Stmt
 import MojoGrimoire.Parse.HiddenTypes
 import MojoGrimoire.Parse.SelfType
 import MojoGrimoire.Parse.Dispatch
+import MojoGrimoire.Parse.Compared
+import MojoGrimoire.Parse.InferExpr
 import MojoGrimoire.Parse.Infer
 import MojoGrimoire.Parse.Subset
 import MojoGrimoire.Driver.Main

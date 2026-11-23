@@ -298,7 +298,7 @@ with the lines where its statements start, in the order that a walk of its
 body visits them, each statement before the statements it holds. -/
 def parseLines (source : String) : Except SyntaxError (Program × List (FunDecl × List Nat)) := do
   let toks ← lex source
-  let (prog, st) ← (decls (10 * toks.length + 100) ⟨[], []⟩).run ⟨toks, [], []⟩
+  let (prog, st) ← (decls (10 * toks.length + 100) { structs := [], funs := [] }).run ⟨toks, [], []⟩
   pure (prog, st.bodies.reverse)
 
 /-- Parses the text of a `.mojo` file, before inference. -/

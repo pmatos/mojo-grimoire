@@ -77,13 +77,14 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .binary op a b => do
     rejectMisfit (← operandMisfit prog op a b (mainFormTy prog))
       (do let _ ← typeArg prog a; let _ ← typeArg prog b)
+    let right ← rightParamOf prog op a b
     let s ← get
     let ta ← mainRead prog a (checkExprAs prog (← byRef prog op a b) a)
     let sa ← get
     let ka ← mark
-    let tb ← match rightParam op a b ta with
+    let tb ← match right ta with
       | some (fit, prm) => do let _ ← checkArg prog fit (binaryMethod op) prm b; pure prm.ty
-      | none => mainRead prog b (checkExprAs prog (← byRef prog op b a) b)
+      | none => mainRead prog b (checkExprAs prog (← byRef prog op b a true) b)
     checkedBinaryTy prog op a b ta tb ka (← mark) s sa
   | .list .unknown [] => throw (CheckError.invalidType .unknown)
   | .list .unknown (e :: es) => do
@@ -403,8 +404,8 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
           requireOwnOrigin prog p
           unless ← placeMutable p do
             throw (CheckError.transferFromBorrowed p)
-        throw (fit.misfit (notPlaceError prog callee e))
-      misfitFirst e (expectArg fit prm.ty) (checkExprAs prog · e)
+        throw (notPlaceError prog fit callee e)
+      misfitFirst e fit prm.ty (checkExprAs prog · e)
       let k ← mark
       pure (← lateLocs prog e, k)
   termination_by e => (sizeOf e, 3)

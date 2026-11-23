@@ -11,9 +11,9 @@ The readable blocks of the section that renders `MojoGrimoire.Check.Stmt`
 pins their fingerprint; the build fails when the Lean changes under it.
 -/
 
-#doc (Manual) "Statements and blocks: readable blocks" =>
+#doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10533827369633424596")
+:::moduleDocs (fingerprint := "4328338466005485906")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -118,7 +118,7 @@ does. $`\mathsf{List}[u](e)` builds its result in place, and passes $`e`
 by `ref` (#103).
 :::
 
-:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "3399655227124934179")
+:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "10243898178486431986")
 *Rule: initializing values.* A value that initializes a declared variable,
 a place assigned to, or a function's result must have its type. A literal
 $`[e^*]_{?}`, which has no list or array expected, where that
@@ -140,8 +140,9 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "1631964080747670446")
-*Rule: statements.*
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "10703637107472354869")
+*Rule: statements.* A statement that holds no block is checked so; an
+`if` and a loop are checked by the rule of blocks, in the next section.
 
 * $`\mathsf{var}~x : t~(= e)^?` needs a $`t` in which no variable hides
   a name, before anything else (`rejectHidden`, #193), a $`t` a variable may have
@@ -186,24 +187,10 @@ an expression, so a place is copied implicitly.
   `rejectCalledVar` rejects once the arguments are typed (#176), checks
   its arguments as above, then that its place arguments are still
   initialized and not invalidated;
-* `if` needs a $`\mathsf{Bool}` condition and joins its branches, each a
-  scope of its own; `while` needs a $`\mathsf{Bool}` condition and a
-  body that keeps what was initialized. When the body can reach its end,
-  the next iteration starts from the state before the loop with $`M`,
-  $`H`, $`T`, $`P` and the invalidated references joined with those the
-  body leaves; when that adds anything, the condition and the body are
-  checked once more from it. After the loop, which may have run any number
-  of times, the state is that one, with $`M`, $`H`, $`T` and $`P` of the
-  second check joined in too;
 * `return` needs a value of the result type exactly when the result type
   is not $`\mathsf{None}`, checks the state at a return, and makes what
   follows unreachable; a function that returns a reference returns a
   location whose origins are all within its own origin, as the previous
   section says;
 * `drop p` transfers $`p` away.
-
-A block checks its statements in order, and the changes recorded for
-operands start afresh with each statement. Each statement but `if` and
-`while`, and the condition of each of those, is checked through the
-bridge to `main`'s order (`bridged`), until #96 part 4.
 :::

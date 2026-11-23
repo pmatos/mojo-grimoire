@@ -296,6 +296,6 @@ def elabStruct (prog : Program) (sd : StructDecl) : StructDecl :=
 /-- Elaborates a program. It expects a program that the checker accepts and
 that holds no `drop`. -/
 def elabProgram (prog : Program) : Program :=
-  ⟨prog.structs.map (elabStruct prog), prog.funs.map (elabFun prog)⟩
+  { prog with structs := prog.structs.map (elabStruct prog), funs := prog.funs.map (elabFun prog) }
 
 end MojoGrimoire.Elab

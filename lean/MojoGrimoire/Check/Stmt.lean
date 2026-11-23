@@ -1,7 +1,9 @@
 import MojoGrimoire.Check.Subscript
 
 /-!
-The checking of statements and blocks.
+The checking of statements, and what blocks need: their scopes, the join
+of an `if`'s branches and a loop's check; `MojoGrimoire.Check.Block`
+checks the blocks themselves.
 
 A block is a scope: the variables it declares end with it. A declaration
 may not reuse the name of a variable in scope, so no variable hides
@@ -252,7 +254,7 @@ def checkInitValue (prog : Program) (t : Ty) (e : Expr) (value : CheckM Ty) : Ch
     unless t matches .list _ | .array .. do
       checkOperands prog es
       throw (CheckError.noMatchingInit t)
-  misfitFirst e (expect t) fun r => if r then checkExprAs prog true e else value
+  misfitFirst e .call t fun r => if r then checkExprAs prog true e else value
 
 /-- The type of the value of `return e`: a variable that the function owns
 is moved out, and any other expression is checked as usual. -/
@@ -262,10 +264,10 @@ def checkReturnValue (prog : Program) : Expr → CheckM Ty
     if v.access == .owned then transferPlace prog (.var x) else copyPlace prog (.var x)
   | e => checkExpr prog e
 
-mutual
 /-- Checks the statement `s` of the function `sig`, whose name, result type
-and origin a `return` is checked against. -/
-def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
+and origin a `return` is checked against, when it holds no block: an `if`
+and a loop are checked by `MojoGrimoire.Check.checkStmt`. -/
+def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
   | .pass => pure ()
   | .decl x t init => do
     rejectHidden t
@@ -325,29 +327,6 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     rejectCalledVar prog "print" (typeArgs prog args)
     let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark
     recheckPlaces prog args ks
-  | .ifElse c thenBlock elseBlock => do
-    expect .bool (← bridged (checkExpr prog c))
-    let s0 ← get
-    checkScope prog sig thenBlock
-    let s1 ← get
-    set s0
-    checkScope prog sig elseBlock
-    set (joinStates s1 (← get))
-  | .whileLoop c body => do
-    expect .bool (← bridged (checkExpr prog c))
-    let s0 ← get
-    checkScope prog sig body
-    let s1 ← get
-    checkLoop s0 s1
-    let head := if s1.live then { s0 with vars := List.zipWith joinMay s0.vars s1.vars,
-                                          stale := union s0.stale s1.stale } else s0
-    if head != s0 then
-      set head
-      expect .bool (← bridged (checkExpr prog c))
-      checkScope prog sig body
-      let s2 ← get
-      set (if s2.live then { head with vars := List.zipWith joinMay head.vars s2.vars } else head)
-    else set head
   | .ret value => do
     match value, sig.origin with
     | none, _ => unless sig.result == .noneType do throw (CheckError.invalidReturn sig.name)
@@ -363,22 +342,6 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     modify fun s => { s with live := false }
   | .drop p => do
     let _ ← transferPlace prog p
-
-/-- Checks the block `b` as a scope of its own. -/
-def checkScope (prog : Program) (sig : FunDecl) (b : List Stmt) :
-    CheckM Unit := do
-  let n := (← get).vars.length
-  checkBlock prog sig b
-  endScope prog n
-
-/-- Checks the statements of a block in order. -/
-def checkBlock (prog : Program) (sig : FunDecl) : List Stmt → CheckM Unit
-  | [] => pure ()
-  | s :: rest => do
-    modify fun st => { st with changes := [] }
-    if s matches .ifElse .. | .whileLoop .. then checkStmt prog sig s
-    else bridged (checkStmt prog sig s)
-    checkBlock prog sig rest
-end
+  | .ifElse .. | .whileLoop .. => pure ()
 
 end MojoGrimoire.Check

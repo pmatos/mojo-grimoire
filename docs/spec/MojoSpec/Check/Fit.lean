@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13377031115169202037")
+:::moduleDocs (fingerprint := "10404253306543042070")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -33,13 +33,14 @@ arguments included, as `noMatchingMethod` $`m`, for the same reason
 `out` or `deinit`, nor `mut`, which is a misfit of the call.
 :::
 
-:::readable MojoGrimoire.Check.notPlaceError (fingerprint := "5560608300673352099")
+:::readable MojoGrimoire.Check.notPlaceError (fingerprint := "11750609785983197812")
 *Definition: a value passed `mut`.* A value that is not a place, passed
 `mut`, is $`\mathsf{notAPlace}`. A subscript of a struct that Mojo reads
 late, passed `mut`, such as the receiver of an operator method that takes
 `mut self`, is $`\mathsf{notAList}` of its struct, as is any subscript
 of a struct used as a place beyond reading and assigning it, whose
-write-back is not yet modelled (#198).
+write-back is not yet modelled (#198). Either is reported as the call's
+fit says.
 :::
 
 :::readable MojoGrimoire.Check.iterableFits (fingerprint := "13744519018623115126")

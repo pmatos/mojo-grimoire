@@ -52,8 +52,8 @@ private def showRes : FunDecl := ⟨"show", [⟨.read, "r", res⟩], .noneType,
 structs `structs`, and a `main` whose body is `body`. -/
 private def prog (body : List Stmt) (funs : List FunDecl := []) (structs : List StructDecl := []) :
     Program :=
-  ⟨[resDecl, pairDecl, boxDecl, ptDecl] ++ structs,
-    [consume, showRes] ++ funs ++ [⟨"main", [], .noneType, body, none⟩]⟩
+  { structs := [resDecl, pairDecl, boxDecl, ptDecl] ++ structs,
+    funs := [consume, showRes] ++ funs ++ [⟨"main", [], .noneType, body, none⟩] }
 
 /-- The class of error a program is rejected with, or `none` if it is
 accepted. -/

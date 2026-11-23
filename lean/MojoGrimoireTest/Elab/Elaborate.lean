@@ -21,7 +21,7 @@ private def say (s : String) : Stmt := .print [.str s]
 
 /-- A function body, elaborated with the `var` parameters `params`. -/
 private def body (b : List Stmt) (params : List Param := []) : List Stmt :=
-  (elabFun ⟨[], []⟩ ⟨"f", params, .noneType, b, none⟩).body
+  (elabFun { structs := [], funs := [] } ⟨"f", params, .noneType, b, none⟩).body
 
 -- `var a = Res(1); print("x")`: `a` is never used, so it dies at once.
 #guard body [newRes "a" 1, say "x"] == [newRes "a" 1, .drop (v "a"), say "x"]
@@ -114,7 +114,7 @@ body `deinit`. -/
 private def pair (deinit : List Stmt) : StructDecl :=
   ⟨"Pair", [("a", res), ("b", res), ("n", .int)], .none, true, none, some deinit, []⟩
 
-private def deinitOf (sd : StructDecl) : Option (List Stmt) := (elabStruct ⟨[sd], []⟩ sd).deinit
+private def deinitOf (sd : StructDecl) : Option (List Stmt) := (elabStruct { structs := [sd], funs := [] } sd).deinit
 
 -- `__deinit__`: `print(self.b.id)`. `self.a` is never used and is destroyed
 -- before the body; `self.b` after its last use.

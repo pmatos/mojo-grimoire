@@ -19,6 +19,7 @@ import MojoSpec.Check.Expr
 import MojoSpec.Check.Ref
 import MojoSpec.Check.Subscript
 import MojoSpec.Check.Stmt
+import MojoSpec.Check.Block
 import MojoSpec.Check.Program
 import MojoSpec.Elab.Live
 import MojoSpec.Elab.Origins
@@ -38,6 +39,8 @@ import MojoSpec.Parse.Stmt
 import MojoSpec.Parse.HiddenTypes
 import MojoSpec.Parse.SelfType
 import MojoSpec.Parse.Dispatch
+import MojoSpec.Parse.Compared
+import MojoSpec.Parse.InferExpr
 import MojoSpec.Parse.Infer
 import MojoSpec.Parse.Subset
 import MojoSpec.Driver.Main

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Functions, structs and programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11478824429510958497")
+:::moduleDocs (fingerprint := "9831924090381819157")
 :::
 
 :::readable MojoGrimoire.Core.Param (fingerprint := "15254264730588750988")
@@ -66,7 +66,30 @@ a move initializer for a struct that declares no conformance.
 Copy and move initializers are always the ones Mojo synthesizes.
 :::
 
-:::readable MojoGrimoire.Core.Program (fingerprint := "523312046829913975")
+:::readable MojoGrimoire.Core.Program (fingerprint := "17275260827483887519")
 *Definition: programs.* A program is a list of structs and a list of
-functions. It runs by calling the function $`\mathsf{main}`.
+functions. It runs by calling the function $`\mathsf{main}`. It also
+says whether it is inferred and checked as `main` did, and holds its
+twin: the bodies that inference gives in that mode, as functions, each
+with the struct it belongs to or none, for the checker's bridge to
+`main`'s order (#166). The twin is computed only when
+the checker first needs it.
+:::
+
+:::readable MojoGrimoire.Core.instBEqProgram (fingerprint := "15588969329907978291")
+*Definition: equal programs.* Two programs are equal when their structs,
+functions and mode are. The twin is not compared, so as not to infer it;
+elaboration and the stripping of tests change the functions and keep the
+twin, so two programs equal so may differ in their twins.
+:::
+
+:::readable MojoGrimoire.Core.deinitDecl MojoGrimoire.Core.Program.asMain MojoGrimoire.Core.Program.twinBody (fingerprint := "17686505123012699047")
+*Definition: twins.* A destructor is the function
+$`\mathsf{\_\_deinit\_\_}(\mathsf{deinit}~\mathsf{self})` of its
+struct that returns nothing. A program in `main`'s mode is the same
+program, inferred and checked as `main` did. The twin of a function's
+body is the body of the function of its twin with the same owner, the
+same struct for a member or none for a free function, the same name and
+the same parameters, so that a free function never stands for a method;
+it is empty when there is none.
 :::

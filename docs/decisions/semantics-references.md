@@ -73,7 +73,7 @@ choices (#18):
 - A call that returns a reference, used as a value, copies the value
   implicitly, but as an operand of a comparison of two arrays or two
   lists, which reads it by reference
-  ([semantics-operators.md](semantics-operators.md#comparisons-of-arrays-and-lists)).
+  ([semantics-comparisons.md](semantics-comparisons.md#comparisons-of-arrays-and-lists)).
   Printed, an operand of a binary operator other than `and`
   and `or`, an argument passed by value or an element of a list or an
   array literal, it is read only once every operand of the operation is

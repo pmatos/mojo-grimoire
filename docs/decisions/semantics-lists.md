@@ -151,7 +151,7 @@ here (#27).
   of `==` or `!=`. A literal with no type expected and no elements,
   `var xs = []`, is rejected.
 - An array has no methods; two arrays compare
-  ([semantics-operators.md](semantics-operators.md#comparisons-of-arrays-and-lists)).
+  ([semantics-comparisons.md](semantics-comparisons.md#comparisons-of-arrays-and-lists)).
   `len` and indexing work as on a list. At run time an array is a list
   value whose length is its size `N`.
 - An array's size is part of its type, so `[1, 2, 3]` is not an

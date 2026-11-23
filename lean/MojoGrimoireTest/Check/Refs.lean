@@ -63,7 +63,7 @@ private def lib : List FunDecl :=
 /-- The program with the extra functions `funs` and a `main` whose body is
 `body`. -/
 private def prog (body : List Stmt) (funs : List FunDecl := []) : Program :=
-  ⟨[resDecl, boxDecl, pairDecl], lib ++ funs ++ [⟨"main", [], .noneType, body, none⟩]⟩
+  { structs := [resDecl, boxDecl, pairDecl], funs := lib ++ funs ++ [⟨"main", [], .noneType, body, none⟩] }
 
 private def verdict (p : Program) : Option CheckError :=
   match checkProgram p with
@@ -148,7 +148,8 @@ private def br : Place := .field (v "b") "r"
 #guard
   let get : FunDecl := ⟨"get", [⟨.ref, "self", .struct "Box"⟩], res,
     [.ret (some (.place (.field (v "self") "r")))], some ["self"]⟩
-  verdict ⟨[resDecl, { boxDecl with methods := [get] }], [⟨"main", [], .noneType, [], none⟩]⟩ ==
+  verdict { structs := [resDecl, { boxDecl with methods := [get] }],
+            funs := [⟨"main", [], .noneType, [], none⟩] } ==
     some (.escapingReference "get")
 
 -- `def owned(var a: Res) -> ref [a] Res`: a `var` parameter dies with the call.

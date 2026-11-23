@@ -185,7 +185,7 @@ on lists of such a struct. `diagnostics.json` maps the message, matched
 whole and first, to one class, `violatedConstraint`, from the message
 alone. The human ruled this on 2026-11-20 (#166, option A). The model reports it for arrays of `None` and arrays of lists
 ordered, from the operands' types before it reads them
-([semantics-operators.md](semantics-operators.md#comparisons-of-arrays-and-lists));
+([semantics-comparisons.md](semantics-comparisons.md#comparisons-of-arrays-and-lists));
 arrays and lists of structs come with part 3 of #166, after #194, and
 lists of `None` with `None` as a type (#183).
 
