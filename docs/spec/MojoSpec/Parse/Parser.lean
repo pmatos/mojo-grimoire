@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The parser's monad: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6685140223044614620")
+:::moduleDocs (fingerprint := "12603978488659590576")
 :::
 
 :::readable MojoGrimoire.Parse.PState MojoGrimoire.Parse.P MojoGrimoire.Parse.peek MojoGrimoire.Parse.peek2 MojoGrimoire.Parse.curLine MojoGrimoire.Parse.markStmt MojoGrimoire.Parse.fail MojoGrimoire.Parse.next (fingerprint := "2346832099094864449")
@@ -33,13 +33,17 @@ reads it when it is the one given and says whether it was, and `expect`
 reads it or fails. Empty logical lines may be skipped.
 :::
 
-:::readable MojoGrimoire.Parse.keywords MojoGrimoire.Parse.name (fingerprint := "17464101747377528067")
+:::readable MojoGrimoire.Parse.loopExits MojoGrimoire.Parse.keywords MojoGrimoire.Parse.name MojoGrimoire.Parse.memberName (fingerprint := "3055080341729133795")
 *Definition: names.* A name is an identifier token that is not a keyword:
 `def`, `fn`, `struct`, `var`, `ref`, the control-flow words, the boolean
 operators and literals, the argument conventions `mut`, `out` and
 `deinit`, and `raises`. `imm`, `read` and `owned` are names, as in the
 compiler; the parser reads `imm` and `read` specially where a parameter
-starts.
+starts. `break` and `continue` (`loopExits`) are keywords, so that a
+variable, a parameter, a function or a field of either name is a syntax
+error, as the compiler fails to parse it (#268). As in the compiler, a
+method's name in a struct and the name after `.` may be either word
+(`memberName`).
 :::
 
 :::readable MojoGrimoire.Parse.ty MojoGrimoire.Parse.typeArgument (fingerprint := "4722139437781860587")

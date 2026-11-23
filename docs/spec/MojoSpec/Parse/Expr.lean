@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17885557337010263068")
+:::moduleDocs (fingerprint := "7052113066657254816")
 :::
 
 :::readable MojoGrimoire.Parse.Term MojoGrimoire.Parse.Term.toExpr (fingerprint := "13183905014692490612")
@@ -43,7 +43,7 @@ lexer reads. The end of a logical line and a change of indentation start
 no expression.
 :::
 
-:::readable MojoGrimoire.Parse.expr MojoGrimoire.Parse.orRest MojoGrimoire.Parse.andExpr MojoGrimoire.Parse.andRest MojoGrimoire.Parse.notExpr MojoGrimoire.Parse.sum MojoGrimoire.Parse.sumRest MojoGrimoire.Parse.product MojoGrimoire.Parse.productRest MojoGrimoire.Parse.unaryExpr MojoGrimoire.Parse.chain MojoGrimoire.Parse.trailers MojoGrimoire.Parse.primary MojoGrimoire.Parse.exprList (fingerprint := "15901863289427067586")
+:::readable MojoGrimoire.Parse.expr MojoGrimoire.Parse.orRest MojoGrimoire.Parse.andExpr MojoGrimoire.Parse.andRest MojoGrimoire.Parse.notExpr MojoGrimoire.Parse.sum MojoGrimoire.Parse.sumRest MojoGrimoire.Parse.product MojoGrimoire.Parse.productRest MojoGrimoire.Parse.unaryExpr MojoGrimoire.Parse.chain MojoGrimoire.Parse.trailers MojoGrimoire.Parse.primary MojoGrimoire.Parse.exprList (fingerprint := "5118807522791199494")
 *Definition: expressions.*
 
 $$`\begin{array}{lcl}
@@ -68,7 +68,8 @@ which is outside the subset, and the parser fails (#54). So $`p\,\hat{}`
 ends a chain, what follows it being an operator or the end of the
 expression, unless `.` follows it: then it is the place $`p\,\hat{}`,
 whose fields and methods the chain goes on to read, as the compiler does
-for `p^.f` and `p^.m(…)` (#66).
+for `p^.f` and `p^.m(…)` (#66). The name after `.` may be `break` or
+`continue`, as in the compiler (`memberName`, #268).
 A literal $`[e^*]` is left for inference to type, and $`\mathsf{List}[\mathit{type}]()` is an empty list literal.
 Its type is a type argument, read by `typeArgument`, so $`\mathsf{List}[\mathsf{None}]` is no list of $`\mathsf{None}` (#183).
 With arguments, $`\mathsf{List}[\mathit{type}](e^+)` is its own expression, which the checker accepts only for one

@@ -9,10 +9,11 @@ the `else` block. `print(…)` is a statement of its own, and `x += e`,
 `x -= e` and `x *= e` are calls of the callees `+=`, `-=` and `*=` with
 `x` and `e`, which inference replaces: by `x.__iadd__(e)` when `x` is a
 struct, and otherwise by `x = x + e`, `x = x - e` or `x = x * e` (#191).
-No name of a program is such a callee. A string literal on a line of its
-own, a docstring, is skipped. The line where each statement starts is
-recorded with its function, for the check of the constructs outside the
-subset (`MojoGrimoire.Parse.Subset`).
+No name of a program is such a callee. `break` and `continue` are calls
+of callees of their names too (`loopExits`). A string literal on a line
+of its own, a docstring, is skipped. The line where each statement
+starts is recorded with its function, for the check of the constructs
+outside the subset (`MojoGrimoire.Parse.Subset`).
 
 A struct's `self` parameters may be written without a type: the struct is
 their type. A struct's conformances say how it is copied:
@@ -45,6 +46,7 @@ def simpleStmt (fuel : Nat) : P Stmt :=
   | 0 => fail "a statement too deeply nested"
   | n + 1 => do
     if ← acceptKw "pass" then pure .pass
+    else if let some k ← loopExits.findM? acceptKw then pure (.expr (.call k []))
     else if ← acceptKw "return" then
       if (← peek) == some .newline then pure (.ret none) else pure (.ret (some (← expr n)))
     else if ← acceptKw "var" then
@@ -191,7 +193,7 @@ def originNames : Nat → P (List Name)
 method, and records it with the lines where its statements start. -/
 def funDecl (selfTy : Option Ty) (fuel : Nat) : P FunDecl := do
   modify fun s => { s with lines := [] }
-  let f ← name
+  let f ← if selfTy.isSome then memberName else name
   expectSym "("
   let ps ← params selfTy fuel
   let _ ← acceptKw "raises"

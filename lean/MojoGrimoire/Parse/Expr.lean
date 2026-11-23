@@ -171,7 +171,7 @@ def trailers (fuel : Nat) (t : Term) : P Term :=
   | 0 => fail "an expression too long"
   | n + 1 => do
     if ← acceptSym "." then
-      let f ← name
+      let f ← memberName
       let .place p := t | fail "a field or method of a value that is not a place"
       if ← acceptSym "(" then
         let args ← exprList n ")"
