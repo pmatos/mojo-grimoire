@@ -30,7 +30,8 @@ namespace MojoGrimoire.Check
 open MojoGrimoire.Core
 
 /-- Rejects a struct test, as `main` did, when the state replays `main`'s
-order (`State.mainTests`): `typeMismatch` of a `Bool` and the struct `s`. -/
+order (`State.mainTests`): `typeMismatch` of a `Bool` and the struct `s`.
+Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
 def mainTest (s : Name) : CheckM Unit := do
   if (← get).mainTests then throw (CheckError.typeMismatch .bool (.struct s))
 
@@ -40,7 +41,8 @@ once `check` has checked it as a call of `__bool__` (`boolTest`). `main`
 read that operand as a value, which copies a place: a struct that is not
 `ImplicitlyCopyable` is then `implicitCopy`. When the state leaves out
 the checks of a struct test itself (`State.ownChecks`), the test is a
-`Bool`, whatever `__bool__` returns. -/
+`Bool`, whatever `__bool__` returns.
+Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
 def mainRead (prog : Program) (a : Expr) (check : CheckM Ty) : CheckM Ty := do
   let t ← check
   if let some (s, e) := boolTest a then
@@ -53,7 +55,8 @@ def mainRead (prog : Program) (a : Expr) (check : CheckM Ty) : CheckM Ty := do
 reference, when `f` is the `__bool__` of a struct test (`boolTest`) and
 the state leaves out the checks of a struct test itself
 (`State.ownChecks`): its convention is then not checked, as `main` made
-no call, and its operand is only read. -/
+no call, and its operand is only read.
+Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
 def testParams (f : Name) (ps : List Param) : CheckM (List Param) := do
   if (← get).ownChecks then return ps
   match calleeMethod f, ps with
@@ -62,7 +65,8 @@ def testParams (f : Name) (ps : List Param) : CheckM (List Param) := do
 
 /-- Checks the operand `a` of `not` by `check` (`mainRead`), then rejects
 a test of a struct there as `main` did, when the state replays `main`'s
-order (`mainTest`). -/
+order (`mainTest`).
+Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
 def notOperand (prog : Program) (a : Expr) (check : CheckM Ty) : CheckM Ty := do
   let t ← mainRead prog a check
   if let some (s, _) := boolTest a then mainTest s
@@ -70,7 +74,8 @@ def notOperand (prog : Program) (a : Expr) (check : CheckM Ty) : CheckM Ty := do
 
 /-- Whether the expression `e` is `and` or `or` of two operands of the
 same struct type, which it has (`operandTy`): a same-type test, which
-`main` typed as a `Bool`. -/
+`main` typed as a `Bool`.
+Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
 def sameTest (prog : Program) (e : Expr) : CheckM Bool :=
   match e with
   | .binary op _ _ => do
@@ -80,12 +85,14 @@ def sameTest (prog : Program) (e : Expr) : CheckM Bool :=
 /-- The type of the operand `e` found from its form (`operandTy`), but,
 when the state replays `main`'s order, with `and` and `or` typed as a
 `Bool` at any depth, as `main` typed them: a same-type test (`sameTest`)
-too, and one inside a literal, `[x or y]` an array of `Bool`. -/
+too, and one inside a literal, `[x or y]` an array of `Bool`.
+Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
 def mainFormTy (prog : Program) (e : Expr) : CheckM (Option Ty) := do
   operandTy prog e (← get).mainTests
 
 /-- The binary operator whose method, or whose reflected method when
-`reflected` holds, is `m`. -/
+`reflected` holds, is `m`.
+Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
 def methodOperator (m : Name) (reflected : Bool) : Option BinOp :=
   [BinOp.add, .sub, .mul, .floorDiv, .mod, .lt, .le, .gt, .ge, .eq, .ne].find? fun op =>
     (if reflected then reflectedMethod op else binaryMethod op) == m
@@ -96,7 +103,8 @@ typed as a `Bool` (`MojoGrimoire.Parse.chooseBinary`): the method of the
 left operand's struct, whether or not the right one fits it, else the
 reflected method of the right operand's struct, when it takes the left
 operand's type, not as `mut`, and its `self` takes the right operand
-(`canB`, for a `mut self`); `none` leaves the operator as it is. -/
+(`canB`, for a `mut self`); `none` leaves the operator as it is.
+Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
 def mainCallee (prog : Program) (op : BinOp) (ta tb : Option Ty) (canB : Bool) :
     Option Name :=
   let declared (t : Option Ty) (m : Name) : Option (Name × FunDecl) := match t with
@@ -126,7 +134,8 @@ had typed the operands in `State.typing`
 call does. Typing an operand stops at an error of a later pass, which it
 leaves out (`typeArg`), and at a struct test, which the replay rejects as
 `main` did (`mainTest`): so a test reached first is `typeMismatch`, and
-else the misfit itself, such as `missingMethod` for `+` on a `Bool`. -/
+else the misfit itself, such as `missingMethod` for `+` on a `Bool`.
+Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
 def mainOperator (prog : Program) (f : Name) (args : List Expr) (typing : CheckM Unit) :
     CheckM Name := do
   unless (← get).mainTests do return f
@@ -155,7 +164,7 @@ involved (`mainTest`, `mainRead`, `mainOperator`), first with the checks
 of a struct test itself before `main`'s rejection of it, then without
 them (`State.ownChecks`), as `main` had none. When the two replays end
 differently, a test's own check failed first: its error stands only when
-the statement holds no other error, which a third run, in this PR's order
+the statement holds no other error, which a third run, in the model's own order
 without those checks, shows; else `main` reported the test's
 `typeMismatch`, and the second replay's error is `main`'s. A replay's
 error that is not of the compiler's later pass (`CheckError.late`) is
@@ -174,6 +183,18 @@ def bridged {α : Type} (check : CheckM α) : CheckM α :=
     match replayed with
     | some e => throw (if e.late then err else e)
     | none => throw err
+
+/-- Passes a nested test of type `t` to the parameter `self` of `callee`,
+as `checkArg` passes any operand that is neither a place nor a call: a
+`mut` or `out` `self` rejects it, and its type must fit. The operand is
+not checked again: it was checked from the same state, and a nested test
+ignores whether it is read by reference, so checking it again would only
+repeat that check, at a cost that doubles with each level of nesting. -/
+def passTest (self : Param) (callee : Name) (t : Ty) : CheckM Unit := do
+  if self.conv == .out || self.conv == .deinit then
+    throw (CheckError.invalidConvention callee)
+  if self.conv == .mutable then throw (Fit.call.misfit (CheckError.notAPlace callee))
+  expectArg .call self.ty t
 
 /-- The type of the binary operation `a op b`, of operand types `ta` and `tb`
 (`methodBinaryTy`), once both operands are checked, the places among
@@ -194,7 +215,9 @@ rejected as `main` rejected it once both operands were checked
 (`mainTest`), after those checks of the test itself, whose errors `main`
 could not report. When the state leaves those checks out
 (`State.ownChecks`), the test is rejected so, or passes with no check
-of its own, a tested call taken as a `Bool`. -/
+of its own, a tested call taken as a `Bool`. Both are parts of the bridge
+to `main`'s order: temporary, until #96 part 4. A nested test on the left
+is passed to `self` without being checked again (`passTest`). -/
 def checkedBinaryTy (prog : Program) (op : BinOp) (a b : Expr) (ta tb : Ty) (ka kb : Nat)
     (before : State) (passSelf : Param → Name → CheckM Unit) : CheckM Ty := do
   unless op == .and || op == .or do
@@ -214,10 +237,12 @@ def checkedBinaryTy (prog : Program) (op : BinOp) (a b : Expr) (ta tb : Ty) (ka 
     let some fd := (findStruct prog s).bind (findMethod · "__bool__") | continue
     if let some self := fd.params.head? then
       if same then
-        let after ← get
-        set before
-        passSelf self (methodCallee s "__bool__")
-        set after
+        if nestedTest a then passTest self (methodCallee s "__bool__") ta
+        else
+          let after ← get
+          set before
+          passSelf self (methodCallee s "__bool__")
+          set after
       if isLeft && self.conv == .owned && !(e matches .place _) &&
           copyingOf prog (.struct s) != .implicit then
         throw (CheckError.implicitCopy (.struct s))

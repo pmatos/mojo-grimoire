@@ -108,7 +108,8 @@ statement, in order. After a
 while a statement is checked again to replay `main`'s order, in which a
 struct test is rejected, and `ownChecks` is cleared only while it is
 checked again without the checks of a struct test itself
-(`MojoGrimoire.Check.bridged`). -/
+(`MojoGrimoire.Check.bridged`): both flags belong to that bridge to
+`main`'s order, temporary, until #96 part 4. -/
 structure State where
   vars : List VarState
   live : Bool

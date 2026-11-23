@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6902509464450052454")
+:::moduleDocs (fingerprint := "10058752621994651783")
 :::
 
 :::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.mainRead MojoGrimoire.Check.testParams MojoGrimoire.Check.notOperand MojoGrimoire.Check.bridged (fingerprint := "4355055010676681703")
@@ -70,7 +70,7 @@ $`[x\ \mathsf{or}\ y]` is an array of $`\mathsf{Bool}`s
 (`mainFormTy`), as `main` did.
 :::
 
-:::readable MojoGrimoire.Check.checkedBinaryTy (fingerprint := "9036440222861286704")
+:::readable MojoGrimoire.Check.passTest MojoGrimoire.Check.checkedBinaryTy (fingerprint := "12103942993416628485")
 *Rule: binary operations.* Once both operands are checked, the places
 among them that are read late are checked again, but for `and` and `or`,
 whose operands are read when tested; the operation then has the type
@@ -82,7 +82,9 @@ the result, and is `missingMethod`. This holds for the calls of
 `__bool__` that inference makes, and for the left operand when both have
 the same struct type, which the operator gives without a call of its
 own. That operand is passed to `self` as an argument of a call is, from
-the state before it was checked: a `mut self` takes only a place that
+the state before it was checked; a nested test there is not checked
+again, since that check would repeat the first, from the same state, at
+a cost that doubles with each level of nesting (`passTest`): a `mut self` takes only a place that
 may change (`immutablePlace`) or a mutable returned reference, and no
 temporary (`notAPlace`, #81). A `var self` gets a copy of the left
 operand on either path, even of a temporary or a transfer, since the
@@ -95,5 +97,6 @@ once both operands were checked (`mainTest`), after these checks of the
 test itself, whose errors `main` could not report. When the state leaves
 those checks out (`State.ownChecks`), the test is rejected so, or passes
 with no check of its own, a tested call of `__bool__` taken as a
-$`\mathsf{Bool}`.
+$`\mathsf{Bool}`. Both are parts of the bridge, temporary, until #96
+part 4.
 :::

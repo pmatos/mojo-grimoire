@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "53481524990504272")
+:::moduleDocs (fingerprint := "17001410660247623918")
 :::
 
 :::readable MojoGrimoire.Check.compares MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "12823475274059033023")
@@ -50,11 +50,17 @@ $`\mathsf{or}`, so is a right operand whose type lacks `__bool__`
 (`seqMisfit`).
 :::
 
-:::readable MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.convertsLiteral MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "7856414538068478955")
+:::readable MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.convertsLiteral MojoGrimoire.Check.nestedTest MojoGrimoire.Check.lackingTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "15767448469700066521")
 *Rule: operands of a comparison of arrays or lists.* The misfit of a
 binary operator is found from its operands' forms before they are read
 (`operandTy`, or the types that `main` gave them, in the bridge's replay,
-`MojoGrimoire.Check.mainFormTy`). An integer literal on the left gives no type, so that its
+`MojoGrimoire.Check.mainFormTy`, temporary, until #96 part 4). For
+$`\mathsf{and}` and $`\mathsf{or}`, the misfit needs of an operand only
+whether its form gives a struct that lacks `__bool__` (`lackingTy`): a
+nested test gives one only when both of its operands give it, so its
+operand that is no test is asked first, and when that gives none, the
+form of the whole nested test is not computed, which keeps the check of
+a chain of tests linear in its length. An integer literal on the left gives no type, so that its
 overloads report a comparison with an array or a list
 (`noMatchingMethod`), and an empty literal with no type on the right of
 a comparison has a type that fits no array. A literal with no type
