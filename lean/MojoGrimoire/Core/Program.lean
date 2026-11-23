@@ -64,8 +64,13 @@ structure Program where
   structs : List StructDecl
   funs : List FunDecl
   mainMode : Bool := false
-  twin : List FunDecl := []
-  deriving BEq
+  twin : Thunk (List FunDecl) := Thunk.pure []
+
+/-- Two programs are equal when their structs, functions and mode are:
+the twin follows from them, and is a thunk, inferred only when the
+checker needs it. -/
+instance instBEqProgram : BEq Program :=
+  ⟨fun a b => a.structs == b.structs && a.funs == b.funs && a.mainMode == b.mainMode⟩
 
 /-- The destructor of the struct `s`, whose body is `body`, as a function. -/
 def deinitDecl (s : Name) (body : List Stmt) : FunDecl :=
@@ -77,6 +82,6 @@ def Program.asMain (prog : Program) : Program := { prog with mainMode := true }
 /-- The body that `main`'s inference gave the function `fd` of the
 program `prog`, from its `twin`; empty when it has none. -/
 def Program.twinBody (prog : Program) (fd : FunDecl) : List Stmt :=
-  ((prog.twin.find? fun t => t.name == fd.name && t.params == fd.params).map (·.body)).getD []
+  ((prog.twin.get.find? fun t => t.name == fd.name && t.params == fd.params).map (·.body)).getD []
 
 end MojoGrimoire.Core

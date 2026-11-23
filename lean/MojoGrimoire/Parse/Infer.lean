@@ -88,6 +88,13 @@ def unsignedResult (prog : Program) (f : Name) : Option Ty :=
   else if f == "len" then some .int
   else none
 
+/-- The literal argument `a'`, inferred with the type of the parameter `prm`
+expected, as `inferArg` passes it: an `Int` that a literal became is put
+back in a literal when `prm` is `mut` or `ref`. -/
+def literalArg (prm : Param) (a' : Expr) : Expr :=
+  if (prm.conv == .mutable || prm.conv == .ref) && !(a' matches .list ..) then .list .int [a']
+  else a'
+
 mutual
 /-- Infers inside the place `p`, and gives its type, if it has one. -/
 def inferPlace (prog : Program) (env : TyEnv) : Place → Place × Option Ty
@@ -141,15 +148,21 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
       let b' := if b matches .list .. then (inferExpr prog env .unknown b).1 else b₀
       (.binary op a' b', some (binaryResult op))
     else
+    let tyA := ((declaredMethod prog tb₀ (reflectedMethod op)).bind (otherParam ·.2)).map (·.ty)
+    let tyB := ((declaredMethod prog ta₀ (binaryMethod op)).bind (otherParam ·.2)).map (·.ty)
+    let iA : Thunk (Expr × Option Ty) := Thunk.mk fun _ => inferExpr prog env (tyA.getD .unknown) a
+    let iB : Thunk (Expr × Option Ty) := Thunk.mk fun _ => inferExpr prog env (tyB.getD .unknown) b
+    let atA (t : Ty) := if tyA == some t then iA.get else inferExpr prog env t a
+    let atB (t : Ty) := if tyB == some t then iB.get else inferExpr prog env t b
     match chooseBinary prog op ta₀ tb₀
-      (fun prm => (if a matches .list .. then (inferExpr prog env prm.ty a).2 else ta₀) == some prm.ty)
-      (fun prm => (if b matches .list .. then (inferExpr prog env prm.ty b).2 else tb₀) == some prm.ty)
+      (fun prm => (if a matches .list .. then (atA prm.ty).2 else ta₀) == some prm.ty)
+      (fun prm => (if b matches .list .. then (atB prm.ty).2 else tb₀) == some prm.ty)
       (env.canPass prog a₀) (env.canPass prog b₀)
     with
     | some (s, fd, reflected) =>
       let prm := (otherParam fd).getD ⟨.read, "", .unknown⟩
-      let a' := if a matches .list .. then inferArg prog env prm a else a₀
-      let b' := if b matches .list .. then inferArg prog env prm b else b₀
+      let a' := if a matches .list .. then literalArg prm (atA prm.ty).1 else a₀
+      let b' := if b matches .list .. then literalArg prm (atB prm.ty).1 else b₀
       let m := if reflected then reflectedMethod op else binaryMethod op
       (.call (methodCallee s m reflected) [a', b'], some fd.result)
     | none =>
@@ -311,10 +324,11 @@ def bodies (prog : Program) : List FunDecl :=
 /-- The program of the core calculus that the program `raw`, as parsed,
 stands for: the types that a variable hides are marked (`markHidden`), then
 `Self` is resolved, then inference fills in what the program leaves open.
-Its `twin` holds the bodies that inference gives in `main`'s mode. -/
+Its `twin` holds the bodies that inference gives in `main`'s mode, as a
+thunk, inferred only when the checker needs one. -/
 def inferRaw (raw : Program) : Program :=
   let prog := resolveSelf (markHidden raw)
-  { inferProgram prog with twin := bodies (inferProgram prog.asMain) }
+  { inferProgram prog with twin := Thunk.mk fun _ => bodies (inferProgram prog.asMain) }
 
 /-- Parses the text of a `.mojo` file into a program of the core calculus,
 as `inferRaw` gives it. It does not check the constructs outside the

@@ -13,10 +13,17 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15973543951801641564")
+:::moduleDocs (fingerprint := "6958387039473723250")
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "3060004270383196943")
+:::readable MojoGrimoire.Parse.literalArg (fingerprint := "15594256188266583025")
+*Definition: a literal argument.* A literal passed to a parameter is
+inferred with the parameter's type expected; when the parameter is `mut`
+or `ref` and the literal became an $`\mathsf{Int}`, it is put back in a
+literal.
+:::
+
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "3832422781044493715")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, or $`\mathsf{Int}` for the element of
@@ -35,8 +42,11 @@ a call whose operand is a struct that declares the method are calls of
 the method that `chooseBinary` and `declaredMethod` pick, with the type
 of its result; an
 operand that is a literal is inferred as an argument of the method's
-other parameter, by `inferArg`, so that one passed `mut` or `ref` stays a
-temporary (#191). Any other call with no signature has no type. A literal left open takes the type expected where
+other parameter, as `inferArg` passes it (`literalArg`), so that one
+passed `mut` or `ref` stays a temporary (#191). Such a literal is inferred
+once with the type of the parameter that the choice of method tries, and
+that inference is used again for the argument when the parameter is the
+same, so that nested operators cost no more at each level. Any other call with no signature has no type. A literal left open takes the type expected where
 it stands, a list type or an array type, and the checker compares an
 array's size with the literal's length. With no list or array expected, it is
 an array of its elements, of the type of the first: Mojo's
@@ -98,7 +108,7 @@ be built takes nothing. A call with no signature has the type of a
 struct the program declares, `len`'s $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "14783131021048654060")
+:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "990809493516971547")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 $`\mathsf{None}` for a call that returns nothing (#131),
 and `ref x = e` binds $`x` with the type of $`e`; $`x` may change what
@@ -117,7 +127,7 @@ inferred in order, each statement seeing the variables declared before it;
 the variables of an inner block do not leave it.
 :::
 
-:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.bodies MojoGrimoire.Parse.inferRaw MojoGrimoire.Parse.parse (fingerprint := "11303823806694722010")
+:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.bodies MojoGrimoire.Parse.inferRaw MojoGrimoire.Parse.parse (fingerprint := "21537496874828081")
 *Definition: parsing a program.* Inference starts each function from its
 parameters, and each destructor from `self`. The values a function returns
 are expected to have its result type, unless it returns a reference: then
@@ -126,6 +136,7 @@ parses its text, marks the types whose name a variable hides
 (`markHidden`), replaces `Self` in each struct's methods (`resolveSelf`),
 and then infers inside every declaration (`inferRaw`). It also infers
 them in `main`'s mode, and keeps the bodies that gives, each function's,
-initializer's, destructor's and method's, as the program's twin. It does not check
+initializer's, destructor's and method's, as the program's twin, which
+is inferred only when the checker first needs it. It does not check
 the constructs outside the subset, which the driver's `parseSubset` does.
 :::

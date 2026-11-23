@@ -49,25 +49,25 @@ def CheckError.owned : CheckError → Bool
 
 /-- Runs `check`, the check of a statement or a condition, which `replay`
 checks as `main` did, when the statement has a twin. When `check` throws
-an error, a probe runs it again from the same state (`State.probe`): when
-it finds no error and lets exactly one comparison's error pass
-(`probed`), the first error stands. Otherwise `replay` runs from that
-state, and its error, if it has one, is reported; else the first error
-stands. The first error stands too when it is found as the program is
-typed, and `replay`'s is one of ownership, which the compiler reports
-later (#96), or is found as the program is typed too. -/
-def bridged {α : Type} (check : CheckM α) (replay : Option (CheckM α)) : CheckM α :=
-  match replay with
-  | none => check
-  | some replay =>
-    tryCatch check fun err => do
-      let s0 ← get
-      set { s0 with probe := true, swallowed := 0 }
-      let probe ← tryCatch (do let _ ← check; pure (some (← get).swallowed)) fun _ => pure none
-      set s0
-      if probe == some 1 then throw err
-      let replayed ← tryCatch (do let _ ← replay; pure err) pure
-      throw (if err.typed && (replayed.owned || replayed.typed) then err else replayed)
+an error and the statement has a twin, a probe runs it again from the
+same state (`State.probe`): when it finds no error and lets exactly one
+comparison's error pass (`probed`), the first error stands. Otherwise
+`replay` runs from that state, and its error, if it has one, is
+reported; else the first error stands. The first error stands too when
+it is found as the program is typed, and `replay`'s is one of ownership,
+which the compiler reports later (#96), or is found as the program is
+typed too. The twin is a thunk, forced only once `check` has failed, so
+that a statement that is accepted costs nothing more. -/
+def bridged {α : Type} (check : CheckM α) (replay : Thunk (Option (CheckM α))) : CheckM α :=
+  tryCatch check fun err => do
+    let some replay := replay.get | throw err
+    let s0 ← get
+    set { s0 with probe := true, swallowed := 0 }
+    let probe ← tryCatch (do let _ ← check; pure (some (← get).swallowed)) fun _ => pure none
+    set s0
+    if probe == some 1 then throw err
+    let replayed ← tryCatch (do let _ ← replay; pure err) pure
+    throw (if err.typed && (replayed.owned || replayed.typed) then err else replayed)
 
 /-- The condition and the blocks of the twin `m` of an `if`, when it is one. -/
 def twinIf : Option Stmt → Option Expr × List Stmt × List Stmt
@@ -81,46 +81,48 @@ def twinWhile : Option Stmt → Option Expr × List Stmt
 
 /-- Checks the condition `c` of an `if` or a loop, whose twin is `c'`
 (`bridged`). -/
-def checkCond (prog : Program) (c : Expr) (c' : Option Expr) : CheckM Unit := do
-  expect .bool (← bridged (checkExpr prog c) (c'.map (checkExpr prog.asMain)))
+def checkCond (prog : Program) (c : Expr) (c' : Thunk (Option Expr)) : CheckM Unit := do
+  expect .bool (← bridged (checkExpr prog c) (c'.map (·.map (checkExpr prog.asMain))))
 
 mutual
 /-- Checks the statement `s` of the function `sig`, whose twin, the
-statement that `main`'s inference gave, is `m`. A statement that holds no
-block is checked by `checkSimple`, bridged to `main`'s order
+statement that `main`'s inference gave, is `m`, a thunk. A statement that
+holds no block is checked by `checkSimple`, bridged to `main`'s order
 (`bridged`); an `if` and a loop bridge their conditions, and check their
 blocks beside their twins. -/
-def checkStmt (prog : Program) (sig : FunDecl) (s : Stmt) (m : Option Stmt) : CheckM Unit :=
+def checkStmt (prog : Program) (sig : FunDecl) (s : Stmt) (m : Thunk (Option Stmt)) :
+    CheckM Unit :=
   match s with
   | .ifElse c thenBlock elseBlock => do
-    let (c', t', e') := twinIf m
-    checkCond prog c c'
+    let tw := m.map twinIf
+    checkCond prog c (tw.map (·.1))
     let s0 ← get
-    checkScope prog sig thenBlock t'
+    checkScope prog sig thenBlock (tw.map (·.2.1))
     let s1 ← get
     set s0
-    checkScope prog sig elseBlock e'
+    checkScope prog sig elseBlock (tw.map (·.2.2))
     set (joinStates s1 (← get))
   | .whileLoop c body => do
-    let (c', b') := twinWhile m
-    checkCond prog c c'
+    let tw := m.map twinWhile
+    checkCond prog c (tw.map (·.1))
     let s0 ← get
-    checkScope prog sig body b'
+    checkScope prog sig body (tw.map (·.2))
     let s1 ← get
     checkLoop s0 s1
     let head := if s1.live then { s0 with vars := List.zipWith joinMay s0.vars s1.vars,
                                           stale := union s0.stale s1.stale } else s0
     if head != s0 then
       set head
-      checkCond prog c c'
-      checkScope prog sig body b'
+      checkCond prog c (tw.map (·.1))
+      checkScope prog sig body (tw.map (·.2))
       let s2 ← get
       set (if s2.live then { head with vars := List.zipWith joinMay head.vars s2.vars } else head)
     else set head
-  | s => bridged (checkSimple prog sig s) (m.map (checkSimple prog.asMain sig))
+  | s => bridged (checkSimple prog sig s) (m.map (·.map (checkSimple prog.asMain sig)))
 
-/-- Checks the block `b` as a scope of its own, beside its twin `ms`. -/
-def checkScope (prog : Program) (sig : FunDecl) (b ms : List Stmt) :
+/-- Checks the block `b` as a scope of its own, beside its twin `ms`, a
+thunk. -/
+def checkScope (prog : Program) (sig : FunDecl) (b : List Stmt) (ms : Thunk (List Stmt)) :
     CheckM Unit := do
   let n := (← get).vars.length
   checkBlock prog sig b ms
@@ -128,12 +130,12 @@ def checkScope (prog : Program) (sig : FunDecl) (b ms : List Stmt) :
 
 /-- Checks the statements of a block in order, each beside its twin in
 `ms`, the block that `main`'s inference gave, when it has one. -/
-def checkBlock (prog : Program) (sig : FunDecl) : List Stmt → List Stmt → CheckM Unit
+def checkBlock (prog : Program) (sig : FunDecl) : List Stmt → Thunk (List Stmt) → CheckM Unit
   | [], _ => pure ()
   | s :: rest, ms => do
     modify fun st => { st with changes := [] }
-    checkStmt prog sig s ms.head?
-    checkBlock prog sig rest ms.tail
+    checkStmt prog sig s (ms.map (·.head?))
+    checkBlock prog sig rest (ms.map (·.tail))
 end
 
 end MojoGrimoire.Check

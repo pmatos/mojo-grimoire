@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Functions, structs and programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7818169629107716470")
+:::moduleDocs (fingerprint := "6335663776429887451")
 :::
 
 :::readable MojoGrimoire.Core.Param (fingerprint := "15254264730588750988")
@@ -66,15 +66,21 @@ a move initializer for a struct that declares no conformance.
 Copy and move initializers are always the ones Mojo synthesizes.
 :::
 
-:::readable MojoGrimoire.Core.Program (fingerprint := "7325342995571573723")
+:::readable MojoGrimoire.Core.Program (fingerprint := "9145835009623834660")
 *Definition: programs.* A program is a list of structs and a list of
 functions. It runs by calling the function $`\mathsf{main}`. It also
 says whether it is inferred and checked as `main` did, and holds its
 twin: the bodies that inference gives in that mode, as functions, for the
-checker's bridge to `main`'s order (#166).
+checker's bridge to `main`'s order (#166). The twin is computed only when
+the checker first needs it.
 :::
 
-:::readable MojoGrimoire.Core.deinitDecl MojoGrimoire.Core.Program.asMain MojoGrimoire.Core.Program.twinBody (fingerprint := "7655758454236778188")
+:::readable MojoGrimoire.Core.instBEqProgram (fingerprint := "15588969329907978291")
+*Definition: equal programs.* Two programs are equal when their structs,
+functions and mode are; the twin follows from them.
+:::
+
+:::readable MojoGrimoire.Core.deinitDecl MojoGrimoire.Core.Program.asMain MojoGrimoire.Core.Program.twinBody (fingerprint := "15505470024628492910")
 *Definition: twins.* A destructor is the function
 $`\mathsf{\_\_deinit\_\_}(\mathsf{deinit}~\mathsf{self})` of its
 struct that returns nothing. A program in `main`'s mode is the same

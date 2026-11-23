@@ -47,7 +47,7 @@ def checkBody (prog : Program) (fd : FunDecl) : Except CheckError Unit := do
   checkOrigin fd
   let start : State := { vars := fd.params.reverse.map paramState, live := true, stale := [], changes := [] }
   let ((), _) ← (do
-      checkBlock prog fd fd.body (prog.twinBody fd)
+      checkBlock prog fd fd.body (Thunk.mk fun _ => prog.twinBody fd)
       if (← get).live then
         unless fd.result == Ty.noneType do throw (CheckError.missingReturn fd.name)
         checkExit prog).run start
