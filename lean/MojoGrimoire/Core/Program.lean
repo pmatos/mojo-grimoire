@@ -57,14 +57,15 @@ structure StructDecl where
 
 /-- A program: its structs and its functions. It runs by calling `main`.
 Inference also gives it the bodies that `main`'s inference gave, as
-functions, `twin`, for the checker's bridge to `main`'s order
+functions, each with the struct it belongs to, or none for a free
+function, `twin`, for the checker's bridge to `main`'s order
 (`MojoGrimoire.Check.bridged`); `mainMode` holds in the program that
 infers and checks as `main` did. -/
 structure Program where
   structs : List StructDecl
   funs : List FunDecl
   mainMode : Bool := false
-  twin : Thunk (List FunDecl) := Thunk.pure []
+  twin : Thunk (List (Option Name × FunDecl)) := Thunk.pure []
 
 /-- Two programs are equal when their structs, functions and mode are.
 The twin, a thunk, is not compared: forcing it would infer it. Inference
@@ -82,8 +83,12 @@ def deinitDecl (s : Name) (body : List Stmt) : FunDecl :=
 def Program.asMain (prog : Program) : Program := { prog with mainMode := true }
 
 /-- The body that `main`'s inference gave the function `fd` of the
-program `prog`, from its `twin`; empty when it has none. -/
-def Program.twinBody (prog : Program) (fd : FunDecl) : List Stmt :=
-  ((prog.twin.get.find? fun t => t.name == fd.name && t.params == fd.params).map (·.body)).getD []
+program `prog`, a member of the struct `owner`, or a free function when
+`owner` is none, from its `twin`: the twin of the same owner, name and
+parameters, so that a free function never stands for a method. Empty
+when it has none. -/
+def Program.twinBody (prog : Program) (owner : Option Name) (fd : FunDecl) : List Stmt :=
+  ((prog.twin.get.find? fun (o, t) => o == owner && t.name == fd.name && t.params == fd.params).map
+    (·.2.body)).getD []
 
 end MojoGrimoire.Core

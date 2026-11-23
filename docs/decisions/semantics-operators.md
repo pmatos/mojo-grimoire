@@ -119,6 +119,11 @@ it to lists. Part 1 of #166 and #185 model the element types `Int`,
   length where an `Int` is expected on the right, `a == [[1, 2], 3]`, fits
   no initializer of `Int` (`noMatchingInit`), but only once `a` is read,
   as in a call: beside an uninitialized `a` it is `uninitializedUse`.
+  Where `main` rejected such a comparison with another class, the model
+  keeps `main`'s class by the bridge below until #96 part 4:
+  `a == [[]]`, `[True] == xs`, `[ys^] == xs`, `[[1]] < v` and
+  `a == [[1, 2], 3]` are still `implicitCopy`, and `xs == [True]` beside
+  an uninitialized `xs` is `uninitializedUse`.
   Otherwise a literal is an array, unless the other operand is an `Int`
   (see [semantics-lists.md](semantics-lists.md#arrays)).
 - An operand of another type, an array or a list of another length or
@@ -160,10 +165,13 @@ statement, or a condition, that part 2 rejects is checked again as `main`
 did, from the same state, with the body that `main`'s inference gave
 (`Check.Block.bridged`, ruled on #281). When that check fails too, `main`'s
 error is reported; otherwise part 2's stands. Each condition of an
-`if`/`elif` chain is a statement of its own here. So wherever `main` and
-part 2 both reject a statement, it gives `main`'s result: part 2 changes
-only a statement that `main` rejected and it accepts, or one that `main`
-accepted. A comparison that part 2 rejects with the compiler's class,
+`if`/`elif` chain is a statement of its own here, and is checked with
+the test that it is a `Bool`. A function, method, initializer or
+destructor is checked beside `main`'s twin of the same declaration, a
+method beside the method of its struct. So wherever `main` and part 2
+both reject a statement or a condition, it gives `main`'s result. The
+checks of a declaration as a whole, such as its parameters, a missing
+`return`, or what a function leaves when it ends, are not bridged. A comparison that part 2 rejects with the compiler's class,
 where `main` rejected it with another, keeps `main`'s class until #96
 part 4: `a == [[1, 2]]` with `a = [1]` stays `implicitCopy` where the
 compiler gives `noMatchingInit`, and `[1] < xs` stays `implicitCopy`
@@ -208,7 +216,10 @@ the compiler's; where #185 changed the class, the bullet says so:
 - A transfer in a loop's condition, `while a^ < [1, 3] and t:`, which the
   compiler borrows and the model moves: the second check of the condition
   is stuck at run time (#84). `while ab^ < [True, True] and t:`, with
-  `ab` an array of `Bool`s, takes that form with part 2.
+  `ab` an array of `Bool`s, takes that form with part 2. So does a
+  transferred operand read later: `print([[1], [2]] == a^)` then
+  `print(a[0])` runs on the compiler, which borrows `a`, and is
+  `uninitializedUse` with part 2, where `main` gave `typeMismatch` (#84).
 - A literal on the left with no type of its own that does not fit the
   right operand, or that the comparison does not convert, `[[]] == a`,
   `[[]] < v` or `[] == []`, which the compiler cannot type ("cannot emit an empty list without a contextual type", a message

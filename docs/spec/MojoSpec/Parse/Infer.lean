@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14536607495478944859")
+:::moduleDocs (fingerprint := "10921444122516455895")
 :::
 
 :::readable MojoGrimoire.Parse.literalArg (fingerprint := "15594256188266583025")
@@ -129,7 +129,7 @@ inferred in order, each statement seeing the variables declared before it;
 the variables of an inner block do not leave it.
 :::
 
-:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.bodies MojoGrimoire.Parse.inferRaw MojoGrimoire.Parse.parse (fingerprint := "21537496874828081")
+:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.bodies MojoGrimoire.Parse.inferRaw MojoGrimoire.Parse.parse (fingerprint := "2805391567743726685")
 *Definition: parsing a program.* Inference starts each function from its
 parameters, and each destructor from `self`. The values a function returns
 are expected to have its result type, unless it returns a reference: then

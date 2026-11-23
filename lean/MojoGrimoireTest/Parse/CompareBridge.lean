@@ -57,6 +57,13 @@ private def rejects (body : List String) (cls : CheckError → Bool) : Bool :=
 #guard rejects ["print([a == [[1], [2]], [a] == n] == [True, True])"] (· matches .implicitCopy _)
 #guard rejects ["print([1, 2] == [[1], [len([xs == [1]])]], [List[Int](), [a[-1]]] != [3, 1])"]
   (· matches .typeMismatch ..)
+-- A condition is bridged with the test that it is a `Bool`, in an `if`,
+-- an `elif` and a loop. The compiler runs these; `main` gave
+-- `implicitCopy`, which the bridge keeps until #96 part 4.
+#guard rejects ["if len([a == [[1], [2]]]):", "    print(1)"] (· matches .implicitCopy _)
+#guard rejects ["if False:", "    print(0)", "elif len([a == [[1], [2]]]):", "    print(1)"]
+  (· matches .implicitCopy _)
+#guard rejects ["while len([a == [[1], [2]]]):", "    return"] (· matches .implicitCopy _)
 -- With another error, `main`'s is reported, here the compiler's (#170).
 #guard rejects ["print([1] < [[1, 2]], x - [True])"] (· matches .typeMismatch ..)
 -- `main`'s class stays where `main` was wrong too: the compiler reports
@@ -64,5 +71,27 @@ private def rejects (body : List String) (cls : CheckError → Bool) : Bool :=
 #guard rejects ["print([y^] != rl, rl < rl)"] (· matches .implicitCopy _)
 -- A statement with no error runs as part 2 of #166 has it.
 #guard runMain ["print(al == [[x]], [[x]] != al)"] == some (.finished ["True False"])
+
+/-- Whether the program `src` is rejected in `where_` with the error that
+`cls` matches. -/
+private def rejectsIn (src : String) (where_ : String) (cls : CheckError → Bool) : Bool :=
+  match parse src with
+  | .ok prog =>
+    match run prog 100000 with
+    | .rejected ⟨w, e⟩ => w == where_ && cls e
+    | _ => false
+  | .error _ => false
+
+/-- A method `S.m` and a free function `m(self: S)`, with the same name
+and parameters: each is checked beside its own twin. -/
+private def shadow : String :=
+  "\n".intercalate ["@fieldwise_init", "struct S(Movable):", "    var a: Array[Int, 2]",
+    "    def m(self):", "        var z = 5", "        print([[1]] == [1], z)",
+    "def m(self: S):", "    var w = 5", "    var z = w", "    print(z)",
+    "def main():", "    var s = S([1, 2])", "    s.m()", "    m(s)"]
+
+-- The method's error is `main`'s, and the compiler's, `typeMismatch`, not
+-- one from the free function's body.
+#guard rejectsIn shadow "S.m" (· matches .typeMismatch ..)
 
 end MojoGrimoireTest.Parse.CompareBridge

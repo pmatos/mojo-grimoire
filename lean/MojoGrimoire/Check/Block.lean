@@ -14,11 +14,15 @@ condition of an `if` or a loop, that the checker rejects is checked again
 as `main` did (`bridged`), from the same state: the body that `main`'s
 inference gave (`Program.twin`), with `main`'s checks (`Program.asMain`).
 When that check fails too, its error, `main`'s, is reported; otherwise
-the first error stands. So wherever `main` rejected a statement that part
-2 rejects too, the statement gives `main`'s error, and part 2 changes only
-a statement that `main` rejected and it accepts, or the reverse. A
-comparison whose class part 2 corrects, where `main` gave another, keeps
-`main`'s class until #96 part 4.
+the first error stands. A condition is bridged with the test that it is
+a `Bool` (`checkCond`), and a function, method, initializer or destructor
+is checked beside `main`'s twin of the same declaration
+(`Program.twinBody`). So wherever `main` rejected a statement or a
+condition that part 2 rejects too, it gives `main`'s error. A comparison
+whose class part 2 corrects, where `main` gave another, keeps `main`'s
+class until #96 part 4. The checks of a declaration as a whole, such as
+its parameters, a missing `return` or what it leaves when it ends, are
+not bridged.
 
 A temporary bridge until #96 part 4 orders the model's errors as the
 compiler does.
@@ -50,10 +54,12 @@ def twinWhile : Option Stmt → Option Expr × List Stmt
   | some (.whileLoop c b) => (some c, b)
   | _ => (none, [])
 
-/-- Checks the condition `c` of an `if` or a loop, whose twin is `c'`
+/-- Checks the condition `c` of an `if` or a loop, whose twin is `c'`: it
+must be a `Bool`. The check and the test of its type are bridged as one
 (`bridged`). -/
-def checkCond (prog : Program) (c : Expr) (c' : Thunk (Option Expr)) : CheckM Unit := do
-  expect .bool (← bridged (checkExpr prog c) (c'.map (·.map (checkExpr prog.asMain))))
+def checkCond (prog : Program) (c : Expr) (c' : Thunk (Option Expr)) : CheckM Unit :=
+  bridged (do expect .bool (← checkExpr prog c))
+    (c'.map (·.map fun c => do expect .bool (← checkExpr prog.asMain c)))
 
 mutual
 /-- Checks the statement `s` of the function `sig`, whose twin, the

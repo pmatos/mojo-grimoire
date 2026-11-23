@@ -39,8 +39,8 @@ expected to have the list's type unless it does not fit it, also when its
 fit is not known (#185). In a program in `main`'s mode
 (`Program.mainMode`), every comparison keeps the expectations it had
 before #166, as in `main`: inference gives a program also the bodies it
-gives in that mode (`Program.twin`), for the checker's bridge to
-`main`'s order (`MojoGrimoire.Check.bridged`). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
+gives in that mode, each with the struct it belongs to (`Program.twin`),
+for the checker's bridge to `main`'s order (`MojoGrimoire.Check.bridged`). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
 the type `t` of the first, as in Mojo: inference gives that type to what
 holds the literal, and leaves the literal's own type `unknown`, so that the
 checker tells a literal that initializes an expected type from one that
@@ -316,10 +316,11 @@ def inferProgram (prog : Program) : Program :=
   { prog with structs := prog.structs.map (inferStruct prog), funs := prog.funs.map (inferFun prog) }
 
 /-- The bodies of the functions, initializers, destructors and methods of
-the program `prog`, as functions (`deinitDecl`). -/
-def bodies (prog : Program) : List FunDecl :=
-  prog.funs ++ prog.structs.flatMap fun sd =>
-    sd.init.toList ++ sd.deinit.toList.map (deinitDecl sd.name) ++ sd.methods
+the program `prog`, as functions (`deinitDecl`), each with the struct it
+belongs to, or none for a free function. -/
+def bodies (prog : Program) : List (Option Name × FunDecl) :=
+  prog.funs.map (none, ·) ++ prog.structs.flatMap fun sd =>
+    (sd.init.toList ++ sd.deinit.toList.map (deinitDecl sd.name) ++ sd.methods).map (some sd.name, ·)
 
 /-- The program of the core calculus that the program `raw`, as parsed,
 stands for: the types that a variable hides are marked (`markHidden`), then

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Types that a variable hides: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16179903825465295283")
+:::moduleDocs (fingerprint := "16887347114829915974")
 :::
 
 :::readable MojoGrimoire.Parse.Ty.markHidden (fingerprint := "17310990593456863048")
@@ -39,7 +39,7 @@ as $`\mathsf{ref}~x = e` does; the blocks of `if` and `while` mark their
 statements in a scope that ends with them.
 :::
 
-:::readable MojoGrimoire.Parse.Param.listMarkHidden MojoGrimoire.Parse.FunDecl.markHidden MojoGrimoire.Parse.markHidden (fingerprint := "5516085429352766658")
+:::readable MojoGrimoire.Parse.Param.listMarkHidden MojoGrimoire.Parse.FunDecl.markHidden MojoGrimoire.Parse.markHidden (fingerprint := "13653064049685971599")
 *Definition: marking a program.* Each parameter's type is marked where
 the parameters before it are in scope, and the result and the body where
 every parameter is. A program's functions, and its structs' methods,
