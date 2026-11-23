@@ -189,8 +189,8 @@ private def mainMismatch (body : List String) : Bool :=
 #guard bridge ["var c = x^", "print(x.n, y.f or y)"] ==
   some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "n")⟩)
 -- `main` typed a test of two structs as a `Bool` at any depth, so
--- `[x or y]` was an array of `Bool`s, which `[k]` fits: the misfit of
--- the comparison comes before the moved `x`, as the pin reports it.
+-- `[x or y]` was an array of `Bool`s, which `[k]` does not fit: that
+-- misfit of the comparison comes before the moved `x`, as the pin's does.
 #guard mainMismatch ["var c = x^", "var z = [x or y] == [k]"]
 #guard mainMismatch ["var c = x^", "var z = [x or y] < [k]"]
 #guard mainMismatch ["var z = [S(xs[1 - 2], True) or y] == [k]"]
