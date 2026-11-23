@@ -58,8 +58,8 @@ private def lib : List FunDecl :=
 destructor body `pairDeinit`, if one is given. -/
 private def go (body : List Stmt) (pairDeinit : Option (List Stmt) := none)
     (fuel : Nat := 10000) : Outcome :=
-  run ⟨[resDecl, pairDecl pairDeinit, counterDecl],
-    lib ++ [⟨"main", [], .noneType, body, none⟩]⟩ fuel
+  run { structs := [resDecl, pairDecl pairDeinit, counterDecl],
+        funs := lib ++ [⟨"main", [], .noneType, body, none⟩] } fuel
 
 -- `print("hi", 1 + 2, True, 7 // -2, -7 % 3)`
 #guard go [.print [.str "hi", .binary .add (.int 1) (.int 2), .bool true,
@@ -165,7 +165,7 @@ private def go (body : List Stmt) (pairDeinit : Option (List Stmt) := none)
 /-- How destroying the value `w` stops, with `Pair` and `Res` declared:
 `none` when it finishes. -/
 private def destroyStop (w : Value) : Option RunError :=
-  let prog : Program := ⟨[resDecl, pairDecl none], []⟩
+  let prog : Program := { structs := [resDecl, pairDecl none], funs := [] }
   match ((destroy prog 100 w).run ⟨#[], #[]⟩).1 with
   | .error (.error e) => some e
   | _ => none

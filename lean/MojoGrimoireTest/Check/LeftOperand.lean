@@ -18,7 +18,7 @@ open MojoGrimoire.Core MojoGrimoire.Check MojoGrimoire.Parse MojoGrimoire.Interp
 /-- An empty state and an empty program: enough for the operands below,
 which name no variable that is looked up. -/
 private def st : State := { vars := [], live := true, stale := [], changes := [] }
-private def none' : Program := ⟨[], []⟩
+private def none' : Program := { structs := [], funs := [] }
 
 private def t : Ty := .struct "T"
 private def x (n : Name) : Expr := .place (.var n)

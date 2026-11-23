@@ -58,7 +58,8 @@ private def lib : List FunDecl := [consume, showRes, bump, addInts, incBoth, tak
 `main` whose body is `body`. -/
 private def prog (body : List Stmt) (funs : List FunDecl := []) (structs : List StructDecl := []) :
     Program :=
-  ⟨[resDecl, ptDecl, pairDecl] ++ structs, lib ++ funs ++ [⟨"main", [], .noneType, body, none⟩]⟩
+  { structs := [resDecl, ptDecl, pairDecl] ++ structs,
+    funs := lib ++ funs ++ [⟨"main", [], .noneType, body, none⟩] }
 
 private def newRes (x : Name) (n : Int) : Stmt := .decl x res (some (.call "Res" [.int n]))
 
@@ -208,7 +209,7 @@ private def verdict (p : Program) : Option CheckError :=
   none
 #guard verdict (prog [] [] [⟨"Loop", [("next", .array (.struct "Loop") 2)], .none, true, none, none, []⟩]) ==
   some (.recursiveStruct "Loop")
-#guard verdict ⟨[], []⟩ == some .noMain
+#guard verdict { structs := [], funs := [] } == some .noMain
 
 /-- `@fieldwise_init struct S: var f₁: t₁; …`, a struct of the fields `fs`. -/
 private def fw (n : Name) (fs : List (Name × Ty)) : StructDecl := ⟨n, fs, .none, true, none, none, []⟩

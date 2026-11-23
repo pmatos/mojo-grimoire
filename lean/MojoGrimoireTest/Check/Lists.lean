@@ -29,7 +29,7 @@ private def lib : List FunDecl :=
 
 /-- A program whose `main` has the body `body`. -/
 private def prog (body : List Stmt) : Program :=
-  ⟨[resDecl], lib ++ [⟨"main", [], .noneType, body, none⟩]⟩
+  { structs := [resDecl], funs := lib ++ [⟨"main", [], .noneType, body, none⟩] }
 
 private def verdict (p : Program) : Option CheckError :=
   match checkProgram p with
@@ -106,7 +106,7 @@ private def ress : Stmt := .decl "rs" (.list res) (some (.list (.list res) [newR
 
 /-- The body of `main` once elaborated. -/
 private def elabMain (body : List Stmt) : List Stmt :=
-  (elabFun ⟨[resDecl], lib⟩ ⟨"main", [], .noneType, body, none⟩).body
+  (elabFun { structs := [resDecl], funs := lib } ⟨"main", [], .noneType, body, none⟩).body
 
 -- `var i = 0; var rs = [Res(1)]; show(rs[i])`: `rs` dies after its last use;
 -- `i` is an `Int`.

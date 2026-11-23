@@ -1,4 +1,4 @@
-import MojoGrimoire.Parse.Dispatch
+import MojoGrimoire.Parse.Compared
 import MojoGrimoire.Parse.HiddenTypes
 
 /-!
@@ -28,9 +28,20 @@ its elements, as SIMD's initializer takes them; the checker rejects it
 (#153, #154). An `Int`
 is also expected by an index, and by either operand of an operator other
 than `and` and `or` whose other operand is an `Int`, as Mojo reads it
-(#160). The right operand of `==` or `!=` whose left operand is a list
-is expected to have the list's type, as the argument of its `__eq__` or
-`__ne__` (#185). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
+(#160). A literal compared with an array or a list is expected to have
+that operand's type, as the argument of its comparison method, when it
+fits it (`MojoGrimoire.Check.literalFits`): on the right, of the left
+operand, and on the left, of a right operand that is no literal and
+whose comparison conforms (#166), unless either operand is a literal that
+holds a place whose value is not implicitly copyable, or `List[u]()`.
+The right operand of `==` or `!=` whose left operand is a list is
+expected to have the list's type unless it does not fit it, also when its
+fit is not known (#185). In a program in `main`'s mode
+(`Program.mainMode`), every comparison keeps the expectations it had
+before #166, as in `main`: inference gives a program also the bodies it
+gives in that mode, each with the struct it belongs to (`Program.twin`),
+for the checker's bridge to `main`'s order
+(`MojoGrimoire.Check.bridgedToTwin`). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
 the type `t` of the first, as in Mojo: inference gives that type to what
 holds the literal, and leaves the literal's own type `unknown`, so that the
 checker tells a literal that initializes an expected type from one that
@@ -49,11 +60,11 @@ variable's struct declares `__call__`.
 An operator, an in-place operator and a call whose operand is a struct
 that declares the method become calls of the method, as
 `MojoGrimoire.Parse.Dispatch` decides (#191); a literal operand is
-inferred as an argument of the method's other parameter (`inferArg`), so
-that one passed `mut` or `ref` stays a temporary. `not`, `and` and `or`
-convert a struct operand with its `__bool__` (`toBool`), unless both
-operands of `and` or `or` have the same struct type, which the operator
-then gives. Inference knows which
+inferred as an argument of the method's other parameter (`inferArg`,
+`literalArg`), so that one passed `mut` or `ref` stays a temporary. `not`,
+`and` and `or` convert a struct operand with its `__bool__` (`toBool`),
+unless both operands of `and` or `or` have the same struct type, which
+the operator then gives. Inference knows which
 variables may not change, so that a method whose `mut` parameter an
 operand cannot be passed to is not chosen: a `ref` binding may change
 what it points to when its target, once inferred, may, such as a call of
@@ -73,17 +84,6 @@ namespace MojoGrimoire.Parse
 
 open MojoGrimoire.Core MojoGrimoire.Check
 
-/-- The type of an open literal that is expected to have the type `t`: `t`
-itself when it is a list or an array, whose size the checker compares with
-the literal's length, and otherwise `unknown`, which the elements decide. -/
-def openLiteralTy : Ty → Ty
-  | t@(.list _) | t@(.array ..) => t
-  | _ => .unknown
-
-/-- The type that the elements of a literal of type `t` are expected to
-have. -/
-def elemExpected (t : Ty) : Ty := (elemOf t).toOption.getD .unknown
-
 /-- The type of a call of `f` with no signature: a struct's, even when it
 cannot be built, so that the checker reports why; `len`'s `Int`; and
 otherwise none. -/
@@ -92,16 +92,13 @@ def unsignedResult (prog : Program) (f : Name) : Option Ty :=
   else if f == "len" then some .int
   else none
 
-/-- Whether the expression `e` is made only of literals and operators, so
-that it reads no place and calls nothing: a literal `[e]` of type `Int`
-that holds one is kept, so that the checker does not compute an index
-from it, as Mojo does not; any other is replaced by `e`. -/
-def foldable : Expr → Bool
-  | .int _ | .bool _ => true
-  | .unary _ a => foldable a
-  | .binary _ a b => foldable a && foldable b
-  | .list .int [a] => foldable a
-  | _ => false
+/-- The argument that inference gave a literal passed to the parameter
+`prm`, given the literal's inferred form `a'`: an `Int` that the literal
+became is put back in a literal when `prm` is `mut` or `ref`, so that it
+stays a temporary. Callers pass only the form of a literal. -/
+def literalArg (prm : Param) (a' : Expr) : Expr :=
+  if (prm.conv == .mutable || prm.conv == .ref) && !(a' matches .list ..) then .list .int [a']
+  else a'
 
 mutual
 /-- Infers inside the place `p`, and gives its type, if it has one. -/
@@ -158,26 +155,37 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
       if ta == tb && ta matches some (.struct _) then (.binary op a' b', ta)
       else (.binary op (toBool prog a' ta) (toBool prog b' tb), some .bool)
     else
+    let tyA := ((declaredMethod prog tb₀ (reflectedMethod op)).bind (otherParam ·.2)).map (·.ty)
+    let tyB := ((declaredMethod prog ta₀ (binaryMethod op)).bind (otherParam ·.2)).map (·.ty)
+    let iA : Thunk (Expr × Option Ty) := Thunk.mk fun _ => inferExpr prog env (tyA.getD .unknown) a
+    let iB : Thunk (Expr × Option Ty) := Thunk.mk fun _ => inferExpr prog env (tyB.getD .unknown) b
+    let atA (t : Ty) := if tyA == some t then iA.get else inferExpr prog env t a
+    let atB (t : Ty) := if tyB == some t then iB.get else inferExpr prog env t b
     match chooseBinary prog op ta₀ tb₀
-      (fun prm => (if a matches .list .. then (inferExpr prog env prm.ty a).2 else ta₀) == some prm.ty)
-      (fun prm => (if b matches .list .. then (inferExpr prog env prm.ty b).2 else tb₀) == some prm.ty)
+      (fun prm => (if a matches .list .. then (atA prm.ty).2 else ta₀) == some prm.ty)
+      (fun prm => (if b matches .list .. then (atB prm.ty).2 else tb₀) == some prm.ty)
       (env.canPass prog a₀) (env.canPass prog b₀)
     with
     | some (s, fd, reflected) =>
       let prm := (otherParam fd).getD ⟨.read, "", .unknown⟩
-      let a' := if a matches .list .. then inferArg prog env prm a else a₀
-      let b' := if b matches .list .. then inferArg prog env prm b else b₀
+      let a' := if a matches .list .. then literalArg prm (atA prm.ty).1 else a₀
+      let b' := if b matches .list .. then literalArg prm (atB prm.ty).1 else b₀
       let m := if reflected then reflectedMethod op else binaryMethod op
       (.call (methodCallee s m reflected) [a', b'], some fd.result)
     | none =>
+    let before := compares op && (prog.mainMode || emptyList a || emptyList b ||
+      env.heldCopy prog a || env.heldCopy prog b)
     let (a', ta) := if a matches .list .. then
-        inferExpr prog env (if tb₀ == some .int then .int else .unknown) a
+        if tb₀ == some .int then inferExpr prog env .int a
+        else if before then inferExpr prog env .unknown a
+        else env.compared prog op tb₀ true (inferExpr prog env .unknown a)
       else (a₀, ta₀)
     let b' := if b matches .list .. then
-        (inferExpr prog env (match ta with
-          | some .int => .int
+        if ta == some .int then (inferExpr prog env .int b).1
+        else if before then (inferExpr prog env (match ta with
           | some t@(.list _) => if op == .eq || op == .ne then t else .unknown
           | _ => .unknown) b).1
+        else (env.compared prog op ta false (inferExpr prog env .unknown b)).1
       else b₀
     (.binary op a' b', some (binaryResult op))
   | .list t es =>
@@ -224,8 +232,7 @@ def inferArg (prog : Program) (env : TyEnv) (prm : Param) : Expr → Expr
     else (inferExpr prog env prm.ty (.place p)).1
   | a =>
     let a' := (inferExpr prog env prm.ty a).1
-    if (prm.conv == .mutable || prm.conv == .ref) && (a matches .list ..) && !(a' matches .list ..)
-    then .list .int [a'] else a'
+    if a matches .list .. then literalArg prm a' else a'
   termination_by a => (sizeOf a, 1)
 
 /-- Infers inside each of the expressions `es`, expected to have the types
@@ -312,13 +319,23 @@ def inferStruct (prog : Program) (sd : StructDecl) : StructDecl :=
 
 /-- Infers inside every declaration of a program. -/
 def inferProgram (prog : Program) : Program :=
-  ⟨prog.structs.map (inferStruct prog), prog.funs.map (inferFun prog)⟩
+  { prog with structs := prog.structs.map (inferStruct prog), funs := prog.funs.map (inferFun prog) }
+
+/-- The bodies of the functions, initializers, destructors and methods of
+the program `prog`, as functions (`deinitDecl`), each with the struct it
+belongs to, or none for a free function. -/
+def bodies (prog : Program) : List (Option Name × FunDecl) :=
+  prog.funs.map (none, ·) ++ prog.structs.flatMap fun sd =>
+    (sd.init.toList ++ sd.deinit.toList.map (deinitDecl sd.name) ++ sd.methods).map (some sd.name, ·)
 
 /-- The program of the core calculus that the program `raw`, as parsed,
 stands for: the types that a variable hides are marked (`markHidden`), then
-`Self` is resolved, then inference fills in what the program leaves open. -/
+`Self` is resolved, then inference fills in what the program leaves open.
+Its `twin` holds the bodies that inference gives in `main`'s mode, as a
+thunk, inferred only when the checker needs one. -/
 def inferRaw (raw : Program) : Program :=
-  inferProgram (resolveSelf (markHidden raw))
+  let prog := resolveSelf (markHidden raw)
+  { inferProgram prog with twin := Thunk.mk fun _ => bodies (inferProgram prog.asMain) }
 
 /-- Parses the text of a `.mojo` file into a program of the core calculus,
 as `inferRaw` gives it. It does not check the constructs outside the

@@ -13,18 +13,19 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1009876200569961480")
+:::moduleDocs (fingerprint := "2292357953233394628")
 :::
 
-:::readable MojoGrimoire.Parse.foldable (fingerprint := "1995746572076948755")
-*Definition: a literal that stays.* An expression made only of literals,
-negations, `not` and binary operators, or of a literal
-$`[e]_{\mathsf{Int}}` of one, reads no place and calls nothing. A literal
-$`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
-checker does not compute an index from it, as Mojo does not (#103).
+:::readable MojoGrimoire.Parse.literalArg (fingerprint := "15594256188266583025")
+*Definition: a literal argument.* Given the form that inference gave a
+literal passed to a parameter, with the parameter's type expected, the
+argument is that form; when the parameter is `mut` or `ref` and the
+literal became an $`\mathsf{Int}`, it is put back in a literal, so that
+it stays a temporary. It infers nothing itself, and its callers pass it
+only the form of a literal.
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "6179377088089312671")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "5157073807824613914")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, or $`\mathsf{Int}` for the element of
@@ -43,11 +44,14 @@ a call whose operand is a struct that declares the method are calls of
 the method that `chooseBinary` and `declaredMethod` pick, with the type
 of its result; an
 operand that is a literal is inferred as an argument of the method's
-other parameter, by `inferArg`, so that one passed `mut` or `ref` stays a
-temporary (#191). `not` on a struct negates what its `__bool__` gives, and
-`and` and `or` convert each struct operand with `__bool__` (`toBool`),
-unless both have the same struct type, which the operator then gives
-(#191). Any other call with no signature has no type. A literal left open takes the type expected where
+other parameter, as `inferArg` passes it (`literalArg`), so that one
+passed `mut` or `ref` stays a temporary (#191). Such a literal is inferred
+once with the type of the parameter that the choice of method tries, and
+that inference is used again for the argument when the parameter is the
+same, so that nested operators cost no more at each level. `not` on a
+struct negates what its `__bool__` gives, and `and` and `or` convert each
+struct operand with `__bool__` (`toBool`), unless both have the same
+struct type, which the operator then gives (#191). Any other call with no signature has no type. A literal left open takes the type expected where
 it stands, a list type or an array type, and the checker compares an
 array's size with the literal's length. With no list or array expected, it is
 an array of its elements, of the type of the first: Mojo's
@@ -71,12 +75,19 @@ them; the checker rejects it (#153, #154). A function that returns
 a reference expects no type of the values it returns. An index is expected to be
 an $`\mathsf{Int}`, and so is either operand of an operator other than
 `and` and `or` whose other operand is an $`\mathsf{Int}`, as Mojo reads it
-(#160). The right operand of $`==` or $`!=` whose left operand is a list
-is expected to have the list's type, as the argument of its `__eq__` or
-`__ne__` (#185). Each
+(#160). A literal compared with an array or a list is expected to have
+that operand's type when it fits it: on the right, of the left operand,
+and on the left, of a right operand that is no literal and whose
+comparison conforms (#166), unless either operand is a literal that
+holds a place whose value is not implicitly copyable, or `List[u]()`, or
+the program is in `main`'s mode, where every comparison keeps the
+expectations it had before #166. The right operand of $`==` or $`!=` whose
+left operand is a list is expected to have the list's type unless it
+does not fit it, as the argument of its `__eq__` or `__ne__` (#185). Each
 operand that is not a literal is inferred first, with no type expected,
-and a literal operand once, with $`\mathsf{Int}` or the list's type
-expected when the rules above say so.
+and a literal operand once, with $`\mathsf{Int}` expected when the rules
+above say so, and otherwise with no type expected, and then given the
+other operand's type when the rules above say so (`TyEnv.compared`).
 $`\mathsf{List}[u](e^+)` is a list of $`u`, whose arguments are expected
 to have no type. Its one argument $`p\,\hat{}` becomes the place
 $`p\,\hat{}`, which Mojo borrows, since the initializer takes it by `ref`
@@ -92,20 +103,17 @@ value, wherever $`p` is: also an element of a list or an array, or a field
 of one.
 :::
 
-:::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected MojoGrimoire.Parse.unsignedResult (fingerprint := "3606479627143958479")
-*Definition: expected types.* A literal expected to have a list type or an
-array type has that type, which the checker compares with its elements;
-otherwise its elements decide. Its elements are expected to have its
-element type. The arguments of a call or a method call are expected to
-have the types of the parameters of its signature, for the number of
-arguments of the call, and those of a call with no signature nothing. So
-`append` takes an element of its list, `pop()` nothing and `pop(i)` an
-$`\mathsf{Int}`, and a struct that cannot be built takes nothing. A call
-with no signature has the type of a struct the program declares, `len`'s
-$`\mathsf{Int}`, or none.
+:::readable MojoGrimoire.Parse.unsignedResult (fingerprint := "9724387943405349278")
+*Definition: expected types of arguments.* The arguments of a call or a
+method call are expected to have the types of the parameters of its
+signature, for the number of arguments of the call, and those of a call
+with no signature nothing. So `append` takes an element of its list,
+`pop()` nothing and `pop(i)` an $`\mathsf{Int}`, and a struct that cannot
+be built takes nothing. A call with no signature has the type of a
+struct the program declares, `len`'s $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "16999948477821896485")
+:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "12527092934874112096")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 $`\mathsf{None}` for a call that returns nothing (#131),
 and `ref x = e` binds $`x` with the type of $`e`; $`x` may change what
@@ -124,13 +132,16 @@ inferred in order, each statement seeing the variables declared before it;
 the variables of an inner block do not leave it.
 :::
 
-:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.inferRaw MojoGrimoire.Parse.parse (fingerprint := "18083049466737510802")
+:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.bodies MojoGrimoire.Parse.inferRaw MojoGrimoire.Parse.parse (fingerprint := "2805391567743726685")
 *Definition: parsing a program.* Inference starts each function from its
 parameters, and each destructor from `self`. The values a function returns
 are expected to have its result type, unless it returns a reference: then
 none is expected, since a literal is no place. Parsing a program lexes and
 parses its text, marks the types whose name a variable hides
 (`markHidden`), replaces `Self` in each struct's methods (`resolveSelf`),
-and then infers inside every declaration (`inferRaw`). It does not check
+and then infers inside every declaration (`inferRaw`). It also infers
+them in `main`'s mode, and keeps the bodies that gives, each function's,
+initializer's, destructor's and method's, as the program's twin, which
+is inferred only when the checker first needs it. It does not check
 the constructs outside the subset, which the driver's `parseSubset` does.
 :::

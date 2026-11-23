@@ -97,7 +97,9 @@ compared with the compiler's diagnostics.
 
 {includeReadable "." MojoGrimoire.Check.Ref "References" MojoSpec.Check.Ref (level := 2)}
 
-{includeReadable "." MojoGrimoire.Check.Stmt "Statements and blocks" MojoSpec.Check.Stmt (level := 2)}
+{includeReadable "." MojoGrimoire.Check.Stmt "Statements" MojoSpec.Check.Stmt (level := 2)}
+
+{includeReadable "." MojoGrimoire.Check.Block "Blocks and the bridge to main's order" MojoSpec.Check.Block (level := 2)}
 
 {includeReadable "." MojoGrimoire.Check.Program "Programs" MojoSpec.Check.Program (level := 2)}
 
@@ -153,6 +155,8 @@ line, as the compiler's `mojo run` does.
 {includeReadable "." MojoGrimoire.Parse.SelfType "Self in methods" MojoSpec.Parse.SelfType (level := 2)}
 
 {includeReadable "." MojoGrimoire.Parse.Dispatch "Methods of operators on structs" MojoSpec.Parse.Dispatch (level := 2)}
+
+{includeReadable "." MojoGrimoire.Parse.Compared "Expected types of literals" MojoSpec.Parse.Compared (level := 2)}
 
 {includeReadable "." MojoGrimoire.Parse.Infer "Type inference" MojoSpec.Parse.Infer (level := 2)}
 

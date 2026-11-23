@@ -63,10 +63,10 @@ private def mainFun : FunDecl where
       [.print [.place (.field (.var "c") "count")]]
       []]
 
-private def program : Program := ⟨[counter], [mainFun]⟩
+private def program : Program := { structs := [counter], funs := [mainFun] }
 
 #guard program == program
-#guard program != ⟨[counter], []⟩
+#guard program != { structs := [counter], funs := [] }
 #guard (program.structs.map (·.name)) == ["Counter"]
 #guard Place.field (.var "c") "count" != Place.var "c"
 #guard Expr.transfer (.var "c") != Expr.copy (.var "c")

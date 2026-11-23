@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Self in methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16053530534564954579")
+:::moduleDocs (fingerprint := "17187633904660295978")
 :::
 
 :::readable MojoGrimoire.Parse.Ty.withSelf MojoGrimoire.Parse.Place.withSelf MojoGrimoire.Parse.Expr.withSelf MojoGrimoire.Parse.Expr.listWithSelf MojoGrimoire.Parse.Stmt.withSelf MojoGrimoire.Parse.Stmt.blockWithSelf (fingerprint := "7185370986705029874")
@@ -23,7 +23,7 @@ place, an expression or a statement holds: the type of a declared
 variable, of a list literal and of $`\mathsf{List}[u](\ldots)`.
 :::
 
-:::readable MojoGrimoire.Parse.FunDecl.withSelf MojoGrimoire.Parse.resolveSelf (fingerprint := "17484178061955353782")
+:::readable MojoGrimoire.Parse.FunDecl.withSelf MojoGrimoire.Parse.resolveSelf (fingerprint := "3521351595924697115")
 *Definition: Self in a program.* In each struct's methods, initializer and
 destructor, `Self` is the struct: in the types of their parameters and
 results, and inside their bodies. The fields of a struct, and the

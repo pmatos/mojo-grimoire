@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12091155926310651310")
+:::moduleDocs (fingerprint := "408072705844976697")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "5233929300943440758")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "4689106655143059813")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -53,9 +53,10 @@ type:
   right operand of an operator whose left operand is an integer literal
   expression (`intLiteral`), but `and` and `or`, is passed as to a `read`
   $`\mathsf{Int}` parameter of a method with several overloads: one that
-  is no $`\mathsf{Int}` is `noMatchingMethod` (#88). The literal on the
-  right of $`==` or $`!=` whose left operand is a list is passed as the
-  list's `other` parameter of the list's type (`rightParam`, #185). Once
+  is no $`\mathsf{Int}` is `noMatchingMethod` (#88). A literal on the
+  right of a comparison that converts it to the type of an array or a
+  list on the left, and that inference gave that type, is passed as the
+  method's `other` parameter of that type (`rightParam`, #166, #185). Once
   both operands are checked, the operation is typed as `checkedBinaryTy`
   says, which checks the test of a struct operand of `and` and `or`, given
   the states before and after the left operand, which it passes to
@@ -71,7 +72,9 @@ type:
   misfit of a comparison of two arrays or two lists is found from the
   operands' types too (`operandMisfit`), and an operand compared as an
   array or a list, a place or a call that returns a reference, is read by
-  reference, uncopied (`byRef`, #166, #185);
+  reference, uncopied (`byRef`, #166, #185): the left operand first, then
+  the right one, with the checks that a comparison kept from before #166
+  when `keepsBefore` holds (`Before.rightParam`);
 * $`[e^*]_t`, with $`t` a list or an array of $`u` and $`u` a type a
   variable may have, initializes $`t`: it passes each element as to a `var`
   parameter of type $`u`, and an array must have as many elements as its

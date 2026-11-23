@@ -8,11 +8,13 @@ same type, whose elements are `Int`s, `Bool`s, lists or arrays of them,
 are equal when their elements are, both read by reference, and a literal
 on the right is converted to the list's type. Another type is a type
 mismatch, found before an operand is read, and a list has no order
-(`missingMethod`). A list of structs, a literal on the left of a list
-and the gaps of a call's literal argument stay rejected, with a class
-that is not yet the compiler's (#194, part 2 of #166, #96, #165). Each verdict is
-the pinned compiler's for the program, probed on the nightly
-1.3.0.dev2026111905, but for those last ones.
+(`missingMethod`). A list of structs, an inner literal that initializes
+a `Bool` and an element that does not fit beside an uninitialized list
+stay rejected, with a class that is not yet the compiler's (#194, #165,
+#96). Each verdict is the pinned compiler's for the
+program, probed on the nightly 1.3.0.dev2026111905, but for those last
+ones. A literal on the left of a list is tested in
+`MojoGrimoireTest.Parse.LiteralCompare` (part 2 of #166).
 -/
 
 namespace MojoGrimoireTest.Parse.ListCompare
@@ -114,12 +116,10 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 -- A list has no order.
 #guard rejects ["var xs: List[Int] = [1]", "print(xs <= xs)"] (.missingMethod (.list .int) "__le__")
 
--- Not yet: a list of structs (#194), and a literal on the left of a list
--- (part 2 of #166), which keep their result.
+-- Not yet: a list of structs (#194), which keeps its result.
 #guard rejects ["var xs: List[P] = [P(1)]", "print(xs == xs)"] (.implicitCopy (.list (.struct "P")))
-#guard rejects ["var xs: List[Int] = [1]", "print([1] == xs)"] (.implicitCopy (.list .int))
--- Nor the gaps of a call's literal argument: an element that does not fit
--- beside an uninitialized list comes after its use (#96), and an inner
+-- Nor an element that does not fit beside an uninitialized list, which
+-- `main` reported after its use and keeps until #96 part 4, and an inner
 -- literal that initializes a `Bool` is no type mismatch for the compiler
 -- but `noMatchingInit` (#165).
 #guard rejects ["var xs: List[Int]", "print(xs == [True])"] (.uninitializedUse (.var "xs"))
