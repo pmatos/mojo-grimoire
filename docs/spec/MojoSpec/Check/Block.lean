@@ -13,34 +13,34 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Blocks and the bridge to main's order: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16610191441976609754")
+:::moduleDocs (fingerprint := "5392723304193030340")
 :::
 
-:::readable MojoGrimoire.Check.CheckError.typed MojoGrimoire.Check.CheckError.owned (fingerprint := "1609402254190167827")
-*Definition: errors of typing and of ownership.* A type mismatch, a
-method that a type lacks, and an unknown variable, function or attribute
-are found as the program is typed. An implicit copy and the use of an
-uninitialized value are errors of ownership.
+:::readable MojoGrimoire.Check.probeErrors (fingerprint := "17388420857594909131")
+*Definition: a probe.* A probe checks a statement or a condition again
+from the current state, letting pass the error of each comparison with a
+literal operand that holds no place whose value is not implicitly
+copyable, and numbering the comparisons in order. When it ends with no
+other error, it gives the errors it let pass, each with its number; a
+probe that meets another error gives nothing. The state is left as it
+was.
 :::
 
-:::readable MojoGrimoire.Check.bridged (fingerprint := "3089502766589725676")
+:::readable MojoGrimoire.Check.bridged (fingerprint := "17849206641235804087")
 *Rule: the bridge to `main`'s order.* A check of a statement or a
 condition that has a twin, the one that `main`'s inference gave, is
-bridged. When the check fails, a probe runs it again from the same state,
-letting pass the error of each comparison with a literal that holds no
-place whose value is not implicitly copyable, and counting them. When the
-probe ends with no other error and exactly one such comparison, the
-first error stands: it is that comparison's own. Otherwise the twin is
-checked as `main` did, from the same state, and its error is reported;
-when it has none, the first error stands. The first error stands too
-when it is found as the program is typed and the twin's is one of
-ownership, which the compiler reports later (#96), or is found as the
-program is typed too. A check with no twin is not bridged. The twin is
-inferred only once a check fails, so an accepted statement costs nothing
-more.
+bridged. When the check fails, it is probed. The first error stands when
+the probe lets exactly one comparison's error pass, numbered $`n`, and
+the probe of the twin, checked as `main` did, gives errors that hold none
+of the same class at $`n`, or whose first is of that class at $`n`.
+Otherwise the twin is checked as `main` did, from the same state, and its
+error is reported; when it has none, the first error stands. No class of
+error stands over the twin's by its kind. A check with no twin is not
+bridged. The twin is inferred only once a check fails, so an accepted
+statement costs nothing more.
 :::
 
-:::readable MojoGrimoire.Check.twinIf MojoGrimoire.Check.twinWhile MojoGrimoire.Check.checkCond (fingerprint := "7555081701817251173")
+:::readable MojoGrimoire.Check.twinIf MojoGrimoire.Check.twinWhile MojoGrimoire.Check.checkCond (fingerprint := "12024879113537353927")
 *Definition: twins of conditions and blocks.* The twin of an `if` gives
 the twin of its condition and of its two blocks, and that of a loop the
 twin of its condition and of its body; a twin of another form, or none,
@@ -48,7 +48,7 @@ gives no condition and empty blocks. A condition is checked bridged to
 its twin, then needs a $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "2871325450208287675")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "598045508457035348")
 *Rule: blocks.* A statement that holds no block is checked by the rule
 of statements, bridged to its twin.
 

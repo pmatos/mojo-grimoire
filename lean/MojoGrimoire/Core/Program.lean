@@ -66,9 +66,11 @@ structure Program where
   mainMode : Bool := false
   twin : Thunk (List FunDecl) := Thunk.pure []
 
-/-- Two programs are equal when their structs, functions and mode are:
-the twin follows from them, and is a thunk, inferred only when the
-checker needs it. -/
+/-- Two programs are equal when their structs, functions and mode are.
+The twin, a thunk, is not compared: forcing it would infer it. Inference
+gives it from the same source as the functions, but elaboration and the
+stripping of tests change the functions and keep the twin, so two
+programs equal so may differ in their twins. -/
 instance instBEqProgram : BEq Program :=
   ⟨fun a b => a.structs == b.structs && a.funs == b.funs && a.mainMode == b.mainMode⟩
 

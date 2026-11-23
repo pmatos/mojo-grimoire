@@ -77,7 +77,9 @@ the checker first needs it.
 
 :::readable MojoGrimoire.Core.instBEqProgram (fingerprint := "15588969329907978291")
 *Definition: equal programs.* Two programs are equal when their structs,
-functions and mode are; the twin follows from them.
+functions and mode are. The twin is not compared, so as not to infer it;
+elaboration and the stripping of tests change the functions and keep the
+twin, so two programs equal so may differ in their twins.
 :::
 
 :::readable MojoGrimoire.Core.deinitDecl MojoGrimoire.Core.Program.asMain MojoGrimoire.Core.Program.twinBody (fingerprint := "15505470024628492910")

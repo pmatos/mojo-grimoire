@@ -13,17 +13,19 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6958387039473723250")
+:::moduleDocs (fingerprint := "14536607495478944859")
 :::
 
 :::readable MojoGrimoire.Parse.literalArg (fingerprint := "15594256188266583025")
-*Definition: a literal argument.* A literal passed to a parameter is
-inferred with the parameter's type expected; when the parameter is `mut`
-or `ref` and the literal became an $`\mathsf{Int}`, it is put back in a
-literal.
+*Definition: a literal argument.* Given the form that inference gave a
+literal passed to a parameter, with the parameter's type expected, the
+argument is that form; when the parameter is `mut` or `ref` and the
+literal became an $`\mathsf{Int}`, it is put back in a literal, so that
+it stays a temporary. It infers nothing itself, and its callers pass it
+only the form of a literal.
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "3832422781044493715")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "4770741627253784530")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, or $`\mathsf{Int}` for the element of

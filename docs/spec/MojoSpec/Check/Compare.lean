@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1912708455443848499")
+:::moduleDocs (fingerprint := "15942004322211377314")
 :::
 
 :::readable MojoGrimoire.Check.compares MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "12823475274059033023")
@@ -136,12 +136,13 @@ again from the checked types; otherwise such a comparison gives a
 $`\mathsf{Bool}`, and any other operator's result is `binaryTy`'s.
 :::
 
-:::readable MojoGrimoire.Check.probed (fingerprint := "1966935561833114911")
+:::readable MojoGrimoire.Check.probed (fingerprint := "15171101906663386702")
 *Rule: a probe's comparisons.* In a probe of the bridge to `main`'s
-order, a comparison with a literal operand that holds no place whose
-value is not implicitly copyable is checked, and its error, if any, is
-let pass and counted: the comparison then gives a $`\mathsf{Bool}`. Out of a probe,
-and for any other comparison, the check is as it is.
+order, each comparison with a literal operand is numbered in order. One
+whose literals hold no place whose value is not implicitly copyable is
+checked, and its error, if any, is let pass and kept with its number:
+the comparison then gives a $`\mathsf{Bool}`. Out of a probe, and for
+any other comparison, the check is as it is.
 :::
 
 :::readable MojoGrimoire.Check.compareOperands (fingerprint := "8628745417993079286")

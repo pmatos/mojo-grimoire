@@ -158,17 +158,22 @@ and `1 < True` fits none of the literal's overloads.
 Within one statement, the model keeps `main`'s result wherever `main`
 agreed with the compiler, until #96 part 4 orders the model's errors as
 the compiler does (`Check.Block.bridged`). A statement, or a condition,
-that the checker rejects is checked again: when its only error is that
-of one converted comparison, that error stands; otherwise the statement
-is checked as `main` did, from the same state, with the body that
-`main`'s inference gave, and `main`'s error is reported. An error that
-the compiler finds as it types the program (a type mismatch, a missing
-method, an unknown name) stands over `main`'s implicit copy, use of an
-uninitialized value, or typing error. So `print([x] != [[1]], [[1], y]
->= rl)` stays `typeMismatch` and `print([y^] != rl, [y, [x]] != rl)`
-stays `implicitCopy`, as `main` and the compiler say. A program of
-several statements is not bridged across statements; process.md's
-exceptions cover those.
+that the checker rejects is checked again. A probe lets the error of each
+comparison with a literal operand pass, and numbers the comparisons. When
+it finds no other error and lets exactly one comparison's error pass, and
+the same probe of the statement as `main` checked it finds no other error
+either and lets no error of the same class pass at the same comparison,
+that error stands: it is the statement's only one, and #166 changed it.
+It stands too when `main`'s first error is of its class at the same
+comparison. Otherwise the statement is
+checked as `main` did, from the same state, with the body that `main`'s
+inference gave, and `main`'s error is reported. No class of error stands
+over `main`'s by its kind. So `print([x] != [[1]], [[1], y] >= rl)`
+stays `typeMismatch`, `print([y^] != rl, [y, [x]] != rl)` stays
+`implicitCopy`, and `print(a == [[1], [2]], [a] == n)` stays
+`implicitCopy`, as `main` and the compiler say. A program of several
+statements is not bridged across statements; process.md's exceptions
+cover those.
 
 Not yet modelled. Each stays rejected, with a class that is still not
 the compiler's; where #185 changed the class, the bullet says so:
@@ -191,6 +196,15 @@ the compiler's; where #185 changed the class, the bullet says so:
   checks it had before #166: the right operand is copied, so a named one
   is `implicitCopy`, and an uninitialized read is `uninitializedUse`, as
   the compiler says.
+- A literal on the right that holds an inner literal of another length
+  where an `Int` is expected, beside another error of the statement:
+  `v >= [[[3, 0]]]` with `v: Array[List[Int], 1]`, or `a == [[1, 2], ux]`
+  with `ux` an uninitialized `Int`. The compiler fails SIMD's constraint
+  (`noMatchingInit`) as it instantiates, after every other pass, and
+  reports the comparison's `violatedConstraint` or the uninitialized read
+  first. The model rejects the literal at once; deferring it is #170.
+  These went from `implicitCopy`, the copy of the named operand, to
+  `noMatchingInit` with part 2 of #166.
 - A literal on the left with no type of its own that does not fit the
   right operand, or that the comparison does not convert, `[[]] == a`,
   `[[]] < v` or `[] == []`, which the compiler cannot type ("cannot emit an empty list without a contextual type", a message
@@ -214,7 +228,12 @@ the compiler's; where #185 changed the class, the bullet says so:
   where the compiler finds no initializer (`noMatchingInit`, #165). `literalFits` leaves its fit
   unknown, so the comparison keeps the checks it had before part 2: a
   type mismatch beside a list on the left, and `implicitCopy` of a named
-  array, or of a list on the right.
+  array, or of a list on the right. A `Bool` operand compared with a
+  literal, `t == [1]` or `bs[-1] >= [[3]]`, and a literal passed to a
+  struct's `__eq__` that takes a `Bool`, are `noMatchingInit` for the
+  compiler too, and `typeMismatch` in the model (#165). The model now
+  reports that mismatch before it reads the `Bool`, so `bs[-1] >= [[3]]`
+  went from `negativeIndex` to `typeMismatch` with part 2 of #166.
 
 ## What is not yet modelled
 

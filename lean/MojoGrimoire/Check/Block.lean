@@ -14,17 +14,19 @@ condition of an `if` or a loop, that the checker rejects is checked again
 (`bridged`):
 
 - A probe checks it again from the same state, and lets the error of each
-  comparison with a literal that does not keep `main`'s checks pass,
-  counting them (`MojoGrimoire.Check.probed`), but for a literal that
-  holds a place whose value is not implicitly copyable. When the probe finds no
-  other error and let one pass, the statement's only error is that
-  comparison's own, and it stands, as for the comparison alone.
+  comparison with a literal operand pass, numbering the comparisons in
+  order (`MojoGrimoire.Check.probed`), but for a literal that holds a
+  place whose value is not implicitly copyable.
+- When the probe finds no other error and lets exactly one comparison's
+  error pass, and the same probe of the statement as `main` checked it
+  finds no other error either, and lets no error of the same class pass
+  at the same comparison, that error is the statement's only one, which
+  #166 changed, and it stands, as for the comparison alone. It stands
+  too when `main`'s first error is of its class at the same comparison.
 - Otherwise the statement is checked as `main` did, from the same state:
   the body that `main`'s inference gave (`Program.twin`), with `main`'s
   checks (`Program.asMain`). Its error, if it has one, is reported, and
-  else the first error stands, as it does when it is found as the
-  program is typed and `main`'s is one of ownership, which the compiler
-  reports later (#96), or is found as the program is typed too.
+  else the first error stands.
 
 A temporary bridge until #96 part 4 orders the model's errors as the
 compiler does.
@@ -34,40 +36,38 @@ namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
 
-/-- Whether the compiler finds the error `e` as it types the program: a
-type mismatch, a method that a type lacks, or a name it does not know. -/
-def CheckError.typed : CheckError → Bool
-  | .typeMismatch .. | .missingMethod .. | .unknownVariable _ | .unknownFunction _
-  | .unknownAttribute .. => true
-  | _ => false
-
-/-- Whether the error `e` is one of ownership: an implicit copy, or the use
-of an uninitialized value. -/
-def CheckError.owned : CheckError → Bool
-  | .implicitCopy _ | .uninitializedUse _ => true
-  | _ => false
+/-- Checks `check` again from the current state as a probe
+(`State.probe`), and gives the errors of comparisons with a literal that
+it let pass, with their counts (`probed`), when it finds no other error.
+The state is left as it was. -/
+def probeErrors {α : Type} (check : CheckM α) : CheckM (Option (List (Nat × CheckError))) := do
+  let s0 ← get
+  set { s0 with probe := true, seen := 0, swallowed := [] }
+  let r ← tryCatch (do let _ ← check; pure (some (← get).swallowed)) fun _ => pure none
+  set s0
+  pure r
 
 /-- Runs `check`, the check of a statement or a condition, which `replay`
 checks as `main` did, when the statement has a twin. When `check` throws
-an error and the statement has a twin, a probe runs it again from the
-same state (`State.probe`): when it finds no error and lets exactly one
-comparison's error pass (`probed`), the first error stands. Otherwise
-`replay` runs from that state, and its error, if it has one, is
-reported; else the first error stands. The first error stands too when
-it is found as the program is typed, and `replay`'s is one of ownership,
-which the compiler reports later (#96), or is found as the program is
-typed too. The twin is a thunk, forced only once `check` has failed, so
-that a statement that is accepted costs nothing more. -/
+an error and the statement has a twin, the statement gives `main`'s
+error, which `replay` finds, unless its only error is that of one
+comparison with a literal that #166 changed. A probe tells that
+(`probeErrors`): it finds no other error and lets exactly one
+comparison's error pass, and the same probe of `replay` finds no other
+error either, and lets no error of the same class pass at the same
+comparison, or lets it pass first, when `main`'s class is the same. The
+first error then stands, as it does when `replay` finds no error. The
+twin is a thunk, forced only once `check` has failed, so that a
+statement that is accepted costs nothing more. -/
 def bridged {α : Type} (check : CheckM α) (replay : Thunk (Option (CheckM α))) : CheckM α :=
   tryCatch check fun err => do
     let some replay := replay.get | throw err
-    let s0 ← get
-    set { s0 with probe := true, swallowed := 0 }
-    let probe ← tryCatch (do let _ ← check; pure (some (← get).swallowed)) fun _ => pure none
-    set s0
-    if probe == some 1 then throw err
+    if let some [(n, e)] ← probeErrors check then
+      let same := fun ((m, e') : Nat × CheckError) => m == n && e'.ctorIdx == e.ctorIdx
+      if let some es ← probeErrors replay then
+        if !es.any same || es.head?.any same then throw err
     let replayed ← tryCatch (do let _ ← replay; pure err) pure
-    throw (if err.typed && (replayed.owned || replayed.typed) then err else replayed)
+    throw replayed
 
 /-- The condition and the blocks of the twin `m` of an `if`, when it is one. -/
 def twinIf : Option Stmt → Option Expr × List Stmt × List Stmt

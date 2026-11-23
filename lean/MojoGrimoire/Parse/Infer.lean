@@ -59,8 +59,8 @@ variable's struct declares `__call__`.
 An operator, an in-place operator and a call whose operand is a struct
 that declares the method become calls of the method, as
 `MojoGrimoire.Parse.Dispatch` decides (#191); a literal operand is
-inferred as an argument of the method's other parameter (`inferArg`), so
-that one passed `mut` or `ref` stays a temporary. Inference knows which
+inferred as an argument of the method's other parameter (`inferArg`,
+`literalArg`), so that one passed `mut` or `ref` stays a temporary. Inference knows which
 variables may not change, so that a method whose `mut` parameter an
 operand cannot be passed to is not chosen: a `ref` binding may change
 what it points to when its target, once inferred, may, such as a call of
@@ -88,9 +88,10 @@ def unsignedResult (prog : Program) (f : Name) : Option Ty :=
   else if f == "len" then some .int
   else none
 
-/-- The literal argument `a'`, inferred with the type of the parameter `prm`
-expected, as `inferArg` passes it: an `Int` that a literal became is put
-back in a literal when `prm` is `mut` or `ref`. -/
+/-- The argument that inference gave a literal passed to the parameter
+`prm`, given the literal's inferred form `a'`: an `Int` that the literal
+became is put back in a literal when `prm` is `mut` or `ref`, so that it
+stays a temporary. Callers pass only the form of a literal. -/
 def literalArg (prm : Param) (a' : Expr) : Expr :=
   if (prm.conv == .mutable || prm.conv == .ref) && !(a' matches .list ..) then .list .int [a']
   else a'
@@ -225,8 +226,7 @@ def inferArg (prog : Program) (env : TyEnv) (prm : Param) : Expr → Expr
     else (inferExpr prog env prm.ty (.place p)).1
   | a =>
     let a' := (inferExpr prog env prm.ty a).1
-    if (prm.conv == .mutable || prm.conv == .ref) && (a matches .list ..) && !(a' matches .list ..)
-    then .list .int [a'] else a'
+    if a matches .list .. then literalArg prm a' else a'
   termination_by a => (sizeOf a, 1)
 
 /-- Infers inside each of the expressions `es`, expected to have the types
