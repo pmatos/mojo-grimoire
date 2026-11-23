@@ -51,6 +51,27 @@ private def wrapped : Expr := .call "idT" [nested]
 #guard failsWith ((passLeft none' ⟨.read, "self", t⟩ "T.__bool__" nested .int st st).run' st)
   (Fit.call.misfit (.typeMismatch t .int))
 
+/-- A state whose one variable `x`, of type `T` and access `acc`, has the
+parts `moved` moved out. -/
+private def withX (acc : Access) (moved : List Path) : State :=
+  { st with vars := [⟨"x", t, acc, [], moved, [], [], []⟩] }
+
+private def passFrom (c : Conv) (a : Expr) (before after : State) : Except CheckError Unit :=
+  (passLeft none' ⟨c, "self", t⟩ "T.__bool__" a t before after).run' before
+
+-- A place is passed from the state after the first check, as `checkArg`
+-- passes it once it has checked the place's indices: `x` moved there is
+-- `uninitializedUse`, though it was whole before.
+#guard failsWith (passFrom .read (x "x") (withX .owned []) (withX .owned [[]]))
+  (.uninitializedUse (.var "x"))
+#guard passFrom .read (x "x") (withX .owned [[]]) (withX .owned []) matches .ok _
+-- Any other operand is passed from the state before it: `x^` under a
+-- `mut self` is `transferFromBorrowed` when `x` could not change there.
+#guard failsWith (passFrom .mutable (.transfer (.var "x")) (withX .readOnly []) (withX .owned []))
+  (.transferFromBorrowed (.var "x"))
+#guard failsWith (passFrom .mutable (.transfer (.var "x")) (withX .owned []) (withX .readOnly []))
+  (Fit.call.misfit (.notAPlace "T.__bool__"))
+
 /-- The form of an operand that `lackingTy` is given: `leaf` for an
 operand that is no binary operation, and an error for one that is, which
 shows whether `lackingTy` asked for the form of a whole test. -/

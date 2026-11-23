@@ -186,30 +186,28 @@ def bridged {α : Type} (check : CheckM α) : CheckM α :=
     | none => throw err
 
 /-- Passes the left operand `a` of a same-type test, of type `t`, to the
-parameter `self` of `callee`, as `checkArg` would pass it from the state
-`before` it was checked, without checking it again. That check would
-repeat the first one: it starts from the same state, and checks `a` as a
-value, `asRef` unset, as `and` and `or` do (`byRef`). A located operand
-is checked by reference there instead, which only leaves out the copy of
-the reference a call returns (`refResult`): it fits wherever the value
-did. So what remains is `checkArg`'s passing, from `before`, or, for a
-place, from `after`, the state once `a` was checked, which reading the
-place leaves as checking its indices left it. Checking `a` again would
-cost twice the check of `a`, at each level of a nested left operand. -/
+parameter `self` of `callee`, without checking it again. It mirrors
+`checkArg` (`MojoGrimoire.Check.checkArg`) once that has checked its
+argument: a change to how `checkArg` passes an argument must be made here
+too. The check that `checkArg` would make again repeats the first one: it
+starts from the same state, `before`, and checks `a` as a value, as `and`
+and `or` do (`byRef`), or, for a located operand, by reference, which
+only leaves out the copy of the reference a call returns (`refResult`)
+and fits wherever the value did. So a place is passed from the state
+`after` the first check, which reading the place leaves as checking its
+indices left it, and any other operand from `before`. `checkArg`'s
+`notAList` for a place through the element of an `Int` cannot arise, as
+such a place has no struct type, and a literal is passed as any other
+value is. Checking `a` again would cost twice the check of `a`, at each
+level of a nested left operand. -/
 def passLeft (prog : Program) (self : Param) (callee : Name) (a : Expr) (t : Ty)
     (before after : State) : CheckM Unit := do
-  set before
   match a with
   | .place p =>
-    let elem ← intIndexed prog p
     set after
-    if (self.conv == .mutable || self.conv == .ref) && elem then
-      throw (CheckError.notAList .int)
     passPlace prog .call callee self.conv self.ty p
-  | .list .. =>
-    passValue .call callee self.conv
-    expectArg .call self.ty t
   | e =>
+    set before
     if self.conv == .out || self.conv == .deinit then
       throw (CheckError.invalidConvention callee)
     match ← if passedByValue self then pure none else locOf prog e with
@@ -223,8 +221,6 @@ def passLeft (prog : Program) (self : Param) (callee : Name) (a : Expr) (t : Ty)
           unless ← placeMutable p do throw (CheckError.transferFromBorrowed p)
         throw (Fit.call.misfit (CheckError.notAPlace callee))
       expectArg .call self.ty t
-      set after
-      let _ ← lateLocs prog e
 
 /-- The type of the binary operation `a op b`, of operand types `ta` and `tb`
 (`methodBinaryTy`), once both operands are checked, the places among
