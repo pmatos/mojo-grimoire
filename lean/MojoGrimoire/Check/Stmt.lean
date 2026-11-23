@@ -252,7 +252,7 @@ def checkInitValue (prog : Program) (t : Ty) (e : Expr) (value : CheckM Ty) : Ch
     unless t matches .list _ | .array .. do
       checkOperands prog es
       throw (CheckError.noMatchingInit t)
-  expect t (← value)
+  misfitFirst e (expect t) fun r => if r then checkExprAs prog true e else value
 
 /-- The type of the value of `return e`: a variable that the function owns
 is moved out, and any other expression is checked as usual. -/
@@ -284,8 +284,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
     if let some g ← valueSubscript prog p then
-      let _ ← checkExpr prog g
-      throw (CheckError.immutablePlace p)
+      return ← assignGetter prog p g fun t => checkInitValue prog t e (checkExpr prog e)
     let k ← mark
     if let .binary _ (.place q) _ := e then
       if q == p && !plainIndices p then rejectIntElem prog p (checkIndices prog p)

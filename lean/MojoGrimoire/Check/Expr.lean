@@ -46,7 +46,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .call f args => do
     let f ← mainOperator prog f args (typeArgs prog args)
     if let .place p :: rest := args then
-      typeFirst prog f (typePlace prog p) (rest.attach.map fun ⟨a, _⟩ => typeArg prog a)
+      typeFirst prog f (typePlace prog p) (rest.attach.map fun ⟨a, _⟩ => (a, typeArg prog a))
     requireInPlace f args
     rejectCalledVar prog f (typeArgs prog args)
     match callSig prog f with
@@ -404,7 +404,7 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
           unless ← placeMutable p do
             throw (CheckError.transferFromBorrowed p)
         throw (fit.misfit (notPlaceError prog callee e))
-      expectArg fit prm.ty (← checkExprAs prog false e)
+      misfitFirst e (expectArg fit prm.ty) (checkExprAs prog · e)
       let k ← mark
       pure (← lateLocs prog e, k)
   termination_by e => (sizeOf e, 3)

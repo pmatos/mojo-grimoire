@@ -5,8 +5,9 @@ The assignment of a subscript of a struct (#191). Inference makes
 `q[i] = v` a call of the struct's `__setitem__` when it declares one,
 which the checker checks as any call, after what the compiler checks
 first (`checkSetter`). A subscript of a struct that declares
-`__getitem__` but not `__setitem__` is the value that the getter gives,
-and may not be assigned (`valueSubscript`).
+`__getitem__` but not `__setitem__` is what the getter gives, and is
+assigned only through a reference that may be changed through
+(`valueSubscript`, `assignGetter`).
 -/
 
 namespace MojoGrimoire.Check
@@ -14,10 +15,9 @@ namespace MojoGrimoire.Check
 open MojoGrimoire.Core
 
 /-- The call of the getter that the subscript `p` reads, when `p` is one of
-a struct that declares `__getitem__` but not `__setitem__`. The subscript
-is the value that the getter gives, which may not change: the compiler
-rejects an assignment to it once it has checked the call, before the
-value assigned (#191). -/
+a struct that declares `__getitem__` but not `__setitem__`: the subscript
+is what the getter gives, and its assignment is checked through it
+(`assignGetter`, #191). -/
 def valueSubscript (prog : Program) (p : Place) : CheckM (Option Expr) := do
   if let .index q i := p then
     if let .struct s ← placeTy prog q then
@@ -25,6 +25,25 @@ def valueSubscript (prog : Program) (p : Place) : CheckM (Option Expr) := do
           (findMethod sd "__getitem__").isSome && (findMethod sd "__setitem__").isNone then
         return some (.call (methodCallee s "__getitem__") [.place q, i])
   pure none
+
+/-- Checks `q[i] = e`, an assignment of the subscript `p` of a struct that
+declares `__getitem__` but not `__setitem__`, given `g`, the call of its
+getter (`valueSubscript`), and `value`, which checks `e` against a type.
+The compiler first checks the call, by reference. A getter that returns a
+value, or a reference that may not be changed through, gives a place that
+may not change: `immutablePlace`, before `e` is checked. Through a
+reference that may be changed, `e` is checked against the type it points
+to, and the assignment is then `notAList`, as main reports it, as for any
+subscript of a struct used as a place beyond reading it and assigning it
+through a setter: its write through the reference is not yet modelled
+(#198). -/
+def assignGetter (prog : Program) (p : Place) (g : Expr) (value : Ty → CheckM Unit) :
+    CheckM Unit := do
+  let t ← checkExprAs prog true g
+  if let (some (_, true), .index q _) := (← locOf prog g, p) then
+    value t
+    throw (CheckError.notAList (← placeTy prog q))
+  throw (CheckError.immutablePlace p)
 
 /-- Checks what the compiler checks of `q[i] = v` before it calls the
 setter, when `e` is the call `S.__setitem__(q, i, v)` that inference makes

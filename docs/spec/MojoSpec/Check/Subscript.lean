@@ -13,18 +13,28 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Assigning a subscript of a struct: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12976235231042542554")
+:::moduleDocs (fingerprint := "13271994487085543330")
 :::
 
 :::readable MojoGrimoire.Check.valueSubscript (fingerprint := "8489678019998001525")
-*Definition: a subscript that is a value.* A subscript `q[i]` of a struct
-that declares `__getitem__` but not `__setitem__` is the value its getter
-gives: the call `S.__getitem__(q, i)`. Assigning it is
-$`\mathsf{immutablePlace}`, once that call has been checked and before the
-value assigned is (#191).
+*Definition: a subscript read through its getter.* A subscript `q[i]` of
+a struct that declares `__getitem__` but not `__setitem__` is what its
+getter gives: the call `S.__getitem__(q, i)` (#191).
 :::
 
-:::readable MojoGrimoire.Check.checkSetter (fingerprint := "6602736107007234452")
+:::readable MojoGrimoire.Check.assignGetter (fingerprint := "15761564175000790232")
+*Rule: assigning a subscript with no setter.* The compiler first checks
+the getter call `q[i]`, by reference. When the getter returns a value, or
+a reference that may not be changed through, such as one of a `self`
+that is `read`, the assignment is $`\mathsf{immutablePlace}`, before the
+value assigned is checked. Through a reference that may be changed, the
+value is checked against the type it points to; the assignment itself,
+which writes through that reference, is not yet modelled and is
+$`\mathsf{notAList}`, as for the other subscripts of a struct used as
+places (#198).
+:::
+
+:::readable MojoGrimoire.Check.checkSetter (fingerprint := "16442885420364561359")
 *Definition: checking a setter call.* Before it checks `q[i] = v` as the
 call `S.__setitem__(q, i, v)`, the compiler checks the types of the getter
 call `q[i]`, which is never made, so its implicit copies and the errors of

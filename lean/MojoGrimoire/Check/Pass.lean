@@ -55,6 +55,22 @@ def refResult (prog : Program) (asRef : Bool) (sig : Signature) (args : List Exp
     throw (CheckError.implicitCopy sig.result)
   pure sig.result
 
+/-- Checks the value `e`, given `check`, which checks it as a value
+(`false`) or by reference, uncopied (`true`), and then `fit`, which
+expects its type. The compiler reports the implicit copy of the value that
+a call returns a reference to (`refResult`) only once the type fits, so
+when the check of a call or a method call as a value reports that copy,
+`e` is checked again from the same state by reference, and a type that
+does not fit comes first. -/
+def misfitFirst (e : Expr) (fit : Ty → CheckM Unit) (check : Bool → CheckM Ty) :
+    CheckM Unit := do
+  let s0 ← get
+  fit (← tryCatch (check false) fun err => do
+    if err matches .implicitCopy _ && e matches .call .. | .method .. then
+      set s0
+      fit (← tryCatch (check true) fun _ => throw err)
+    throw err)
+
 /-- Rejects the place `p` through the element of an `Int` as `notAList`,
 as before #127, where the model cannot yet give the compiler's result. The
 indices are checked first by `check`, as before, but for a constant out of
@@ -100,21 +116,26 @@ typed first, its indices included. A subscript `p[i]` of a struct, which
 inference makes the call `S.__getitem__(p, i)`, has its index typed
 against the getter's parameter first, as any subscript's is
 (`checkIndex`), so that an unknown name or a type that does not fit in it
-is reported before a use of `p` moved or uninitialized (#191); errors
-that the compiler reports after the types do not count there, nor an
-index with no type here, such as a literal of `Int`s of the wrong length,
-which the call reports later. The state is left as it was. -/
-def typeFirst (prog : Program) (f : Name) (recv : CheckM Unit) (rest : List (CheckM Ty)) :
+is reported before a use of `p` moved or uninitialized (#191), and so is
+an implicit copy in the index, or of a place it passes to a `var`
+parameter, which the compiler reports after the types; errors of a later
+pass do not count there, nor an index with no type here, such as a
+literal of `Int`s of the wrong length, which the call reports later. The
+state is left as it was. -/
+def typeFirst (prog : Program) (f : Name) (recv : CheckM Unit) (rest : List (Expr × CheckM Ty)) :
     CheckM Unit := do
   let s0 ← get
   if inPlaceCallee f then recv
   else if let (some (_, "__getitem__", false), .ok sig) := (calleeMethod f, callSig prog f) then
     modify State.typing
     try
-      for (prm, t) in sig.params.drop 1 |>.zip rest do
+      for (prm, a, t) in sig.params.drop 1 |>.zip rest do
         let ty ← t
-        unless ty == .unknown do expect prm.ty ty
-    catch err => unless err.late || err matches .implicitCopy _ | .noMatchingInit .int do throw err
+        unless ty == .unknown do
+          expect prm.ty ty
+          if prm.conv == .owned && a matches .place _ && copyingOf prog ty != .implicit then
+            throw (CheckError.implicitCopy ty)
+    catch err => unless err.late || err matches .noMatchingInit .int do throw err
   set s0
 
 end MojoGrimoire.Check

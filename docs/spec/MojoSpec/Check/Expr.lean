@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14668865658073050830")
+:::moduleDocs (fingerprint := "14235536614386887139")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "12768335083506308882")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "11846152774916757551")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -186,7 +186,9 @@ overload. A place is passed by `passPlace`; a call that returns a
 reference and is a located operand, passed to a `read`, `mut` or `ref`
 parameter, as a location, which must be mutable for `mut`, or the call is
 $`\mathsf{immutablePlace}`, named by its first origin; and any other
-expression by its type, which must be the parameter's. A `mut` parameter
+expression by its type, which must be the parameter's, a misfit coming
+before the implicit copy of what a call returns a reference to
+(`misfitFirst`). A `mut` parameter
 needs a place or such a call; passed $`q\,\hat{}`, it is
 $`\mathsf{notAPlace}`, where the compiler reports a value that cannot
 change (#81), or a subscript read late $`\mathsf{notAList}`

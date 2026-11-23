@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15781499674327725658")
+:::moduleDocs (fingerprint := "11428237004103114233")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -47,6 +47,15 @@ origin names is $`\mathsf{notAList}`, as before #127: the element has no
 memory origin, and the model passes the $`\mathsf{Int}` itself (#222).
 :::
 
+:::readable MojoGrimoire.Check.misfitFirst (fingerprint := "11911472357811309815")
+*Rule: a misfit before a copy.* Where a value of a type is expected, as
+an argument, an initial value or a returned value, a call that returns a
+reference to a value that is not implicitly copyable reports a type that
+does not fit before its copy: the compiler reports that copy only once the
+type fits. The call is then checked again by reference, from the state
+before it, for its type.
+:::
+
 :::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "13159235926213031670")
 *Rule: the element of an $`\mathsf{Int}` where the model cannot follow
 the compiler.* A place through the element of an $`\mathsf{Int}` is
@@ -67,15 +76,16 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.typeFirst (fingerprint := "2726299190013272088")
+:::readable MojoGrimoire.Check.typeFirst (fingerprint := "266373056232888975")
 *Rule: what a call types first.* Before a call reads its first argument,
 a place, the receiver of an in-place method that inference made is typed,
 its indices included. A subscript of a struct, which inference makes a
 call of its getter, has its index typed against the getter's parameter,
 as any subscript's index is, so that an unknown name or a type that does
 not fit in it comes before a use of a moved or uninitialized receiver
-(#191). Errors that the compiler reports after the types do not count
-there, nor an index with no type there, such as a literal of
+(#191). So does an implicit copy in the index, or of a place it passes to
+a `var` parameter, which the compiler reports after the types but before
+such a use. Errors of a later pass do not count there, nor an index with no type there, such as a literal of
 $`\mathsf{Int}`s of the wrong length, which the call reports later; the
 checker's state is left as it was.
 :::
