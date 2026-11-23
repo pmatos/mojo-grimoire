@@ -164,12 +164,12 @@ involved (`mainTest`, `mainRead`, `mainOperator`), first with the checks
 of a struct test itself before `main`'s rejection of it, then without
 them (`State.ownChecks`), as `main` had none. When the two replays end
 differently, a test's own check failed first: its error stands only when
-the statement holds no other error, which a third run, in the model's own order
-without those checks, shows; else `main` reported the test's
+the statement holds no other error, which a third run, in the model's
+own order without those checks, shows; else `main` reported the test's
 `typeMismatch`, and the second replay's error is `main`'s. A replay's
 error that is not of the compiler's later pass (`CheckError.late`) is
-reported, and else the first error stands. A temporary bridge until #96
-part 4. -/
+reported, and else the first error stands.
+The bridge to `main`'s order: temporary, until #96 part 4. -/
 def bridged {α : Type} (check : CheckM α) : CheckM α :=
   tryCatch check fun err => do
     let start ← get
