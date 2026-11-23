@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Assigning a subscript of a struct: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15959382810848732602")
+:::moduleDocs (fingerprint := "12976235231042542554")
 :::
 
 :::readable MojoGrimoire.Check.valueSubscript (fingerprint := "8489678019998001525")
@@ -24,7 +24,7 @@ $`\mathsf{immutablePlace}`, once that call has been checked and before the
 value assigned is (#191).
 :::
 
-:::readable MojoGrimoire.Check.checkSetter (fingerprint := "11707674878175611956")
+:::readable MojoGrimoire.Check.checkSetter (fingerprint := "6602736107007234452")
 *Definition: checking a setter call.* Before it checks `q[i] = v` as the
 call `S.__setitem__(q, i, v)`, the compiler checks the types of the getter
 call `q[i]`, which is never made, so its implicit copies and the errors of

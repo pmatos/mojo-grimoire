@@ -40,7 +40,7 @@ def checkSetter (prog : Program) (e : Expr) : CheckM Unit := do
   let g := methodCallee s "__getitem__"
   let s0 ← get
   modify State.typing
-  try let _ ← checkExpr prog (.call g (.place q :: args.dropLast))
+  try let _ ← checkExprAs prog false (.call g (.place q :: args.dropLast))
   catch err => unless err.late || err matches .implicitCopy _ | .noMatchingInit .int do throw err
   if let (.ok sig, false) :=
       (callSig prog g, v matches .list .unknown _ || (wrongIntLiteral v).isSome) then
