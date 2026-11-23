@@ -96,7 +96,8 @@ Until #96 part 4 orders the model's errors as the compiler does, a
 statement, or a condition, that part 2 rejects is checked again as `main`
 did, from the same state, with the body that `main`'s inference gave
 (`Check.Block.bridgedToTwin`, ruled on #281), each check through the
-bridge of #191 above, as `main` checks a statement. When that check fails too, `main`'s
+bridge of #191 ([semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares)),
+as `main` checks a statement. When that check fails too, `main`'s
 error is reported; otherwise part 2's stands. Each condition of an
 `if`/`elif` chain is a statement of its own here, and is checked with
 the test that it is a `Bool`. A function, method, initializer or
