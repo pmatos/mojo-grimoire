@@ -82,12 +82,12 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       (do let _ ← typeArg prog a; let _ ← typeArg prog b)
     let s ← get
     let ta ← mainRead prog a (checkExprAs prog (← byRef prog op a b) a)
+    let sa ← get
     let ka ← mark
     let tb ← match rightParam op a b ta with
       | some (fit, prm) => do let _ ← checkArg prog fit (binaryMethod op) prm b; pure prm.ty
       | none => mainRead prog b (checkExprAs prog (← byRef prog op b a) b)
-    checkedBinaryTy prog op a b ta tb ka (← mark) s fun p f => do
-      let _ ← checkArg prog .call f p a
+    checkedBinaryTy prog op a b ta tb ka (← mark) s sa
   | .list .unknown [] => throw (CheckError.invalidType .unknown)
   | .list .unknown (e :: es) => do
     let u ← checkExprAs prog false e

@@ -56,8 +56,9 @@ binary operator is found from its operands' forms before they are read
 (`operandTy`, or the types that `main` gave them, in the bridge's replay,
 `MojoGrimoire.Check.mainFormTy`, temporary, until #96 part 4). For
 $`\mathsf{and}` and $`\mathsf{or}`, the misfit needs of an operand only
-whether its form gives a struct that lacks `__bool__` (`lackingTy`): a
-nested test gives one only when both of its operands give it, so its
+whether its form gives a type that lacks `__bool__`, such as a struct
+without it, an array or `None` (`lackingTy`): a nested test gives one
+only when both of its operands give it, so its
 operand that is no test is asked first, and when that gives none, the
 form of the whole nested test is not computed, which keeps the check of
 a chain of tests linear in its length. An integer literal on the left gives no type, so that its

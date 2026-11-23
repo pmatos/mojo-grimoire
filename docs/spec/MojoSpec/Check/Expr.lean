@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16716826769765357891")
+:::moduleDocs (fingerprint := "12091155926310651310")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "9014158019469931139")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "5233929300943440758")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -45,8 +45,9 @@ type:
   lacks the method is `missingMethod`, once its arguments are typed;
 * operators have the types above, but a method that an operand's type
   lacks is `missingMethod` (#176): found from the operands' types
-  (`operandTy`, `binaryMisfit`, `unaryMisfit`; in the bridge's replay, a
-  struct test has `main`'s type at any depth, `mainFormTy`) before they are
+  (`operandTy`, `binaryMisfit`, `unaryMisfit`; in the replay of the bridge
+  to `main`'s order, temporary, until #96 part 4, a struct test has
+  `main`'s type at any depth, `mainFormTy`) before they are
   read, once both are typed by `typeArg`, and else from their checked
   types. The
   right operand of an operator whose left operand is an integer literal
@@ -56,7 +57,9 @@ type:
   right of $`==` or $`!=` whose left operand is a list is passed as the
   list's `other` parameter of the list's type (`rightParam`, #185). Once
   both operands are checked, the operation is typed as `checkedBinaryTy`
-  says, which checks the test of a struct operand of `and` and `or`, and
+  says, which checks the test of a struct operand of `and` and `or`, given
+  the states before and after the left operand, which it passes to
+  `self` without checking it again (`passLeft`), and
   `not` of a struct is rejected after its operand when the state replays
   `main`'s order (`notOperand`), where a place that such an operand
   tests is read as a value, as `main` read it (`mainRead`); a call of an

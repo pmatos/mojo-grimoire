@@ -9,7 +9,8 @@ types (`MojoGrimoire.Parse.toBool`), which the checker checks as any
 call. When both have the struct type `S`, the operator gives the operand
 that decides, and the test of the left one is no call of its own: it is
 checked here as that call would be, its operand passed to `self` as an
-argument (`MojoGrimoire.Check.checkArg`).
+argument (`MojoGrimoire.Check.checkArg`), without being checked again
+(`passLeft`).
 
 A struct test also bridges an order of `main`'s, until #96 part 4
 types a function before it checks its flow, as the compiler does.
@@ -184,17 +185,46 @@ def bridged {α : Type} (check : CheckM α) : CheckM α :=
     | some e => throw (if e.late then err else e)
     | none => throw err
 
-/-- Passes a nested test of type `t` to the parameter `self` of `callee`,
-as `checkArg` passes any operand that is neither a place nor a call: a
-`mut` or `out` `self` rejects it, and its type must fit. The operand is
-not checked again: it was checked from the same state, and a nested test
-ignores whether it is read by reference, so checking it again would only
-repeat that check, at a cost that doubles with each level of nesting. -/
-def passTest (self : Param) (callee : Name) (t : Ty) : CheckM Unit := do
-  if self.conv == .out || self.conv == .deinit then
-    throw (CheckError.invalidConvention callee)
-  if self.conv == .mutable then throw (Fit.call.misfit (CheckError.notAPlace callee))
-  expectArg .call self.ty t
+/-- Passes the left operand `a` of a same-type test, of type `t`, to the
+parameter `self` of `callee`, as `checkArg` would pass it from the state
+`before` it was checked, without checking it again. That check would
+repeat the first one: it starts from the same state, and checks `a` as a
+value, `asRef` unset, as `and` and `or` do (`byRef`). A located operand
+is checked by reference there instead, which only leaves out the copy of
+the reference a call returns (`refResult`): it fits wherever the value
+did. So what remains is `checkArg`'s passing, from `before`, or, for a
+place, from `after`, the state once `a` was checked, which reading the
+place leaves as checking its indices left it. Checking `a` again would
+cost twice the check of `a`, at each level of a nested left operand. -/
+def passLeft (prog : Program) (self : Param) (callee : Name) (a : Expr) (t : Ty)
+    (before after : State) : CheckM Unit := do
+  set before
+  match a with
+  | .place p =>
+    let elem ← intIndexed prog p
+    set after
+    if (self.conv == .mutable || self.conv == .ref) && elem then
+      throw (CheckError.notAList .int)
+    passPlace prog .call callee self.conv self.ty p
+  | .list .. =>
+    passValue .call callee self.conv
+    expectArg .call self.ty t
+  | e =>
+    if self.conv == .out || self.conv == .deinit then
+      throw (CheckError.invalidConvention callee)
+    match ← if passedByValue self then pure none else locOf prog e with
+    | some (os, mq) =>
+      expectArg .call self.ty t
+      if self.conv == .mutable && !mq then
+        throw (Fit.call.misfit (CheckError.immutablePlace (os.headD (.var callee))))
+    | none =>
+      if self.conv == .mutable then
+        if let .transfer p := e then
+          unless ← placeMutable p do throw (CheckError.transferFromBorrowed p)
+        throw (Fit.call.misfit (CheckError.notAPlace callee))
+      expectArg .call self.ty t
+      set after
+      let _ ← lateLocs prog e
 
 /-- The type of the binary operation `a op b`, of operand types `ta` and `tb`
 (`methodBinaryTy`), once both operands are checked, the places among
@@ -203,8 +233,9 @@ of `and` and `or`, which are read when tested. A test of a struct
 operand of `and` or `or` whose `__bool__` returns no `Bool` lacks
 `__mlir_bool__` (`missingMethod`): a call of it that inference made, and
 the left operand when both have the same struct type. That operand is
-also passed to `self` as a call's argument, by `passSelf`, from the state
-`before` it was checked, which is then left as the operands left it. The
+also passed to `self` as a call's argument (`passLeft`), from the state
+`before` it was checked and the state `afterLeft` once it was, without
+being checked again; the state is then left as the operands left it. The
 compiler gives a `var self` a copy of what the left test reads, a
 temporary or a transfer too, since the left operand may be the result:
 a struct that is not `ImplicitlyCopyable` is then `implicitCopy`. The
@@ -216,10 +247,9 @@ rejected as `main` rejected it once both operands were checked
 could not report. When the state leaves those checks out
 (`State.ownChecks`), the test is rejected so, or passes with no check
 of its own, a tested call taken as a `Bool`. Both are parts of the bridge
-to `main`'s order: temporary, until #96 part 4. A nested test on the left
-is passed to `self` without being checked again (`passTest`). -/
+to `main`'s order: temporary, until #96 part 4. -/
 def checkedBinaryTy (prog : Program) (op : BinOp) (a b : Expr) (ta tb : Ty) (ka kb : Nat)
-    (before : State) (passSelf : Param → Name → CheckM Unit) : CheckM Ty := do
+    (before afterLeft : State) : CheckM Ty := do
   unless op == .and || op == .or do
     recheckPlaces prog [a, b] [ka, kb]
     return ← lift (methodBinaryTy prog op ta tb)
@@ -237,12 +267,9 @@ def checkedBinaryTy (prog : Program) (op : BinOp) (a b : Expr) (ta tb : Ty) (ka 
     let some fd := (findStruct prog s).bind (findMethod · "__bool__") | continue
     if let some self := fd.params.head? then
       if same then
-        if nestedTest a then passTest self (methodCallee s "__bool__") ta
-        else
-          let after ← get
-          set before
-          passSelf self (methodCallee s "__bool__")
-          set after
+        let after ← get
+        passLeft prog self (methodCallee s "__bool__") a ta before afterLeft
+        set after
       if isLeft && self.conv == .owned && !(e matches .place _) &&
           copyingOf prog (.struct s) != .implicit then
         throw (CheckError.implicitCopy (.struct s))

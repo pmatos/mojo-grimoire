@@ -111,12 +111,13 @@ def nestedTest : Expr → Bool
   | _ => false
 
 /-- The type of the operand `e` of `and` or `or` found by `formTy`, as far
-as the operator's misfit needs it (`binaryMisfit`): a struct that lacks
-`__bool__`, and else `none`. A nested test has a struct type only when
-both of its operands have it, so its operand that is no test is asked
-first: when that gives no such struct, the test gives none either, and
-the pass of `formTy` down a whole chain, at each of its levels, is
-spared. -/
+as the operator's misfit needs it (`binaryMisfit`): a type that lacks
+`__bool__`, such as a struct without it, an array or `None`, and else
+`none`. A nested test gives such a type only when both of its operands
+give it, so its operand that is no test is asked first: when that gives
+none, `lackingTy` gives none at once, and `formTy` does not go down the
+whole test, which at each level of a chain would go down the rest of
+it. -/
 def lackingTy (prog : Program) (formTy : Expr → CheckM (Option Ty)) (e : Expr) :
     CheckM (Option Ty) := do
   unless ← candidate e do return none
@@ -124,7 +125,7 @@ def lackingTy (prog : Program) (formTy : Expr → CheckM (Option Ty)) (e : Expr)
 where
   /-- The type `t` when it lacks `__bool__`. -/
   lacking (t : Option Ty) : Option Ty := if (lacks prog "__bool__" t).isSome then t else none
-  /-- Whether the form of `e` may give a struct that lacks `__bool__`. -/
+  /-- Whether the form of `e` may give a type that lacks `__bool__`. -/
   candidate : Expr → CheckM Bool
     | .binary op a b => do
       unless op == .and || op == .or do return (lacking (← formTy (.binary op a b))).isSome
