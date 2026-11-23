@@ -105,7 +105,7 @@ theorem stripExpr_elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Pla
     simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
   | .binary op a b =>
     simp only [elabExpr]
-    split <;> simp [stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
+    split <;> (try split) <;> simp [stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
   | .unary op a => simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
   | .list t es =>
     simp only [elabExpr]

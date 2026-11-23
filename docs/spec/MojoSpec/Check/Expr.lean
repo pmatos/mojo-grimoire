@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8187108892653241186")
+:::moduleDocs (fingerprint := "408072705844976697")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace MojoGrimoire.Check.checkExpr (fingerprint := "18059980262312949718")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "4689106655143059813")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -45,20 +45,36 @@ type:
   lacks the method is `missingMethod`, once its arguments are typed;
 * operators have the types above, but a method that an operand's type
   lacks is `missingMethod` (#176): found from the operands' types
-  (`operandTy`, `binaryMisfit`, `unaryMisfit`) before they are read, once
-  both are typed by `typeArg`, and else from their checked types. The
+  (`operandTy`, `binaryMisfit`, `unaryMisfit`; in the replay of the bridge
+  to `main`'s order, temporary, until #96 part 4, a struct test has
+  `main`'s type at any depth, `mainFormTy`) before they are
+  read, once both are typed by `typeArg`, and else from their checked
+  types. The
   right operand of an operator whose left operand is an integer literal
   expression (`intLiteral`), but `and` and `or`, is passed as to a `read`
   $`\mathsf{Int}` parameter of a method with several overloads: one that
   is no $`\mathsf{Int}` is `noMatchingMethod` (#88). A literal on the
   right of a comparison that converts it to the type of an array or a
   list on the left, and that inference gave that type, is passed as the
-  method's `other` parameter of that type (`rightParam`, #166, #185). The
+  method's `other` parameter of that type (`rightParam`, #166, #185). Once
+  both operands are checked, the operation is typed as `checkedBinaryTy`
+  says, which checks the test of a struct operand of `and` and `or`, given
+  the states before and after the left operand, which it passes to
+  `self` without checking it again (`passLeft`), and
+  `not` of a struct is rejected after its operand when the state replays
+  `main`'s order (`notOperand`), where a place that such an operand
+  tests is read as a value, as `main` read it (`mainRead`); a call of an
+  operator method that inference made, one of whose operands is such a
+  test of two operands of the same struct type, follows `main` there
+  too: it is checked as a call of the method that `main` chose, or else
+  it types its operands first and then rejects the operator's misfit on a
+  $`\mathsf{Bool}` (`mainOperator`). The
   misfit of a comparison of two arrays or two lists is found from the
   operands' types too (`operandMisfit`), and an operand compared as an
   array or a list, a place or a call that returns a reference, is read by
-  reference, uncopied (`byRef`, #166, #185), in the order that
-  `compareOperands` gives;
+  reference, uncopied (`byRef`, #166, #185): the left operand first, then
+  the right one, with the checks that a comparison kept from before #166
+  when `keepsBefore` holds (`Before.rightParam`);
 * $`[e^*]_t`, with $`t` a list or an array of $`u` and $`u` a type a
   variable may have, initializes $`t`: it passes each element as to a `var`
   parameter of type $`u`, and an array must have as many elements as its

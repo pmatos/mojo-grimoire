@@ -221,6 +221,42 @@ def keepsBefore (prog : Program) (op : BinOp) (a b : Expr) : CheckM Bool := do
   pure (compares op && (prog.mainMode ||
     emptyList a || emptyList b || (← heldCopy prog a) || (← heldCopy prog b)))
 
+/-- Whether the operand `e` is a binary operation, under the drops that
+the elaborator adds: in an operand of struct type, a nested test of `and`
+or `or`, never a place nor a call. -/
+def nestedTest : Expr → Bool
+  | .binary .. => true
+  | .withDrops e _ _ => nestedTest e
+  | _ => false
+
+/-- The type of the operand `e` of `and` or `or` found by `formTy`, as far
+as the operator's misfit needs it (`binaryMisfit`): a type that lacks
+`__bool__`, such as a struct without it, an array or `None`, and else
+`none`. A nested test gives such a type only when both of its operands
+give it, so its operand that is no test is asked first: when that gives
+none, `lackingTy` gives none at once, and `formTy` does not go down the
+whole test, which at each level of a chain would go down the rest of
+it. -/
+def lackingTy (prog : Program) (formTy : Expr → CheckM (Option Ty)) (e : Expr) :
+    CheckM (Option Ty) := do
+  unless ← candidate e do return none
+  pure (lacking (← formTy e))
+where
+  /-- The type `t` when it lacks `__bool__`. -/
+  lacking (t : Option Ty) : Option Ty := if (lacks prog "__bool__" t).isSome then t else none
+  /-- Whether the form of `e` may give a type that lacks `__bool__`. -/
+  candidate : Expr → CheckM Bool
+    | .binary op a b => do
+      unless op == .and || op == .or do return (lacking (← formTy (.binary op a b))).isSome
+      if nestedTest b then
+        unless ← candidate a do return false
+        candidate b
+      else
+        unless ← candidate b do return false
+        candidate a
+    | .withDrops e _ _ => candidate e
+    | e => do pure (lacking (← formTy e)).isSome
+
 namespace Before
 
 /-- Whether the expression `e` is an open literal that holds a literal. -/
@@ -237,13 +273,19 @@ def convertsLiteral (op : BinOp) (a b : Expr) (ta tb : Option Ty) : Bool :=
     a matches .list .unknown _ && tb matches some (.list _) ||
     b matches .list .unknown _ && ta matches some (.list _))
 
-/-- The error of `op` that the forms of `a` and `b` give, before #166's
-conversions: a literal that the compiler converts is left to the checks
-that follow. -/
-def operandMisfit (prog : Program) (op : BinOp) (a b : Expr) : CheckM (Option CheckError) := do
-  let ta ← if intLiteral a then pure none else operandTy prog a
+/-- The error of `op` that the forms of `a` and `b` give (`operandTy`, or
+`formTy` when given: `main`'s typing in the bridge to its order of #191,
+temporary, until #96 part 4), before #166's conversions: an integer
+literal's comparison with an array or a list is left to its overloads,
+an empty literal with no type compared with an array has no type that
+fits it, and a literal that the compiler converts (`convertsLiteral`) is
+left to the checks that follow. -/
+def operandMisfit (prog : Program) (op : BinOp) (a b : Expr)
+    (formTy : Expr → CheckM (Option Ty) := operandTy prog) : CheckM (Option CheckError) := do
+  let formTy := if op == .and || op == .or then lackingTy prog formTy else formTy
+  let ta ← if intLiteral a then pure none else formTy a
   let tb ← if compares op && b matches .list .unknown [] then pure (some .unknown)
-    else operandTy prog b
+    else formTy b
   let tb := if convertsLiteral op a b ta tb then none else tb
   pure (binaryMisfit prog op ta tb)
 
@@ -275,12 +317,17 @@ argument of the method: one that does not fit is a type mismatch, but a
 literal on the left with no type of its own, which the compiler reports
 as a list it cannot type, keeps the checks it had before. A comparison
 with a literal that holds a place whose value is not implicitly copyable
-keeps them all (`keepsBefore`). An integer literal's comparison with an
-array or a list is left to its overloads. -/
-def operandMisfit (prog : Program) (op : BinOp) (a b : Expr) : CheckM (Option CheckError) := do
-  if ← keepsBefore prog op a b then return ← Before.operandMisfit prog op a b
-  let ta ← if intLiteral a then pure none else operandTy prog a
-  let tb ← operandTy prog b
+keeps them all (`keepsBefore`), and so does any other operator, which
+#166 does not change (`Before.operandMisfit`). An integer literal's
+comparison with an array or a list is left to its overloads. `formTy`
+gives the forms' types, `operandTy`'s, or `main`'s typing in the bridge
+to its order of #191 (`mainFormTy`). -/
+def operandMisfit (prog : Program) (op : BinOp) (a b : Expr)
+    (formTy : Expr → CheckM (Option Ty) := operandTy prog) : CheckM (Option CheckError) := do
+  if !compares op || (← keepsBefore prog op a b) then
+    return ← Before.operandMisfit prog op a b formTy
+  let ta ← if intLiteral a then pure none else formTy a
+  let tb ← formTy b
   let fa ← if b matches .list .. then pure none else operandFit prog op a tb true
   let ta' := fitTy fa tb ta
   let fb ← operandFit prog op b ta'
@@ -319,30 +366,24 @@ def rightParam (op : BinOp) (a b : Expr) (ta : Ty) : Option (Fit × Param) :=
     some (.call, ⟨.read, "other", ta⟩)
   else none
 
+/-- The parameter that the right operand `b` of the operator `op` is
+checked against, given the type of `a`: `rightParam`, or the one it had
+before #166 when the comparison keeps those checks (`keepsBefore`). That
+is decided before `a` is read. -/
+def rightParamOf (prog : Program) (op : BinOp) (a b : Expr) :
+    CheckM (Ty → Option (Fit × Param)) := do
+  pure ((if ← keepsBefore prog op a b then Before.rightParam else rightParam) op a b)
+
 /-- The type of the result of the operator `op` on operands of types `ta`
 and `tb`: a method that a type lacks first, or the misfit of a comparison
 of arrays or lists, then a `Bool` for such a comparison, and `binaryTy`
-for any other. -/
+for any other. `and` and `or` on operands of the same struct type, which
+has `__bool__`, give the operand that decides, of that type (#191). -/
 def methodBinaryTy (prog : Program) (op : BinOp) (ta tb : Ty) : Except CheckError Ty :=
   match binaryMisfit prog op (some ta) (some tb) with
   | some err => throw err
-  | none => if (seqCompare op ta).isSome then pure .bool else binaryTy op ta tb
-
-/-- Checks the operands `a` and `b` of the operator `op` in order, with
-`checkA` and `checkB`, which check them read by reference or not, or with
-`argB`, which checks `b` as the argument that `rightParam` gives, and
-gives their types, once the places they read are checked again for what
-changed after (`recheckPlaces`). -/
-def compareOperands (prog : Program) (op : BinOp) (a b : Expr) (checkA checkB : Bool → CheckM Ty)
-    (argB : Fit → Param → CheckM Unit) : CheckM (Ty × Ty) := do
-  let before ← keepsBefore prog op a b
-  let ta ← checkA (← byRef prog op a b)
-  let ka ← mark
-  let tb ← match (if before then Before.rightParam else rightParam) op a b ta with
-    | some (fit, prm) => do argB fit prm; pure prm.ty
-    | none => checkB (← byRef prog op b a true)
-  let kb ← mark
-  unless op == .and || op == .or do recheckPlaces prog [a, b] [ka, kb]
-  pure (ta, tb)
+  | none =>
+    if (op == .and || op == .or) && ta == tb && ta matches .struct _ then pure ta
+    else if (seqCompare op ta).isSome then pure .bool else binaryTy op ta tb
 
 end MojoGrimoire.Check

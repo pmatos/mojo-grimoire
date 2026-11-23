@@ -13,7 +13,12 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11045093320443437584")
+:::moduleDocs (fingerprint := "67836114728436700")
+:::
+
+:::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
+*Definition: an expression's type.* An expression used as a value is
+checked by `checkExprAs`, not as a reference, and has the type it gives.
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -65,13 +70,13 @@ compiler reports a parameter left uninitialized before a variable that may
 not end.
 :::
 
-:::readable MojoGrimoire.Check.endScope (fingerprint := "5094446271499096283")
+:::readable MojoGrimoire.Check.endScope (fingerprint := "10225848583509902724")
 *Rule: the end of a scope.* The variables a block declared end with it,
 each checked as above if the end of the block is reached, and leave the
 set of invalidated references.
 :::
 
-:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "3993288572809658863")
+:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "151849857318036827")
 *Rule: joining branches.* After an `if`, a part is uninitialized when
 either branch leaves it so, and may hold a value when either branch may;
 $`M`, $`T` and $`P` are the unions of the branches' sets, and
@@ -133,7 +138,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "852656800214669114")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "13338840248750142160")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 

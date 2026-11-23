@@ -1,0 +1,30 @@
+{
+  "issue": 51,
+  "title": "a struct initialized field by field destroys a field that was never set",
+  "ruled": "2026-11-17",
+  "decision_log": "D-0003",
+  "reference": {
+    "release": "1.2.0",
+    "commit": "527d069ee11a41ac5320af1f9402db0a66b2b868"
+  },
+  "reproducer": "struct Res(Movable):\n    var id: Int\n\n    def __init__(out self, id: Int):\n        self.id = id\n\n    def __del__(deinit self):\n        print(\"drop\", self.id)\n\n\nstruct Two(Movable):\n    var a: Res\n    var b: Res\n\n    def __init__(out self):\n        self.a = Res(1)\n        self.b = Res(2)\n\n\ndef main():\n    var t: Two\n    t.a = Res(1)\n    print(t.a.id)\n",
+  "compiler": "prints `1`, `drop 1`, `drop 0`, as 1.2.0 did: it runs the destructor of t.b, which was never initialized",
+  "fixed": "rejects the program, as the compiler rejects a variable with a field moved out (\"field 't.a' destroyed out of the middle of a value, preventing the overall value from being destroyed\"): a variable that ends with only some of its fields set is rejected, however it got there (R, ruled by the human on 2026-11-19)",
+  "model": "rejects it as partiallyDestroyed, as the fixed compiler would. The model does not read the deprecated `__del__`, which it rejects as invalidSelf; with `__del__` spelled `__deinit__`, it rejects the program as partiallyDestroyed",
+  "upstream": {
+    "status": "unfiled",
+    "draft": "https://github.com/pmatos/mojo-grimoire/issues/51#issuecomment-6982426260",
+    "tracking": 51,
+    "report": null
+  },
+  "confirmation": {
+    "status": "pending",
+    "notes": "R, the fixed behaviour ruled on 2026-11-19, is provisional: the human will confirm it with Modular's engineers, and the model changes if that discussion changes the semantics."
+  },
+  "nightly": {
+    "version": "1.3.0.dev2026111905",
+    "checked": "2026-11-19",
+    "reproduces": true,
+    "result": "prints `1`, `drop 1`, `drop 0`, as on 1.2.0"
+  }
+}

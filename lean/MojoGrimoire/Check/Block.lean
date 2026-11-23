@@ -11,7 +11,7 @@ another error of the same statement, which the model reports in another
 order than the compiler (#96, #170). A statement in which `main` agreed
 with the compiler so may not change its result. So a statement, or the
 condition of an `if` or a loop, that the checker rejects is checked again
-as `main` did (`bridged`), from the same state: the body that `main`'s
+as `main` did (`bridgedToTwin`), from the same state: the body that `main`'s
 inference gave (`Program.twin`), with `main`'s checks (`Program.asMain`).
 When that check fails too, its error, `main`'s, is reported; otherwise
 the first error stands. A condition is bridged with the test that it is
@@ -23,6 +23,11 @@ whose class part 2 corrects, where `main` gave another, keeps `main`'s
 class until #96 part 4. The checks of a declaration as a whole, such as
 its parameters, a missing `return` or what it leaves when it ends, are
 not bridged.
+
+Both checks, a statement's and its twin's, go through the bridge of #191
+to `main`'s earlier order for a struct test (`MojoGrimoire.Check.bridged`),
+as `main` checks each statement and condition, so that the twin's error
+is `main`'s.
 
 A temporary bridge until #96 part 4 orders the model's errors as the
 compiler does.
@@ -38,7 +43,7 @@ an error and `replay`, from the same state, throws one too, the statement
 gives `replay`'s error, `main`'s; when `replay` passes, the first error
 stands. The twin is a thunk, forced only once `check` has failed, so that
 a statement that is accepted costs nothing more. -/
-def bridged {α : Type} (check : CheckM α) (replay : Thunk (Option (CheckM α))) : CheckM α :=
+def bridgedToTwin {α : Type} (check : CheckM α) (replay : Thunk (Option (CheckM α))) : CheckM α :=
   tryCatch check fun err => do
     let some replay := replay.get | throw err
     let replayed ← tryCatch (do let _ ← replay; pure err) pure
@@ -56,16 +61,17 @@ def twinWhile : Option Stmt → Option Expr × List Stmt
 
 /-- Checks the condition `c` of an `if` or a loop, whose twin is `c'`: it
 must be a `Bool`. The check and the test of its type are bridged as one
-(`bridged`). -/
+(`bridgedToTwin`), each, as on `main`, through #191's bridge (`bridged`). -/
 def checkCond (prog : Program) (c : Expr) (c' : Thunk (Option Expr)) : CheckM Unit :=
-  bridged (do expect .bool (← checkExpr prog c))
-    (c'.map (·.map fun c => do expect .bool (← checkExpr prog.asMain c)))
+  bridgedToTwin (do expect .bool (← bridged (checkExpr prog c)))
+    (c'.map (·.map fun c => do expect .bool (← bridged (checkExpr prog.asMain c))))
 
 mutual
 /-- Checks the statement `s` of the function `sig`, whose twin, the
 statement that `main`'s inference gave, is `m`, a thunk. A statement that
-holds no block is checked by `checkSimple`, bridged to `main`'s order
-(`bridged`); an `if` and a loop bridge their conditions, and check their
+holds no block is checked by `checkSimple`, through #191's bridge
+(`bridged`), as on `main`, and bridged to its twin (`bridgedToTwin`); an
+`if` and a loop bridge their conditions, and check their
 blocks beside their twins. -/
 def checkStmt (prog : Program) (sig : FunDecl) (s : Stmt) (m : Thunk (Option Stmt)) :
     CheckM Unit :=
@@ -95,7 +101,8 @@ def checkStmt (prog : Program) (sig : FunDecl) (s : Stmt) (m : Thunk (Option Stm
       let s2 ← get
       set (if s2.live then { head with vars := List.zipWith joinMay head.vars s2.vars } else head)
     else set head
-  | s => bridged (checkSimple prog sig s) (m.map (·.map (checkSimple prog.asMain sig)))
+  | s => bridgedToTwin (bridged (checkSimple prog sig s))
+      (m.map (·.map fun t => bridged (checkSimple prog.asMain sig t)))
 
 /-- Checks the block `b` as a scope of its own, beside its twin `ms`, a
 thunk. -/

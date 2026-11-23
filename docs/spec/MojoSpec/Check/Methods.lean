@@ -13,16 +13,21 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5157759181711487647")
+:::moduleDocs (fingerprint := "8119551463829153626")
 :::
 
-:::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.unaryMethod (fingerprint := "10097334614036502845")
+:::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.reflectedMethod MojoGrimoire.Check.unaryMethod (fingerprint := "14078108206647463870")
 *Definition: the method of an operator.* $`a + b` calls `__add__` on
 $`a`, and likewise `__sub__`, `__mul__`, `__floordiv__` and `__mod__`
 for $`-`, $`\times`, `//` and `%`; $`<`, $`\le`, $`>`, $`\ge`, $`==`
 and $`!=` call `__lt__`, `__le__`, `__gt__`, `__ge__`, `__eq__` and
-`__ne__`. Negation calls `__neg__`, and $`\mathsf{not}`,
-$`\mathsf{and}` and $`\mathsf{or}` call `__bool__` on each operand.
+`__ne__`. The reflected method of a binary operator, called on its right
+operand, is `__radd__`, `__rsub__`, `__rmul__`, `__rfloordiv__` and
+`__rmod__` for $`+`, $`-`, $`\times`, `//` and `%`; `__gt__`, `__ge__`,
+`__lt__` and `__le__` for $`<`, $`\le`, $`>` and $`\ge`; and `__eq__`
+and `__ne__` for $`==` and $`!=`. Negation calls `__neg__`, and
+$`\mathsf{not}`, $`\mathsf{and}` and $`\mathsf{or}` call `__bool__` on
+each operand.
 :::
 
 :::readable MojoGrimoire.Check.hasMethod (fingerprint := "10449175719696369603")
@@ -46,16 +51,20 @@ them, negation and arithmetic, has the type `IntLiteral`, whose operators
 have several overloads too.
 :::
 
-:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "2250277455228571407")
+:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "16582612392293717366")
 *Definition: the type of an operand from its form.* The type of an
 operand is found, without checking or reading it, from its form: a
 literal's, a place's type, the result of the function, struct or method
 it calls, an $`\mathsf{Int}` for the built-in `len` that nothing hides,
-the result of its operator, an array of its first element's type for a
+the result of its operator, or, for $`\mathsf{and}` and $`\mathsf{or}`
+on operands whose forms give the same struct type, that type (#191), an
+array of its first element's type for a
 literal with no type expected each of whose elements' forms gives that
 type (one whose element's form gives none, or another type, is left to
 checking), a list or an array literal's type, an $`\mathsf{Int}` for $`[e]` of type $`\mathsf{Int}`, and
-$`\mathsf{List}[u]` for $`\mathsf{List}[u](\ldots)`. A call of a name
+$`\mathsf{List}[u]` for $`\mathsf{List}[u](\ldots)`. As `main` typed
+them, $`\mathsf{and}` and $`\mathsf{or}` give a $`\mathsf{Bool}` at any
+depth when asked to (`MojoGrimoire.Check.mainFormTy`). A call of a name
 that a variable hides, and any other form, gives none, and so does a
 lookup that fails: checking the operand then reports why.
 :::
@@ -69,7 +78,7 @@ the comparisons of arrays and lists
 (`MojoGrimoire.Check.Compare`).
 :::
 
-:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "17923407630855063083")
+:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "5473277680401556836")
 *Rule: a call of `len`.* The built-in `len` takes one list, array or
 $`\mathsf{Int}`, a SIMD vector of width 1, and gives an $`\mathsf{Int}`.
 A string is left to the check of a string outside `print`. Any other type,
@@ -82,7 +91,7 @@ read. Any other number of arguments is `noMatchingInit` of $`?`, once
 they are typed.
 :::
 
-:::readable MojoGrimoire.Check.methodCall (fingerprint := "1527231176191769200")
+:::readable MojoGrimoire.Check.methodCall (fingerprint := "5560809483516187005")
 *Rule: a method call.* A call $`p.m(e^*)` of a method of signature
 $`\mathit{sig}`, once the indices of $`p` are checked, takes the method's
 receiver by its convention: $`p` is passed as a place, or, when $`p` is
@@ -134,7 +143,7 @@ struct type declares `__call__` never reaches this rule: inference makes
 the call one of the method (#191).
 :::
 
-:::readable MojoGrimoire.Check.requireInPlace (fingerprint := "18000915414203633187")
+:::readable MojoGrimoire.Check.requireInPlace (fingerprint := "2635740280216961138")
 *Rule: an in-place operator on a struct.* A call of a struct's
 `__iadd__`, `__isub__` or `__imul__`, which inference makes of
 $`p \mathrel{+}= e`, $`p \mathrel{-}= e` or $`p \mathrel{\times}= e`,

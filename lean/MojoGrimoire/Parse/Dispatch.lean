@@ -27,12 +27,15 @@ operator. `!=` never falls back to `__eq__`, nor `>` to `__lt__` of the
 left operand, and the methods that a trait supplies by default are not
 modelled (#194).
 
-`-a` calls `__neg__`. `p += e`, `p -= e` and `p *= e` call `__iadd__`,
+`-a` calls `__neg__`, and `not a` negates what `__bool__` gives. `a and b`
+and `a or b` convert each struct operand with `__bool__`, unless both
+operands have the same type: then the operator gives the operand that
+decides, as the checker and the interpreter say. `p += e`, `p -= e` and `p *= e` call `__iadd__`,
 `__isub__` and `__imul__` of `p`'s struct, with no fallback to
 `__add__`. A call `f(…)` of a variable `f` whose struct declares
 `__call__` calls it: the variable hides a function, `len`, `range`,
-`print` or a struct of its name. `not`, `and` and `or` on a struct, and a
-struct's subscripts, are not yet calls of its methods (#191).
+`print` or a struct of its name. A struct's subscripts are not yet calls
+of its methods (#191).
 -/
 
 namespace MojoGrimoire.Parse
@@ -102,22 +105,6 @@ def declaredMethod (prog : Program) (t : Option Ty) (m : Name) : Option (Name ×
   | some (.struct s) => ((findStruct prog s).bind (findMethod · m)).map (s, ·)
   | _ => none
 
-/-- The method that the reflected binary operator `op` calls on its right
-operand. -/
-def reflectedMethod : BinOp → Name
-  | .add => "__radd__"
-  | .sub => "__rsub__"
-  | .mul => "__rmul__"
-  | .floorDiv => "__rfloordiv__"
-  | .mod => "__rmod__"
-  | .lt => "__gt__"
-  | .le => "__ge__"
-  | .gt => "__lt__"
-  | .ge => "__le__"
-  | .eq => "__eq__"
-  | .ne => "__ne__"
-  | .and | .or => "__bool__"
-
 /-- The in-place method that `p op= e` calls. -/
 def inPlaceMethod : BinOp → Name
   | .sub => "__isub__"
@@ -149,5 +136,12 @@ def chooseBinary (prog : Program) (op : BinOp) (ta tb : Option Ty)
   else if viable canB (fun p => fitsA p && canA p) reflected then
     reflected.map fun (s, fd) => (s, fd, true)
   else forward.map fun (s, fd) => (s, fd, false)
+
+/-- The operand `e` of type `t` of `and`, `or` or `not`, converted with
+`__bool__` when it is a struct that declares it. -/
+def toBool (prog : Program) (e : Expr) (t : Option Ty) : Expr :=
+  match declaredMethod prog t "__bool__" with
+  | some (s, _) => .call (methodCallee s "__bool__") [e]
+  | none => e
 
 end MojoGrimoire.Parse

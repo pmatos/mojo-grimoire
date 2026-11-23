@@ -1,0 +1,32 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "bool 1",
+    "del T 1",
+    "mk 2",
+    "2",
+    "del T 2",
+    "bool 4",
+    "del T 3",
+    "del T 4",
+    "4",
+    "del T 4",
+    "bool 0",
+    "del T 0",
+    "del T 5",
+    "bool 5",
+    "del T 5",
+    "mk 6",
+    "6",
+    "del T 6",
+    "mk 0",
+    "bool 0",
+    "del T 0",
+    "del T 7",
+    "7",
+    "del T 7",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

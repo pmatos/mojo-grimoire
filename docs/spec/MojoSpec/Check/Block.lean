@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Blocks and the bridge to main's order: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14892712507123708629")
+:::moduleDocs (fingerprint := "11158048175427721124")
 :::
 
-:::readable MojoGrimoire.Check.bridged (fingerprint := "15637765802588083994")
+:::readable MojoGrimoire.Check.bridgedToTwin (fingerprint := "2374438237231960054")
 *Rule: the bridge to `main`'s order.* A check of a statement or a
 condition that has a twin, the one that `main`'s inference gave, is
 bridged. When the check fails, the twin is checked as `main` did, from
@@ -27,7 +27,7 @@ accepted statement costs nothing more. The bridge is temporary: #96
 part 4 orders the model's errors as the compiler does.
 :::
 
-:::readable MojoGrimoire.Check.twinIf MojoGrimoire.Check.twinWhile MojoGrimoire.Check.checkCond (fingerprint := "16061990676269541930")
+:::readable MojoGrimoire.Check.twinIf MojoGrimoire.Check.twinWhile MojoGrimoire.Check.checkCond (fingerprint := "18282562125972529006")
 *Definition: twins of conditions and blocks.* The twin of an `if` gives
 the twin of its condition and of its two blocks, and that of a loop the
 twin of its condition and of its body; a twin of another form, or none,
@@ -35,9 +35,11 @@ gives no condition and empty blocks. A condition is checked, and needs a
 $`\mathsf{Bool}`, as one check bridged to its twin's.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "2214868477864486889")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "17850278309630741312")
 *Rule: blocks.* A statement that holds no block is checked by the rule
-of statements, bridged to its twin.
+of statements, bridged to its twin. Each check, the statement's and its
+twin's, and each condition's, goes through #191's bridge to `main`'s
+order for a struct test (`bridged`), as `main` checks it.
 
 * `if` needs a $`\mathsf{Bool}` condition and joins its branches, each a
   scope of its own; `while` needs a $`\mathsf{Bool}` condition and a

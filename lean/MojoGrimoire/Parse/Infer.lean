@@ -40,7 +40,8 @@ fit is not known (#185). In a program in `main`'s mode
 (`Program.mainMode`), every comparison keeps the expectations it had
 before #166, as in `main`: inference gives a program also the bodies it
 gives in that mode, each with the struct it belongs to (`Program.twin`),
-for the checker's bridge to `main`'s order (`MojoGrimoire.Check.bridged`). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
+for the checker's bridge to `main`'s order
+(`MojoGrimoire.Check.bridgedToTwin`). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
 the type `t` of the first, as in Mojo: inference gives that type to what
 holds the literal, and leaves the literal's own type `unknown`, so that the
 checker tells a literal that initializes an expected type from one that
@@ -60,7 +61,10 @@ An operator, an in-place operator and a call whose operand is a struct
 that declares the method become calls of the method, as
 `MojoGrimoire.Parse.Dispatch` decides (#191); a literal operand is
 inferred as an argument of the method's other parameter (`inferArg`,
-`literalArg`), so that one passed `mut` or `ref` stays a temporary. Inference knows which
+`literalArg`), so that one passed `mut` or `ref` stays a temporary. `not`,
+`and` and `or` convert a struct operand with its `__bool__` (`toBool`),
+unless both operands of `and` or `or` have the same struct type, which
+the operator then gives. Inference knows which
 variables may not change, so that a method whose `mut` parameter an
 operand cannot be passed to is not chosen: a `ref` binding may change
 what it points to when its target, once inferred, may, such as a call of
@@ -140,14 +144,16 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
     let (a', ta) := inferExpr prog env .unknown a
     match declaredMethod prog ta (unaryMethod op), op with
     | some (s, fd), .neg => (.call (methodCallee s "__neg__") [a'], some fd.result)
+    | some (s, _), .not => (.unary .not (.call (methodCallee s "__bool__") [a']), some .bool)
     | _, _ => (.unary op a', some (if op == .neg then .int else .bool))
   | .binary op a b =>
     let (a₀, ta₀) := if a matches .list .. then (a, none) else inferExpr prog env .unknown a
     let (b₀, tb₀) := if b matches .list .. then (b, none) else inferExpr prog env .unknown b
     if op == .and || op == .or then
-      let a' := if a matches .list .. then (inferExpr prog env .unknown a).1 else a₀
-      let b' := if b matches .list .. then (inferExpr prog env .unknown b).1 else b₀
-      (.binary op a' b', some (binaryResult op))
+      let (a', ta) := if a matches .list .. then inferExpr prog env .unknown a else (a₀, ta₀)
+      let (b', tb) := if b matches .list .. then inferExpr prog env .unknown b else (b₀, tb₀)
+      if ta == tb && ta matches some (.struct _) then (.binary op a' b', ta)
+      else (.binary op (toBool prog a' ta) (toBool prog b' tb), some .bool)
     else
     let tyA := ((declaredMethod prog tb₀ (reflectedMethod op)).bind (otherParam ·.2)).map (·.ty)
     let tyB := ((declaredMethod prog ta₀ (binaryMethod op)).bind (otherParam ·.2)).map (·.ty)

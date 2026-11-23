@@ -1,0 +1,30 @@
+{
+  "issue": 257,
+  "title": "arrays of arrays of one-element arrays compare wrongly at -O3 when two comparisons of them are printed together",
+  "ruled": "2026-11-21",
+  "decision_log": "D-0013",
+  "reference": {
+    "release": "1.3.0.dev2026111905",
+    "commit": "a549e6a6"
+  },
+  "reproducer": "def main():\n    var e = [[[1]]]\n    var z = [[[0]]]\n    print(e > z, e == z)\n",
+  "compiler": "prints `False False` at -O3, the default; -O0, -O1 and -O2 print the right `True False`. Four levels and Bools fail the same way; two elements, two levels, one level, and `print(e > z)` alone are right",
+  "fixed": "compares the elements one by one, as the pin does at -O0, -O1 and -O2, so it prints `True False`",
+  "model": "prints `True False`",
+  "upstream": {
+    "status": "unfiled",
+    "draft": "https://github.com/pmatos/mojo-grimoire/issues/257#issuecomment-7070590777",
+    "tracking": 262,
+    "report": null
+  },
+  "confirmation": {
+    "status": "pending",
+    "notes": "provisional ruling, until the human has discussed it with Modular"
+  },
+  "nightly": {
+    "version": "1.3.0.dev2026112017",
+    "checked": "2026-11-21",
+    "reproduces": true,
+    "result": "prints `False False` at -O3 and `True False` at -O0 to -O2, as the pin does; Mojo 1.2.0 does too, and also gets two levels, [[1]] against [[0]], wrong at -O3"
+  }
+}

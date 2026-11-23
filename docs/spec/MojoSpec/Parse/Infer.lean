@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10921444122516455895")
+:::moduleDocs (fingerprint := "2292357953233394628")
 :::
 
 :::readable MojoGrimoire.Parse.literalArg (fingerprint := "15594256188266583025")
@@ -25,7 +25,7 @@ it stays a temporary. It infers nothing itself, and its callers pass it
 only the form of a literal.
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "4770741627253784530")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "5157073807824613914")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, or $`\mathsf{Int}` for the element of
@@ -48,7 +48,10 @@ other parameter, as `inferArg` passes it (`literalArg`), so that one
 passed `mut` or `ref` stays a temporary (#191). Such a literal is inferred
 once with the type of the parameter that the choice of method tries, and
 that inference is used again for the argument when the parameter is the
-same, so that nested operators cost no more at each level. Any other call with no signature has no type. A literal left open takes the type expected where
+same, so that nested operators cost no more at each level. `not` on a
+struct negates what its `__bool__` gives, and `and` and `or` convert each
+struct operand with `__bool__` (`toBool`), unless both have the same
+struct type, which the operator then gives (#191). Any other call with no signature has no type. A literal left open takes the type expected where
 it stands, a list type or an array type, and the checker compares an
 array's size with the literal's length. With no list or array expected, it is
 an array of its elements, of the type of the first: Mojo's
@@ -110,7 +113,7 @@ be built takes nothing. A call with no signature has the type of a
 struct the program declares, `len`'s $`\mathsf{Int}`, or none.
 :::
 
-:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "990809493516971547")
+:::readable MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "12527092934874112096")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 $`\mathsf{None}` for a call that returns nothing (#131),
 and `ref x = e` binds $`x` with the type of $`e`; $`x` may change what

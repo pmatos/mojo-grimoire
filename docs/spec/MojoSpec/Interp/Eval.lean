@@ -13,35 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4317463098958001453")
+:::moduleDocs (fingerprint := "16234780108546972845")
 :::
 
-:::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "12042878878789727990")
-*Definition: arguments.* A call receives each argument as a place, passed
-by reference to a `read`, `mut`, `ref` or `out` parameter; as a value,
-moved or copied into a `var` parameter, which the callee owns, or copied
-into a `read` parameter of type $`\mathsf{Int}` or $`\mathsf{Bool}`; or
-as a temporary, a value passed to a borrowing parameter, which the caller
-destroys after the call. The callee's parameters are bound to them, each
-value at a new location, with the parameter's type.
-:::
-
-:::readable MojoGrimoire.Interp.Operand MojoGrimoire.Interp.Operand.load MojoGrimoire.Interp.Pending MojoGrimoire.Interp.Pending.loadAll (fingerprint := "3189860708977689654")
-*Definition: operands read late.* An operand that is a place passed by
-value, or the reference that a call returns, is first only located; it is read once every operand of its
-operation has been evaluated, as Mojo does. A call's arguments wait in
-the same way: those passed by value are read when the call is made. An
-$`\mathsf{Int}` or a $`\mathsf{Bool}` passed to a `read` parameter is
-passed by value.
-:::
-
-:::readable MojoGrimoire.Interp.asInt MojoGrimoire.Interp.asBool MojoGrimoire.Interp.lookupVar (fingerprint := "2000511689573242902")
-*Definition: helpers.* An index is an $`\mathsf{Int}`, a condition a
-$`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
-stuck.
-:::
-
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "7215896031593175492")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.evalLogic MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "6944330141521991425")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -63,7 +38,15 @@ unit at each step; with none left, the run stops with `outOfFuel`.
 - *Expressions.* Literals are values, and $`[e]_{\mathsf{Int}}` is the value
   of $`e`; a place is read, a transfer takes its value out, leaving its
   blank behind, and `.copy()` reads it. `and` and `or`
-  evaluate their right operand only when the left does not decide.
+  evaluate their right operand only when the left does not decide. On
+  structs of the same type they give the operand that decides, which its
+  `__bool__` tests as a call would pass it, by reference, or a copy to a
+  `var self`: a place is copied, and a temporary is
+  moved out when it decides and destroyed when it does not (#191). A
+  test of the left operand that inference made gives a `var self` a copy
+  (`copiedTest`), and destroys a temporary once it is copied. What
+  the left operand last uses dies once it is tested, after what the right
+  one would have used when the left one decides.
   The operands of an operator, the elements of a list literal and the
   values printed are evaluated left to right, and those that are places,
   or calls that return a reference, are read after the last one is

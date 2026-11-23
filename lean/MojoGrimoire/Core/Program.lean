@@ -59,7 +59,7 @@ structure StructDecl where
 Inference also gives it the bodies that `main`'s inference gave, as
 functions, each with the struct it belongs to, or none for a free
 function, `twin`, for the checker's bridge to `main`'s order
-(`MojoGrimoire.Check.bridged`); `mainMode` holds in the program that
+(`MojoGrimoire.Check.bridgedToTwin`); `mainMode` holds in the program that
 infers and checks as `main` did. -/
 structure Program where
   structs : List StructDecl

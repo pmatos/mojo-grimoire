@@ -14,6 +14,7 @@ import MojoGrimoire.Check.Pass
 import MojoGrimoire.Check.Operators
 import MojoGrimoire.Check.Methods
 import MojoGrimoire.Check.Compare
+import MojoGrimoire.Check.Logic
 import MojoGrimoire.Check.Expr
 import MojoGrimoire.Check.Ref
 import MojoGrimoire.Check.Stmt
@@ -25,6 +26,7 @@ import MojoGrimoire.Elab.Elaborate
 import MojoGrimoire.Elab.Strip
 import MojoGrimoire.Interp.Value
 import MojoGrimoire.Interp.Machine
+import MojoGrimoire.Interp.Args
 import MojoGrimoire.Interp.Eval
 import MojoGrimoire.Interp.Run
 import MojoGrimoire.Parse.Lexer

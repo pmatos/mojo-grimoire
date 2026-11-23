@@ -1,8 +1,9 @@
 # Current decisions: semantics, operators and calls on structs
 
 This page continues [semantics.md](semantics.md) with what an operator or
-a call means when its operand is a struct of the program, and when it
-compares two arrays, two lists or two `Bool`s.
+a call means when its operand is a struct of the program.
+[semantics-comparisons.md](semantics-comparisons.md) says what it means
+when it compares two arrays, two lists or two `Bool`s.
 
 ## Methods that a struct declares
 
@@ -45,16 +46,99 @@ is: `t < u` may give an `Int`.
   left type lacks (`missingMethod`) or the misfit of its built-in operator
   (`1 + t` is `noMatchingMethod`). `!=` never falls back to `__eq__`, nor
   any operator to another of the left operand's methods.
-- `-a` calls `__neg__`.
+- `-a` calls `__neg__`, and `not a` negates what `__bool__` gives.
+  `a and b` and `a or b` convert each struct operand with its
+  `__bool__`, unless both operands have the same struct type: then they
+  give the operand that decides, tested by reference. A place that
+  decides is copied, so a place of a struct that is not
+  `ImplicitlyCopyable` is `implicitCopy`; a temporary is moved, so a
+  `Movable` struct is accepted: a temporary left operand is moved out
+  when it decides, and destroyed when the right one does. The right operand is evaluated only when the left
+  one does not decide. What the left operand last uses dies once it is
+  tested, before the right one runs; when the left one decides, what the
+  right one would have used dies first. `Bool` operands follow the same
+  order, as the pin does: the human ruled on 2026-11-20 to keep this
+  order in #191.
+- The test of the left operand, when both have the same struct type, is
+  checked as the call of `__bool__` that the other operands get: what
+  `__bool__` returns must be a `Bool`, which the compiler converts with
+  `__mlir_bool__`, or the operator is `missingMethod`; a `mut self` takes
+  only a place that may change (`immutablePlace`) and no temporary
+  (`notAPlace`, #81).
+- A `var self` `__bool__` gets a copy of the left operand of `and` or
+  `or`, on either path, even of a temporary or `p^`, since the left
+  operand may be the result: a struct that is not `ImplicitlyCopyable`
+  is `implicitCopy`. The model and the pin differ on `p^` there: the
+  model moves the value out of `p`, so a later use of `p` is
+  `uninitializedUse`, while the pin, on the left of a mixed `and` or
+  `or`, only borrows `p^`, with no warning, and leaves `p` initialized
+  (`print(a^ or False); print(a.n)` runs). That is the bare `p^` in a
+  borrowing position of #84. A temporary converted by `__bool__` dies once it is
+  copied, before `__bool__` runs (`mk(2) and True` prints `del 2`, `bool
+  2`, `del 2`); one that the operator may give, of the same struct type
+  on both sides, lives until the test is done. The right operand and
+  `not e` move a temporary into `self`, as a call does.
+- A temporary bridge keeps `main`'s results for these tests until #96
+  part 4 types a function before it checks its flow; that part removes
+  it. `main` rejected every test of a struct, by `and`, `or` or `not`, as
+  `typeMismatch` once its operands were checked. So a statement, or a
+  condition of an `if` or a `while`, that throws an error is checked
+  again replaying `main`'s order (`bridged`), and the replay's error is
+  reported unless it is of the compiler's later pass
+  (`CheckError.late`). An error found after a struct test is then
+  `typeMismatch`: `y = (t(0) and x^) or x.f` with `y` a struct, and
+  `print(y or w, bi(w))`, as the compiler reports them. One found before
+  the test stays, as on `main` (`print(x.n, y.f or y)` after `x^` is
+  `uninitializedUse`). An error of the test itself, such as a `__bool__`
+  that returns an `Int` in `and` or `or`, or one that takes `mut self`
+  given a temporary, under `not` too, stays only when the statement holds no other
+  error, even one that the test's result causes: else `main` reported
+  the test's `typeMismatch` first, and so does the bridge, so
+  `lt[bi(w)] = (u or u2)`, with such a `__bool__` and a `bi` that does
+  not fit, is `typeMismatch`, as the compiler reports it. Where `main` differed
+  before the test, the replay follows it: it read a place that `not` or
+  a mixed `and` or `or` tests as a value (`mainRead`), so
+  `f2(not m, m or m2)`, with `m` `Movable`, is `implicitCopy`; and it
+  typed `and` or `or` of two structs as a `Bool`, at any depth, when it
+  chose an operator's method (`mainOperator`) or typed an operand from
+  its form (`mainFormTy`), so `w > (x or y)`, `(x or y) + ww` and
+  `[x or y] == [ww]` after `x^` are `typeMismatch`, and
+  `(y or S(xs[1 - 2], True)) + y` is `missingMethod`. The bridge gives
+  up the compiler's error where `main` reported `typeMismatch` first,
+  such as `b = (x^ or y) and x.f` with `b` a `Bool` (`uninitializedUse`),
+  and the test's own error where the statement holds another:
+  `print(u or u2, bi(w))`, `print(u or u2)`, with `U` not `Writable`, and
+  `var q: Bool = u or u2` are `missingMethod` in the compiler.
+- The value that an assignment to a whole variable that the function
+  owns, a local or a `var` parameter, replaces is not live after the
+  assigned expression, whether or not the variable is used later
+  (#99): in `o = O(wrap(rd(o)))`, the old `o` dies once `rd` returns,
+  in `o = O(o.f or pb(p.f))` once `o.f` is tested, and in `a = a or b`,
+  with `b` deciding, once `a` is, as the pin does at both levels. A
+  `mut` parameter or `mut self` still loses its old value only when the
+  store replaces it, where the pin destroys it at its last use too
+  (#251). When the value is the target itself, as in `o = o`, or the
+  operand of `and` or `or` that decides, as in `b = a and b` or
+  `a = a and b` with a false `a`, the pin destroys the old value before
+  it copies it, and its default level and `-O0` print different values:
+  a compiler bug (#248, [D-0012](../conformance/decision-log-d0012.md),
+  provisional). The model copies the value, then destroys the old one.
+  As the pin does for any other target, the old value dies at its last
+  use: for a fresh target that comes before the expression, and when the
+  target is an operand, it comes inside the expression, at the copy when
+  the target decides, so the old value dies after it.
+  `known.json` lists the six `structs/assign_target_*` programs.
 - An operator method that inference calls must take as many operands,
   `self` among them, as its operator: two for a binary, reflected or
-  in-place operator and one for `__neg__`. The compiler rejects such a
-  declaration when it parses it ("'__add__' requires 2 operands"), used or
-  not; the model rejects it as `arityMismatch`. Which class this message
-  maps to is not yet settled, so no pattern matches it and no suite
-  program pins it. The other operator methods that the compiler checks
-  in the same way, such as `__truediv__` or `__bool__`, are not yet
-  checked.
+  in-place operator and one for `__neg__` and `__bool__`. The compiler
+  rejects such a declaration when it parses it ("'__add__' requires 2
+  operands"), used or
+  not; the model rejects it as `arityMismatch`, the class the human
+  ruled for that message (#214). The suite's
+  `rejected/operator_method_bool_extra_param*` and
+  `rejected/operator_method_add_one_operand` programs pin it. The other
+  operator methods that the compiler checks
+  in the same way, such as `__truediv__`, are not yet checked.
 - `p += e`, `p -= e` and `p *= e` on a struct call `__iadd__`, `__isub__`
   and `__imul__`, with no fallback to `__add__`: a struct that lacks the
   method is `missingMethod`. The destination must be a place that may
@@ -72,190 +156,10 @@ is: `t < u` may give an `Int`.
   it. As the type of a field, or outside a struct, it is left as the name
   of a struct that no program declares (#203).
 
-## Comparisons of arrays and lists
-
-Two arrays of the same type compare with `<`, `<=`, `>`, `>=`, `==` and
-`!=` when their element type does, and two lists of the same type with
-`==` and `!=`, as the pinned nightly does. The human ruled on 2026-11-20
-that the model follows the compiler fully (#166, option a); #185 extends
-it to lists. Part 1 of #166 and #185 model the element types `Int`,
-`Bool`, and arrays and lists of them (`MojoGrimoire.Check.Compare`):
-
-- The order is lexicographic, element by element, with `False` before
-  `True`, and recursive through nested arrays and lists: `[1, 9] < [2, 0]`
-  and `[[1]] < [[2]]` are `True`, and two lists are equal when they have
-  the same length and equal elements. The methods compare elements with
-  their own `__lt__` and `__eq__`; for these types only the result shows.
-- Both operands are passed by reference: a named array or list, an
-  element or a field is read, not copied, and so is a call that returns a
-  reference, also one whose origin is a temporary. A place is read once
-  both operands are evaluated, as any operand, so `a == bump(a)` sees what
-  `bump` changed. A value whose last use is the comparison is destroyed
-  once it is done, as for a `read` argument.
-- A literal compared with an array or a list is converted to the other
-  operand's type, element by element, as a call converts its argument
-  (part 2 of #166, `literalFits`): an array of `n` elements takes `n`
-  that each fit its element type, a list any number, and an `Int`, a
-  literal of `Int`s, as `var x: Int = [1]` does. An element that is an
-  operator or a call fits by the result of the method it calls, also a
-  struct's `__add__`, `__lt__` or `__call__`, and `List[u]()` fits only
-  its own type. A literal on the right
-  takes the left operand's type. One on the left takes the right
-  operand's, unless that is a literal too, or a comparison that does not
-  conform, such as an array of lists ordered: then it keeps its own type,
-  an array of its first element's type. With `a = [1, 2]` and `xs` a list
-  of `Int`s, `a == [[1], [2]]`, `a == [[1], 2]`, `[[1], [2]] == a`,
-  `[1, 2] == a`, `[1, 2] == [[1], [2]]`, `[[1]] == [[[1]]]`, `[1] == xs`,
-  `[] == xs`, `xs == [1, 2]` and `xs == [[1]]` run. A list has no `<`, so
-  a literal compared with it by `<` keeps its own type. The literal on
-  the right is checked as the method's argument (`rightParam`); one that
-  does not fit is a type mismatch, found before the operands are read:
-  `a == [[]]`, `[[1]] == [1]`, `xs == [True]`, `a == [p + p, 2]` with
-  `p + p` a struct. A literal on the left that keeps its own type, as it
-  does not fit or the comparison converts none, makes the right operand,
-  which fits it no better, a type mismatch: `[1, 2, 3] == a`,
-  `[True] == xs`, `[ys^] == xs`, and `[[1]] < v` with `v` an array of
-  lists. An inner literal of another
-  length where an `Int` is expected on the right, `a == [[1, 2], 3]`, fits
-  no initializer of `Int` (`noMatchingInit`), but only once `a` is read,
-  as in a call: beside an uninitialized `a` it is `uninitializedUse`.
-  Where `main` rejected such a comparison with another class, the model
-  keeps `main`'s class by the bridge below until #96 part 4:
-  `a == [[]]`, `[True] == xs`, `[ys^] == xs`, `[[1]] < v` and
-  `a == [[1, 2], 3]` are still `implicitCopy`, and `xs == [True]` beside
-  an uninitialized `xs` is `uninitializedUse`.
-  Otherwise a literal is an array, unless the other operand is an `Int`
-  (see [semantics-lists.md](semantics-lists.md#arrays)).
-- An operand of another type, an array or a list of another length or
-  element type, an `Int`, a `Bool` or, beside an array, a list, is the
-  compiler's "cannot be converted", `typeMismatch`. So are an `Int` or a
-  `Bool` compared with an array or a list, and `[1] == []`. An integer
-  literal compared with either, `1 == a`, fits none of the literal's
-  overloads (`noMatchingMethod`).
-- An element type that does not conform to `Equatable`, or to
-  `Comparable` to order the arrays, is the compiler's "invalid call to
-  '__eq__': violated constraint", `violatedConstraint`
-  ([conformance-classes.md](conformance-classes.md#violated-constraints)):
-  `None` for every operator, and a list to order them. A list has no
-  order of its own: `xs < ys` is `missingMethod`.
-- The pin's optimized build compares two one-element arrays as equal
-  when a struct's `__deinit__` prints, where `-O0` compares the elements.
-  The human ruled this a compiler bug on 2026-11-21 (#235,
-  [D-0010](../conformance/decision-log.md)); the model compares the
-  elements. Two lists in that position compare their elements at every
-  optimization level.
-- At `-O3`, the default, the pin also compares arrays of arrays of
-  one-element arrays wrongly when two comparisons of them are printed
-  together: `[[[1]]] > [[[0]]]` is `False` beside `==`, with no destructor
-  involved. The human ruled this a compiler bug on 2026-11-21 (#257,
-  [D-0013](../conformance/decision-log.md)); the model compares the
-  elements, as `-O0` to `-O2` do.
-- The checker finds both errors from the operands' types, once they are
-  typed and before either is read: a mismatch first, then a constraint.
-  So `var a: Array[Int, 1]` compared with `[1, 2]`, or an uninitialized
-  list compared with an array, is a mismatch, not a use of an
-  uninitialized value.
-
-Two `Bool`s also compare with `<`, `<=`, `>` and `>=`, `False` first, as
-`Int`s do (#185). A `Bool` compared with an `Int` is a type mismatch,
-and `1 < True` fits none of the literal's overloads.
-
-Until #96 part 4 orders the model's errors as the compiler does, a
-statement, or a condition, that part 2 rejects is checked again as `main`
-did, from the same state, with the body that `main`'s inference gave
-(`Check.Block.bridged`, ruled on #281). When that check fails too, `main`'s
-error is reported; otherwise part 2's stands. Each condition of an
-`if`/`elif` chain is a statement of its own here, and is checked with
-the test that it is a `Bool`. A function, method, initializer or
-destructor is checked beside `main`'s twin of the same declaration, a
-method beside the method of its struct. So wherever `main` and part 2
-both reject a statement or a condition, it gives `main`'s result. The
-checks of a declaration as a whole, such as its parameters, a missing
-`return`, or what a function leaves when it ends, are not bridged. A comparison that part 2 rejects with the compiler's class,
-where `main` rejected it with another, keeps `main`'s class until #96
-part 4: `a == [[1, 2]]` with `a = [1]` stays `implicitCopy` where the
-compiler gives `noMatchingInit`, and `[1] < xs` stays `implicitCopy`
-where it gives `typeMismatch`. #96 lists those comparisons, and the suite
-programs and tests that part 4 adds back. A program of several statements
-is not bridged across statements; process.md's exceptions cover those.
-
-Not yet modelled. Each stays rejected, with a class that is still not
-the compiler's; where #185 changed the class, the bullet says so:
-
-- A comparison of which either operand is a literal that holds a place
-  whose value is not implicitly copyable, at any depth, such as `ys` or
-  `a` in `[ys] == xs`, `[[ys]] == 1`, `[a] == [[1], [2]]` or
-  `xs == [ys]`. The compiler builds the literal, and copies the place,
-  in an order against the literal's conversion and the misfit that
-  waits for #96. The comparison keeps every check it had before #166
-  (`keepsBefore`): most are `implicitCopy`, as the compiler says, but
-  `xs == [ys]`, a type mismatch for the compiler, is `implicitCopy` too.
-  So does a comparison with `List[u]()`, which is no literal the
-  compiler converts: `List[Int]() < a` is `missingMethod`, as it says.
-- A literal on the left that holds an inner literal of another length
-  where an `Int` is expected, `[[1, 2], 3] == a`. The compiler converts
-  it, fails SIMD's constraint (`noMatchingInit`) in a later pass than its
-  reads, and reports an uninitialized read in either operand first. That
-  order is #96's; until then the literal is not converted and keeps the
-  checks it had before #166: the right operand is copied, so a named one
-  is `implicitCopy`, and an uninitialized read is `uninitializedUse`, as
-  the compiler says.
-- A literal on the right that holds an inner literal of another length
-  where an `Int` is expected, beside another error of the statement:
-  `v >= [[[3, 0]]]` with `v: Array[List[Int], 1]`, or `a == [[1, 2], ux]`
-  with `ux` an uninitialized `Int`. The compiler fails SIMD's constraint
-  (`noMatchingInit`) as it instantiates, after every other pass, and
-  reports the comparison's `violatedConstraint` or the uninitialized read
-  first. Part 2 rejects the literal at once, and so keeps `main`'s
-  `implicitCopy`, the copy of the named operand (#170).
-- An element of an array read inside a literal compared with that
-  element, `[w[0][0]] == w[0]` with `w: Array[List[Int], 1]`, which the
-  compiler rejects as the use of an invalidated interior reference
-  (`invalidatedReference`, #282). `main` copied the array,
-  `implicitCopy`; part 2 runs the comparison.
-- A transfer in a loop's condition, `while a^ < [1, 3] and t:`, which the
-  compiler borrows and the model moves: the second check of the condition
-  is stuck at run time (#84). `while ab^ < [True, True] and t:`, with
-  `ab` an array of `Bool`s, takes that form with part 2. So does a
-  transferred operand read later: `print([[1], [2]] == a^)` then
-  `print(a[0])` runs on the compiler, which borrows `a`, and is
-  `uninitializedUse` with part 2, where `main` gave `typeMismatch` (#84).
-- A literal on the left with no type of its own that does not fit the
-  right operand, or that the comparison does not convert, `[[]] == a`,
-  `[[]] < v` or `[] == []`, which the compiler cannot type ("cannot emit an empty list without a contextual type", a message
-  no pattern classifies); the model keeps its result, `invalidType`.
-- An element type that holds a struct. The compiler requires the
-  struct's conformance to `Equatable` or `Comparable`, not the methods it
-  declares, and calls the struct's `__eq__` and `__lt__` element by
-  element. Conformances come with #194; part 3 of #166 follows it, for
-  arrays and lists. A list of structs compared with an empty literal,
-  `List[P]() == []` or `!= []`, went from `invalidType` to
-  `typeMismatch` with #185, since the literal now takes the list's type;
-  the compiler gives `violatedConstraint` for a struct without the
-  conformance.
-- A list of `None`, `List[NoneType]`, and `xs == None`, which need `None`
-  as a type and an expression (#183). `xs == None` and `xs != None` went
-  from `implicitCopy` to `unknownVariable` with #185, since `xs` is now
-  read uncopied and the model has no `None` expression; the compiler
-  gives `typeMismatch`.
-- An inner literal that initializes a `Bool`, `bs == [[True]]`,
-  `a == [[True]]` or `[[True]] == a`, with `a` an array of `Bool`s,
-  where the compiler finds no initializer (`noMatchingInit`, #165). `literalFits` leaves its fit
-  unknown, so the comparison keeps the checks it had before part 2: a
-  type mismatch beside a list on the left, and `implicitCopy` of a named
-  array, or of a list on the right. A `Bool` operand compared with a
-  literal, `t == [1]` or `bs[-1] >= [[3]]`, and a literal passed to a
-  struct's `__eq__` that takes a `Bool`, are `noMatchingInit` for the
-  compiler too, and `typeMismatch` in the model (#165); `bs[-1] >= [[3]]`
-  keeps `main`'s `negativeIndex`.
-
 ## What is not yet modelled
 
 Each of these keeps the result the model gave before #191:
 
-- `not`, `and` and `or` on a struct operand, which do not yet call its
-  `__bool__`, and the order in which `and` and `or` destroy what their
-  `Bool` operands last use. A later part of #191 models them.
 - A subscript of a struct that declares `__getitem__` or `__setitem__`,
   read or assigned, which the model rejects as `notAList`. A later part of #191 models reading and assigning it; a
   subscript used as a place beyond that, such as `p[i] op= e` or passing
@@ -263,7 +167,7 @@ Each of these keeps the result the model gave before #191:
 - The methods that `Equatable` and `Comparable` supply by default (#194),
   an `if` or
   `while` condition of struct type (#195), and a call of a field (#196).
-- `not` and `and` on an `Int` that `__bool__` gives, or on an `Int`
+- `not` on an `Int` that `__bool__` gives, and `and` or `or` on an `Int`
   operand beside a struct, which the compiler accepts (#179, #187).
 - The order of the compiler's passes across a call: an uninitialized
   receiver comes before an argument's type error in the model (#96), and

@@ -17,9 +17,10 @@ record the moves of the Mojo pin. The human ruled out spec decisions on
 discussed it with Modular.
 
 Every compiler bug that the human rules on is also listed in
-[compiler-bugs.json](compiler-bugs.json), with a minimal reproducer and the
-state of its upstream report, so that it can be confirmed later on a newer
-compiler. Upstream reports are filed only with the human's approval.
+[compiler-bugs.json](compiler-bugs.json), whose entry, one file per
+D-id in [compiler-bugs/](compiler-bugs/), holds a minimal reproducer and
+the state of its upstream report, so that it can be confirmed later on a
+newer compiler. Upstream reports are filed only with the human's approval.
 
 Each entry below keeps a summary, with the heading `### D-NNNN: <title>`
 that `scripts/conformance.py` looks for when `known.json` cites the entry.
@@ -264,6 +265,30 @@ Each move of the Mojo pin gets an entry below.
 - Decision and rationale: the fixed compiler compares the elements, as
   `-O0` and every control do ([evidence](decision-log-d0010.md#evidence)).
 - Upstream report: not filed; a draft on #235 awaits the human.
+
+### D-0012: an assignment whose value is the target itself destroys the old value first (provisional)
+
+- Date: 2026-11-21
+- Mojo release and commit: nightly 1.3.0.dev2026111905 (D-0007)
+- Programs: six in `tests/conformance/structs/`, `assign_target_*`,
+  listed on [the detail page](decision-log-d0012.md#programs).
+- Compiler: in `o = o`, or `b = a and b` where `b` decides, it destroys
+  the target's old value before it copies it, and reads the destroyed
+  value; its default level and `-O0` print different values
+  ([detail](decision-log-d0012.md#compiler)).
+- Model: copies the value, then destroys the old one.
+- Classification: compiler bug, for the whole family, the rows where the
+  levels agree included; ruled by the human on 2026-11-21 (#248),
+  provisional.
+- Decision and rationale: the fixed compiler destroys the old value at
+  its last use, as the pin does for any other target, at every level: for
+  a fresh target that comes before the expression, and through a call it
+  is the call. When the target is an operand, its last use comes inside
+  the expression, at the copy when it decides, so the fixed compiler
+  copies, then destroys the old value
+  ([evidence](decision-log-d0012.md#evidence)). The model did so already
+  and needed no change.
+- Upstream report: not filed; a draft on #248 awaits the human.
 
 ### D-0013: arrays of arrays of one-element arrays compare wrongly at -O3 (provisional)
 

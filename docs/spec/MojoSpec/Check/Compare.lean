@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3366430254367862855")
+:::moduleDocs (fingerprint := "18340965127348353091")
 :::
 
 :::readable MojoGrimoire.Check.compares MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "12823475274059033023")
@@ -73,10 +73,24 @@ expected: the order of SIMD's failure and the reads waits for #96, and
 such a literal keeps the checks it had before #166.
 :::
 
-:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "11155200522209564073")
+:::readable MojoGrimoire.Check.nestedTest MojoGrimoire.Check.lackingTy (fingerprint := "7903400112366600565")
+*Rule: the operands of a test.* For $`\mathsf{and}` and
+$`\mathsf{or}`, the misfit needs of an operand only whether its form
+gives a type that lacks `__bool__`, such as a struct without it, an
+array or `None` (`lackingTy`): a nested test gives one only when both of
+its operands give it, so its operand that is no test is asked first, and
+when that gives none, the form of the whole nested test is not computed,
+which keeps the check of a chain of tests linear in its length.
+:::
+
+:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "461793544575156199")
 *Rule: operands of a comparison of arrays or lists.* The misfit of a
 binary operator is found from its operands' forms before they are read
-(`operandTy`). A literal on the right of a comparison is converted to
+(`operandTy`, or the types that `main` gave them, in the replay of #191's
+bridge, `MojoGrimoire.Check.mainFormTy`, temporary, until #96 part 4).
+Any operator but a comparison keeps the checks it had before #166, and
+$`\mathsf{and}` and $`\mathsf{or}` ask of their operands only what
+`lackingTy` gives. A literal on the right of a comparison is converted to
 the type of the left operand, and one on the left to the type of the
 right operand unless that is a literal too; a literal that fits takes
 that type (`operandFit`, `fitTy`). A literal on the right that does not
@@ -96,7 +110,7 @@ unknown and which inference did not give the operand's type, beside a
 list, or an array when that literal holds a literal.
 :::
 
-:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "11081999233357894741")
+:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "18078458469295481078")
 *Rule: comparisons that keep the checks they had before #166.* A
 literal holds the places that are its elements, at any depth. A
 comparison of which either operand is a literal that holds a place whose
@@ -114,7 +128,7 @@ literal on the right of $`==` or $`!=` of a list as the argument `other`
 of the list's type.
 :::
 
-:::readable MojoGrimoire.Check.rightParam (fingerprint := "5344092844104288245")
+:::readable MojoGrimoire.Check.rightParam MojoGrimoire.Check.rightParamOf (fingerprint := "10936977070781752747")
 *Rule: a right operand checked as an argument.* When the left operand of
 a binary operator other than $`\mathsf{and}` and $`\mathsf{or}` is an
 integer literal, the right one is the argument `rhs`, an
@@ -125,19 +139,19 @@ literal that inference typed $`t`, the literal is the argument `other`
 of the method, of type $`t`, converted to it as a call's argument is
 (#166, #185): an element of another type is a type mismatch, and an
 inner literal where an $`\mathsf{Int}` is expected follows the rules of
-such literals.
+such literals. A comparison that keeps the checks it had before #166
+(`keepsBefore`) checks its right operand by `Before.rightParam` instead,
+and which of the two applies is decided before the left operand is read
+(`rightParamOf`).
 :::
 
-:::readable MojoGrimoire.Check.methodBinaryTy (fingerprint := "10037846033912567083")
+:::readable MojoGrimoire.Check.methodBinaryTy (fingerprint := "6442713632575443771")
 *Rule: the result of a binary operator, once its operands are checked.*
 A method that an operand's type lacks is `missingMethod`, and a
 comparison of arrays or lists that does not fit is its misfit, found
-again from the checked types; otherwise such a comparison gives a
-$`\mathsf{Bool}`, and any other operator's result is `binaryTy`'s.
-:::
-
-:::readable MojoGrimoire.Check.compareOperands (fingerprint := "8628745417993079286")
-*Rule: the order of a comparison's operands.* The left operand is
-checked, then the right one, as an argument when `rightParam` says so,
-and the places they read are checked again for what changed after them.
+again from the checked types; otherwise $`\mathsf{and}` and
+$`\mathsf{or}` on operands of the same struct type give the operand that
+decides, of that type: each place operand was copied, implicitly (#191);
+such a comparison gives a $`\mathsf{Bool}`, and any other operator's
+result is `binaryTy`'s.
 :::

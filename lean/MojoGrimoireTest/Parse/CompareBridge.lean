@@ -3,7 +3,7 @@ import MojoGrimoire.Interp.Run
 
 /-!
 Tests of the bridge to `main`'s order within a statement
-(`MojoGrimoire.Check.bridged`, #166): a statement that `main` rejected
+(`MojoGrimoire.Check.bridgedToTwin`, #166): a statement that `main` rejected
 with the compiler's class, by the error of a comparison with a literal
 that part 2 of #166 now converts, keeps that class while the model
 orders the statement's other errors otherwise than the compiler (#96,

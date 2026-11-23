@@ -91,6 +91,8 @@ compared with the compiler's diagnostics.
 
 {includeReadable "." MojoGrimoire.Check.Compare "Comparisons" MojoSpec.Check.Compare (level := 2)}
 
+{includeReadable "." MojoGrimoire.Check.Logic "The test of a struct operand" MojoSpec.Check.Logic (level := 2)}
+
 {includeReadable "." MojoGrimoire.Check.Expr "Expressions and arguments" MojoSpec.Check.Expr (level := 2)}
 
 {includeReadable "." MojoGrimoire.Check.Ref "References" MojoSpec.Check.Ref (level := 2)}
@@ -125,6 +127,8 @@ with the compiler.
 {includeReadable "." MojoGrimoire.Interp.Value "Values" MojoSpec.Interp.Value (level := 2)}
 
 {includeReadable "." MojoGrimoire.Interp.Machine "The machine" MojoSpec.Interp.Machine (level := 2)}
+
+{includeReadable "." MojoGrimoire.Interp.Args "Arguments and operands" MojoSpec.Interp.Args (level := 2)}
 
 {includeReadable "." MojoGrimoire.Interp.Eval "Evaluation" MojoSpec.Interp.Eval (level := 2)}
 

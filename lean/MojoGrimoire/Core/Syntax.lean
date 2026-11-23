@@ -113,4 +113,13 @@ def inPlaceCallee (f : Name) : Bool :=
   (calleeMethod f).any fun (_, m, reflected) =>
     ["__iadd__", "__isub__", "__imul__"].contains m && !reflected
 
+/-- The struct whose `__bool__` the expression `e` calls, and the operand it
+tests, when `e` is such a call, which inference makes to test a struct
+operand of `and`, `or` or `not`. -/
+def boolTest : Expr → Option (Name × Expr)
+  | .call f [e] => match calleeMethod f with
+    | some (s, "__bool__", false) => some (s, e)
+    | _ => none
+  | _ => none
+
 end MojoGrimoire.Core

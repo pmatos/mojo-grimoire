@@ -11,7 +11,7 @@ before the operands are read. Each verdict is the pinned compiler's for
 the program, probed on the nightly 1.3.0.dev2026111905. Where `main`
 rejected a statement with another class and part 2 rejects it too, the
 statement keeps `main`'s class until #96 part 4
-(`MojoGrimoire.Check.bridged`): those guards wait on #96.
+(`MojoGrimoire.Check.bridgedToTwin`): those guards wait on #96.
 -/
 
 namespace MojoGrimoireTest.Parse.LiteralCompare

@@ -139,7 +139,11 @@ than its callee takes is `arityMismatch` too: the compiler's "invalid call
 to 'F': unexpected argument" is matched whole and placed with it, above
 the loose patterns, since a callee's name such as `immutable` would match
 one of them. The suite's `rejected/unexpected_argument_named_like_other_errors`
-pins it. The human ruled this on 2026-11-22 (#219).
+pins it. The human ruled this on 2026-11-22 (#219). An operator method
+declared with the wrong number of operands, `self` among them, such as
+`__add__(self)` or `__bool__(self, k: Int)`, is `arityMismatch` too:
+`diagnostics.json` maps "'__X__' requires N operands", matched whole and
+accepting "operand", to it. The human ruled this on 2026-11-21 (#214).
 
 The model does not yet follow one case of the same rules. The operator
 methods that `Equatable` and `Comparable` supply by default (`a == b` on a
@@ -160,6 +164,11 @@ read, so `var b: Bool; xs[b]` is `uninitializedUse` in the model and
 `noMatchingMethod` in the compiler. That order across the compiler's
 passes is left to #96.
 
+A temporary bridge keeps `main`'s results for the struct tests that part
+2 of #191 accepts, until #96 part 4
+([semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares)
+says how).
+
 Rejected: mapping either message to an existing class, `noMatchingInit`,
 `typeMismatch` or `unknownAttribute`, which would merge errors that the
 compiler tells apart.
@@ -176,7 +185,7 @@ on lists of such a struct. `diagnostics.json` maps the message, matched
 whole and first, to one class, `violatedConstraint`, from the message
 alone. The human ruled this on 2026-11-20 (#166, option A). The model reports it for arrays of `None` and arrays of lists
 ordered, from the operands' types before it reads them
-([semantics-operators.md](semantics-operators.md#comparisons-of-arrays-and-lists));
+([semantics-comparisons.md](semantics-comparisons.md#comparisons-of-arrays-and-lists));
 arrays and lists of structs come with part 3 of #166, after #194, and
 lists of `None` with `None` as a type (#183).
 

@@ -14,6 +14,7 @@ import MojoSpec.Check.Pass
 import MojoSpec.Check.Operators
 import MojoSpec.Check.Methods
 import MojoSpec.Check.Compare
+import MojoSpec.Check.Logic
 import MojoSpec.Check.Expr
 import MojoSpec.Check.Ref
 import MojoSpec.Check.Stmt
@@ -25,6 +26,7 @@ import MojoSpec.Elab.Elaborate
 import MojoSpec.Elab.Strip
 import MojoSpec.Interp.Value
 import MojoSpec.Interp.Machine
+import MojoSpec.Interp.Args
 import MojoSpec.Interp.Eval
 import MojoSpec.Interp.Run
 import MojoSpec.Parse.Lexer
