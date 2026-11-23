@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.Compare
+import MojoGrimoire.Check.Logic
 
 /-!
 The checking of expressions and of the arguments of calls.
@@ -44,6 +44,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     if copyingOf prog t == .none then throw (CheckError.notCopyable t)
     pure t
   | .call f args => do
+    let f ← mainOperator prog f args (typeArgs prog args)
     if let .place p :: _ := args then
       if inPlaceCallee f then
         let s ← get
@@ -53,7 +54,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     rejectCalledVar prog f (typeArgs prog args)
     match callSig prog f with
     | .ok sig =>
-      let params := sig.params
+      let params ← testParams f sig.params
       let fit := if (findStruct prog f).isSome then Fit.init (.struct f) else .call
       checkExclusive (← locationArgs prog params args)
       recheckLocs prog (← checkArgs prog fit f params args params.length args.length)
@@ -75,17 +76,18 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       checkArgs prog fit m sig.params args sig.params.length args.length
   | .unary op a => do
     rejectMisfit (unaryMisfit prog op (← operandTy prog a)) (do let _ ← typeArg prog a)
-    lift (methodUnaryTy prog op (← checkExprAs prog false a))
+    lift (methodUnaryTy prog op (← notOperand prog a (checkExprAs prog false a)))
   | .binary op a b => do
-    rejectMisfit (← operandMisfit prog op a b) (do let _ ← typeArg prog a; let _ ← typeArg prog b)
-    let ta ← checkExprAs prog (← byRef prog op a b) a
+    rejectMisfit (← operandMisfit prog op a b (mainFormTy prog))
+      (do let _ ← typeArg prog a; let _ ← typeArg prog b)
+    let s ← get
+    let ta ← mainRead prog a (checkExprAs prog (← byRef prog op a b) a)
+    let sa ← get
     let ka ← mark
     let tb ← match rightParam op a b ta with
       | some (fit, prm) => do let _ ← checkArg prog fit (binaryMethod op) prm b; pure prm.ty
-      | none => checkExprAs prog (← byRef prog op b a) b
-    let kb ← mark
-    unless op == .and || op == .or do recheckPlaces prog [a, b] [ka, kb]
-    lift (methodBinaryTy prog op ta tb)
+      | none => mainRead prog b (checkExprAs prog (← byRef prog op b a) b)
+    checkedBinaryTy prog op a b ta tb ka (← mark) s sa
   | .list .unknown [] => throw (CheckError.invalidType .unknown)
   | .list .unknown (e :: es) => do
     let u ← checkExprAs prog false e
@@ -411,8 +413,5 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
   termination_by e => (sizeOf e, 3)
 
 end
-
-/-- The type of the expression `e`, used as a value. -/
-def checkExpr (prog : Program) (e : Expr) : CheckM Ty := checkExprAs prog false e
 
 end MojoGrimoire.Check

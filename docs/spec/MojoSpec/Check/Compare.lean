@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16876984616171267366")
+:::moduleDocs (fingerprint := "17001410660247623918")
 :::
 
 :::readable MojoGrimoire.Check.compares MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "12823475274059033023")
@@ -50,10 +50,18 @@ $`\mathsf{or}`, so is a right operand whose type lacks `__bool__`
 (`seqMisfit`).
 :::
 
-:::readable MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.convertsLiteral MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "15047511542355886965")
+:::readable MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.convertsLiteral MojoGrimoire.Check.nestedTest MojoGrimoire.Check.lackingTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "15767448469700066521")
 *Rule: operands of a comparison of arrays or lists.* The misfit of a
 binary operator is found from its operands' forms before they are read
-(`operandTy`). An integer literal on the left gives no type, so that its
+(`operandTy`, or the types that `main` gave them, in the bridge's replay,
+`MojoGrimoire.Check.mainFormTy`, temporary, until #96 part 4). For
+$`\mathsf{and}` and $`\mathsf{or}`, the misfit needs of an operand only
+whether its form gives a type that lacks `__bool__`, such as a struct
+without it, an array or `None` (`lackingTy`): a nested test gives one
+only when both of its operands give it, so its
+operand that is no test is asked first, and when that gives none, the
+form of the whole nested test is not computed, which keeps the check of
+a chain of tests linear in its length. An integer literal on the left gives no type, so that its
 overloads report a comparison with an array or a list
 (`noMatchingMethod`), and an empty literal with no type on the right of
 a comparison has a type that fits no array. A literal with no type
@@ -80,10 +88,13 @@ element of another type is a type mismatch, and an inner literal where
 an $`\mathsf{Int}` is expected follows the rules of such literals.
 :::
 
-:::readable MojoGrimoire.Check.methodBinaryTy (fingerprint := "10037846033912567083")
+:::readable MojoGrimoire.Check.methodBinaryTy (fingerprint := "6442713632575443771")
 *Rule: the result of a binary operator, once its operands are checked.*
 A method that an operand's type lacks is `missingMethod`, and a
 comparison of arrays or lists that does not fit is its misfit, found
-again from the checked types; otherwise such a comparison gives a
-$`\mathsf{Bool}`, and any other operator's result is `binaryTy`'s.
+again from the checked types; otherwise $`\mathsf{and}` and
+$`\mathsf{or}` on operands of the same struct type give the operand that
+decides, of that type: each place operand was copied, implicitly (#191);
+such a comparison gives a $`\mathsf{Bool}`, and any other operator's
+result is `binaryTy`'s.
 :::

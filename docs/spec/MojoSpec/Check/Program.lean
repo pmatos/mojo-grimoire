@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6794066038637030517")
+:::moduleDocs (fingerprint := "17260137438402503519")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17131055927722852879")
@@ -31,7 +31,7 @@ repeats. Only the `self` of `__init__` may be `out`, and only the
 `self` of `__deinit__` `deinit`.
 :::
 
-:::readable MojoGrimoire.Check.checkBody (fingerprint := "5194200915744885241")
+:::readable MojoGrimoire.Check.checkBody (fingerprint := "9431546208207984940")
 *Rule: function bodies.* The parameters have distinct names and declarable
 types, and the result type is declarable or $`\mathsf{None}`; a type in
 which a variable hides a name is `valueAsType`, in that order. An origin
@@ -42,12 +42,13 @@ the result type must be $`\mathsf{None}`, and the state there is checked
 as at a return.
 :::
 
-:::readable MojoGrimoire.Check.operatorArity MojoGrimoire.Check.checkFun MojoGrimoire.Check.checkMethod MojoGrimoire.Check.checkInit (fingerprint := "4673339903109587582")
+:::readable MojoGrimoire.Check.operatorArity MojoGrimoire.Check.checkFun MojoGrimoire.Check.checkMethod MojoGrimoire.Check.checkInit (fingerprint := "351135839383659493")
 *Rule: functions, methods and initializers.* A function's body is checked.
 A method of the struct $`S` has a first parameter `self` of type $`S`,
 `read`, `mut`, `var` or `ref`. An operator method that inference calls
 takes as many operands, `self` among them, as its operator: two for a
-binary, reflected or in-place operator and one for `__neg__`, as the
+binary, reflected or in-place operator and one for `__neg__` and
+`__bool__`, as the
 compiler checks when it parses the declaration; otherwise
 `arityMismatch` (#191). An initializer's first parameter is
 `out self` of type $`S`, and it returns nothing.

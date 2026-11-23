@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Places, expressions and statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16043484851213067175")
+:::moduleDocs (fingerprint := "13203923808965900470")
 :::
 
 :::readable MojoGrimoire.Core.Place MojoGrimoire.Core.Expr (fingerprint := "519563516514138862")
@@ -112,7 +112,7 @@ elaboration makes this explicit by inserting $`\mathsf{drop}`, so that a run
 never has to find a value's last use.
 :::
 
-:::readable MojoGrimoire.Core.methodCallee MojoGrimoire.Core.calleeMethod MojoGrimoire.Core.inPlaceCallee (fingerprint := "7234313423533500430")
+:::readable MojoGrimoire.Core.methodCallee MojoGrimoire.Core.calleeMethod MojoGrimoire.Core.inPlaceCallee MojoGrimoire.Core.boolTest (fingerprint := "4835584822539248275")
 *Definition: method callees.* A call may name the method $`m` of the
 struct $`S` as a function, $`S.m`, which takes the receiver as its first
 argument, as Mojo's $`S.m(r, \ldots)` does: inference makes such a call of
@@ -124,5 +124,6 @@ right and passes the right one as the receiver. No name of a program
 holds `.` or `~`, so no such callee names a function or a struct. The
 in-place callees, of `__iadd__`, `__isub__` and `__imul__`, are those
 that $`p \mathrel{+}= e`, $`p \mathrel{-}= e` and $`p \mathrel{\times}= e`
-call.
+call. A call of $`S.\mathtt{\_\_bool\_\_}` with one operand is the test
+of a struct operand that inference makes for `and`, `or` and `not`.
 :::

@@ -102,16 +102,56 @@ def convertsLiteral (op : BinOp) (a b : Expr) (ta tb : Option Ty) : Bool :=
     a matches .list .unknown _ && tb matches some (.list _) ||
     b matches .list .unknown _ && ta matches some (.list _))
 
+/-- Whether the operand `e` is a binary operation, under the drops that
+the elaborator adds: in an operand of struct type, a nested test of `and`
+or `or`, never a place nor a call. -/
+def nestedTest : Expr → Bool
+  | .binary .. => true
+  | .withDrops e _ _ => nestedTest e
+  | _ => false
+
+/-- The type of the operand `e` of `and` or `or` found by `formTy`, as far
+as the operator's misfit needs it (`binaryMisfit`): a type that lacks
+`__bool__`, such as a struct without it, an array or `None`, and else
+`none`. A nested test gives such a type only when both of its operands
+give it, so its operand that is no test is asked first: when that gives
+none, `lackingTy` gives none at once, and `formTy` does not go down the
+whole test, which at each level of a chain would go down the rest of
+it. -/
+def lackingTy (prog : Program) (formTy : Expr → CheckM (Option Ty)) (e : Expr) :
+    CheckM (Option Ty) := do
+  unless ← candidate e do return none
+  pure (lacking (← formTy e))
+where
+  /-- The type `t` when it lacks `__bool__`. -/
+  lacking (t : Option Ty) : Option Ty := if (lacks prog "__bool__" t).isSome then t else none
+  /-- Whether the form of `e` may give a type that lacks `__bool__`. -/
+  candidate : Expr → CheckM Bool
+    | .binary op a b => do
+      unless op == .and || op == .or do return (lacking (← formTy (.binary op a b))).isSome
+      if nestedTest b then
+        unless ← candidate a do return false
+        candidate b
+      else
+        unless ← candidate b do return false
+        candidate a
+    | .withDrops e _ _ => candidate e
+    | e => do pure (lacking (← formTy e)).isSome
+
 /-- The error of the operator `op` that the forms of its operands `a` and
-`b` give (`operandTy`), before they are read (`binaryMisfit`). An integer
+`b` give (`operandTy`, or `formTy` when given: `main`'s typing in the
+bridge to its order, temporary, until #96 part 4), before they are read
+(`binaryMisfit`). An integer
 literal's comparison with an array or a list is left to its overloads,
 and an empty literal with no type compared with an array has no type
 that fits it. A literal that the compiler converts (`convertsLiteral`) is
 left to the checks that follow, as before #166. -/
-def operandMisfit (prog : Program) (op : BinOp) (a b : Expr) : CheckM (Option CheckError) := do
-  let ta ← if intLiteral a then pure none else operandTy prog a
+def operandMisfit (prog : Program) (op : BinOp) (a b : Expr)
+    (formTy : Expr → CheckM (Option Ty) := operandTy prog) : CheckM (Option CheckError) := do
+  let formTy := if op == .and || op == .or then lackingTy prog formTy else formTy
+  let ta ← if intLiteral a then pure none else formTy a
   let tb ← if compares op && b matches .list .unknown [] then pure (some .unknown)
-    else operandTy prog b
+    else formTy b
   let tb := if convertsLiteral op a b ta tb then none else tb
   pure (binaryMisfit prog op ta tb)
 
@@ -143,10 +183,13 @@ def rightParam (op : BinOp) (a b : Expr) (ta : Ty) : Option (Fit × Param) :=
 /-- The type of the result of the operator `op` on operands of types `ta`
 and `tb`: a method that a type lacks first, or the misfit of a comparison
 of arrays or lists, then a `Bool` for such a comparison, and `binaryTy`
-for any other. -/
+for any other. `and` and `or` on operands of the same struct type, which
+has `__bool__`, give the operand that decides, of that type (#191). -/
 def methodBinaryTy (prog : Program) (op : BinOp) (ta tb : Ty) : Except CheckError Ty :=
   match binaryMisfit prog op (some ta) (some tb) with
   | some err => throw err
-  | none => if (seqCompare op ta).isSome then pure .bool else binaryTy op ta tb
+  | none =>
+    if (op == .and || op == .or) && ta == tb && ta matches .struct _ then pure ta
+    else if (seqCompare op ta).isSome then pure .bool else binaryTy op ta tb
 
 end MojoGrimoire.Check

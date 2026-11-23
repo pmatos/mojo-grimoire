@@ -68,6 +68,22 @@ def binaryMethod : BinOp → Name
   | .ne => "__ne__"
   | .and | .or => "__bool__"
 
+/-- The method that the reflected binary operator `op` calls on its right
+operand. -/
+def reflectedMethod : BinOp → Name
+  | .add => "__radd__"
+  | .sub => "__rsub__"
+  | .mul => "__rmul__"
+  | .floorDiv => "__rfloordiv__"
+  | .mod => "__rmod__"
+  | .lt => "__gt__"
+  | .le => "__ge__"
+  | .gt => "__lt__"
+  | .ge => "__le__"
+  | .eq => "__eq__"
+  | .ne => "__ne__"
+  | .and | .or => "__bool__"
+
 /-- The method that the unary operator `op` calls on its operand. -/
 def unaryMethod : UnOp → Name
   | .neg => "__neg__"
@@ -108,8 +124,11 @@ does not give it, or fails. A call of the built-in `len`, which nothing
 hides, gives an `Int`. A literal with no type expected has one only when
 every element's form gives the same type: one whose elements differ, or
 whose element's type its form does not give, is left to checking, which
-reports their mismatch first. -/
-def operandTy (prog : Program) (e : Expr) : CheckM (Option Ty) :=
+reports their mismatch first. With `asMain`, `and` and `or` give a `Bool`
+at any depth, as on `main`, which typed a test of two structs so
+(`MojoGrimoire.Check.mainFormTy`): a part of the bridge to `main`'s order,
+temporary, until #96 part 4. -/
+def operandTy (prog : Program) (e : Expr) (asMain : Bool := false) : CheckM (Option Ty) :=
   tryCatch (formTy e) fun _ => pure none
 where
   /-- The type of `e` found from its form. -/
@@ -126,7 +145,14 @@ where
     | .method p m args => do
       pure ((methodSig prog (← placeTy prog p) m args.length).toOption.map (·.result))
     | .unary op _ => pure (some (if op == .neg then .int else .bool))
-    | .binary op _ _ => pure (some (binaryResult op))
+    | .binary op a b => do
+      -- `main`'s typing, for the bridge: temporary, until #96 part 4.
+      if (op == .and || op == .or) && asMain then return some .bool
+      if op == .and || op == .or then
+        let tb ← formTy b
+        if !(tb matches some (.struct _)) then return some .bool
+        pure (if (← formTy a) == tb then tb else some .bool)
+      else pure (some (binaryResult op))
     | .list .unknown (e :: es) => do
       let u ← formTy e
       pure (if ← sameTy u es then u.map (.array · (es.length + 1)) else none)

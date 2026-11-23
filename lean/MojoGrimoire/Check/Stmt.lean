@@ -68,6 +68,9 @@ namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
 
+/-- The type of the expression `e`, used as a value. -/
+def checkExpr (prog : Program) (e : Expr) : CheckM Ty := checkExprAs prog false e
+
 /-- Whether the parts `hs` of a value of type `t` hold all of its part
 `q`: one of them is at or above `q`, or `q` is a struct and they hold each
 of its fields. A part held whole and then given a field again is recorded
@@ -319,7 +322,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark
     recheckPlaces prog args ks
   | .ifElse c thenBlock elseBlock => do
-    expect .bool (← checkExpr prog c)
+    expect .bool (← bridged (checkExpr prog c))
     let s0 ← get
     checkScope prog sig thenBlock
     let s1 ← get
@@ -327,7 +330,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     checkScope prog sig elseBlock
     set (joinStates s1 (← get))
   | .whileLoop c body => do
-    expect .bool (← checkExpr prog c)
+    expect .bool (← bridged (checkExpr prog c))
     let s0 ← get
     checkScope prog sig body
     let s1 ← get
@@ -336,7 +339,7 @@ def checkStmt (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
                                           stale := union s0.stale s1.stale } else s0
     if head != s0 then
       set head
-      expect .bool (← checkExpr prog c)
+      expect .bool (← bridged (checkExpr prog c))
       checkScope prog sig body
       let s2 ← get
       set (if s2.live then { head with vars := List.zipWith joinMay head.vars s2.vars } else head)
@@ -369,7 +372,8 @@ def checkBlock (prog : Program) (sig : FunDecl) : List Stmt → CheckM Unit
   | [] => pure ()
   | s :: rest => do
     modify fun st => { st with changes := [] }
-    checkStmt prog sig s
+    if s matches .ifElse .. | .whileLoop .. then checkStmt prog sig s
+    else bridged (checkStmt prog sig s)
     checkBlock prog sig rest
 end
 

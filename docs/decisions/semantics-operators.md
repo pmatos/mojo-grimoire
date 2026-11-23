@@ -45,16 +45,99 @@ is: `t < u` may give an `Int`.
   left type lacks (`missingMethod`) or the misfit of its built-in operator
   (`1 + t` is `noMatchingMethod`). `!=` never falls back to `__eq__`, nor
   any operator to another of the left operand's methods.
-- `-a` calls `__neg__`.
+- `-a` calls `__neg__`, and `not a` negates what `__bool__` gives.
+  `a and b` and `a or b` convert each struct operand with its
+  `__bool__`, unless both operands have the same struct type: then they
+  give the operand that decides, tested by reference. A place that
+  decides is copied, so a place of a struct that is not
+  `ImplicitlyCopyable` is `implicitCopy`; a temporary is moved, so a
+  `Movable` struct is accepted: a temporary left operand is moved out
+  when it decides, and destroyed when the right one does. The right operand is evaluated only when the left
+  one does not decide. What the left operand last uses dies once it is
+  tested, before the right one runs; when the left one decides, what the
+  right one would have used dies first. `Bool` operands follow the same
+  order, as the pin does: the human ruled on 2026-11-20 to keep this
+  order in #191.
+- The test of the left operand, when both have the same struct type, is
+  checked as the call of `__bool__` that the other operands get: what
+  `__bool__` returns must be a `Bool`, which the compiler converts with
+  `__mlir_bool__`, or the operator is `missingMethod`; a `mut self` takes
+  only a place that may change (`immutablePlace`) and no temporary
+  (`notAPlace`, #81).
+- A `var self` `__bool__` gets a copy of the left operand of `and` or
+  `or`, on either path, even of a temporary or `p^`, since the left
+  operand may be the result: a struct that is not `ImplicitlyCopyable`
+  is `implicitCopy`. The model and the pin differ on `p^` there: the
+  model moves the value out of `p`, so a later use of `p` is
+  `uninitializedUse`, while the pin, on the left of a mixed `and` or
+  `or`, only borrows `p^`, with no warning, and leaves `p` initialized
+  (`print(a^ or False); print(a.n)` runs). That is the bare `p^` in a
+  borrowing position of #84. A temporary converted by `__bool__` dies once it is
+  copied, before `__bool__` runs (`mk(2) and True` prints `del 2`, `bool
+  2`, `del 2`); one that the operator may give, of the same struct type
+  on both sides, lives until the test is done. The right operand and
+  `not e` move a temporary into `self`, as a call does.
+- A temporary bridge keeps `main`'s results for these tests until #96
+  part 4 types a function before it checks its flow; that part removes
+  it. `main` rejected every test of a struct, by `and`, `or` or `not`, as
+  `typeMismatch` once its operands were checked. So a statement, or a
+  condition of an `if` or a `while`, that throws an error is checked
+  again replaying `main`'s order (`bridged`), and the replay's error is
+  reported unless it is of the compiler's later pass
+  (`CheckError.late`). An error found after a struct test is then
+  `typeMismatch`: `y = (t(0) and x^) or x.f` with `y` a struct, and
+  `print(y or w, bi(w))`, as the compiler reports them. One found before
+  the test stays, as on `main` (`print(x.n, y.f or y)` after `x^` is
+  `uninitializedUse`). An error of the test itself, such as a `__bool__`
+  that returns an `Int` in `and` or `or`, or one that takes `mut self`
+  given a temporary, under `not` too, stays only when the statement holds no other
+  error, even one that the test's result causes: else `main` reported
+  the test's `typeMismatch` first, and so does the bridge, so
+  `lt[bi(w)] = (u or u2)`, with such a `__bool__` and a `bi` that does
+  not fit, is `typeMismatch`, as the compiler reports it. Where `main` differed
+  before the test, the replay follows it: it read a place that `not` or
+  a mixed `and` or `or` tests as a value (`mainRead`), so
+  `f2(not m, m or m2)`, with `m` `Movable`, is `implicitCopy`; and it
+  typed `and` or `or` of two structs as a `Bool`, at any depth, when it
+  chose an operator's method (`mainOperator`) or typed an operand from
+  its form (`mainFormTy`), so `w > (x or y)`, `(x or y) + ww` and
+  `[x or y] == [ww]` after `x^` are `typeMismatch`, and
+  `(y or S(xs[1 - 2], True)) + y` is `missingMethod`. The bridge gives
+  up the compiler's error where `main` reported `typeMismatch` first,
+  such as `b = (x^ or y) and x.f` with `b` a `Bool` (`uninitializedUse`),
+  and the test's own error where the statement holds another:
+  `print(u or u2, bi(w))`, `print(u or u2)`, with `U` not `Writable`, and
+  `var q: Bool = u or u2` are `missingMethod` in the compiler.
+- The value that an assignment to a whole variable that the function
+  owns, a local or a `var` parameter, replaces is not live after the
+  assigned expression, whether or not the variable is used later
+  (#99): in `o = O(wrap(rd(o)))`, the old `o` dies once `rd` returns,
+  in `o = O(o.f or pb(p.f))` once `o.f` is tested, and in `a = a or b`,
+  with `b` deciding, once `a` is, as the pin does at both levels. A
+  `mut` parameter or `mut self` still loses its old value only when the
+  store replaces it, where the pin destroys it at its last use too
+  (#251). When the value is the target itself, as in `o = o`, or the
+  operand of `and` or `or` that decides, as in `b = a and b` or
+  `a = a and b` with a false `a`, the pin destroys the old value before
+  it copies it, and its default level and `-O0` print different values:
+  a compiler bug (#248, [D-0012](../conformance/decision-log-d0012.md),
+  provisional). The model copies the value, then destroys the old one.
+  As the pin does for any other target, the old value dies at its last
+  use: for a fresh target that comes before the expression, and when the
+  target is an operand, it comes inside the expression, at the copy when
+  the target decides, so the old value dies after it.
+  `known.json` lists the six `structs/assign_target_*` programs.
 - An operator method that inference calls must take as many operands,
   `self` among them, as its operator: two for a binary, reflected or
-  in-place operator and one for `__neg__`. The compiler rejects such a
-  declaration when it parses it ("'__add__' requires 2 operands"), used or
-  not; the model rejects it as `arityMismatch`. Which class this message
-  maps to is not yet settled, so no pattern matches it and no suite
-  program pins it. The other operator methods that the compiler checks
-  in the same way, such as `__truediv__` or `__bool__`, are not yet
-  checked.
+  in-place operator and one for `__neg__` and `__bool__`. The compiler
+  rejects such a declaration when it parses it ("'__add__' requires 2
+  operands"), used or
+  not; the model rejects it as `arityMismatch`, the class the human
+  ruled for that message (#214). The suite's
+  `rejected/operator_method_bool_extra_param*` and
+  `rejected/operator_method_add_one_operand` programs pin it. The other
+  operator methods that the compiler checks
+  in the same way, such as `__truediv__`, are not yet checked.
 - `p += e`, `p -= e` and `p *= e` on a struct call `__iadd__`, `__isub__`
   and `__imul__`, with no fallback to `__add__`: a struct that lacks the
   method is `missingMethod`. The destination must be a place that may
@@ -172,9 +255,6 @@ the compiler's; where #185 changed the class, the bullet says so:
 
 Each of these keeps the result the model gave before #191:
 
-- `not`, `and` and `or` on a struct operand, which do not yet call its
-  `__bool__`, and the order in which `and` and `or` destroy what their
-  `Bool` operands last use. A later part of #191 models them.
 - A subscript of a struct that declares `__getitem__` or `__setitem__`,
   read or assigned, which the model rejects as `notAList`. A later part of #191 models reading and assigning it; a
   subscript used as a place beyond that, such as `p[i] op= e` or passing
@@ -182,7 +262,7 @@ Each of these keeps the result the model gave before #191:
 - The methods that `Equatable` and `Comparable` supply by default (#194),
   an `if` or
   `while` condition of struct type (#195), and a call of a field (#196).
-- `not` and `and` on an `Int` that `__bool__` gives, or on an `Int`
+- `not` on an `Int` that `__bool__` gives, and `and` or `or` on an `Int`
   operand beside a struct, which the compiler accepts (#179, #187).
 - The order of the compiler's passes across a call: an uninitialized
   receiver comes before an argument's type error in the model (#96), and
