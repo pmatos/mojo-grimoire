@@ -107,10 +107,7 @@ any length but 1 where an `Int` is expected initializes it, and fits no
 initializer (`rejectIntLiteral`, #153, #154). -/
 def checkInitValue (prog : Program) (t : Ty) (e : Expr) (value : CheckM Ty) : CheckM Unit := do
   if let some es := wrongIntLiteral e then
-    rejectIntLiteral prog (.init t)
-      (intMisfit prog (fun p _ => typePlace prog p) (fun a _ => checkExprAs prog false a) es
-        (Nat.le_refl _))
-      (readIntElems prog (fun a _ => checkExprAs prog false a) es (Nat.le_refl _))
+    rejectIntElems prog (.init t) es (fun p _ => typePlace prog p) (fun a _ => checkExpr prog a)
   if let .list .unknown es := e then
     unless t matches .list _ | .array .. do
       checkOperands prog es

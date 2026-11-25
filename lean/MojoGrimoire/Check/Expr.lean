@@ -101,10 +101,8 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         es.length es.length))
     pure t
   | .list .int [e] => do expect .int (← checkExprAs prog false e); pure .int
-  | .list .int es => rejectIntLiteral prog .call
-    (intMisfit prog (fun p _ => typePlace prog p) (fun a _ => checkExprAs prog false a) es
-      (Nat.le_refl _))
-    (readIntElems prog (fun a _ => checkExprAs prog false a) es (Nat.le_refl _))
+  | .list .int es =>
+    rejectIntElems prog .call es (fun p _ => typePlace prog p) (fun a _ => checkExprAs prog false a)
   | .list t es => do
     let u ← literalElem prog (.init t) t es.length
     recheckLocs prog (← checkArgs prog (.init t) (typeName t)
@@ -287,10 +285,7 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
   | .list t es => do
     passValue fit callee prm.conv
     let t' ← if t == .int && es.length != 1 then
-        rejectIntLiteral prog fit
-          (intMisfit prog (fun p _ => typePlace prog p) (fun a _ => checkExprAs prog false a) es
-            (Nat.le_refl _))
-          (readIntElems prog (fun a _ => checkExprAs prog false a) es (Nat.le_refl _))
+        rejectIntElems prog fit es (fun p _ => typePlace prog p) (fun a _ => checkExprAs prog false a)
       else if !(t matches .list _ | .array ..) || fit matches .init _ then
         checkExprAs prog false (.list t es)
       else do

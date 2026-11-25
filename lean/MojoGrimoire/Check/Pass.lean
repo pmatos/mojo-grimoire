@@ -31,6 +31,11 @@ still ends (#96). -/
 abbrev Below (β α : Type) [SizeOf β] (r : List Expr) : Type :=
   (x : β) → sizeOf x ≤ sizeOf r → CheckM α
 
+/-- Proves that a part of a value whose size the hypothesis `h` bounds,
+such as an element of a list or the elements of a literal in it, is no
+larger than that bound, for a check of `Below`. -/
+macro "below_bound " h:ident : tactic => `(tactic| (subst_vars; simp at $h:ident ⊢; omega))
+
 /-- Rejects unless the type `actual` is the type `expected`. -/
 def expect (expected actual : Ty) : CheckM Unit :=
   unless expected == actual do throw (CheckError.typeMismatch expected actual)

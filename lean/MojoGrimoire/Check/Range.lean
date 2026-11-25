@@ -24,9 +24,9 @@ def typeLiteral {r : List Expr} (typeArg : Below Expr Ty r) :
   | e :: es, h => do
     let (ints, empty) ← match e, h with
       | .list .unknown es', h | .list .int es'@([]), h | .list .int es'@(_ :: _ :: _), h =>
-        typeLiteral typeArg es' (by subst_vars; simp at h ⊢; omega)
-      | e, h => do pure ((← typeArg e (by subst_vars; simp at h ⊢; omega)) == .int, false)
-    let (ints', _) ← typeLiteral typeArg es (by subst_vars; simp at h ⊢; omega)
+        typeLiteral typeArg es' (by below_bound h)
+      | e, h => do pure ((← typeArg e (by below_bound h)) == .int, false)
+    let (ints', _) ← typeLiteral typeArg es (by below_bound h)
     pure (ints && ints', empty)
   termination_by es => sizeOf es
 
@@ -45,10 +45,10 @@ def typeRangeArgs {r : List Expr} (typeArg : Below Expr Ty r) (first : Bool) :
     modify State.typing
     let (misfit, literal) ← match a, h with
       | .list .unknown es, h | .list .int es@([]), h | .list .int es@(_ :: _ :: _), h => do
-        let (ints, empty) ← typeLiteral typeArg es (by subst_vars; simp at h ⊢; omega)
+        let (ints, empty) ← typeLiteral typeArg es (by below_bound h)
         pure (if ints && !(first && empty) then (false, true) else (true, false))
-      | a, h => do pure ((← typeArg a (by subst_vars; simp at h ⊢; omega)) != .int, false)
-    let (misfit', literal') ← typeRangeArgs typeArg false as (by subst_vars; simp at h ⊢; omega)
+      | a, h => do pure ((← typeArg a (by below_bound h)) != .int, false)
+    let (misfit', literal') ← typeRangeArgs typeArg false as (by below_bound h)
     pure (misfit || misfit', literal || literal')
   termination_by as => sizeOf as
 
@@ -62,17 +62,17 @@ def readRangeArgs (prog : Program) {r : List Expr} (checkIndices : Below Place U
     (check : Below Expr Ty r) : (as : List Expr) → sizeOf as ≤ sizeOf r → CheckM RangeArgs
   | [], _ => pure {}
   | a :: as, h => do
-    let r ← match a, h with
+    let read ← match a, h with
       | .list .unknown es, h | .list .int es@([]), h | .list .int es@(_ :: _ :: _), h =>
-        readRangeArgs prog checkIndices check es (by subst_vars; simp at h ⊢; omega)
+        readRangeArgs prog checkIndices check es (by below_bound h)
       | .place p, h => lateErrors (do
-        checkIndices p (by subst_vars; simp at h ⊢; omega)
+        checkIndices p (by below_bound h)
         let _ ← readPlace prog p
         pure { locs := [([p], ← mark)] })
       | a, h => lateErrors (do
-        let _ ← check a (by subst_vars; simp at h ⊢; omega)
+        let _ ← check a (by below_bound h)
         pure { locs := [(← lateLocs prog a, ← mark)] })
-    pure (r.append (← readRangeArgs prog checkIndices check as (by subst_vars; simp at h ⊢; omega)))
+    pure (read.append (← readRangeArgs prog checkIndices check as (by below_bound h)))
   termination_by as => sizeOf as
 
 end MojoGrimoire.Check
