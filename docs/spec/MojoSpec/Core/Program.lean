@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Functions, structs and programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9831924090381819157")
+:::moduleDocs (fingerprint := "17028461619507783713")
 :::
 
 :::readable MojoGrimoire.Core.Param (fingerprint := "15254264730588750988")
@@ -66,24 +66,57 @@ a move initializer for a struct that declares no conformance.
 Copy and move initializers are always the ones Mojo synthesizes.
 :::
 
-:::readable MojoGrimoire.Core.Program (fingerprint := "17275260827483887519")
+:::readable MojoGrimoire.Core.Member MojoGrimoire.Core.Decl (fingerprint := "16020552063474706497")
+*Definition: the order of declarations.* Where a declaration stands in the
+source:
+
+```grammar MojoGrimoire.Core.Member
+m
+field   \mathsf{field}~i
+init    \mathsf{\_\_init\_\_}
+deinit  \mathsf{\_\_deinit\_\_}
+method  \mathsf{method}~i
+```
+
+```grammar MojoGrimoire.Core.Decl
+d
+func    \mathsf{function}~i
+struct  \mathsf{struct}~i~m^*
+```
+
+A member of a struct is its $`i`-th field, its initializer, its destructor
+or its $`i`-th other method. A declaration of a program is its $`i`-th
+function, or its $`i`-th struct with the order of its members. The
+compiler reports some errors in the order of the source (#96).
+:::
+
+:::readable MojoGrimoire.Core.Program (fingerprint := "9032506628055028520")
 *Definition: programs.* A program is a list of structs and a list of
-functions. It runs by calling the function $`\mathsf{main}`. It also
-says whether it is inferred and checked as `main` did, and holds its
+functions, with the order of its declarations in the source, which the
+parser records and which is empty in a program built otherwise. It runs
+by calling the function $`\mathsf{main}`. It also says whether it is inferred and checked as `main` did, and holds its
 twin: the bodies that inference gives in that mode, as functions, each
 with the struct it belongs to or none, for the checker's bridge to
 `main`'s order (#166). The twin is computed only when
 the checker first needs it.
 :::
 
-:::readable MojoGrimoire.Core.instBEqProgram (fingerprint := "15588969329907978291")
+:::readable MojoGrimoire.Core.instBEqProgram (fingerprint := "4903671369859018109")
 *Definition: equal programs.* Two programs are equal when their structs,
-functions and mode are. The twin is not compared, so as not to infer it;
+functions, order of declarations and mode are. The twin is not compared, so as not to infer it;
 elaboration and the stripping of tests change the functions and keep the
 twin, so two programs equal so may differ in their twins.
 :::
 
-:::readable MojoGrimoire.Core.deinitDecl MojoGrimoire.Core.Program.asMain MojoGrimoire.Core.Program.twinBody (fingerprint := "17686505123012699047")
+:::readable MojoGrimoire.Core.StructDecl.defaultMembers MojoGrimoire.Core.Program.declOrder (fingerprint := "8311956066181836934")
+*Definition: the order of a program.* The order of a program's
+declarations is the one that the parser recorded. A program built with no
+order, such as one built by hand, takes its structs and then its
+functions, and each struct its fields, then its initializer, its
+destructor and its other methods. Later passes read the order so.
+:::
+
+:::readable MojoGrimoire.Core.deinitDecl MojoGrimoire.Core.Program.asMain MojoGrimoire.Core.Program.twinBody (fingerprint := "12354485916356738237")
 *Definition: twins.* A destructor is the function
 $`\mathsf{\_\_deinit\_\_}(\mathsf{deinit}~\mathsf{self})` of its
 struct that returns nothing. A program in `main`'s mode is the same
