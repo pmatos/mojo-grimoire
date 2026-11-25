@@ -81,9 +81,10 @@ operation, the model checks in program order, as in any expression:
 `range(xs[-1] + u)`, with `u` uninitialized, is `negativeIndex`. An
 argument whose check stops at a later pass's error does not record what it
 moved, so `range(g(p^, xs[-1]), p.x)` is `negativeIndex` where the
-compiler reports `p` uninitialized. A constant index into an array comes
-before the literal and before an index into a list on the compiler, and
-the model reports it as any index. A nested `List[Int](range([1, 2]))`
+compiler reports `p` uninitialized. On the compiler, a constant index into
+an array comes before an index into a list. It comes before the literal at
+the default level, `-O3`, even when the literal comes first in the text,
+but after it at `-O0` (#331). The model reports it as any index. A nested `List[Int](range([1, 2]))`
 fails at once in the model, before a use of an uninitialized value in
 another argument.
 
@@ -132,7 +133,8 @@ removes all three.
   2026-11-25 that this is a bridge of this kind. Between a literal of
   `Int`s of the wrong length and a constant index into an array, the
   compiler's order differs between `-O0` and `-O3`. The model keeps the
-  order at `-O0`, and no suite program pins it.
+  order at `-O0`, and no suite program pins it until the human rules on
+  #331.
 
 Other notes that wait for #96 stay on their pages: the comparisons not yet
 modelled in [semantics-comparisons.md](semantics-comparisons.md), and
