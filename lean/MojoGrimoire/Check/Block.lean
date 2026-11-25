@@ -93,7 +93,8 @@ def checkStmt (prog : Program) (sig : FunDecl) (s : Stmt) (m : Thunk (Option Stm
     let s1 ← get
     checkLoop s0 s1
     let head := if s1.live then { s0 with vars := List.zipWith joinMay s0.vars s1.vars,
-                                          stale := union s0.stale s1.stale } else s0
+                                          stale := union s0.stale s1.stale,
+                                          interior := union s0.interior s1.interior } else s0
     if head != s0 then
       set head
       checkCond prog c (tw.map (·.1))

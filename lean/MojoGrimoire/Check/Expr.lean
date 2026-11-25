@@ -58,7 +58,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       let params ← testParams f sig.params
       let fit := if (findStruct prog f).isSome then Fit.init (.struct f) else .call
       checkExclusive (← locationArgs prog params args)
-      recheckLocs prog (← checkArgs prog fit f params args params.length args.length)
+      recheckArgs prog args (← checkArgs prog fit f params args params.length args.length)
       for q in ← changedArgs prog params args do changePlace prog q
       refResult prog asRef sig args
     | .error err =>
@@ -192,7 +192,7 @@ def checkOperands (prog : Program) : List Expr → CheckM Unit
 /-- Checks the index expressions of the place `p`: each is an `Int`, and
 one that Mojo computes when it compiles the program may not be negative,
 nor, into an array or an `Int`, beyond its last element. Mojo locates `q` in `q[i]`
-before it evaluates `i`, so `i` may not invalidate `q`. Each `q^` in `p`
+before it evaluates `i`, then subscripts it (`subscript`). Each `q^` in `p`
 needs `q` whole, and a value that `q^` could transfer. -/
 def checkIndices (prog : Program) : Place → CheckM Unit
   | .var _ => pure ()
@@ -201,7 +201,7 @@ def checkIndices (prog : Program) : Place → CheckM Unit
     checkIndices prog p
     let k ← mark
     checkIndex prog (← operandTy prog (.place p)) i
-    requireUnchanged prog p k
+    subscript prog p k
     if let some k := constInt i then
       if k < 0 then throw (CheckError.negativeIndex (.index p i))
       if let some n := fixedLength (← placeTy prog p) then
@@ -295,8 +295,7 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
         pure t
     expectArg fit prm.ty t'
     let k ← mark
-    let late ← if let [x] := es then if t == .int then lateLocs prog x else pure [] else pure []
-    pure (late, k)
+    pure (← nestedLocs prog (.list t es), k)
   | e => do
     if e matches .str _ && fit matches .overload _ then
       throw (fit.misfit (CheckError.typeMismatch prm.ty .str))

@@ -149,12 +149,14 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
   | .refDecl x e => do
     if (← get).vars.any (·.name == x) then throw (CheckError.duplicate x)
     let (t, origins, m) ← refTarget prog sig.name e
-    modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
+    let sub ← refSubscripts prog e
+    modify fun s => { s with vars := ⟨x, t, .alias origins m sub, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
     rejectSetterOnly prog p
     if let some g ← valueSubscript prog p then
       return ← assignGetter prog p g fun t => checkInitValue prog t e (checkExpr prog e)
     let k ← mark
+    let before := (← get).interior
     if let .binary _ (.place q) _ := e then
       if q == p && !plainIndices p then rejectIntElem prog p (checkIndices prog p)
     typedFirst (checkIndices prog p) do
@@ -177,7 +179,10 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let (x, path) := splitPlace p
     let v ← lookup x
     if splitPlace.indexed p || v.access matches .alias .. then
+      let s ← get
+      set { s with interior := before }
       let _ ← readPlace prog p
+      set s
       return
     let ts := (if (above path v.touched).isEmpty then [] else [[]]) ++ atOrBelow path v.touched
     if cannotEnd prog (partTy prog v.ty path) (partsWithin path v.uninit) (atOrBelow path v.moved)
@@ -197,6 +202,7 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     rejectCalledVar prog "print" (typeArgs prog args)
     let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark
     recheckPlaces prog args ks
+    recheckLiterals prog args ks
   | .ret value => do
     match value, sig.origin with
     | none, _ => unless sig.result == .noneType do throw (CheckError.invalidReturn sig.name)

@@ -55,6 +55,20 @@ def refTarget (prog : Program) (fn : Name) (e : Expr) (expected : Option Ty := n
     located
   | _ => throw CheckError.notAReference
 
+/-- Whether a reference bound to `e` with `ref` is subscripted as one that
+may change: whether it may be changed, as `refTarget` finds, with each
+variable's access as a subscript sees it. The compiler does not know the
+mutability of a `ref` parameter, so it subscripts a reference to one as
+one that may change, though the reference may not be changed through. -/
+def refSubscripts (prog : Program) (e : Expr) : CheckM Bool := do
+  let s ← get
+  set { s with vars := s.vars.map fun (v : VarState) => { v with access := v.access.asSubscripted } }
+  let r ← match e with
+    | .place p => placeMutable p
+    | e => do pure (((← locOf prog e).map (·.2)).getD false)
+  set s
+  pure r
+
 /-- Whether a returned reference to the place `o` stays within the origin
 `os`: with its indices into arrays left out, `o` is a parameter that `os`
 names. The compiler gives a field and an element of a list an origin of
