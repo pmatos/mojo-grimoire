@@ -72,9 +72,9 @@ followed by the parameter's name, and `owned` is a name, not a convention:
 a method, whose type is its struct. A function without a result returns
 $`\mathsf{None}`. `raises` is read and ignored: the subset raises no
 errors. A result `ref [a, b] T` is a reference with the origins of the
-parameters named; it names at least one. A method's name may be `break`
-or `continue`, as in the compiler, and a function's may not
-(`memberName`, #268). Each function is recorded with the lines where the
+parameters named; it names at least one. A method's name may be a
+keyword, as in the compiler, and a function's may not (`memberName`,
+#268, #278). Each function is recorded with the lines where the
 statements of its body start.
 :::
 
