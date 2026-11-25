@@ -229,7 +229,7 @@ subscriptable, it does not implement the `__getitem__`/`__setitem__`
 methods". `diagnostics.json` maps it, matched whole and first, to
 `notAList`, as the model reports it. The human ruled this on 2026-11-20
 (#182). The compiler reports it before any error in the index or in the
-assigned value, which the model reports first (#227).
+assigned value, and so does the model (#227, #96 part 10).
 
 A subscript, read or assigned, of a struct that declares `__setitem__`
 but not `__getitem__` is "'T' has '__setitem__' but no '__getitem__'

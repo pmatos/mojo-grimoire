@@ -193,6 +193,26 @@ without copies (`copyChecks`), so that a later argument's misfit comes
 first. Exclusivity is checked after the arguments. This holds for calls,
 methods, initializers and the operators' methods.
 
+## The order inside a place
+
+The compiler types a place from its variable outward (#96 part 10, #142,
+#227), probed on the pin (`order/place_*`): the variable, then each
+field and each subscript in turn. A subscript is checked once the place it
+indexes is typed: a type that cannot be indexed comes first, then the
+index's own expression, then the index's misfit. So an unknown variable
+comes before its index's type, `zz[True]`, an unknown field before an
+index after it, `l[0].nope[zz]`, and a subscript of a struct that
+declares neither `__getitem__` nor `__setitem__` before its index,
+`p[zz]`. An assignment types its target place in full before the value
+it assigns: `p.nope = zz` is `unknownAttribute`, and `p[0] = zz`
+`notAList`.
+
+The checker checks a place's indices as before (`indicesOf`). When that
+fails with an error of the type phase, the place is typed in the
+compiler's order first (`typePlace`), and its error comes first
+(`checkIndices`). An assignment types its target, `placeTy`, before it
+checks the value.
+
 ## Where the model differs today
 
 The checker's phases follow the compiler's tiers, and each phase its

@@ -102,8 +102,9 @@ two disagree, the model follows the compiler.
   initialized or invalidated, the list or an index, at a constant index
   out of range, and at the `mut` parameter it may be passed to, also
   through a reference. The model does the same (#119), in the order of
-  [semantics-error-order.md](semantics-error-order.md#transfers-of-an-element). A place
-  that is not transferred is still checked in the old order (#142).
+  [semantics-error-order.md](semantics-error-order.md#transfers-of-an-element). Any
+  other place is typed in the same order from its variable outward
+  ([semantics-error-order.md](semantics-error-order.md#the-order-inside-a-place)).
 - `p^` followed by a field or a method, `p^.f` or `p^.m(…)`, is the place
   `transferred p` (#66). The compiler warns that the transfer has no
   effect, and borrows `p`: `p^.f` is the field `p.f`, read, copied or

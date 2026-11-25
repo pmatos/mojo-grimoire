@@ -208,16 +208,28 @@ def checkOperands (prog : Program) : List Expr → CheckM Unit
     checkOperands prog args
   termination_by es => (sizeOf es, 2)
 
+/-- Checks the index expressions of the place `p` (`indicesOf`). The
+compiler types a place from its variable outward, the variable, then each
+field and each subscript in turn, and each index once the place it
+indexes is typed (#142, #227, #96 part 10): so when the check fails with
+an error of the type phase, `p` is typed in that order first
+(`typePlace`), and an unknown variable or field, or a type that cannot
+be indexed, comes before an index's error. -/
+def checkIndices (prog : Program) (p : Place) : CheckM Unit :=
+  tryCatch (indicesOf prog p) fun err =>
+    if err.phase == .type then rejectAfter (typePlace prog p) err else throw err
+  termination_by (sizeOf p, 3)
+
 /-- Checks the index expressions of the place `p`: each is an `Int`, and
 one that Mojo computes when it compiles the program may not be negative,
 nor, into an array or an `Int`, beyond its last element. Mojo locates `q` in `q[i]`
 before it evaluates `i`, then subscripts it (`subscript`). Each `q^` in `p`
 needs `q` whole, and a value that `q^` could transfer. -/
-def checkIndices (prog : Program) : Place → CheckM Unit
+def indicesOf (prog : Program) : Place → CheckM Unit
   | .var _ => pure ()
-  | .field p _ => checkIndices prog p
+  | .field p _ => indicesOf prog p
   | .index p i => do
-    checkIndices prog p
+    indicesOf prog p
     let k ← mark
     checkIndex prog (← operandTy prog (.place p)) i
     subscript prog p k
@@ -230,7 +242,7 @@ def checkIndices (prog : Program) : Place → CheckM Unit
         if n ≤ k then instThrow (CheckError.constantIndexOutOfBounds (.index p i))
   | .transferred p => do
     requireOwnOrigin prog p
-    checkIndices prog p
+    indicesOf prog p
     let _ ← requireTransferable prog p
   termination_by p => (sizeOf p, 2)
 
