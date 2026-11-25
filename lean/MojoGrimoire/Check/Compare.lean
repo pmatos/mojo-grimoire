@@ -43,11 +43,6 @@ namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
 
-/-- Whether the operator `op` compares: `<`, `<=`, `>`, `>=`, `==` or
-`!=`. -/
-def compares (op : BinOp) : Bool :=
-  op matches .lt | .le | .gt | .ge | .eq | .ne
-
 /-- Whether the comparison `op` of two arrays, or two lists, of type `t` is
 modelled, and then whether `t`'s element type conforms to the trait that
 `op` needs: `Comparable` to order, `Equatable` for `==` and `!=`. `Int`,

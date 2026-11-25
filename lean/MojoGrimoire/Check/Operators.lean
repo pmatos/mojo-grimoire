@@ -30,13 +30,19 @@ def binaryTy (op : BinOp) (a b : Ty) : Except CheckError Ty :=
     unless b == .bool do throw (.typeMismatch .bool b)
     pure .bool
 
+/-- Whether the operator `op` compares: `<`, `<=`, `>`, `>=`, `==` or
+`!=`. -/
+def compares (op : BinOp) : Bool :=
+  op matches .lt | .le | .gt | .ge | .eq | .ne
+
 /-- The error of the comparison `op` of an operand of type `ta` with the
 right operand `b`, found before they are read: an empty literal with no
 type beside a `Bool` is the argument `rhs` of the `Bool`'s method, which
 the compiler cannot convert to a `Bool`, a type mismatch (#286). A
-literal with elements tries `Bool`'s initializers instead (#165). -/
+literal with typed elements tries `Bool`'s initializers instead (#165),
+and one made only of empty literals waits for #300. -/
 def boolLiteralMisfit (op : BinOp) (ta : Option Ty) (b : Expr) : Option CheckError :=
-  if (op matches .lt | .le | .gt | .ge | .eq | .ne) && ta == some .bool &&
+  if compares op && ta == some .bool &&
       b matches .list .unknown [] then some (.typeMismatch .bool .unknown)
   else none
 

@@ -13,12 +13,11 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14635928940583203952")
+:::moduleDocs (fingerprint := "5594550418301698401")
 :::
 
-:::readable MojoGrimoire.Check.compares MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "12823475274059033023")
-*Definition: comparable arrays and lists.* $`<`, $`\le`, $`>`, $`\ge`,
-$`==` and $`!=` compare. Two arrays compare when their element type
+:::readable MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "11022081997966745842")
+*Definition: comparable arrays and lists.* Two arrays compare when their element type
 conforms to `Comparable`, to order them, or to `Equatable`, for $`==`
 and $`!=`; two lists compare with $`==` and $`!=` when their element
 type conforms to `Equatable`. $`\mathsf{Int}`, $`\mathsf{Bool}` and

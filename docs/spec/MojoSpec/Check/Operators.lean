@@ -13,18 +13,24 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Operators: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4630260240153892104")
+:::moduleDocs (fingerprint := "8359356254414696136")
 :::
 
-:::readable MojoGrimoire.Check.boolLiteralMisfit (fingerprint := "705942569794014975")
+:::readable MojoGrimoire.Check.compares (fingerprint := "4667244952484152006")
+*Definition: comparisons.* $`<`, $`\le`, $`>`, $`\ge`, $`==` and $`!=`
+compare.
+:::
+
+:::readable MojoGrimoire.Check.boolLiteralMisfit (fingerprint := "2932623962651459134")
 *Rule: a $`\mathsf{Bool}` compared with an empty literal.* When the left
 operand of $`<`, $`\le`, $`>`, $`\ge`, $`==` or $`!=` is a
 $`\mathsf{Bool}` and the right one is an empty literal with no type,
 the literal is the argument `rhs` of the $`\mathsf{Bool}`'s method,
 which the compiler cannot convert to a $`\mathsf{Bool}`: a type
 mismatch, found from the operands' forms before they are read (#286).
-A literal with elements tries the initializers of $`\mathsf{Bool}`
-instead (#165), and an empty literal on the left has no type at all.
+A literal with typed elements tries the initializers of
+$`\mathsf{Bool}` instead (#165), one made only of empty literals waits
+for #300, and an empty literal on the left has no type at all.
 :::
 
 :::readable MojoGrimoire.Check.binaryResult (fingerprint := "7037857992261783058")
