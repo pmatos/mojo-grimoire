@@ -242,6 +242,15 @@ methods". `diagnostics.json` maps it, matched whole and first, to
 (#182). The compiler reports it before any error in the index or in the
 assigned value, which the model reports first (#227).
 
+A subscript, read or assigned, of a struct that declares `__setitem__`
+but not `__getitem__` is "'T' has '__setitem__' but no '__getitem__'
+method", reported once its receiver is typed, before its index, the
+assigned value and a later pass's errors. `diagnostics.json` maps it,
+matched whole, to `missingMethod`. The human ruled this on 2026-11-25
+(#296); a class of its own and leaving it unclassed were rejected. The
+model reports it for `p[i] = v` and `p[i] op= v`; a read of such a
+subscript is still `notAList` in the model (#298).
+
 ## Copyable structs whose fields cannot be copied
 
 The compiler synthesizes the copy initializer of a struct that declares

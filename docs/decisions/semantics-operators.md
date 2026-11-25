@@ -165,6 +165,10 @@ is: `t < u` may give an `Int`.
   write through the reference is not yet modelled, so the model then
   reports `notAList`, as for the other subscripts of a struct used as
   places (#198).
+- `p[i] = v` and `p[i] op= v` on a struct that declares `__setitem__`
+  but not `__getitem__` are `missingMethod` of `__getitem__`, as the
+  compiler reports them once it has typed `p`, before `i`, `v` and a
+  later pass's errors (#296).
 - Where a value of a type is expected, an argument, an initial value or a
   returned value, a call that returns a reference to a value that is not
   `ImplicitlyCopyable` reports a type that does not fit before its
