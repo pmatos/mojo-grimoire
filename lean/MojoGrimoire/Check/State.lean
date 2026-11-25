@@ -149,8 +149,10 @@ the current point can be reached, the references bound with `ref` that are
 invalidated, those that only a subscript of an array invalidated
 (`interior`), and the places changed as a whole so far in the current
 statement, in order, the phase and the stage of the flow phase, whether
-every check runs, whatever the phase (`allChecks`), and what the
-instantiation phase records (`InstEvent`). After a
+every check runs, whatever the phase (`allChecks`), whether implicit
+copies are checked (`copyChecks`, cleared only while a call's arguments
+are matched again before their copies), and what the instantiation phase
+records (`InstEvent`). After a
 `return`, the current point cannot be reached. `mainTests` is set only
 while a statement is checked again to replay `main`'s order, in which a
 struct test is rejected, and `ownChecks` is cleared only while it is
@@ -168,6 +170,7 @@ structure State where
   phase : Phase := .flow
   stage : Stage := .ends
   allChecks : Bool := false
+  copyChecks : Bool := true
   events : List InstEvent := []
   deriving BEq
 

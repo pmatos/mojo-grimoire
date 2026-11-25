@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "immutablePlace",
+  "diagnostic": "invalid call to 'append': invalid use of mutating method on rvalue of type 'List[Int]'"
+}

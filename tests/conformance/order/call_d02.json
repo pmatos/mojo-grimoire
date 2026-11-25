@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "invalid call to 'gm2': value passed to 'b' cannot be converted from 'Bool' to 'Int'"
+}

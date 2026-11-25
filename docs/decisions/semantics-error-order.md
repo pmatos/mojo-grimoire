@@ -165,6 +165,34 @@ The type phase follows the order of the compiler's first pass (#96 part
 The compiler resolves a method's or a function's signature where a body
 first refers to it, which the model does not follow yet (#231).
 
+## The order inside a call
+
+Inside a call, the compiler reports a call's errors in this order (#96
+part 9, #89), probed on the pin (`order/call_*`):
+
+1. The callee: an unknown function or method comes first.
+2. Each argument's own expression, in full, left to right: an unknown
+   name, an operator's misfit, a transfer with no origin of its own, and
+   every error of a call nested in it, its implicit copies included. A
+   literal's own expressions are its elements; converting it to the
+   parameter's type is part of the match.
+3. The number of arguments.
+4. Each argument's type and mutability, left to right, the receiver of a
+   method first: a value of the wrong type, a receiver or a place passed
+   `mut` that may not change.
+5. The implicit copies of the arguments, and of the value that a call
+   returns a reference to.
+6. The exclusivity of the arguments passed by reference.
+
+The checker checks a call's arguments as before, in one pass, and puts
+its errors in that order where they meet (`callOrder`). When the check
+fails, the arguments' own expressions are typed first, as the type phase
+types them (`ownArgs`). The arity is checked before any argument. When
+an argument fails with an implicit copy, the arguments are checked again
+without copies (`copyChecks`), so that a later argument's misfit comes
+first. Exclusivity is checked after the arguments. This holds for calls,
+methods, initializers and the operators' methods.
+
 ## Where the model differs today
 
 The checker's phases follow the compiler's tiers, and each phase its
@@ -172,12 +200,8 @@ order across the declarations, but the order inside a statement or an
 expression of the type tier is still the model's. So it differs from the compiler in these
 cases, which #96's later parts fix.
 
-### Calls and initializers
+### Operators
 
-- The compiler checks every argument before it looks for an initializer,
-  so an error in a later argument, `P(True, nope)`, comes first there,
-  where the model reports the misfit, as it does for an ordinary call
-  (#89).
 - The model finds a missing method from the operands' types before it
   reads them, once it has typed them, so that an error inside an operand
   comes first (`s + nope` is `unknownVariable`) and an uninitialized

@@ -28,6 +28,10 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
   result differs at `-O0`, unrecorded, or that the model rejects for
   another reason: a struct's `__bool__` in a condition (#195) and the
   destructor of a struct never used (#264).
+- `order9/`: Part 9's probes of the order inside a call that the model
+  rejects for another reason: a temporary passed `mut` (#81), an element
+  of an `Int` passed `mut` (#222), and an unknown function, which the
+  compiler calls an unknown declaration.
 - `corpus/`: random programs of #260's review whose class Part 4 of #96
   changed, each listed on its PR with the open issue of its rejection,
   named `GROUP_NAME` after their place in that corpus.

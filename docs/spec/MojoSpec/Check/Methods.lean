@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13589183869413552713")
+:::moduleDocs (fingerprint := "9341555976297903983")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.reflectedMethod MojoGrimoire.Check.unaryMethod (fingerprint := "14078108206647463870")
@@ -78,7 +78,7 @@ the comparisons of arrays and lists
 (`MojoGrimoire.Check.Compare`).
 :::
 
-:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "5473277680401556836")
+:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "812077125582950664")
 *Rule: a call of `len`.* The built-in `len` takes one list, array or
 $`\mathsf{Int}`, a SIMD vector of width 1, and gives an $`\mathsf{Int}`.
 A string is left to the check of a string outside `print`. Any other type,
@@ -91,15 +91,15 @@ read. Any other number of arguments is `noMatchingInit` of $`?`, once
 they are typed.
 :::
 
-:::readable MojoGrimoire.Check.methodCall (fingerprint := "17339314998728003688")
+:::readable MojoGrimoire.Check.methodCall (fingerprint := "13453130389364436081")
 *Rule: a method call.* A call $`p.m(e^*)` of a method of signature
 $`\mathit{sig}`, once the indices of $`p` are checked, takes the method's
 receiver by its convention: $`p` is passed as a place, or, when $`p` is
 $`q\hat{}` and `self` is `var`, $`q` is consumed once the arguments are
-read. The receiver and the location arguments must not alias a mutable
-one. When a method with several overloads cannot be passed its
-receiver, its arguments are typed first, so that an error inside one
-comes before the receiver's misfit. The receiver and the arguments are
+read. The arguments' own expressions come before any misfit, the
+receiver is passed before the arguments are matched, and the receiver
+and the location arguments must not alias a mutable one, which is
+checked last (`callOrder`). The receiver and the arguments are
 checked with the fit
 `overload m` when the method has several overloads, `pop` of a list, so
 that every misfit, a wrong number of arguments or a receiver that may not
@@ -122,6 +122,23 @@ operands, before they are read, is reported once the operands are typed
 in the type phase (`inTypePhase`): an error inside an operand, which the
 compiler finds as it types it, comes first, and an error of a later
 phase, such as a read of an uninitialized value, comes after it.
+:::
+
+:::readable MojoGrimoire.Check.callOrder MojoGrimoire.Check.arityMisfit (fingerprint := "6007945752370457372")
+*Rule: the order inside a call.* The compiler reports a call's errors in
+this order (#89, #96 part 9): each argument's own expression, in full,
+left to right, the errors of a call nested in it included; the number of
+arguments; each argument's type and mutability, left to right, the
+receiver of a method first; the implicit copies; and the exclusivity of
+the arguments passed by reference, which the caller checks after. The
+checker checks the arguments in one pass and puts its errors in that
+order where they meet. When the check fails with an error of the type
+phase, the arguments' own expressions are typed first, and an error
+inside one comes first. A wrong number of arguments comes before any
+argument is matched (`arityMisfit`). When an argument fails with an
+implicit copy, the arguments are checked again from the same state
+without copies (`copyChecks`), and a misfit that this finds comes
+first.
 :::
 
 :::readable MojoGrimoire.Check.rejectNoneCopy (fingerprint := "15599202572189854255")
