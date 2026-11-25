@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "missingMethod",
+  "diagnostic": "'W' has '__setitem__' but no '__getitem__' method"
+}

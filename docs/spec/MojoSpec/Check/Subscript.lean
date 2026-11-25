@@ -13,13 +13,30 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Assigning a subscript of a struct: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3141965619747700068")
+:::moduleDocs (fingerprint := "4609831481487925457")
 :::
 
 :::readable MojoGrimoire.Check.valueSubscript (fingerprint := "8489678019998001525")
 *Definition: a subscript read through its getter.* A subscript `q[i]` of
 a struct that declares `__getitem__` but not `__setitem__` is what its
 getter gives: the call `S.__getitem__(q, i)` (#191).
+:::
+
+:::readable MojoGrimoire.Check.setterOnly (fingerprint := "8155823455014461326")
+*Definition: a setter without a getter.* A type is a struct that
+declares `__setitem__` but not `__getitem__`.
+:::
+
+:::readable MojoGrimoire.Check.rejectSetterOnly (fingerprint := "12929467708356621375")
+*Rule: assigning a subscript with no getter.* A place assigned to that
+holds a subscript `q[i]` of a struct with a setter and no getter is
+$`\mathsf{missingMethod}` of `__getitem__` (#296). The compiler reports it
+once it has typed `q`, from its variable outward, so the errors of `q`
+itself come first, but before `i`, the value assigned, and the errors of
+a later pass, such as a read of a moved or uninitialized receiver. Of
+several such subscripts, the one nearest the place's variable is
+reported. A place that cannot be typed is left to the checking that
+reports its error.
 :::
 
 :::readable MojoGrimoire.Check.assignGetter (fingerprint := "6488846667628778942")

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7858289065828133266")
+:::moduleDocs (fingerprint := "8620284801874849581")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -140,7 +140,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "6162841913101988469")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "14649379552305329054")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 
@@ -154,7 +154,10 @@ an expression, so a place is copied implicitly.
   compiler does (#123);
 * $`\mathsf{ref}~x = e` binds $`x` to a reference, as the next section
   says; $`x` may not hide a variable in scope either;
-* $`p = e` on a subscript of a struct that has a getter and no setter
+* $`p = e` where $`p` holds a subscript of a struct that has a setter
+  and no getter is $`\mathsf{missingMethod}`, before anything else
+  but the errors of the subscript's receiver (`rejectSetterOnly`, #296);
+  on a subscript of a struct that has a getter and no setter it
   is checked through the getter (`assignGetter`, #191); else
   it checks $`e` first, then the indices of $`p`. When $`e` is a call or
   a method call that would be copied implicitly, its type, read by

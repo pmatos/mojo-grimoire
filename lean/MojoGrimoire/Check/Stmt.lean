@@ -48,7 +48,9 @@ result fits no initializer of its type (#46), nor, where an `Int` is
 expected, does one of any length but 1 (#153, #154). A function that returns a reference
 returns a location within its own origin, as `withinOrigin` decides.
 
-An assignment changes its place as a whole. Into the element of an `Int`,
+An assignment changes its place as a whole. Into a subscript of a struct
+that declares `__setitem__` but not `__getitem__`, it is `missingMethod`,
+before any error of the place but its receiver's (#296). Into the element of an `Int`,
 it locates the `Int` before it evaluates the value, as `__setitem__` takes
 it as `self`, so the value may not invalidate that location, and reads
 the index, an argument of `__setitem__`, once the value is evaluated, so
@@ -285,6 +287,7 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let (t, origins, m) ← refTarget prog sig.name e
     modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
+    rejectSetterOnly prog p
     if let some g ← valueSubscript prog p then
       return ← assignGetter prog p g fun t => checkInitValue prog t e (checkExpr prog e)
     let k ← mark
