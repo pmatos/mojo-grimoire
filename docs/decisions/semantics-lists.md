@@ -228,8 +228,8 @@ here (#27).
   [D-0005](../conformance/decision-log.md)), which the nightly fixes. The
   nightly reports the failed constraint after every other error of the
   program, even one in a later function. The model reports it after every
-  type error, and among the flow errors in program order until #96 part 7
-  (#170). Passed `mut`, any literal is a temporary, `notAPlace`
+  type error and every flow error, in the instantiation phase's order
+  ([semantics-error-order.md](semantics-error-order.md#the-order-of-the-instantiation-phase), #170). Passed `mut`, any literal is a temporary, `notAPlace`
   (#81).
 - A constant index into an array of `N` elements is rejected when it is `N`
   or more (`constantIndexOutOfBounds`); one known only at run time fails

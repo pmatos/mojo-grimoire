@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14718153934778611376")
+:::moduleDocs (fingerprint := "9546923958468338961")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -69,7 +69,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "5203734728174704065")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "16244557658264588356")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 
@@ -95,9 +95,8 @@ an expression, so a place is copied implicitly.
   fit $`p`, or the assignment is a type mismatch, as the compiler reports
   it before the copy. It then needs $`p` of $`e`'s type, and that $`e`
   does not build its result into $`p` while changing the list that holds
-  it. An error of a later pass than typing in an index waits for these,
-  and an error of theirs from an earlier pass comes first (`typedFirst`,
-  #280). $`p` is changed as a
+  it. An error of a later pass than typing in an index comes in its own
+  phase, after these (#280, #96 part 7). $`p` is changed as a
   whole, its old value ends, and $`p` is initialized. The old value may
   not end, as at the end of a variable, with the parts of $`p` taken as
   the value's own, $`p` itself uninitialized when a part at or above it
@@ -133,7 +132,8 @@ an expression, so a place is copied implicitly.
   follows unreachable; a function that returns a reference returns a
   location whose origins are all within its own origin, as the previous
   section says;
-* `drop p` transfers $`p` away.
+* `drop p` transfers $`p` away, and calls the destructor of its struct
+  when it declares one (`dropCall`).
 That the old value may not end is a check of the flow phase's last
 stage, `ends`.
 :::

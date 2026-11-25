@@ -24,6 +24,7 @@ import MojoSpec.Check.Exit
 import MojoSpec.Check.Stmt
 import MojoSpec.Check.Block
 import MojoSpec.Check.Program
+import MojoSpec.Check.Instantiate
 import MojoSpec.Elab.Live
 import MojoSpec.Elab.Origins
 import MojoSpec.Elab.Late

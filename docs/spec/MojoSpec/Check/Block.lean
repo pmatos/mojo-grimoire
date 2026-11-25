@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Blocks and the bridge to main's order: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7338640436612588427")
+:::moduleDocs (fingerprint := "17435678030493394655")
 :::
 
 :::readable MojoGrimoire.Check.bridgedToTwin (fingerprint := "2374438237231960054")
@@ -35,7 +35,7 @@ gives no condition and empty blocks. A condition is checked, and needs a
 $`\mathsf{Bool}`, as one check bridged to its twin's.
 :::
 
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "4652961576553174799")
+:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "15264470045961557415")
 *Rule: blocks.* A statement that holds no block is checked by the rule
 of statements, bridged to its twin. Each check, the statement's and its
 twin's, and each condition's, goes through #191's bridge to `main`'s
@@ -54,5 +54,6 @@ order for a struct test (`bridged`), as `main` checks it.
 
 A block checks its statements in order, each beside the statement at the
 same position in its twin, and the changes recorded for operands start
-afresh with each statement.
+afresh with each statement. What the instantiation phase records in a
+branch or a loop's body is kept after it, in the order of the text.
 :::

@@ -51,10 +51,11 @@ at the place where it rejects (`flowCheck`):
   end, and what a loop's body leaves for the next iteration. The type
   phase finds where a body can reach its end without returning its
   result, and the flow phase reports that missing return first;
-- the instantiation checks, which stay in the flow phase until Part 7: a
-  literal of `Int`s of the wrong length, which then gives the type that
-  its place expects, and a constant index that is negative or beyond an
-  array's or an `Int`'s last element;
+- the instantiation checks, which the instantiation phase runs after the
+  flow phase (Part 7, below): a literal of `Int`s of the wrong length,
+  which in the other phases gives the type that its place expects, and a
+  constant index that is negative or beyond an array's or an `Int`'s last
+  element;
 - a missing `main`, which comes after the flow phase. `main`'s
   signature and the fields of copyable structs are checked in the type
   phase.
@@ -105,8 +106,34 @@ reports an exit error at an early `return` before a use after it
 `order/flow_*` and `order/missing_return_*` programs hold the pairs of
 each rule.
 
-A missing `main` comes after the flow phase. The instantiation errors are
-still found in the flow phase, as uses, until Part 7.
+A missing `main` comes after the flow phase, and before the
+instantiation phase.
+
+## The order of the instantiation phase
+
+The instantiation phase follows the compiler's instantiation of the
+functions from `main` (#96 part 7, `MojoGrimoire.Check.checkInst`),
+probed on the pin (`order/inst_*`, `tests/sweep/order7/`):
+
+1. In a body, its own errors come first, in the order of the body: a
+   literal of `Int`s of the wrong length, and a constant index out of an
+   array's or an `Int`'s range, negative or past its last element. An
+   index of an `Int` other than 0 is D-0009's, and takes the array's rule.
+2. Then its calls, the last first, each instantiated depth first, once:
+   free functions, methods, initializers, operator methods, getters and
+   setters, and a destructor where the value is destroyed, after its last
+   use, as elaboration places it. In `f(g())`, `f` is the last call. A
+   negative constant index of a `List` fails as a call does.
+3. Then the bodies that `main` does not reach, in the order of the
+   declarations. The compiler never instantiates them and accepts them,
+   which #264 tracks.
+
+At `-O0` the compiler takes a constant index into an array as a call
+too, so its order there differs from `-O3`'s, the reference, when such
+an index stands beside another error of the body (#324). The model keeps
+the order at `-O3`, and the suite holds no such program. The model does
+not follow the destructor of a temporary destroyed inside an expression,
+nor a struct's `__bool__` that a condition calls (#195).
 
 ## The order of the type phase
 
@@ -137,8 +164,7 @@ first refers to it, which the model does not follow yet (#231).
 
 The checker's phases follow the compiler's tiers, and each phase its
 order across the declarations, but the order inside a statement or an
-expression of the type tier is still the model's, and the instantiation
-errors are still found in the flow phase. So it differs from the compiler in these
+expression of the type tier is still the model's. So it differs from the compiler in these
 cases, which #96's later parts fix.
 
 ### Calls and initializers
@@ -157,37 +183,26 @@ cases, which #96's later parts fix.
 
 The compiler's order is tiered more finely than the passes that
 [semantics-lists.md](semantics-lists.md#lists) gives for the arguments of
-`range` in `List[u](range(…))`, and the rest is left to #96. Its flow and
-instantiation errors are found in the flow phase, in program order, as
-in any expression:
-`range(xs[-1] + u)`, with `u` uninitialized, is `negativeIndex`. An
-argument whose check stops at a later pass's error does not record what it
-moved, so `range(g(p^, xs[-1]), p.x)` is `negativeIndex` where the
-compiler reports `p` uninitialized. A constant index into an array comes
-before the literal and before an index into a list on the compiler, and
-the model reports it as any index. A nested `List[Int](range([1, 2]))`
-fails at once in the model, before a use of an uninitialized value in
-another argument.
+`range` in `List[u](range(…))`, and the rest is left to #96. Its flow
+errors come before its instantiation errors, as in any expression:
+`range(xs[-1] + u)`, with `u` uninitialized, is `uninitializedUse`, and
+so is `range(g(p^, xs[-1]), p.x)`. Among the instantiation errors, a
+constant index into an array comes before the literal and before an index
+into a list on the compiler, and the model reports the literal first.
 
 ## Temporary bridges to `main`'s order
 
-Three bridges keep the results that `main` gave where a change exposed
-the compiler's order before the model could follow it. They act in both
-phases, and Part 4 of #96 removes all three.
+Two bridges keep the results that `main` gave where a change exposed
+the compiler's order before the model could follow it. They act in every
+phase, and Part 4 of #96 removes both. A third, which made an index's
+error of a later pass wait for an assigned value's (#280), is gone: each
+pass now has its phase (Part 7).
 
 - The struct tests of #191, by `and`, `or` and `not`:
   [semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares).
 - The comparisons that part 2 of #166 converts, bridged statement by
   statement to `main`'s twin (#281):
   [semantics-comparisons.md](semantics-comparisons.md).
-- The checks of an assignment (#280). The checker checks the indices of
-  the place before the value, as the compiler does. `typedFirst` then
-  makes an index's error of a later pass wait for the value's errors of
-  earlier passes, which `CheckError.pass` ranks. The human ruled on
-  2026-11-25 that this is a bridge of this kind. Between a literal of
-  `Int`s of the wrong length and a constant index into an array, the
-  compiler's order differs between `-O0` and `-O3`. The model keeps the
-  order at `-O0`, and no suite program pins it.
 
 Other notes that wait for #96 stay on their pages: the comparisons not yet
 modelled in [semantics-comparisons.md](semantics-comparisons.md), and

@@ -111,6 +111,8 @@ compared with the compiler's diagnostics.
 
 {includeReadable "." MojoGrimoire.Check.Program "Programs" MojoSpec.Check.Program (level := 2)}
 
+{includeReadable "." MojoGrimoire.Check.Instantiate "Instantiation" MojoSpec.Check.Instantiate (level := 2)}
+
 # ASAP elaboration
 
 Mojo destroys each value as soon as possible, right after its last use.

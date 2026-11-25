@@ -60,6 +60,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       checkExclusive (← locationArgs prog params args)
       recheckArgs prog args (← checkArgs prog fit f params args params.length args.length)
       for q in ← changedArgs prog params args do changePlace prog q
+      instCall prog f
       refResult prog asRef sig args
     | .error err =>
       match f, args, err with
@@ -73,8 +74,10 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     checkIndices prog p
     let t ← placeTy prog p
     let sig ← lift (methodSig prog t m args.length)
-    methodCall prog asRef p t m args sig (typeArgs prog args) fun fit =>
+    let r ← methodCall prog asRef p t m args sig (typeArgs prog args) fun fit =>
       checkArgs prog fit m sig.params args sig.params.length args.length
+    if let .struct s := t then instRecord (.call (s ++ "." ++ m))
+    pure r
   | .unary op a => do
     rejectMisfit (unaryMisfit prog op (← operandTy prog a)) (do let _ ← typeArg prog a)
     lift (methodUnaryTy prog op (← notOperand prog a (checkExprAs prog false a)))
@@ -143,7 +146,10 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     rejectHidden u
     checkOperands prog args
     throw (CheckError.noMatchingInit (.list u))
-  | .withDrops e _ _ => checkExprAs prog asRef e
+  | .withDrops e pre post => do
+    let t ← checkExprAs prog asRef e
+    for q in pre ++ post do dropCall prog q
+    pure t
   termination_by e => (sizeOf e, 0)
 
 /-- The type of the argument `e` of `range`, or of an element of one, as
@@ -209,9 +215,12 @@ def checkIndices (prog : Program) : Place → CheckM Unit
     checkIndex prog (← operandTy prog (.place p)) i
     subscript prog p k
     if let some k := constInt i then
-      if k < 0 then flowThrow (CheckError.negativeIndex (.index p i))
-      if let some n := fixedLength (← placeTy prog p) then
-        if n ≤ k then flowThrow (CheckError.constantIndexOutOfBounds (.index p i))
+      let n := fixedLength (← placeTy prog p)
+      if k < 0 then
+        if n.isSome then instThrow (CheckError.negativeIndex (.index p i))
+        else instRecord (.fail (CheckError.negativeIndex (.index p i)))
+      if let some n := n then
+        if n ≤ k then instThrow (CheckError.constantIndexOutOfBounds (.index p i))
   | .transferred p => do
     requireOwnOrigin prog p
     checkIndices prog p

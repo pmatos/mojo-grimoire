@@ -24,6 +24,10 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
 - `order6/`: Part 6's probes of the type phase's order whose compiler
   diagnostic has no class yet (#319), or whose unknown type the model
   classes `invalidType` (#237), so that the suite cannot hold them.
+- `order7/`: Part 7's probes of the instantiation phase's order whose
+  result differs at `-O0`, unrecorded, or that the model rejects for
+  another reason: a struct's `__bool__` in a condition (#195) and the
+  destructor of a struct never used (#264).
 - `corpus/`: random programs of #260's review whose class Part 4 of #96
   changed, each listed on its PR with the open issue of its rejection,
   named `GROUP_NAME` after their place in that corpus.
