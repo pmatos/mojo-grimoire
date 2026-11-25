@@ -120,14 +120,12 @@ the type phase, an index's error of a later pass (`CheckError.late`) is
 left to the flow phase, which reports it as before. -/
 def rejectIntElem (prog : Program) (p : Place) (check : CheckM Unit) : CheckM Unit := do
   unless ← intIndexed prog p do return
-  let s0 ← get
-  let phase := s0.phase
-  let later ← tryCatch (do modify ({ · with phase := .flow, stage := .ends }); check; pure false)
-    fun e => do
+  let phase := (← get).phase
+  let later ← tryCatch (do modify ({ · with phase := .flow }); check; pure false) fun e => do
     if let .constantIndexOutOfBounds (.index q _) := e then
       if (← placeTy prog q) == .int then throw (CheckError.notAList .int)
     if phase == .type && e.late then pure true else throw e
-  modify ({ · with phase, stage := s0.stage })
+  modify ({ · with phase })
   unless later do throw (CheckError.notAList .int)
 
 /-- Rejects the place `p` through the element of an `Int` passed to a

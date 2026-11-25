@@ -124,23 +124,15 @@ inductive Phase where
   | flow
   deriving BEq
 
-/-- The stages of the flow phase, in the order in which the compiler's
-pass manager reports their errors (#96 part 5): a missing `return`,
-anywhere in the program, then, function by function, the uses of values
-and what a function leaves at its returns, in the order of the body, and
-last the values that may not end (#159). A check of a stage runs in that
-stage and in the ones after it, so the last, `ends`, runs them all. -/
+/-- The stages of the flow phase in a function, in the order in which the
+compiler's pass manager reports their errors (#96 part 5): the uses of
+values and what the function leaves at its returns, in the order of the
+body, and then the values that may not end (#159). The checks of uses run
+in both stages, and those of ends only in the last. -/
 inductive Stage where
-  | returns
   | uses
   | ends
   deriving BEq
-
-/-- The position of the stage `s` in the order of stages. -/
-def Stage.rank : Stage → Nat
-  | .returns => 0
-  | .uses => 1
-  | .ends => 2
 
 /-- The checker's state: the variables in scope, innermost first, whether
 the current point can be reached, the references bound with `ref` that are
@@ -174,7 +166,7 @@ phase, from that stage on: it is skipped in the type phase and in the
 stages before `k`. -/
 def flowCheckAt (k : Stage) (check : CheckM Unit) : CheckM Unit := do
   let s ← get
-  if s.phase == .flow && k.rank ≤ s.stage.rank then check
+  if s.phase == .flow && (k == .uses || s.stage == .ends) then check
 
 /-- Runs `check`, a check of a use in the flow phase (`flowCheckAt`). -/
 def flowCheck (check : CheckM Unit) : CheckM Unit := flowCheckAt .uses check
