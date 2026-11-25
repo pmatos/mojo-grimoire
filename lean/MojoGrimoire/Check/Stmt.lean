@@ -51,7 +51,9 @@ returns a location within its own origin, as `withinOrigin` decides.
 An assignment changes its place as a whole. It checks the indices of its
 place before its value, as the compiler does, so the value sees what an
 index moves out or changes, and an index's error of a later pass than
-typing waits for the value's type errors (`typedFirst`, #280). Into the
+typing waits for the value's errors of earlier passes (`typedFirst`,
+#280). That the place may be changed is checked once its indices are
+typed, before the value, as the compiler does (#174). Into the
 element of an `Int`,
 it locates the `Int` before it evaluates the value, as `__setitem__` takes
 it as `self`, so the value may not invalidate that location, and reads
@@ -293,14 +295,14 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     if let .binary _ (.place q) _ := e then
       if q == p && !plainIndices p then rejectIntElem prog p (checkIndices prog p)
     typedFirst (checkIndices prog p) do
+      requireMutable p
       let t ← if e matches .list .unknown _ || (wrongIntLiteral e).isSome then do
           let u ← placeTy prog p
           checkInitValue prog u e (checkExpr prog e)
           pure u
         else checkExpr prog e
       expect (← placeTy prog p) t
-    checkConstructed prog p e
-    requireMutable p
+      checkConstructed prog p e
     if let .index q i := p then
       if (← placeTy prog q) == .int then
         requireUnchanged prog q k

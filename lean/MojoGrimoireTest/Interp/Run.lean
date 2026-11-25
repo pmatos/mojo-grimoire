@@ -64,7 +64,7 @@ private def go (body : List Stmt) (pairDeinit : Option (List Stmt) := none)
 
 /-- `var xs = [1, 2]; xs[echo(i)] = echo(7); print(xs[0], xs[1])`. -/
 private def echoAt (i : Int) : Outcome :=
-  let xs : Place := .var "xs"
+  let xs := v "xs"
   go [.decl "xs" (.list .int) (some (.list (.list .int) [.int 1, .int 2])),
     .assign (.index xs (.call "echo" [.int i])) (.call "echo" [.int 7]),
     .print [.place (.index xs (.int 0)), .place (.index xs (.int 1))]]

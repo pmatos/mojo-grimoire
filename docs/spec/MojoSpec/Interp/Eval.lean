@@ -93,7 +93,7 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   reference or a value, and any other expression its value.
 - *Statements.* A declaration puts its value, or the blank of its type
   when it has none, at a new location the function owns. An assignment evaluates the indices of its place,
-  outermost first, locating each place indexed and then each element, so
+  outermost first, locating each element once its index is evaluated, so
   that an index out of bounds stops the run before the value is evaluated
   (`fixIndices`, #205); then it evaluates the value, locates the element
   again, in the list as the value left it (D-0002), writes it, and

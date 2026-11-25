@@ -77,7 +77,8 @@ corrected against the compiler's recorded results (#25):
   new one. Into an `Int`'s element, it locates the `Int` and evaluates
   the index first, and reads the index after the value (#127). The
   checker checks the indices before the value too, so the value sees what
-  an index moves out or changes; an index's error of a later pass than
-  typing waits for the value's type errors (#280).
+  an index moves out or changes, then that the place may be changed
+  (#174). An index's error of a later pass than typing waits for the
+  value's errors of earlier passes (#280).
 - `return` evaluates its value, then destroys what the function still
   owns, in declaration order.

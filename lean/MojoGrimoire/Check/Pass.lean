@@ -40,18 +40,26 @@ def lateErrors (x : CheckM RangeArgs) : CheckM RangeArgs :=
   tryCatch x fun err =>
     if err.late || err == .noMatchingInit .int then pure (RangeArgs.ofLate err) else throw err
 
+/-- The compiler's pass that reports the error `e`, in order: typing; a
+use of an uninitialized or invalidated value; a nested literal's failed
+SIMD constraint, `noMatchingInit` of `Int`; a constant index out of
+range (#121, #280). -/
+def CheckError.pass (e : CheckError) : Nat :=
+  if e matches .negativeIndex _ | .constantIndexOutOfBounds _ then 3
+  else if e == .noMatchingInit .int then 2
+  else if e.late then 1 else 0
+
 /-- Runs `first`, then `next`, and gives `next`'s result. When `first`
-throws an error of a later pass than typing (`CheckError.late`), `next`
+throws an error of a later pass than typing (`CheckError.pass`), `next`
 is still checked, from the state before `first`: an error of its own
-from typing stands, as the compiler types both before it checks either's
-ownership, and else `first`'s error does (#280). -/
+from an earlier pass stands, as the compiler runs each pass over both, and
+else `first`'s error does (#280). -/
 def typedFirst {α : Type} (first : CheckM Unit) (next : CheckM α) : CheckM α := do
-  let late ← tryCatch (do first; pure none) fun e => if e.late then pure (some e) else throw e
-  match late with
-  | none => next
-  | some e => do
-    tryCatch (do let _ ← next) fun e' => unless e'.late do throw e'
+  tryCatch first fun e => do
+    if e.pass == 0 then throw e
+    tryCatch (discard next) fun e' => throw (if e'.pass < e.pass then e' else e)
     throw e
+  next
 
 /-- The type of a call of signature `sig`, with the arguments `args`. A
 call that returns a reference, used as a value, copies the value it points

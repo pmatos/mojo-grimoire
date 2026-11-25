@@ -96,16 +96,15 @@ def intElem (prog : Program) (env : Env) : Place → Option (Place × Expr)
 
 /-- The place `p` with each of its indices replaced by its value, which
 `index` evaluates, outermost first, as the compiler does before it
-evaluates an assigned value (#205). Before an index is evaluated, the
-place it indexes is located by `locate`, and once it is, the element it
-names, so that an index out of bounds stops the run there. An assignment
+evaluates an assigned value (#205). Once an index is evaluated, `locate`
+locates the element it names, so that an index out of bounds stops the
+run there, before any index after it is evaluated. An assignment
 locates the element again once its value is evaluated (D-0002). -/
 def fixIndices (index : Expr → EvalM Int) (locate : Place → EvalM Ref) : Place → EvalM Place
   | .var x => pure (.var x)
   | .field q f => do pure (.field (← fixIndices index locate q) f)
   | .index q i => do
     let q ← fixIndices index locate q
-    let _ ← locate q
     let p := Place.index q (.int (← index i))
     let _ ← locate p
     pure p

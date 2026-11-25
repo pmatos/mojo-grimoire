@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11487140420402981250")
+:::moduleDocs (fingerprint := "15648847426600273946")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -38,13 +38,16 @@ instead of thrown, so that the errors of all the arguments can be reported
 in the compiler's order of passes (#121).
 :::
 
-:::readable MojoGrimoire.Check.typedFirst (fingerprint := "6194860945527907568")
-*Definition: typing before a later pass.* Of two parts of a statement
-checked in order, an error of the first from a later pass than typing
-(`CheckError.late`) waits until the second is checked from the state
-before the first. A type error of the second then comes first, since the
-compiler types the whole statement before it checks what is initialized
-or invalidated; else the first part's error stands (#280).
+:::readable MojoGrimoire.Check.CheckError.pass MojoGrimoire.Check.typedFirst (fingerprint := "2057998350370531524")
+*Definition: the order of passes.* The compiler reports an error in one
+of its passes, in this order: typing; a use of an uninitialized or
+invalidated value; a nested literal's failed SIMD constraint,
+$`\mathsf{noMatchingInit}` of $`\mathsf{Int}`; a constant index out of
+range (#121). Of two parts of a statement checked in order, an error of
+the first from a later pass than typing waits until the second is checked
+from the state before the first. An error of the second from an earlier
+pass then comes first, since the compiler runs each pass over the whole
+statement; else the first part's error stands (#280).
 :::
 
 :::readable MojoGrimoire.Check.refResult (fingerprint := "5596166513625506680")
