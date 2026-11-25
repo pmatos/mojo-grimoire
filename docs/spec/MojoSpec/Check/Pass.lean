@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13053174260536702238")
+:::moduleDocs (fingerprint := "16151174714825471836")
 :::
 
 :::readable MojoGrimoire.Check.Below (fingerprint := "14513104375151688470")
@@ -53,11 +53,12 @@ instantiation phase's, and a use of an uninitialized or invalidated
 value the flow phase's.
 :::
 
-:::readable MojoGrimoire.Check.calleeBody MojoGrimoire.Check.instCall MojoGrimoire.Check.dropCall (fingerprint := "15877494409387414648")
+:::readable MojoGrimoire.Check.calleeBody MojoGrimoire.Check.instCall MojoGrimoire.Check.destructorOf MojoGrimoire.Check.dropCall (fingerprint := "16717970515991501688")
 *Definition: calls that instantiate.* A call of $`f` instantiates the
 function $`f`, the `__init__` that the struct $`f` declares, or the method
-that $`f` names. Destroying a value of a struct that declares
-`__deinit__` calls it. The instantiation phase records each call
+that $`f` names. Destroying a value of a struct calls the `__deinit__`
+that it declares, or else the destructor that the compiler synthesizes,
+`__del__`; destroying a list or an array calls its elements'. The instantiation phase records each call
 (`InstEvent`), and the order of the bodies follows them
 (`MojoGrimoire.Check.checkInst`).
 :::
@@ -80,7 +81,7 @@ type fits. The call is then checked again by reference, from the state
 before it, for its type.
 :::
 
-:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "11525180496420865244")
+:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "2744492610540036590")
 *Rule: the element of an $`\mathsf{Int}` where the model cannot follow
 the compiler.* A place through the element of an $`\mathsf{Int}` is
 rejected there as $`\mathsf{notAList}`, as before #127, once its indices
@@ -89,7 +90,7 @@ $`\mathsf{notAList}` too. So it is when passed to a `mut` or `ref`
 parameter: the compiler passes a temporary, written back after a `mut`
 call, which the model does not model yet (#222). Its indices are checked
 with every check on; an index's error of a later pass is left to the
-phase that reports it. An index is plain when
+phase that reports it, unless an outer check has every check on. An index is plain when
 it is an integer constant or a variable, which evaluating twice cannot
 change.
 :::

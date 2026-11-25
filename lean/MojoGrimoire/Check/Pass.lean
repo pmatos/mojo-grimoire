@@ -103,15 +103,15 @@ as before #127, where the model cannot yet give the compiler's result. The
 indices are checked first by `check`, with every check on (`allChecks`),
 as before, but for a constant out of an `Int`'s range, which comes after.
 An index's error of a later pass (`CheckError.late`) is left to the
-phase that reports it. -/
+phase that reports it, unless an outer check has every check on. -/
 def rejectIntElem (prog : Program) (p : Place) (check : CheckM Unit) : CheckM Unit := do
   unless ← intIndexed prog p do return
-  let phase := (← get).phase
+  let s0 ← get
   let later ← tryCatch (do modify ({ · with allChecks := true }); check; pure false) fun e => do
     if let .constantIndexOutOfBounds (.index q _) := e then
       if (← placeTy prog q) == .int then throw (CheckError.notAList .int)
-    if e.late && phase.rank < e.phase.rank then pure true else throw e
-  modify ({ · with allChecks := false })
+    if e.late && !s0.allChecks && s0.phase.rank < e.phase.rank then pure true else throw e
+  modify ({ · with allChecks := s0.allChecks })
   unless later do throw (CheckError.notAList .int)
 
 /-- The body that a call of `f` instantiates, if it has one: the function
@@ -119,19 +119,30 @@ def rejectIntElem (prog : Program) (p : Place) (check : CheckM Unit) : CheckM Un
 `f` names (`methodCallee`). -/
 def calleeBody (prog : Program) (f : Name) : Option Name :=
   if (findFun prog f).isSome then some f
-  else if let some sd := findStruct prog f then sd.init.map fun _ => f ++ ".__init__"
-  else (calleeMethod f).map fun (s, m, _) => s ++ "." ++ m
+  else if let some sd := findStruct prog f then sd.init.map fun _ => methodCallee f "__init__"
+  else (calleeMethod f).map fun (s, m, _) => methodCallee s m
 
-/-- Records the call of the body `f` instantiates (`calleeBody`). -/
+/-- Records the call of the body `f` instantiates (`calleeBody`), in the
+instantiation phase. -/
 def instCall (prog : Program) (f : Name) : CheckM Unit := do
+  unless (← get).phase == .inst do return
   if let some b := calleeBody prog f then instRecord (.call b)
 
+/-- The destructor that destroying a value of type `t` calls: the
+`__deinit__` that its struct declares, or else the one that the compiler
+synthesizes, `__del__`, which destroys its fields; for a list or an array,
+its elements'. -/
+def destructorOf (prog : Program) : Ty → Option Name
+  | .struct s => some (methodCallee s
+      (if ((findStruct prog s).bind (·.deinit)).isSome then "__deinit__" else "__del__"))
+  | .list u | .array u _ => destructorOf prog u
+  | _ => none
+
 /-- Records the call of the destructor that destroying the value in `p`
-makes, when its struct declares one. -/
+makes (`destructorOf`), in the instantiation phase. -/
 def dropCall (prog : Program) (p : Place) : CheckM Unit := do
-  if let .struct s ← placeTy prog p then
-    if ((findStruct prog s).bind (·.deinit)).isSome then
-      instRecord (.call (s ++ ".__deinit__"))
+  unless (← get).phase == .inst do return
+  if let some d := destructorOf prog (← placeTy prog p) then instRecord (.call d)
 
 /-- Rejects the place `p` through the element of an `Int` passed to a
 `mut` or `ref` parameter (`rejectIntElem`): the compiler passes it as a

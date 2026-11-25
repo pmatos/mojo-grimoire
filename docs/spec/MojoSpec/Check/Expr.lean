@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14552607229348660140")
+:::moduleDocs (fingerprint := "15675642059807520211")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "14634351246711902952")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "18263706456108760107")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -149,8 +149,7 @@ type:
   `noMatchingInit`, found by `lenCall` before any argument is read
   (#190);
 * $`\mathsf{drops}(e; p^*; q^*)`, which only elaboration inserts, after
-  checking, has the type of $`e`, and calls the destructors of the
-  values it destroys (`dropCall`).
+  checking, has the type of $`e`.
 
 In the instantiation phase, each call of a function, an initializer or a
 method that the program declares is recorded once its arguments are

@@ -76,7 +76,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     let sig ← lift (methodSig prog t m args.length)
     let r ← methodCall prog asRef p t m args sig (typeArgs prog args) fun fit =>
       checkArgs prog fit m sig.params args sig.params.length args.length
-    if let .struct s := t then instRecord (.call (s ++ "." ++ m))
+    if let .struct s := t then instCall prog (methodCallee s m)
     pure r
   | .unary op a => do
     rejectMisfit (unaryMisfit prog op (← operandTy prog a)) (do let _ ← typeArg prog a)
@@ -146,10 +146,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     rejectHidden u
     checkOperands prog args
     throw (CheckError.noMatchingInit (.list u))
-  | .withDrops e pre post => do
-    let t ← checkExprAs prog asRef e
-    for q in pre ++ post do dropCall prog q
-    pure t
+  | .withDrops e _ _ => checkExprAs prog asRef e
   termination_by e => (sizeOf e, 0)
 
 /-- The type of the argument `e` of `range`, or of an element of one, as
@@ -217,8 +214,8 @@ def checkIndices (prog : Program) : Place → CheckM Unit
     if let some k := constInt i then
       let n := fixedLength (← placeTy prog p)
       if k < 0 then
-        if n.isSome then instThrow (CheckError.negativeIndex (.index p i))
-        else instRecord (.fail (CheckError.negativeIndex (.index p i)))
+        let err := CheckError.negativeIndex (.index p i)
+        if n.isSome then instThrow err else instRecord (.fail err)
       if let some n := n then
         if n ≤ k then instThrow (CheckError.constantIndexOutOfBounds (.index p i))
   | .transferred p => do

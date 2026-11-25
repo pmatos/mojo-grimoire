@@ -38,12 +38,14 @@ disagrees with the probes.
 
 ## The checker's phases
 
-`MojoGrimoire.Check.checkProgram` checks the whole program twice, first in
-the type phase and then in the flow phase, and reports the first error of
-the first phase that finds one (#96 part 4). Both phases take the same
-path through each body, with the phase in the checker's state; the flow
-phase visits the bodies in its own order, below. The type phase skips the checks of the later tiers, each
-at the place where it rejects (`flowCheck`):
+`MojoGrimoire.Check.checkProgram` checks the whole program three times,
+in the type phase, the flow phase and the instantiation phase, and reports
+the first error of the first phase that finds one (#96 parts 4 and 7).
+Each phase takes the same path through each body, with the phase in the
+checker's state, and visits the bodies in its own order, below; the
+instantiation phase checks them with the statements that destroy values
+(`dropsProgram`). Each phase skips the checks of the other phases, at the
+place where they reject (`flowCheck`, `instCheck`):
 
 - the flow checks: a use of an uninitialized value or of a part moved out,
   a reference that a change invalidated, a part destroyed while it is
@@ -61,8 +63,8 @@ at the place where it rejects (`flowCheck`):
   phase.
 
 So in the type phase every variable is whole and no reference is
-invalidated. A program that the model accepts takes the same path in both
-phases as before, since the skipped checks find nothing in it.
+invalidated. A program that the model accepts takes the same path in every
+phase as before, since the skipped checks find nothing in it.
 
 A comparison whose left operand is a literal that holds an inner literal
 of another length where an `Int` is expected keeps the checks it had
@@ -122,8 +124,12 @@ probed on the pin (`order/inst_*`, `tests/sweep/order7/`):
 2. Then its calls, the last first, each instantiated depth first, once:
    free functions, methods, initializers, operator methods, getters and
    setters, and a destructor where the value is destroyed, after its last
-   use, as elaboration places it. In `f(g())`, `f` is the last call. A
-   negative constant index of a `List` fails as a call does.
+   use, as elaboration places it. A value destroyed inside an expression
+   is destroyed after its statement. The destructor is the one that the
+   struct declares, or else the one that the compiler synthesizes, which
+   destroys the fields, the last first; a list's or an array's destroys its
+   elements. In `f(g())`, `f` is the last call. A negative constant index
+   of a `List` fails as a call does.
 3. Then the bodies that `main` does not reach, in the order of the
    declarations. The compiler never instantiates them and accepts them,
    which #264 tracks.
@@ -132,8 +138,7 @@ At `-O0` the compiler takes a constant index into an array as a call
 too, so its order there differs from `-O3`'s, the reference, when such
 an index stands beside another error of the body (#324). The model keeps
 the order at `-O3`, and the suite holds no such program. The model does
-not follow the destructor of a temporary destroyed inside an expression,
-nor a struct's `__bool__` that a condition calls (#195).
+not follow a struct's `__bool__` that a condition calls (#195).
 
 ## The order of the type phase
 

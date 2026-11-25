@@ -192,6 +192,11 @@ def flowThrowAt (k : Stage) (err : CheckError) : CheckM Unit := flowCheckAt k (t
 /-- Rejects with `err`, the error of a use in the flow phase. -/
 def flowThrow (err : CheckError) : CheckM Unit := flowThrowAt .uses err
 
+/-- Sets the state `s`, an earlier one, but keeps what the instantiation
+phase has recorded since (`InstEvent`). -/
+def restoreKeeping (s : State) : CheckM Unit :=
+  modify fun cur => { s with events := cur.events }
+
 /-- Runs `check`, a check of the instantiation phase, only in that phase. -/
 def instCheck (check : CheckM Unit) : CheckM Unit := do
   let s ← get
@@ -201,13 +206,13 @@ def instCheck (check : CheckM Unit) : CheckM Unit := do
 being checked, which comes before its calls. -/
 def instThrow (err : CheckError) : CheckM Unit := instCheck (throw err)
 
-/-- Records the event `e` in the instantiation phase; with every check
-on, an error that fails as a call is thrown at once. -/
+/-- Records the event `e` in the instantiation phase, the latest first;
+with every check on, an error that fails as a call is thrown at once. -/
 def instRecord (e : InstEvent) : CheckM Unit := do
   let s ← get
   if s.allChecks then
     if let .fail err := e then throw err
-  else if s.phase == .inst then set { s with events := s.events ++ [e] }
+  else if s.phase == .inst then set { s with events := e :: s.events }
 
 /-- The variable a place starts from, and the path from it to the place.
 The elements of a list or an array are not parts that the checker follows:
