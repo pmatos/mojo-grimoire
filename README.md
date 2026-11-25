@@ -8,8 +8,13 @@ and the compiler. The model follows the compiler, and the
 
 ## Status
 
-Phase 0, groundwork. The Lean package, its checks and the project's process
-are in place; the model itself starts in Phase 1.
+Phase 1, the core calculus, is complete. A Lean parser reads `.mojo` source,
+and the model checks, elaborates and runs it. On the conformance suite in
+`tests/conformance/`, the model agrees with the pinned compiler, the nightly
+1.3.0.dev2026111905. The exceptions are the programs that `known.json` lists,
+each of which follows a compiler bug that the decision log records. Work now
+closes the gaps with the compiler that Phase 1 found (#163). Phase 2, the
+soundness proofs (#30), comes next.
 
 ## Scope of v1
 
@@ -32,6 +37,19 @@ interop, async, GPU kernels and codegen correctness.
 | `docs/adrs/` | Architecture decision records and their generated index |
 | `docs/conformance/` | The decision log of disagreements with the compiler |
 | `scripts/` | The build script and the checks that the pre-commit hooks run |
+
+## Related work
+
+[MojoProof](https://robertboy18.github.io/MojoProof/) also uses Lean 4, but it
+works on the other side of the compiler. It takes the LLVM IR that
+`mojo build` emits for a GPU kernel and proves that kernel correct against a
+specification. Its theorems are about one compiled kernel at a time.
+mojo-grimoire instead models the Mojo language itself: which programs the
+compiler accepts, which error it reports for the others, and what an
+accepted program does when it runs. Differential testing against the
+compiler, program by program, establishes that the model is faithful. GPU
+kernels and code generation are out of scope for v1 here, and they are what
+MojoProof is about.
 
 The project is independent of the Isabelle/HOL formalisation
 [utting/mojo-semantics](https://github.com/utting/mojo-semantics): nothing here
