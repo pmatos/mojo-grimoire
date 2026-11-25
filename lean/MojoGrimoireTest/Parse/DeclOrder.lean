@@ -65,7 +65,19 @@ private def mixed : List String := [
   | .ok prog => prog.order.length == 4
   | .error _ => false)
 
--- A program built by hand records no order.
-#guard ({ structs := [], funs := [] } : Program).order == []
+-- A program built by hand records no order, and `declOrder` falls back to
+-- its structs, then its functions.
+private def counter : StructDecl :=
+  ⟨"C", [("a", .int), ("b", .int)], .none, false, some ⟨"__init__", [], .noneType, [], none⟩,
+    some [], [⟨"m", [], .noneType, [], none⟩]⟩
+
+#guard ({ structs := [counter], funs := [⟨"f", [], .noneType, [], none⟩, ⟨"main", [], .noneType, [], none⟩] } :
+    Program).declOrder ==
+  [.struct 0 [.field 0, .field 1, .init, .deinit, .method 0], .func 0, .func 1]
+
+-- A parsed program gives its own order.
+#guard (match parse ("\n".intercalate mixed) with
+  | .ok prog => prog.declOrder == prog.order && !prog.order.isEmpty
+  | .error _ => false)
 
 end MojoGrimoireTest.Parse

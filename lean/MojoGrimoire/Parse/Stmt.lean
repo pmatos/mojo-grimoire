@@ -274,9 +274,8 @@ def structDecl (fieldwise : Bool) (fuel : Nat) : P (StructDecl × List Member) :
 
 /-- The program `prog` with the struct `sd`, whose members stand in the
 order `ms`, declared after its other declarations. -/
-def addStruct (prog : Program) : StructDecl × List Member → Program
-  | (sd, ms) => { prog with structs := prog.structs ++ [sd],
-                            order := prog.order ++ [.struct prog.structs.length ms] }
+def addStruct (prog : Program) (sd : StructDecl) (ms : List Member) : Program :=
+  { prog with structs := prog.structs ++ [sd], order := prog.order ++ [.struct prog.structs.length ms] }
 
 /-- The program `prog` with the function `fd` declared after its other
 declarations. -/
@@ -296,10 +295,12 @@ def decls : Nat → Program → P Program
       unless d == "fieldwise_init" do fail s!"unknown decorator @{d}"
       expectNewline
       expectKw "struct"
-      decls n (addStruct prog (← structDecl true n))
+      let (sd, ms) ← structDecl true n
+      decls n (addStruct prog sd ms)
     | some (.ident "struct") =>
       let _ ← next
-      decls n (addStruct prog (← structDecl false n))
+      let (sd, ms) ← structDecl false n
+      decls n (addStruct prog sd ms)
     | some (.ident "def") | some (.ident "fn") =>
       let _ ← next
       decls n (addFun prog (← funDecl none n))

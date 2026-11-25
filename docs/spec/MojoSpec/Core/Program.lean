@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Functions, structs and programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15332183343010864468")
+:::moduleDocs (fingerprint := "17028461619507783713")
 :::
 
 :::readable MojoGrimoire.Core.Param (fingerprint := "15254264730588750988")
@@ -106,6 +106,14 @@ the checker first needs it.
 functions, order of declarations and mode are. The twin is not compared, so as not to infer it;
 elaboration and the stripping of tests change the functions and keep the
 twin, so two programs equal so may differ in their twins.
+:::
+
+:::readable MojoGrimoire.Core.StructDecl.defaultMembers MojoGrimoire.Core.Program.declOrder (fingerprint := "8311956066181836934")
+*Definition: the order of a program.* The order of a program's
+declarations is the one that the parser recorded. A program built with no
+order, such as one built by hand, takes its structs and then its
+functions, and each struct its fields, then its initializer, its
+destructor and its other methods. Later passes read the order so.
 :::
 
 :::readable MojoGrimoire.Core.deinitDecl MojoGrimoire.Core.Program.asMain MojoGrimoire.Core.Program.twinBody (fingerprint := "12354485916356738237")

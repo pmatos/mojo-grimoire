@@ -97,6 +97,22 @@ instance instBEqProgram : BEq Program :=
   ⟨fun a b => a.structs == b.structs && a.funs == b.funs && a.order == b.order &&
     a.mainMode == b.mainMode⟩
 
+/-- The order of the members of the struct `sd` when none was recorded:
+its fields, then its `__init__`, its `__deinit__` and its other methods. -/
+def StructDecl.defaultMembers (sd : StructDecl) : List Member :=
+  (List.range sd.fields.length).map .field ++ (sd.init.map fun _ => Member.init).toList ++
+    (sd.deinit.map fun _ => Member.deinit).toList ++ (List.range sd.methods.length).map .method
+
+/-- The order of the declarations of the program `prog` in its source, or,
+for a program built with no order, such as one built by hand, its structs
+and then its functions, each struct's members in `defaultMembers`. Later
+passes read the order through it. -/
+def Program.declOrder (prog : Program) : List Decl :=
+  if prog.order.isEmpty then
+    ((List.range prog.structs.length).zip prog.structs).map (fun (i, sd) => .struct i sd.defaultMembers) ++
+      (List.range prog.funs.length).map .func
+  else prog.order
+
 /-- The destructor of the struct `s`, whose body is `body`, as a function. -/
 def deinitDecl (s : Name) (body : List Stmt) : FunDecl :=
   ⟨"__deinit__", [⟨.deinit, "self", .struct s⟩], .noneType, body, none⟩

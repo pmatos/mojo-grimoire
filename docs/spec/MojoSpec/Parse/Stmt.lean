@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and declarations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8312426512258304460")
+:::moduleDocs (fingerprint := "961200513250835029")
 :::
 
 :::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.augCallee MojoGrimoire.Parse.exprStmt (fingerprint := "14674107341489909627")
@@ -99,7 +99,7 @@ and each method where it stands, and a second `__init__` or `__deinit__`,
 which replaces the first, where it stands.
 :::
 
-:::readable MojoGrimoire.Parse.addStruct MojoGrimoire.Parse.addFun MojoGrimoire.Parse.decls MojoGrimoire.Parse.parseLines MojoGrimoire.Parse.parseRaw (fingerprint := "13074113148628568512")
+:::readable MojoGrimoire.Parse.addStruct MojoGrimoire.Parse.addFun MojoGrimoire.Parse.decls MojoGrimoire.Parse.parseLines MojoGrimoire.Parse.parseRaw (fingerprint := "11523914578383755609")
 *Definition: programs.* A program is a sequence of structs and functions,
 in any order, which the parser records in the program's order of
 declarations, each struct with the order of its members (#96). The only decorator is `@fieldwise_init`. The parser is given
