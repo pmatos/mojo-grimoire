@@ -92,6 +92,18 @@ def findCallee (prog : Program) (f : Name) : Option FunDecl :=
     ((findStruct prog s).bind (findMethod · m)).map (asCallee · reflected)
   | none, none => none
 
+/-- Whether a call of `f` is a subscript `p[i]` that Mojo reads late: a
+call of the `__getitem__` of a struct that also declares `__setitem__`,
+whose subscript is a place of its own, read, as a place operand is, once
+every operand of its operation is evaluated, when the getter is called.
+With no `__setitem__`, the subscript is a value, and the getter is called
+in order, as any other call is (#191). -/
+def lateGetter (prog : Program) (f : Name) : Bool :=
+  match calleeMethod f with
+  | some (s, "__getitem__", false) =>
+    (findStruct prog s).any fun sd => (findMethod sd "__setitem__").isSome
+  | _ => false
+
 /-- The signature of a call of `f`: the construction of the struct `f`,
 which takes the parameters of its `__init__` after `self`, or each field
 `var` when it is `@fieldwise_init`; otherwise the function `f`, or the

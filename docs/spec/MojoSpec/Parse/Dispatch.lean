@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods of operators on structs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11358577941461997830")
+:::moduleDocs (fingerprint := "10284903237660862545")
 :::
 
 :::readable MojoGrimoire.Parse.declaredMethod MojoGrimoire.Parse.inPlaceMethod MojoGrimoire.Parse.otherParam (fingerprint := "11709485608895280507")
@@ -33,13 +33,14 @@ change what they point to. A place may change when its variable may and
 it is no transfer. An operator's result has its `binaryResult`.
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv.mutableAt MojoGrimoire.Parse.TyEnv.mutableArgs MojoGrimoire.Parse.TyEnv.canPass (fingerprint := "14590106347368136584")
+:::readable MojoGrimoire.Parse.TyEnv.mutableAt MojoGrimoire.Parse.TyEnv.mutableArgs MojoGrimoire.Parse.TyEnv.canPass (fingerprint := "2892619099815580799")
 *Definition: what may change.* An operand may change when it is a place
 that may, or a call or a method call that returns a reference whose
 origins are all parameters it may change: `mut` ones, `self` among them,
 or `ref` ones passed what may change. Only what may change is passed to a
 `mut` parameter, which decides which method of an operator is viable
-(#191).
+(#191). A subscript of a struct with a setter is let through, for the
+checker to reject, since its write-back is not yet modelled (#198).
 :::
 
 :::readable MojoGrimoire.Parse.chooseBinary (fingerprint := "10626963943619472608")
