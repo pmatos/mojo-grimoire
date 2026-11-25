@@ -113,17 +113,9 @@ Lists, `List[T]`, follow the rules of
   compiler reports the misfits as "no matching function in call to
   'range'" or "no matching function in initialization", and the literal
   as "function instantiation failed"; the suite maps each to
-  `noMatchingInit`, the first by the ruling of 2026-11-19 (#121). The
-  compiler's order is tiered more finely than these passes, and the rest
-  is left to #96. Inside an operation, the model checks in program order,
-  as in any expression: `range(xs[-1] + u)`, with `u` uninitialized, is
-  `negativeIndex`. An argument whose check stops at a later pass's error
-  does not record what it moved, so `range(g(p^, xs[-1]), p.x)` is
-  `negativeIndex` where the compiler reports `p` uninitialized. A constant
-  index into an array comes before the literal and before an index into a
-  list on the compiler, and the model reports it as any index. A nested
-  `List[Int](range([1, 2]))` fails at once in the model, before a use of
-  an uninitialized value in another argument. The list is the one that unbounded
+  `noMatchingInit`, the first by the ruling of 2026-11-19 (#121). Where
+  the compiler's finer order differs is in
+  [semantics-error-order.md](semantics-error-order.md#the-arguments-of-range). The list is the one that unbounded
   arithmetic gives, also at the extreme values of `Int`. A non-empty range
   whose start and end lie exactly 2^63 apart aborts on the compiler, a
   compiler bug by a provisional ruling ([D-0008](../conformance/decision-log.md)):
