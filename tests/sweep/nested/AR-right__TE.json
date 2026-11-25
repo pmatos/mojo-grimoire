@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "transferFromElement",
+  "diagnostic": "expression does not designate a value with an origin"
+}

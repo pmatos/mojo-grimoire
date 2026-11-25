@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "unknownVariable",
+  "diagnostic": "use of unknown declaration 'nope'; did you mean 'one'?"
+}
