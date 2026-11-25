@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16941822615079986608")
+:::moduleDocs (fingerprint := "17742364415816014547")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "4845031522016519524")
@@ -55,7 +55,7 @@ element of an $`\mathsf{Int}` is a step of its own, since it is no
 location (#127).
 :::
 
-:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.Phase MojoGrimoire.Check.State MojoGrimoire.Check.CheckM MojoGrimoire.Check.flowCheck (fingerprint := "11857355841592397964")
+:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.Phase MojoGrimoire.Check.State MojoGrimoire.Check.CheckM MojoGrimoire.Check.flowCheck MojoGrimoire.Check.flowThrow (fingerprint := "14848454266392594273")
 *Definition: the checker's state.* A path $`\pi = f_1 \dots f_n` names a
 part of a variable: the empty path $`\epsilon` is the variable itself, and
 $`f_1 \dots f_n` its field $`f_1.\dots.f_n`. For each variable in scope,
@@ -75,7 +75,8 @@ order, makes a struct test rejected as `main` rejected it
 (`MojoGrimoire.Check.bridged`, until #96 part 4); another, set but while
 that replay runs without them, keeps the checks of a struct test
 itself. The state holds the phase too, type or flow (`Phase`): the
-type phase skips the checks of the flow phase (`flowCheck`). The checker
+type phase skips the checks of the flow phase (`flowCheck`, and
+`flowThrow` for one that rejects). The checker
 runs in a monad that reads and updates this state and may reject the
 program.
 :::
@@ -139,7 +140,7 @@ scope with that name, if there is one, and updating a variable replaces
 the innermost variable with its name. An unknown name is rejected.
 :::
 
-:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.indexedOf MojoGrimoire.Check.fixedLength MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "16927567901433327184")
+:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.indexedOf MojoGrimoire.Check.fixedLength MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "8871854417227859042")
 *Definition: reading a place.* The type of a place is the type of its
 variable, then of each field or element on the way; only a list or an
 array has elements, and $`p\,\hat{}` has the type of $`p`. An index

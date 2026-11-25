@@ -275,15 +275,17 @@ def checkedBinaryTy (prog : Program) (op : BinOp) (a b : Expr) (ta tb : Ty) (ka 
 
 /-- Whether the comparison `op` of `a` and `b` has, on the left, a literal
 that holds an inner literal of another length than one where an `Int` is
-expected, and that fits the type of `b`, no literal, once that inner
-literal is typed as the compiler types it (`literalFits`). The compiler fails SIMD's
-constraint only when it instantiates the call, so the type phase finds
-no error in such a comparison but those of its operands (#96). -/
+expected, that keeps no checks from before #166 but for that inner literal
+(`keepsBefore`), and that fits the type of `b`, no literal, once that
+inner literal is typed as the compiler types it: as off the left
+(`literalFits`). The compiler fails SIMD's constraint only when it
+instantiates the call, so the type phase finds no error in such a
+comparison but those of its operands (#96). -/
 def typedSimdLeft (prog : Program) (op : BinOp) (a b : Expr) : CheckM Bool := do
-  if b matches .list .. then return false
+  unless a matches .list .. && !(b matches .list ..) && compares op do return false
+  if ← keepsBefore prog op a b then return false
   let some t ← operandTy prog b | return false
-  unless a matches .list .. && compares op && convertsTo op t true do return false
-  if (← literalFits (operandTy prog) true t false a).isSome then return false
-  pure ((← literalFits (operandTy prog) true t true a) == some true)
+  unless (← operandFit prog op a (some t) true) == some none do return false
+  pure ((← literalFits (operandTy prog) false t a) == some true)
 
 end MojoGrimoire.Check

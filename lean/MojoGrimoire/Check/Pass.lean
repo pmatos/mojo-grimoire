@@ -88,15 +88,19 @@ def misfitFirst (e : Expr) (fit : Fit) (t : Ty) (check : Bool → CheckM Ty) :
 
 /-- Rejects the place `p` through the element of an `Int` as `notAList`,
 as before #127, where the model cannot yet give the compiler's result. The
-indices are checked first by `check`, as before, but for a constant out of
-an `Int`'s range, which comes after. -/
+indices are checked first by `check`, as the flow phase checks them, as
+before, but for a constant out of an `Int`'s range, which comes after. In
+the type phase, an index's error of a later pass (`CheckError.late`) is
+left to the flow phase, which reports it as before. -/
 def rejectIntElem (prog : Program) (p : Place) (check : CheckM Unit) : CheckM Unit := do
   unless ← intIndexed prog p do return
-  tryCatch check fun e => do
+  let phase := (← get).phase
+  let later ← tryCatch (do modify ({ · with phase := .flow }); check; pure false) fun e => do
     if let .constantIndexOutOfBounds (.index q _) := e then
       if (← placeTy prog q) == .int then throw (CheckError.notAList .int)
-    throw e
-  throw (CheckError.notAList .int)
+    if phase == .type && e.late then pure true else throw e
+  modify ({ · with phase })
+  unless later do throw (CheckError.notAList .int)
 
 /-- Rejects the place `p` through the element of an `Int` passed to a
 `mut` or `ref` parameter (`rejectIntElem`): the compiler passes it as a

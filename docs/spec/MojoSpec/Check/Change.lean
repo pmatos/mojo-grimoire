@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Changes and late re-checks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6196204542057664592")
+:::moduleDocs (fingerprint := "16793258989244557698")
 :::
 
 :::readable MojoGrimoire.Check.mark MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "1760972516223355294")
@@ -27,7 +27,7 @@ bound with `ref` whose origin the change invalidates. The mark of an
 operand is the number of changes recorded once it is checked.
 :::
 
-:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.lateLocs MojoGrimoire.Check.lateLocsList MojoGrimoire.Check.locsOf MojoGrimoire.Check.recheckPlaces MojoGrimoire.Check.firstElemLocs (fingerprint := "14858106631487428821")
+:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.lateLocs MojoGrimoire.Check.lateLocsList MojoGrimoire.Check.locsOf MojoGrimoire.Check.recheckPlaces MojoGrimoire.Check.firstElemLocs (fingerprint := "427947171084060423")
 *Rule: places read late.* Mojo reads a place operand only once every
 operand of its operation is evaluated, and a place passed by reference is
 used during the call. So once the operands are checked, every operand that

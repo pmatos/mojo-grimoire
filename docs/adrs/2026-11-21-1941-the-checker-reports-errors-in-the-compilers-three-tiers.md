@@ -23,7 +23,8 @@ the phase as a parameter, and each skips the checks of later phases.
 Each phase visits the declarations in the order in which the compiler
 checks its tier, which the area page records with its evidence;
 `MojoGrimoire.Core.Program` keeps their source order for it.
-`MojoGrimoire.Parse.Subset` still runs before the checker.
+`MojoGrimoire.Parse.Subset` still runs before the checker. The parts of
+#96 land this in steps, and the area page says which of it holds today.
 
 ## Why
 

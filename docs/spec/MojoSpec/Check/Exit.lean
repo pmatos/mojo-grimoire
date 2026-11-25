@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Ends, exits, joins and loops: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17252163279457160594")
+:::moduleDocs (fingerprint := "1586544030076695447")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -23,7 +23,7 @@ hold each of its fields. A part held whole whose field was moved out and
 assigned again is recorded as its fields, which hold all of it.
 :::
 
-:::readable MojoGrimoire.Check.partlyBuilt MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "4829553154257033022")
+:::readable MojoGrimoire.Check.partlyBuilt MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "14426640381796374171")
 *Rule: the end of a variable.* The compiler destroys a struct whole, so a
 variable may not end when it still holds a part, in $`H`, and a field is
 in $`M`, moved out and not assigned again, or $`\epsilon` is in both

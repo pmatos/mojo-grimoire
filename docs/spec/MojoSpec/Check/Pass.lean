@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11545881592566240005")
+:::moduleDocs (fingerprint := "8229283020955280721")
 :::
 
 :::readable MojoGrimoire.Check.Below (fingerprint := "14513104375151688470")
@@ -64,14 +64,16 @@ type fits. The call is then checked again by reference, from the state
 before it, for its type.
 :::
 
-:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "13159235926213031670")
+:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "600850313354156978")
 *Rule: the element of an $`\mathsf{Int}` where the model cannot follow
 the compiler.* A place through the element of an $`\mathsf{Int}` is
 rejected there as $`\mathsf{notAList}`, as before #127, once its indices
 are checked, a constant index out of the $`\mathsf{Int}`'s range being
 $`\mathsf{notAList}` too. So it is when passed to a `mut` or `ref`
 parameter: the compiler passes a temporary, written back after a `mut`
-call, which the model does not model yet (#222). An index is plain when
+call, which the model does not model yet (#222). Its indices are checked
+as the flow phase checks them; in the type phase, an index's error of a
+later pass is left to the flow phase, which reports it as before. An index is plain when
 it is an integer constant or a variable, which evaluating twice cannot
 change.
 :::

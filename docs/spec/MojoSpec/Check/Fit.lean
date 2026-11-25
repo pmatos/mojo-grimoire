@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17950274117566756507")
+:::moduleDocs (fingerprint := "14189520396661364294")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -114,7 +114,7 @@ The type phase finds none of the later passes' errors: it skips the uses
 and the reads late, the literal and the constant index.
 :::
 
-:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "16924331670843345057")
+:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "1970087332071131672")
 *Rule: a literal of the wrong length where an $`\mathsf{Int}` is
 expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1, which
 `wrongIntLiteral` picks out, fits no initializer of $`\mathsf{Int}`,
@@ -138,6 +138,5 @@ $`t`; a method or an operator with several overloads keeps
 `noMatchingInit` $`\mathsf{Int}`, since the literal fits the overload
 that takes an $`\mathsf{Int}` and fails once it is chosen (#169). In the
 flow phase it never returns. The type phase skips that failure of
-instantiation: there it gives the value it is given, once the elements
-are read.
+instantiation: there the literal passes once its elements are read.
 :::

@@ -53,7 +53,7 @@ def checkBody (prog : Program) (phase : Phase) (owner : Option Name) (fd : FunDe
   let ((), _) ← (do
       checkBlock prog fd fd.body (Thunk.mk fun _ => prog.twinBody owner fd)
       if (← get).live then
-        unless fd.result == Ty.noneType do flowCheck (throw (CheckError.missingReturn fd.name))
+        unless fd.result == Ty.noneType do flowThrow (CheckError.missingReturn fd.name)
         checkExit prog).run start
 
 /-- Rejects a parameter list in which a parameter has the convention `out` or

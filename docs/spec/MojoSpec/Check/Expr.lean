@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7784323379589906230")
+:::moduleDocs (fingerprint := "17782961927663375207")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "5409470168266214550")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "3370010895706944923")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -211,5 +211,6 @@ A constant index that is negative or past the last element is a check
 of the flow phase until #96 part 7, which the type phase skips. In the
 type phase, a comparison whose left literal holds an inner literal of
 another length where an $`\mathsf{Int}` is expected, and fits the other
-operand, checks only its operands' own expressions (`typedSimdLeft`).
+operand, types the literal and checks the other operand, read by
+reference (`typedSimdLeft`).
 :::

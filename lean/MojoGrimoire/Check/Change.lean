@@ -63,7 +63,7 @@ def requireUnchanged (prog : Program) (p : Place) (k : Nat) : CheckM Unit := do
   unless later.isEmpty do
     for q in resolvePlace s.vars p do
       let o ← shapeOf prog q
-      if later.any (invalidates · o) then flowCheck (throw (CheckError.invalidatedReference p))
+      if later.any (invalidates · o) then flowThrow (CheckError.invalidatedReference p)
 
 /-- The origins of the call `e` that returns a reference, those of its
 origin arguments that are temporaries left out; none for any other

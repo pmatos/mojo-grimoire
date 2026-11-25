@@ -186,5 +186,6 @@ the compiler's; where #185 changed the class, the bullet says so:
   array, or of a list on the right. A `Bool` operand compared with a
   literal, `t == [1]` or `bs[-1] >= [[3]]`, and a literal passed to a
   struct's `__eq__` that takes a `Bool`, are `noMatchingInit` for the
-  compiler too, and `typeMismatch` in the model (#165); `bs[-1] >= [[3]]`
-  keeps `main`'s `negativeIndex`.
+  compiler too, and `typeMismatch` in the model (#165), also
+  `bs[-1] >= [[3]]`, whose negative index the flow phase finds after it
+  (#96).

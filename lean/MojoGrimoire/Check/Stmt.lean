@@ -107,8 +107,8 @@ any length but 1 where an `Int` is expected initializes it, and fits no
 initializer (`rejectIntLiteral`, #153, #154). -/
 def checkInitValue (prog : Program) (t : Ty) (e : Expr) (value : CheckM Ty) : CheckM Unit := do
   if let some es := wrongIntLiteral e then
-    return ← rejectIntElems prog (.init t) es (fun p _ => typePlace prog p)
-      (fun a _ => checkExpr prog a) ()
+    rejectIntElems prog (.init t) es (fun p _ => typePlace prog p) (fun a _ => checkExpr prog a)
+    return
   if let .list .unknown es := e then
     unless t matches .list _ | .array .. do
       checkOperands prog es
@@ -174,7 +174,7 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let ts := (if (above path v.touched).isEmpty then [] else [[]]) ++ atOrBelow path v.touched
     if cannotEnd prog (partTy prog v.ty path) (partsWithin path v.uninit) (atOrBelow path v.moved)
         (partsWithin path v.held) ts (atOrBelow path v.pieces) 0 then
-      flowCheck (throw (CheckError.partiallyDestroyed x))
+      flowThrow (CheckError.partiallyDestroyed x)
     let uninit := initPart prog v.uninit v.ty path
     let outside (us : List Path) := us.filter (!path.isPrefixOf ·)
     let pieces := union (outside v.pieces) ((above path v.uninit).flatMap (piecesTo · path))

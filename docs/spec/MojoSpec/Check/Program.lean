@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16386356784703605396")
+:::moduleDocs (fingerprint := "3258553835566770178")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17131055927722852879")
@@ -31,7 +31,7 @@ repeats. Only the `self` of `__init__` may be `out`, and only the
 `self` of `__deinit__` `deinit`.
 :::
 
-:::readable MojoGrimoire.Check.checkBody (fingerprint := "17402035727393658499")
+:::readable MojoGrimoire.Check.checkBody (fingerprint := "3623980452092522997")
 *Rule: function bodies.* The parameters have distinct names and declarable
 types, and the result type is declarable or $`\mathsf{None}`; a type in
 which a variable hides a name is `valueAsType`, in that order. An origin

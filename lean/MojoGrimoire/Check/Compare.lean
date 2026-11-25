@@ -116,15 +116,14 @@ does not give is not known: both are `none`. So is, when `left` holds,
 an inner literal of another length than one where an `Int` is expected:
 the order of the compiler's failure of SIMD's constraint and of the reads
 waits for #96, and a literal on the left that holds one keeps the checks
-it had before #166. With `typing`, it fits as the compiler types it,
-since that failure is instantiation's (`typedSimdLeft`). -/
+it had before #166. Off the left, it fits as the compiler types it, since
+that failure is instantiation's (`typedSimdLeft`). -/
 def literalFits {m : Type → Type} [Monad m] (leafTy : Expr → m (Option Ty)) (left : Bool)
-    (t : Ty) (typing : Bool) : Expr → m (Option Bool)
+    (t : Ty) : Expr → m (Option Bool)
   | .list .unknown es => match t with
-    | .array u n => if es.length == n then elemsFit leafTy left u typing es else pure (some false)
-    | .list u => elemsFit leafTy left u typing es
-    | .int =>
-      if left && !typing && es.length != 1 then pure none else elemsFit leafTy left .int typing es
+    | .array u n => if es.length == n then elemsFit leafTy left u es else pure (some false)
+    | .list u => elemsFit leafTy left u es
+    | .int => if left && es.length != 1 then pure none else elemsFit leafTy left .int es
     | .bool => pure none
     | _ => pure (some false)
   | .list u _ => pure (some (u == t))
@@ -133,11 +132,11 @@ def literalFits {m : Type → Type} [Monad m] (leafTy : Expr → m (Option Ty)) 
 /-- Whether each of the elements `es` fits the type `u` (`literalFits`):
 `some false` when one does not, `none` when one is not known. -/
 def elemsFit {m : Type → Type} [Monad m] (leafTy : Expr → m (Option Ty)) (left : Bool)
-    (u : Ty) (typing : Bool) : List Expr → m (Option Bool)
+    (u : Ty) : List Expr → m (Option Bool)
   | [] => pure (some true)
   | e :: es => do
-    let r ← literalFits leafTy left u typing e
-    let rs ← elemsFit leafTy left u typing es
+    let r ← literalFits leafTy left u e
+    let rs ← elemsFit leafTy left u es
     pure (match r, rs with
       | some false, _ | _, some false => some false
       | some true, some true => some true
@@ -163,7 +162,7 @@ def operandFit (prog : Program) (op : BinOp) (e : Expr) (t : Option Ty) (left :=
     CheckM (Option (Option Bool)) := do
   match e, t with
   | .list .., some t =>
-    if compares op && convertsTo op t left then pure (some (← literalFits (operandTy prog) left t false e))
+    if compares op && convertsTo op t left then pure (some (← literalFits (operandTy prog) left t e))
     else pure none
   | _, _ => pure none
 

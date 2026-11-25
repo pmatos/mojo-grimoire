@@ -145,6 +145,9 @@ skipped in the type phase. -/
 def flowCheck (check : CheckM Unit) : CheckM Unit := do
   if (← get).phase == .flow then check
 
+/-- Rejects with `err`, an error of the flow phase, only in that phase. -/
+def flowThrow (err : CheckError) : CheckM Unit := flowCheck (throw err)
+
 /-- The variable a place starts from, and the path from it to the place.
 The elements of a list or an array are not parts that the checker follows:
 the path to a place inside an element stops at the list or array. `p^`
@@ -338,7 +341,7 @@ field by field. -/
 def requireInit (v : VarState) (p : Place) : CheckM Unit := do
   let q := (splitPlace p).2
   unless initialized v.uninit q && !(v.moved ++ v.pieces).any (q.isPrefixOf ·) do
-    flowCheck (throw (CheckError.uninitializedUse p))
+    flowThrow (CheckError.uninitializedUse p)
 
 /-- The type of a place that is initialized, so that its value may be read;
 it rejects a use of a part that is uninitialized. A place reached through a
@@ -349,7 +352,7 @@ def readPlace (prog : Program) (p : Place) : CheckM Ty := do
   let v ← lookup (splitPlace p).1
   match v.access with
   | .alias os _ =>
-    if (← get).stale.contains v.name then flowCheck (throw (CheckError.invalidatedReference p))
+    if (← get).stale.contains v.name then flowThrow (CheckError.invalidatedReference p)
     for o in os do requireInit (← lookup (splitPlace o).1) o
   | _ => requireInit v p
   pure t

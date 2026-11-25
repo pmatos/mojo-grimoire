@@ -72,11 +72,11 @@ def readIntElems (prog : Program) {r : List Expr} (check : Below Expr Ty r) :
 
 /-- Rejects a literal `es` of `Int`s of any length but 1 as a call of fit
 `fit` reports it (`rejectIntLiteral`): `intMisfit` types its elements and
-`readIntElems` reads them, given the checks `typePlace` and `check`. The type
-phase gives `skip`. -/
-def rejectIntElems {α : Type} (prog : Program) (fit : Fit) (es : List Expr)
-    (typePlace : Below Place Unit es) (check : Below Expr Ty es) (skip : α) : CheckM α :=
+`readIntElems` reads them, given the checks `typePlace` and `check`. It
+rejects only in the flow phase. -/
+def rejectIntElems (prog : Program) (fit : Fit) (es : List Expr)
+    (typePlace : Below Place Unit es) (check : Below Expr Ty es) : CheckM Unit :=
   rejectIntLiteral prog fit (intMisfit prog typePlace check es (Nat.le_refl _))
-    (readIntElems prog check es (Nat.le_refl _)) skip
+    (readIntElems prog check es (Nat.le_refl _))
 
 end MojoGrimoire.Check

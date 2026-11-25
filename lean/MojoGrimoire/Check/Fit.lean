@@ -227,15 +227,15 @@ constraint of one element, `noMatchingInit`: by an initializer of `t` of
 `t`, and else of `Int`, also for a method or an operator with several
 overloads, since the literal fits the one that takes an `Int` and fails
 only once it is chosen (#169). That failure is instantiation's, which
-the type phase skips: there the literal gives `skip`. -/
-def rejectIntLiteral {α : Type} (prog : Program) (fit : Fit) (misfit : CheckM (Option Ty))
-    (reads : CheckM (List (List Place × Nat))) (skip : α) : CheckM α := do
+the type phase skips: there the literal passes once its elements are
+read. -/
+def rejectIntLiteral (prog : Program) (fit : Fit) (misfit : CheckM (Option Ty))
+    (reads : CheckM (List (List Place × Nat))) : CheckM Unit := do
   let s ← get
   if let some u ← misfit then throw (fit.misfit (CheckError.typeMismatch .int u))
   set s
   recheckLocs prog (← reads)
-  if (← get).phase == .type then return skip
-  throw (if fit matches .overload _ then CheckError.noMatchingInit .int
+  flowThrow (if fit matches .overload _ then CheckError.noMatchingInit .int
     else fit.misfit (CheckError.noMatchingInit .int))
 
 end MojoGrimoire.Check

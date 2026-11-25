@@ -88,7 +88,7 @@ def cannotEnd (prog : Program) (t : Ty) (us ms hs ts ps : List Path) (start : Na
 def checkEnd (prog : Program) (v : VarState) : CheckM Unit := do
   let start := if v.access == .dying then 1 else 0
   if cannotEnd prog v.ty v.uninit v.moved v.held v.touched v.pieces start then
-    flowCheck (throw (CheckError.partiallyDestroyed v.name))
+    flowThrow (CheckError.partiallyDestroyed v.name)
 
 /-- Rejects the state at a return: every `mut` parameter and the `self` of
 `__init__` must be wholly initialized, with no part built from its fields,
