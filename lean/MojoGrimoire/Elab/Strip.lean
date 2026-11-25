@@ -98,28 +98,28 @@ theorem stripExpr_withDropsOf (e : Expr) (pre post : List Place) :
 mutual
 /-- Elaborating an expression only inserts drops. -/
 theorem stripExpr_elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) :
-    stripExpr (elabExpr ctx top e after) = stripExpr e := by
+    stripExpr (elabExpr ctx top e after).out = stripExpr e := by
   match e with
-  | .call f args => simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
+  | .call f args => simp [elabExpr, Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
   | .method p m args =>
-    simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
+    simp [elabExpr, Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
   | .binary op a b =>
     simp only [elabExpr]
     split <;> (try split) <;> (try split) <;> (try split) <;>
-      simp [stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr, stripExpr_elabLate]
-  | .unary op a => simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
+      simp [Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr, stripExpr_elabLate]
+  | .unary op a => simp [elabExpr, Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
   | .list t es =>
     simp only [elabExpr]
-    split <;> simp [stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
-  | .listInit _ es => simp [elabExpr, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
-  | .copy p => simp [elabExpr, stripExpr_withDropsOf]
+    split <;> simp [Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
+  | .listInit _ es => simp [elabExpr, Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
+  | .copy p => simp [elabExpr, Elaborated.op, stripExpr_withDropsOf]
   | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .withDrops .. =>
     simp [elabExpr]
 termination_by structural e
 
 /-- Elaborating operands only inserts drops. -/
 theorem stripExprs_elabOps (ctx : Ctx) (es : List Expr) (after held : List Place) :
-    stripExprs (elabOps ctx es after held) = stripExprs es := by
+    stripExprs (elabOps ctx es after held).out = stripExprs es := by
   match es with
   | [] => simp [elabOps, stripExprs]
   | e :: rest =>
@@ -131,9 +131,9 @@ termination_by structural es
 
 /-- Elaborating a subscript read late only inserts drops. -/
 theorem stripExpr_elabLate (ctx : Ctx) (e : Expr) (after held : List Place) :
-    stripExpr (elabLate ctx e after held) = stripExpr e := by
+    stripExpr (elabLate ctx e after held).out = stripExpr e := by
   match e with
-  | .call f args => simp [elabLate, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
+  | .call f args => simp [elabLate, Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
   | .method .. | .binary .. | .unary .. | .list .. | .listInit .. | .copy _ | .int _ | .bool _
     | .str _ | .place _ | .transfer _ | .withDrops .. =>
     simp [elabLate]
