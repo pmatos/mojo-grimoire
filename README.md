@@ -8,8 +8,13 @@ and the compiler. The model follows the compiler, and the
 
 ## Status
 
-Phase 0, groundwork. The Lean package, its checks and the project's process
-are in place; the model itself starts in Phase 1.
+Phase 1, the core calculus, is complete. A Lean parser reads `.mojo` source,
+and the model checks, elaborates and runs it. On the conformance suite in
+`tests/conformance/`, the model agrees with the pinned compiler, the nightly
+1.3.0.dev2026111905. The exceptions are the programs that `known.json` lists,
+each of which follows a compiler bug that the decision log records. Work now
+closes the gaps with the compiler that Phase 1 found (#163). Phase 2, the
+soundness proofs (#30), comes next.
 
 ## Scope of v1
 
