@@ -33,6 +33,19 @@ interop, async, GPU kernels and codegen correctness.
 | `docs/conformance/` | The decision log of disagreements with the compiler |
 | `scripts/` | The build script and the checks that the pre-commit hooks run |
 
+## Related work
+
+[MojoProof](https://robertboy18.github.io/MojoProof/) also uses Lean 4, but it
+works on the other side of the compiler. It takes the LLVM IR that
+`mojo build` emits for a GPU kernel and proves that kernel correct against a
+specification. Its theorems are about one compiled kernel at a time.
+mojo-grimoire instead models the Mojo language itself: which programs the
+compiler accepts, which error it reports for the others, and what an
+accepted program does when it runs. Differential testing against the
+compiler, program by program, establishes that the model is faithful. GPU
+kernels and code generation are out of scope for v1 here, and they are what
+MojoProof is about.
+
 The project is independent of the Isabelle/HOL formalisation
 [utting/mojo-semantics](https://github.com/utting/mojo-semantics): nothing here
 imports, vendors or generates code from it, and the conformance suite is
