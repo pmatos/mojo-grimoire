@@ -233,42 +233,55 @@ def PState.deinitScope (s : Name) (st : PState) : PState :=
   | [] => st
 
 /-- Reads the members of a struct up to the dedent that ends them: fields,
-methods, `pass` and docstrings. -/
-def members (s : Name) : Nat → StructDecl → P StructDecl
-  | 0, _ => fail "a struct too long"
-  | n + 1, sd => do
+methods, `pass` and docstrings, and gives their order in the source after
+the order `ms` of those before them. A second `__init__` or
+`__deinit__` replaces the first, and stands where it is written. -/
+def members (s : Name) : Nat → StructDecl → List Member → P (StructDecl × List Member)
+  | 0, _, _ => fail "a struct too long"
+  | n + 1, sd, ms => do
     match ← peek with
-    | some .dedent => let _ ← next; pure sd
-    | some .newline | some (.str _) => let _ ← next; members s n sd
-    | some (.ident "pass") => let _ ← next; expectNewline; members s n sd
+    | some .dedent => let _ ← next; pure (sd, ms)
+    | some .newline | some (.str _) => let _ ← next; members s n sd ms
+    | some (.ident "pass") => let _ ← next; expectNewline; members s n sd ms
     | some (.ident "var") =>
       let _ ← next
       let f ← name
       expectSym ":"
       let t ← ty n
       expectNewline
-      members s n { sd with fields := sd.fields ++ [(f, t)] }
+      members s n { sd with fields := sd.fields ++ [(f, t)] } (ms ++ [.field sd.fields.length])
     | some (.ident "def") | some (.ident "fn") =>
       let _ ← next
       let fd ← funDecl (some (.struct s)) n
       match fd.name with
-      | "__init__" => members s n { sd with init := some fd }
+      | "__init__" => members s n { sd with init := some fd } (ms.filter (· != .init) ++ [.init])
       | "__deinit__" => do
         modify (PState.deinitScope s)
-        members s n { sd with deinit := some fd.body }
-      | _ => members s n { sd with methods := sd.methods ++ [fd] }
+        members s n { sd with deinit := some fd.body } (ms.filter (· != .deinit) ++ [.deinit])
+      | _ => members s n { sd with methods := sd.methods ++ [fd] } (ms ++ [.method sd.methods.length])
     | _ => fail "expected a field or a method"
 
 /-- Reads a struct, from its `struct`, with whether it is
-`@fieldwise_init`. -/
-def structDecl (fieldwise : Bool) (fuel : Nat) : P StructDecl := do
+`@fieldwise_init`, and gives the order of its members. -/
+def structDecl (fieldwise : Bool) (fuel : Nat) : P (StructDecl × List Member) := do
   let s ← name
   let copying ← if ← acceptSym "(" then conformances fuel .none else pure .none
   expectSym ":"
   expectNewline
   unless (← peek) == some .indent do fail "expected an indented struct body"
   let _ ← next
-  members s fuel ⟨s, [], copying, fieldwise, none, none, []⟩
+  members s fuel ⟨s, [], copying, fieldwise, none, none, []⟩ []
+
+/-- The program `prog` with the struct `sd`, whose members stand in the
+order `ms`, declared after its other declarations. -/
+def addStruct (prog : Program) : StructDecl × List Member → Program
+  | (sd, ms) => { prog with structs := prog.structs ++ [sd],
+                            order := prog.order ++ [.struct prog.structs.length ms] }
+
+/-- The program `prog` with the function `fd` declared after its other
+declarations. -/
+def addFun (prog : Program) (fd : FunDecl) : Program :=
+  { prog with funs := prog.funs ++ [fd], order := prog.order ++ [.func prog.funs.length] }
 
 /-- Reads the declarations of a program up to the end of the file. -/
 def decls : Nat → Program → P Program
@@ -283,13 +296,13 @@ def decls : Nat → Program → P Program
       unless d == "fieldwise_init" do fail s!"unknown decorator @{d}"
       expectNewline
       expectKw "struct"
-      decls n { prog with structs := prog.structs ++ [← structDecl true n] }
+      decls n (addStruct prog (← structDecl true n))
     | some (.ident "struct") =>
       let _ ← next
-      decls n { prog with structs := prog.structs ++ [← structDecl false n] }
+      decls n (addStruct prog (← structDecl false n))
     | some (.ident "def") | some (.ident "fn") =>
       let _ ← next
-      decls n { prog with funs := prog.funs ++ [← funDecl none n] }
+      decls n (addFun prog (← funDecl none n))
     | _ => fail "expected a struct or a function"
 
 /-- Parses the text of a `.mojo` file, before inference, and gives each

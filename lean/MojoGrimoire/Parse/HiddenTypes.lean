@@ -109,10 +109,11 @@ def FunDecl.markHidden (fd : FunDecl) : FunDecl :=
 its functions, and in the methods, initializer and destructor of each
 struct. -/
 def markHidden (prog : Program) : Program :=
-  { structs := prog.structs.map fun sd =>
+  { prog with
+    structs := prog.structs.map fun sd =>
       { sd with init := sd.init.map FunDecl.markHidden,
                 deinit := sd.deinit.map (Stmt.blockMarkHidden ["self"]),
-                methods := sd.methods.map FunDecl.markHidden },
+                methods := sd.methods.map FunDecl.markHidden }
     funs := prog.funs.map FunDecl.markHidden }
 
 end MojoGrimoire.Parse

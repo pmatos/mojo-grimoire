@@ -55,7 +55,26 @@ structure StructDecl where
   methods : List FunDecl
   deriving BEq
 
+/-- A member of a struct, where its declaration stands in the source: its
+`i`-th field, its `__init__`, its `__deinit__`, or its `i`-th other
+method. -/
+inductive Member where
+  | field (i : Nat)
+  | init
+  | deinit
+  | method (i : Nat)
+  deriving BEq, Repr
+
+/-- A declaration of a program, where it stands in the source: its `i`-th
+function, or its `i`-th struct, with the order of its members. -/
+inductive Decl where
+  | func (i : Nat)
+  | struct (i : Nat) (members : List Member)
+  deriving BEq, Repr
+
 /-- A program: its structs and its functions. It runs by calling `main`.
+The parser also records the order of its declarations in the source,
+`order`, since the compiler reports some errors in that order (#96).
 Inference also gives it the bodies that `main`'s inference gave, as
 functions, each with the struct it belongs to, or none for a free
 function, `twin`, for the checker's bridge to `main`'s order
@@ -64,16 +83,19 @@ infers and checks as `main` did. -/
 structure Program where
   structs : List StructDecl
   funs : List FunDecl
+  order : List Decl := []
   mainMode : Bool := false
   twin : Thunk (List (Option Name × FunDecl)) := Thunk.pure []
 
-/-- Two programs are equal when their structs, functions and mode are.
+/-- Two programs are equal when their structs, functions, order and mode
+are.
 The twin, a thunk, is not compared: forcing it would infer it. Inference
 gives it from the same source as the functions, but elaboration and the
 stripping of tests change the functions and keep the twin, so two
 programs equal so may differ in their twins. -/
 instance instBEqProgram : BEq Program :=
-  ⟨fun a b => a.structs == b.structs && a.funs == b.funs && a.mainMode == b.mainMode⟩
+  ⟨fun a b => a.structs == b.structs && a.funs == b.funs && a.order == b.order &&
+    a.mainMode == b.mainMode⟩
 
 /-- The destructor of the struct `s`, whose body is `body`, as a function. -/
 def deinitDecl (s : Name) (body : List Stmt) : FunDecl :=
