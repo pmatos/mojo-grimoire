@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "invalid call to '__lt__': value passed to 'other' cannot be converted from 'Array[List[Int], Int(1)]' to 'Array[Array[Int, Int(1)], Int(1)]'"
+}

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14854947990164871835")
+:::moduleDocs (fingerprint := "2501881836489940814")
 :::
 
 :::readable MojoGrimoire.Parse.eagerValue (fingerprint := "681582824631525660")
@@ -48,16 +48,13 @@ inferred in order, each statement seeing the variables declared before it;
 the variables of an inner block do not leave it.
 :::
 
-:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.bodies MojoGrimoire.Parse.inferRaw MojoGrimoire.Parse.parse (fingerprint := "3192178492629292849")
+:::readable MojoGrimoire.Parse.inferFun MojoGrimoire.Parse.inferStruct MojoGrimoire.Parse.inferProgram MojoGrimoire.Parse.inferRaw MojoGrimoire.Parse.parse (fingerprint := "18364186373052213384")
 *Definition: parsing a program.* Inference starts each function from its
 parameters, and each destructor from `self`. The values a function returns
 are expected to have its result type, unless it returns a reference: then
 none is expected, since a literal is no place. Parsing a program lexes and
 parses its text, marks the types whose name a variable hides
 (`markHidden`), replaces `Self` in each struct's methods (`resolveSelf`),
-and then infers inside every declaration (`inferRaw`). It also infers
-them in `main`'s mode, and keeps the bodies that gives, each function's,
-initializer's, destructor's and method's, as the program's twin, which
-is inferred only when the checker first needs it. It does not check
+and then infers inside every declaration (`inferRaw`). It does not check
 the constructs outside the subset, which the driver's `parseSubset` does.
 :::

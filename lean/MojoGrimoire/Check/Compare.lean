@@ -212,11 +212,9 @@ place whose value is not implicitly copyable (`heldCopy`), or an empty
 list built by `List[u]()`, which is no literal that the compiler
 converts (`emptyList`). The compiler builds such a literal, and copies
 the place, in an order against its conversion and its misfit that waits
-for #96. In a program checked as `main` did (`Program.mainMode`), every
-comparison keeps them. -/
+for #96. -/
 def keepsBefore (prog : Program) (op : BinOp) (a b : Expr) : CheckM Bool := do
-  pure (compares op && (prog.mainMode ||
-    emptyList a || emptyList b || (← heldCopy prog a) || (← heldCopy prog b)))
+  pure (compares op && (emptyList a || emptyList b || (← heldCopy prog a) || (← heldCopy prog b)))
 
 /-- Whether the operand `e` is a binary operation, under the drops that
 the elaborator adds: in an operand of struct type, a nested test of `and`

@@ -140,20 +140,26 @@ model reports `recursiveStruct` first.
 
 ## Temporary bridges to `main`'s order
 
-Three bridges keep the results that `main` gave where a change exposed
+Two bridges keep the results that `main` gave where a change exposed
 the compiler's order before the model could follow it. They act in both
-phases, and Part 4 of #96 removes all three.
+phases. Part 4 of #96 removed a third, which bridged the comparisons
+that part 2 of #166 converts to `main`'s twin statement by statement
+(#281).
 
 - The struct tests of #191, by `and`, `or` and `not`:
   [semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares).
-- The comparisons that part 2 of #166 converts, bridged statement by
-  statement to `main`'s twin (#281):
-  [semantics-comparisons.md](semantics-comparisons.md).
-- The checks of an assignment (#280). The checker checks the indices of
-  the place before the value, as the compiler does. `typedFirst` then
-  makes an index's error of a later pass wait for the value's errors of
-  earlier passes, which `CheckError.pass` ranks. The human ruled on
-  2026-11-25 that this is a bridge of this kind. Between a literal of
+  Removing it loses two suite programs whose order is #89's, the
+  arguments of a call checked before its misfit, so it waits for the
+  human's ruling on #323.
+- The checks of an assignment (#280), until Part 7 of #96. The checker
+  checks the indices of the place before the value, as the compiler does.
+  `typedFirst` then makes an index's error of a later pass wait for the
+  value's errors of earlier passes, which `CheckError.pass` ranks. The
+  human ruled on 2026-11-25 that this is a bridge of this kind. The type
+  phase now reports the value's type errors first by itself, but
+  `typedFirst` still puts an index's instantiation error after the
+  value's flow errors. Removing it loses three suite programs, which
+  Part 7 orders for the whole program. Between a literal of
   `Int`s of the wrong length and a constant index into an array, the
   compiler's order differs between `-O0` and `-O3`. The model keeps the
   order at `-O0`, and no suite program pins it.

@@ -72,7 +72,7 @@ throws an error of a later pass than typing (`CheckError.pass`), `next`
 is still checked, from the state before `first`: an error of its own
 from an earlier pass stands, as the compiler runs each pass over both, and
 else `first`'s error does (#280). A temporary bridge until the checker
-runs the compiler's passes over the whole program (#96). -/
+orders the instantiation errors for the whole program (#96 part 7). -/
 def typedFirst {α : Type} (first : CheckM Unit) (next : CheckM α) : CheckM α := do
   tryCatch first fun e => do
     if e.pass == 0 then throw e

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5594550418301698401")
+:::moduleDocs (fingerprint := "10811789989099522301")
 :::
 
 :::readable MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "11022081997966745842")
@@ -113,7 +113,7 @@ unknown and which inference did not give the operand's type, beside a
 list, or an array when that literal holds a literal.
 :::
 
-:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "4416701048091780842")
+:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "11169905464813895782")
 *Rule: comparisons that keep the checks they had before #166.* A
 literal holds the places that are its elements, at any depth. A
 comparison of which either operand is a literal that holds a place whose
@@ -122,8 +122,7 @@ value is not implicitly copyable, or is an empty list built by
 check it had before #166:
 the compiler builds such a literal, and copies the place, in an order
 against the literal's conversion and the comparison's misfit that waits
-for #96. In a program checked as `main` did, every comparison keeps
-them. Before #166, a comparison with a literal that the compiler
+for #96. Before #166, a comparison with a literal that the compiler
 converts, one that holds a literal with types not known to be the same,
 or one with no type of its own beside a list, found no misfit from the
 forms of its operands, passed neither by reference, and checked only a

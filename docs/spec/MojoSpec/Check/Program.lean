@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2500644587005679612")
+:::moduleDocs (fingerprint := "4967447504206565180")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17933977108324489146")
@@ -32,22 +32,20 @@ repeats. Only the `self` of `__init__` may be `out`, and only the
 `self` of `__deinit__` `deinit`.
 :::
 
-:::readable MojoGrimoire.Check.checkBody (fingerprint := "4455961697245696526")
+:::readable MojoGrimoire.Check.checkBody (fingerprint := "8654260116126692342")
 *Rule: function bodies.* The parameters have distinct names and declarable
 types, and the result type is declarable or $`\mathsf{None}`; a type in
 which a variable hides a name is `valueAsType`, in that order. An origin
 names parameters passed as locations, and needs a result. The body is
 checked from the parameters' states on entry, with no reference
-invalidated and no change recorded, beside its twin, the body that
-`main`'s inference gave the same declaration: a free function's for a
-function, the same struct's for a member. If its end can be reached,
+invalidated and no change recorded. If its end can be reached,
 the result type must be $`\mathsf{None}`, and the state there is checked
 as at a return.
 The body is checked in the phase it is given; a missing return is a
 check of the flow phase.
 :::
 
-:::readable MojoGrimoire.Check.operatorArity MojoGrimoire.Check.checkFun MojoGrimoire.Check.checkMethod MojoGrimoire.Check.checkInit (fingerprint := "2604146257645790029")
+:::readable MojoGrimoire.Check.operatorArity MojoGrimoire.Check.checkFun MojoGrimoire.Check.checkMethod MojoGrimoire.Check.checkInit (fingerprint := "11337181230606983072")
 *Rule: functions, methods and initializers.* A function's body is checked.
 A method of the struct $`S` has a first parameter `self` of type $`S`,
 `read`, `mut`, `var` or `ref`. An operator method that inference calls
@@ -60,7 +58,7 @@ compiler checks when it parses the declaration; otherwise
 Each is checked in the phase it is given.
 :::
 
-:::readable MojoGrimoire.Check.checkFields MojoGrimoire.Check.checkMethods (fingerprint := "4262877697978545447")
+:::readable MojoGrimoire.Check.checkFields MojoGrimoire.Check.checkMethods (fingerprint := "1130596817381386298")
 *Rule: structs.* A struct's fields and methods have distinct names, its
 fields declarable types, and no field leads to a rejected cycle back to
 the struct. Its initializer, its destructor, checked with the single

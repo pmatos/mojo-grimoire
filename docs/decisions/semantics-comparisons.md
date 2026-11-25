@@ -94,35 +94,21 @@ and `1 < True` fits none of the literal's overloads. A `Bool` compared
 with an empty literal, `t == []` or `True < []`, is the compiler's
 "cannot be converted from list literal to 'Bool'", `typeMismatch`,
 found before the operands are read, so also beside an uninitialized
-`t` (#286). The checker finds it on both paths, part 2's and `main`'s,
-so the bridge reports it too (`boolLiteralMisfit`). An empty literal on
+`t` (#286), in the type phase (`boolLiteralMisfit`). An empty literal on
 the left, `[] == t`, stays `invalidType`, as on the compiler.
 
-Until #96 part 4 orders the model's errors as the compiler does, a
-statement, or a condition, that part 2 rejects is checked again as `main`
-did, from the same state, with the body that `main`'s inference gave
-(`Check.Block.bridgedToTwin`, ruled on #281), each check through the
-bridge of #191 ([semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares)),
-as `main` checks a statement. When that check fails too, `main`'s
-error is reported; otherwise part 2's stands. Each condition of an
-`if`/`elif` chain is a statement of its own here, and is checked with
-the test that it is a `Bool`. A function, method, initializer or
-destructor is checked beside `main`'s twin of the same declaration, a
-method beside the method of its struct. So wherever `main` and part 2
-both reject a statement or a condition, it gives `main`'s result. The
-checks of a declaration as a whole, such as its parameters, a missing
-`return`, or what a function leaves when it ends, are not bridged. A comparison that part 2 rejects with the compiler's class,
-where `main` rejected it with another, keeps `main`'s class until #96
-part 4: `a == [[1, 2]]` with `a = [1]` stays `implicitCopy` where the
-compiler gives `noMatchingInit`, and `[1] < xs` stays `implicitCopy`
-where it gives `typeMismatch`. So does `[w[0][0]] == w[0]`, with
-`w: Array[List[Int], 1]`: the subscript `w[0]` invalidates the element
-that the literal reads late, which part 2 rejects, as the compiler does
-(`invalidatedReference`, #282,
-[semantics-references.md](semantics-references.md#references)), but
-`main` copied the array, and the bridge keeps `implicitCopy`. #96 lists those comparisons, and the suite
-programs and tests that part 4 adds back. A program of several statements
-is not bridged across statements; process.md's exceptions cover those.
+Part 2 of #166 changed the class of some comparisons that `main`
+rejected otherwise. #260 bridged each statement and condition to
+`main`'s result until part 4 of #96 typed every function before it
+checked its flow, as the compiler does; part 4 removed that bridge (#281).
+So `a == [[1, 2]]` with `a = [1]` is `noMatchingInit`, `[1] < xs` is
+`typeMismatch`, and `[w[0][0]] == w[0]`, with `w: Array[List[Int], 1]`,
+is `invalidatedReference`: the subscript `w[0]` invalidates the element
+that the literal reads late (#282,
+[semantics-references.md](semantics-references.md#references)), as the
+compiler says. A comparison with a literal that holds a place whose value
+is not implicitly copyable keeps `main`'s checks, in an order that waits
+for #96 part 9 (comment 14 on #96).
 
 Not yet modelled. Each stays rejected, with a class that is still not
 the compiler's; where #185 changed the class, the bullet says so:

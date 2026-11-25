@@ -36,13 +36,11 @@ def checkDistinct : List Name → Except CheckError Unit
   | [] => pure ()
   | x :: xs => if xs.contains x then throw (.duplicate x) else checkDistinct xs
 
-/-- Checks the body of the function `fd`, a member of the struct `owner`
-or a free function when `owner` is none: its parameters and result must
+/-- Checks the body of the function `fd`: its parameters and result must
 have declarable types, its origin must name parameters passed as locations,
-the body must be accepted, checked beside the body that `main`'s inference
-gave it (`Program.twinBody`), and, unless the function returns nothing,
+the body must be accepted, and, unless the function returns nothing,
 every path through it must return. It is checked in the phase `phase`. -/
-def checkBody (prog : Program) (phase : Phase) (owner : Option Name) (fd : FunDecl) :
+def checkBody (prog : Program) (phase : Phase) (fd : FunDecl) :
     Except CheckError Unit := do
   checkDistinct (fd.params.map (·.name))
   for prm in fd.params do
@@ -52,7 +50,7 @@ def checkBody (prog : Program) (phase : Phase) (owner : Option Name) (fd : FunDe
   let start : State :=
     { vars := fd.params.reverse.map paramState, live := true, stale := [], changes := [], phase }
   let ((), _) ← (do
-      checkBlock prog fd fd.body (Thunk.mk fun _ => prog.twinBody owner fd)
+      checkBlock prog fd fd.body
       if (← get).live then
         unless fd.result == Ty.noneType do flowThrow (CheckError.missingReturn fd.name)
         checkExit prog).run start
@@ -66,7 +64,7 @@ def checkConventions (fn : Name) (params : List Param) : Except CheckError Unit 
 /-- Checks a function. -/
 def checkFun (prog : Program) (phase : Phase) (fd : FunDecl) : Except CheckError Unit := do
   checkConventions fd.name fd.params
-  checkBody prog phase none fd
+  checkBody prog phase fd
 
 /-- The number of operands, `self` among them, that the operator method
 `m` takes, for the operator methods that inference calls (#191): two for
@@ -91,7 +89,7 @@ def checkMethod (prog : Program) (phase : Phase) (s : Name) (fd : FunDecl) :
   unless self.name == "self" && self.ty == .struct s do throw (.invalidSelf fd.name)
   if self.conv == .out || self.conv == .deinit then throw (.invalidSelf fd.name)
   checkConventions fd.name fd.params.tail
-  checkBody prog phase (some s) fd
+  checkBody prog phase fd
 
 /-- Checks the initializer of the struct `s`: its first parameter is
 `out self`, and it returns nothing. -/
@@ -101,7 +99,7 @@ def checkInit (prog : Program) (phase : Phase) (s : Name) (fd : FunDecl) :
   unless self == ⟨.out, "self", .struct s⟩ do throw (.invalidSelf fd.name)
   unless fd.result == .noneType do throw (.invalidReturn fd.name)
   checkConventions fd.name fd.params.tail
-  checkBody prog phase (some s) fd
+  checkBody prog phase fd
 
 /-- Checks a struct's own declaration: its names and its fields. A failure
 is located at `S`. -/
@@ -124,7 +122,7 @@ def checkMethods (prog : Program) (phase : Phase) (sd : StructDecl) : Except Rej
   let lifecycle : List (Name × Except CheckError Unit) :=
     (sd.init.toList.map fun fd => (sd.name ++ ".__init__", checkInit prog phase sd.name fd)) ++
     sd.deinit.toList.map fun body => (sd.name ++ ".__deinit__",
-      checkBody prog phase (some sd.name) (deinitDecl sd.name body))
+      checkBody prog phase (deinitDecl sd.name body))
   for (where_, r) in lifecycle do
     if let .error e := r then
       if !(e matches .valueAsType _) then throw ⟨where_, e⟩
