@@ -213,11 +213,12 @@ compiler types a place from its variable outward, the variable, then each
 field and each subscript in turn, and each index once the place it
 indexes is typed (#142, #227, #96 part 10): so when the check fails with
 an error of the type phase, `p` is typed in that order first
-(`typePlace`), and an unknown variable or field, or a type that cannot
-be indexed, comes before an index's error. -/
+(`typePlace`, `typedFirst`), and an unknown variable or field, or a type
+that cannot be indexed, comes before an index's error. A place through a
+struct's getter, which has no type here (`throughGetter`), keeps the
+index's error. -/
 def checkIndices (prog : Program) (p : Place) : CheckM Unit :=
-  tryCatch (indicesOf prog p) fun err =>
-    if err.phase == .type then rejectAfter (typePlace prog p) err else throw err
+  typedFirst (do unless ← throughGetter prog p do typePlace prog p) (indicesOf prog p)
   termination_by (sizeOf p, 3)
 
 /-- Checks the index expressions of the place `p`: each is an `Int`, and

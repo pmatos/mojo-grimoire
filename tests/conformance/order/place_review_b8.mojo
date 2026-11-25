@@ -6,6 +6,11 @@ struct S(Movable):
 struct P(Movable):
     var x: Int
 
+@fieldwise_init
+struct H(Movable):
+    var l: List[Int]
+    var s: S
+
 def main():
-    var l: List[S] = [S(0)]
-    print(l[zz].nope)
+    var p = P(1)
+    var b = p.nope[zz] + 1

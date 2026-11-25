@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "unknownAttribute",
+  "diagnostic": "'List[Int]' value has no attribute 'nope'"
+}

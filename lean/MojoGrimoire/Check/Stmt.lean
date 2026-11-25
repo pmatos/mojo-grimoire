@@ -161,7 +161,7 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     if let .binary _ (.place q) _ := e then
       if q == p && !plainIndices p then rejectIntElem prog p (checkIndices prog p)
     checkIndices prog p
-    let _ ← placeTy prog p
+    unless ← throughGetter prog p do let _ ← placeTy prog p
     requireMutable p
     let t ← if e matches .list .unknown _ || (wrongIntLiteral e).isSome then do
         let u ← placeTy prog p

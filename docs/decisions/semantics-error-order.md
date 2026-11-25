@@ -211,7 +211,10 @@ The checker checks a place's indices as before (`indicesOf`). When that
 fails with an error of the type phase, the place is typed in the
 compiler's order first (`typePlace`), and its error comes first
 (`checkIndices`). An assignment types its target, `placeTy`, before it
-checks the value.
+checks the value. A place through a subscript of a struct that declares
+`__getitem__` or `__setitem__` has no type in the model, which types
+such a subscript only as a call (#198): it keeps the index's error and
+the target's mutability (`throughGetter`).
 
 ## Where the model differs today
 

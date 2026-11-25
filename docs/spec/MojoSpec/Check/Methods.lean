@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2803772486871195059")
+:::moduleDocs (fingerprint := "9703920064180243284")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.reflectedMethod MojoGrimoire.Check.unaryMethod (fingerprint := "14078108206647463870")
@@ -124,7 +124,18 @@ compiler finds as it types it, comes first, and an error of a later
 phase, such as a read of an uninitialized value, comes after it.
 :::
 
-:::readable MojoGrimoire.Check.callOrder MojoGrimoire.Check.arityMisfit (fingerprint := "5498501564137483508")
+:::readable MojoGrimoire.Check.typedFirst MojoGrimoire.Check.throughGetter (fingerprint := "13884700146837457187")
+*Rule: typing first.* When a check fails with an error of the type
+phase, what the compiler types before it is typed first, in the type
+phase, and an error found there comes first (`typedFirst`); an error of
+a later phase comes only once the type phase has passed it. A place that
+goes through a subscript of a struct that declares `__getitem__` or
+`__setitem__` has no type here, since the model types such a subscript
+only through the call that inference makes of it (#198), and is left to
+the checks that report its error (`throughGetter`).
+:::
+
+:::readable MojoGrimoire.Check.callOrder MojoGrimoire.Check.arityMisfit (fingerprint := "1439446198402114007")
 *Rule: the order inside a call.* The compiler reports a call's errors in
 this order (#89, #96 part 9): each argument's own expression, in full,
 left to right, the errors of a call nested in it included; the number of
