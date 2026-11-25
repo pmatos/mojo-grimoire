@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The parser's monad: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2482589148368512138")
+:::moduleDocs (fingerprint := "14035004481668319307")
 :::
 
 :::readable MojoGrimoire.Parse.PState MojoGrimoire.Parse.P MojoGrimoire.Parse.peek MojoGrimoire.Parse.peek2 MojoGrimoire.Parse.curLine MojoGrimoire.Parse.markStmt MojoGrimoire.Parse.fail MojoGrimoire.Parse.next (fingerprint := "2346832099094864449")
@@ -33,7 +33,7 @@ reads it when it is the one given and says whether it was, and `expect`
 reads it or fails. Empty logical lines may be skipped.
 :::
 
-:::readable MojoGrimoire.Parse.loopExits MojoGrimoire.Parse.keywords MojoGrimoire.Parse.name MojoGrimoire.Parse.memberName (fingerprint := "160292884087566465")
+:::readable MojoGrimoire.Parse.loopExits MojoGrimoire.Parse.keywords MojoGrimoire.Parse.name MojoGrimoire.Parse.memberName (fingerprint := "4811383286248760132")
 *Definition: names.* A name is an identifier token that is not a keyword:
 `def`, `fn`, `struct`, `var`, `ref`, the control-flow words, the boolean
 operators and literals, the argument conventions `mut`, `out` and
