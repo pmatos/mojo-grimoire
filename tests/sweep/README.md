@@ -1,0 +1,22 @@
+# The probe sweep
+
+The probe programs of #96, with the pinned compiler's result of each,
+which `scripts/sweep.py` runs against two builds of the model
+([conformance.md](../../docs/decisions/conformance.md#the-probe-sweep)).
+Each `GROUP/NAME.mojo` has its result in `GROUP/NAME.json`, recorded
+with `scripts/conformance.py record --mojo WRAPPER` from the nightly
+1.3.0.dev2026111905.
+
+- `pairs/`: the matrix of the ruling of 2026-11-20 on #96. Each program
+  holds two errors of different classes, in either order of the text, in
+  one function, in two functions or at the top level.
+- `pairs2/`: the matrix's pairs with an escaping reference or a missing
+  return, an error of a declaration, beside each other class.
+- `nested/`: one error inside the construct of another, such as an
+  argument of a call that does not fit.
+- `siblings/`: two errors in two arguments of one call.
+- `singles/`: each class of the matrix alone.
+- `p96/`: the probes of #96's plan, named as in its section 1.
+
+A program that the compiler's result differs on at `-O0` is not recorded,
+as in the suite, and the sweep lists it as unrecorded.

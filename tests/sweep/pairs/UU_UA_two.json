@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "unknownAttribute",
+  "diagnostic": "'Point' value has no attribute 'zz'"
+}
