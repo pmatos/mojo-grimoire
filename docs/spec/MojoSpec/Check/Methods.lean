@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17534265862129827082")
+:::moduleDocs (fingerprint := "13589183869413552713")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.reflectedMethod MojoGrimoire.Check.unaryMethod (fingerprint := "14078108206647463870")
@@ -116,15 +116,15 @@ method that the operand's type lacks is `missingMethod`; otherwise the
 result is `unaryTy`'s.
 :::
 
-:::readable MojoGrimoire.Check.rejectAfter MojoGrimoire.Check.rejectMisfit (fingerprint := "2170088415449906407")
+:::readable MojoGrimoire.Check.rejectAfter MojoGrimoire.Check.rejectMisfit (fingerprint := "15010750981306176417")
 *Rule: an error found from types.* An error found from the types of
 operands, before they are read, is reported once the operands are typed
-in the type phase (`typing`): an error inside an operand, which the
+in the type phase (`inTypePhase`): an error inside an operand, which the
 compiler finds as it types it, comes first, and an error of a later
 phase, such as a read of an uninitialized value, comes after it.
 :::
 
-:::readable MojoGrimoire.Check.rejectNoneCopy (fingerprint := "16879953707614184622")
+:::readable MojoGrimoire.Check.rejectNoneCopy (fingerprint := "15599202572189854255")
 *Rule: no copy of `None`.* $`p.\mathsf{copy}()` with $`p` of type
 $`\mathsf{None}` is an unknown attribute: `None` has no `.copy()`, and
 the compiler says that it has no attributes as it types the call, before

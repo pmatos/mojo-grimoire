@@ -31,7 +31,7 @@ def typeLiteral {r : List Expr} (typeArg : Below Expr Ty r) :
   termination_by es => sizeOf es
 
 /-- Types the arguments of the standard library's `range` in the argument
-of `List[u](…)`, each in the type phase (`typing`), and gives whether one fits no form
+of `List[u](…)`, each in the type phase (`inTypePhase`), and gives whether one fits no form
 of `range`, and whether one is an open literal of `Int`s, which the
 compiler takes for an `Int` and rejects only when it instantiates the call
 (#121). An error of typing is thrown, in any argument; a literal is typed
@@ -42,7 +42,7 @@ def typeRangeArgs {r : List Expr} (typeArg : Below Expr Ty r) (first : Bool) :
     (as : List Expr) → sizeOf as ≤ sizeOf r → CheckM (Bool × Bool)
   | [], _ => pure (false, false)
   | a :: as, h => do
-    let (misfit, literal) ← typing (match a, h with
+    let (misfit, literal) ← inTypePhase (match a, h with
       | .list .unknown es, h | .list .int es@([]), h | .list .int es@(_ :: _ :: _), h => do
         let (ints, empty) ← typeLiteral typeArg es (by below_bound h)
         pure (if ints && !(first && empty) then (false, true) else (true, false))

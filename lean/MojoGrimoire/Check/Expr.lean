@@ -155,7 +155,7 @@ that holds a string or a call of the standard library's `range`
 (`holdsStrOrRange`) fits none: it
 is typed only in its other parts, and has no type here, `unknown`. So has a
 literal in it. A place is typed by `typePlace`, in the phase the caller
-types in (`typing`). A call whose check gives the implicit copy of the
+types in (`inTypePhase`). A call whose check gives the implicit copy of the
 value it returns a reference to, which the compiler reports after the
 misfit, has the type of its result (`callResultTy`). -/
 def typeArg (prog : Program) (e : Expr) : CheckM Ty :=

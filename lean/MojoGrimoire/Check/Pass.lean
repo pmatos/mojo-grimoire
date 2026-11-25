@@ -8,10 +8,10 @@ result of a call that returns a reference, and passing a place to a parameter, w
 and `ref` pass the location, which must be initialized, `mut` also needs a
 place the function may change, and `var` copies it implicitly
 (`MojoGrimoire.Check.Transfer`). A misfit is reported as the call's fit
-says (`MojoGrimoire.Check.Fit`). An error of a later pass than typing, in
-an argument of `range`, may be recorded instead of thrown (`lateErrors`),
-so that the passes report in the compiler's order (#121). Each error has
-its phase (`CheckError.phase`). What a call types before it reads its first argument is in
+says (`MojoGrimoire.Check.Fit`). Each error has its phase
+(`CheckError.phase`). An error of the instantiation phase, in an argument
+of `range`, may be recorded instead of thrown (`lateErrors`), so that the
+errors report in the compiler's order (#121). What a call types before it reads its first argument is in
 `typeFirst`. A module outside the mutual block of the checker of
 expressions is given the checks of the expressions inside the ones it
 checks as `Below` says.
@@ -69,7 +69,9 @@ throws (`CheckError.phase`), or a nested literal's failed SIMD constraint,
 `noMatchingInit` of `Int`, instead of throwing it. -/
 def lateErrors (x : CheckM RangeArgs) : CheckM RangeArgs :=
   tryCatch x fun err =>
-    if err.phase == .inst || err == .noMatchingInit .int then pure (RangeArgs.ofLate err) else throw err
+    if err.phase == .inst then pure { index := some err }
+    else if err == .noMatchingInit .int then pure { literal := true }
+    else throw err
 
 /-- The type of a call of signature `sig`, with the arguments `args`. A
 call that returns a reference, used as a value, copies the value it points
@@ -191,9 +193,9 @@ state is left as it was. -/
 def typeFirst (prog : Program) (f : Name) (recv : CheckM Unit) (rest : List (Expr × CheckM Ty)) :
     CheckM Unit := do
   let s0 ← get
-  if inPlaceCallee f then recv
+  if inPlaceCallee f then inTypePhase recv
   else if let (some (_, "__getitem__", false), .ok sig) := (calleeMethod f, callSig prog f) then
-    try typing do
+    try inTypePhase do
       for (prm, a, t) in sig.params.drop 1 |>.zip rest do
         let ty ← t
         unless ty == .unknown do

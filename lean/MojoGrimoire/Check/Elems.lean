@@ -33,13 +33,13 @@ def checkIterableElems (prog : Program) (u : Ty) {r : List Expr} (check : Below 
 
 /-- The type of the first of the elements `es` of a literal where an `Int`
 is expected that is no `Int`, nor such a literal of `Int`s. Each is typed
-in the type phase (`typing`), a place by `typePlace`, any other element by
+in the type phase (`inTypePhase`), a place by `typePlace`, any other element by
 `check`, so that no error of a later phase stops it. -/
 def intMisfit (prog : Program) {r : List Expr} (typePlace : Below Place Unit r)
     (check : Below Expr Ty r) : (es : List Expr) → sizeOf es ≤ sizeOf r → CheckM (Option Ty)
   | [], _ => pure none
   | e :: es, h => do
-    let u ← typing (match e, h with
+    let u ← inTypePhase (match e, h with
       | .place p, h => do
         typePlace p (by below_bound h)
         placeTy prog p

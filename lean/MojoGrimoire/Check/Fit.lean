@@ -161,13 +161,6 @@ structure RangeArgs where
 def RangeArgs.append (r s : RangeArgs) : RangeArgs :=
   ⟨r.literal || s.literal, r.index <|> s.index, r.locs ++ s.locs⟩
 
-/-- The error `err` of the instantiation phase, found in an argument of
-`range`: a constant index out of range, or else a nested literal's failed
-constraint. -/
-def RangeArgs.ofLate (err : CheckError) : RangeArgs :=
-  if err matches .negativeIndex _ | .constantIndexOutOfBounds _ then { index := some err }
-  else { literal := true }
-
 /-- Checks `List[u](range(…))` with `n` arguments, which `typing` types,
 giving whether one fits no form of `range` and whether one is a literal
 of `Int`s, and which `reading` then reads (`RangeArgs`). Every misfit of
@@ -203,7 +196,7 @@ def callResultTy (prog : Program) : Expr → CheckM Ty
 
 /-- Rejects a `wrongIntLiteral` as a call of fit `fit` reports it. The
 compiler types its elements before it reads any: `misfit` types each in
-the type phase (`typing`), and gives the type of the first that is no `Int`, nor
+the type phase (`inTypePhase`), and gives the type of the first that is no `Int`, nor
 such a literal of `Int`s, a type mismatch. Otherwise, in the state it
 started from, `reads` reads them, and the compiler then fails SIMD's
 constraint of one element, `noMatchingInit`: by an initializer of `t` of

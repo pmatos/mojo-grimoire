@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Elements of literals: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6453199234288588442")
+:::moduleDocs (fingerprint := "2903327891644934466")
 :::
 
 :::readable MojoGrimoire.Check.checkIterableElems (fingerprint := "13926820991139293986")
@@ -27,7 +27,7 @@ gives the literal's type from them. Any other element is checked by the
 check that the checker of expressions gives (`Below`).
 :::
 
-:::readable MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.rejectIntElems (fingerprint := "12007245744658358507")
+:::readable MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.rejectIntElems (fingerprint := "2166154965010039507")
 *Rule: the elements of a literal of $`\mathsf{Int}`s.* For a literal
 $`[e^*]_{\mathsf{Int}}` of any length but 1, `intMisfit` gives the type
 of its first element that is no $`\mathsf{Int}`, nor such a literal, each

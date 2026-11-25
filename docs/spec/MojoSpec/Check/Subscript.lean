@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Assigning a subscript of a struct: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9723790724382150571")
+:::moduleDocs (fingerprint := "15154048342792804156")
 :::
 
 :::readable MojoGrimoire.Check.valueSubscript (fingerprint := "8489678019998001525")
@@ -35,7 +35,7 @@ cannot be typed, such as one read through a getter, is left to the
 checking that reports its error.
 :::
 
-:::readable MojoGrimoire.Check.assignGetter (fingerprint := "7689798071497232361")
+:::readable MojoGrimoire.Check.assignGetter (fingerprint := "8335980615919375634")
 *Rule: assigning a subscript with no setter.* The compiler first types
 the getter call `q[i]`, by reference: its type errors and its implicit
 copies come first, but not the errors of a later pass, such as a read of
@@ -49,7 +49,7 @@ $`\mathsf{notAList}`, as for the other subscripts of a struct used as
 places (#198).
 :::
 
-:::readable MojoGrimoire.Check.checkSetter (fingerprint := "5682384293780556586")
+:::readable MojoGrimoire.Check.checkSetter (fingerprint := "5181253492605990578")
 *Definition: checking a setter call.* Before it checks `q[i] = v` as the
 call `S.__setitem__(q, i, v)`, the compiler checks the types of the getter
 call `q[i]`, which is never made, so its implicit copies and the errors of

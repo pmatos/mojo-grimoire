@@ -66,7 +66,7 @@ through a setter: its write through the reference is not yet modelled
 def assignGetter (prog : Program) (p : Place) (g : Expr) (value : Ty → CheckM Unit) :
     CheckM Unit := do
   let s0 ← get
-  let _ ← typing (checkExprAs prog true g)
+  let _ ← inTypePhase (checkExprAs prog true g)
   set s0
   unless (← locOf prog g) matches some (_, true) do throw (CheckError.immutablePlace p)
   let t ← checkExprAs prog true g
@@ -88,11 +88,12 @@ def checkSetter (prog : Program) (e : Expr) : CheckM Unit := do
   let some v := args.getLast? | pure ()
   let g := methodCallee s "__getitem__"
   let s0 ← get
-  try let _ ← typing (checkExprAs prog false (.call g (.place q :: args.dropLast)))
-  catch err => unless err matches .implicitCopy _ do throw err
-  if let (.ok sig, false) :=
-      (callSig prog g, v matches .list .unknown _ || (wrongIntLiteral v).isSome) then
-    expect sig.result (← typing (typeArg prog v))
+  inTypePhase do
+    try let _ ← checkExprAs prog false (.call g (.place q :: args.dropLast))
+    catch err => unless err matches .implicitCopy _ do throw err
+    if let (.ok sig, false) :=
+        (callSig prog g, v matches .list .unknown _ || (wrongIntLiteral v).isSome) then
+      expect sig.result (← typeArg prog v)
   set s0
 
 end MojoGrimoire.Check

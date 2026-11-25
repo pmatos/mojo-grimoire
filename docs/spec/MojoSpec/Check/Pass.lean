@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14160277990154860387")
+:::moduleDocs (fingerprint := "6275181158285604554")
 :::
 
 :::readable MojoGrimoire.Check.Below (fingerprint := "14513104375151688470")
@@ -37,7 +37,7 @@ cannot be changed. Passed `mut` to an initializer, such a place is
 reported as the initializer's misfit.
 :::
 
-:::readable MojoGrimoire.Check.lateErrors (fingerprint := "6508191728509383008")
+:::readable MojoGrimoire.Check.lateErrors (fingerprint := "6813149190120378136")
 *Definition: recording a later error.* In an argument of `range`, an error
 of the instantiation phase, a constant index out of range
 (`CheckError.phase`), or a nested literal's failed SIMD constraint,
@@ -103,7 +103,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.typeFirst (fingerprint := "11380990096888882066")
+:::readable MojoGrimoire.Check.typeFirst (fingerprint := "2308275641646460755")
 *Rule: what a call types first.* Before a call reads its first argument,
 a place, the receiver of an in-place method that inference made is typed,
 its indices included. A subscript of a struct, which inference makes a

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9608899401486681158")
+:::moduleDocs (fingerprint := "215728997702860490")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -87,16 +87,14 @@ named `range` is no such call. Such an argument of the standard library's `range
 fits none of its forms (#121).
 :::
 
-:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "15579420573004099868")
+:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append (fingerprint := "18106920273850531528")
 *Definition: what reading the arguments of a range finds.* Reading the
 arguments of `range`, once they are typed, records the errors of the
-compiler's later passes in the order it reports them: the first use of an
-uninitialized or invalidated value, then whether a nested literal of
-$`\mathsf{Int}`s of the wrong length fails when the call is instantiated,
-then the first constant index out of range. It also records the places each argument read without an error
-reads late, with its mark. Two records join, the first's errors first. An
-error of a later pass than typing is a constant index out of range,
-a nested literal's failed constraint, or else a use of a value.
+instantiation phase in the order the compiler reports them: whether a
+nested literal of $`\mathsf{Int}`s of the wrong length fails when the call
+is instantiated, then the first constant index out of range. It also
+records the places each argument read without an error reads late, with
+its mark. Two records join, the first's errors first.
 :::
 
 :::readable MojoGrimoire.Check.rangeList (fingerprint := "18390113362267453304")
