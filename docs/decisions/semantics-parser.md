@@ -145,8 +145,8 @@ The excluded constructs, each temporary:
   variable, a parameter, a function or a field named `break` or
   `continue` is a syntax error, as the compiler fails to parse it
   ([conformance.md](conformance.md#rejections-made-while-parsing)). A
-  method's name in a struct and the name after `.` may be either word, as
-  in the compiler. Supporting them is #276.
+  method's name in a struct and the name after `.` may be either word, or
+  any other keyword, as in the compiler (#278). Supporting them is #276.
 
 Constructs that the checker still rejects with a class where the compiler
 accepts them, and that no ruling puts outside the subset, are not

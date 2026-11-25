@@ -201,7 +201,8 @@ private def inMain (body : List String) : List String :=
   some (.syntax ⟨2, "`break` is a keyword"⟩)
 -- A method's name in a struct, and the name after `.`, may be either word,
 -- as in the compiler, which prints `1` for the first program and rejects
--- the second, "'S' value has no attribute 'continue'".
+-- the second, "'S' value has no attribute 'continue'". So may every other
+-- keyword (#278), below.
 #guard runLines ["struct S(Movable):", "    var n: Int", "    def __init__(out self):",
   "        self.n = 1", "    def break(self) -> Int:", "        return self.n", "def main():",
   "    var s = S()", "    print(s.break())"] == some (.finished ["1"])
@@ -216,5 +217,36 @@ private def inMain (body : List String) : List String :=
 #guard outside ["def main():", "    var i = 0", "    while i < 5:", "        i += 1",
   "        if i == 3:", "            continue", "        print(i)"] 6
   (outsideLoopExit "continue")
+
+/-- A struct with a method named `k`, which another method calls, then
+`main`, which calls both. -/
+private def keywordMethod (k : String) : List String :=
+  ["struct S(Movable):", "    var n: Int", "    def __init__(out self):", "        self.n = 1",
+   s!"    def {k}(self) -> Int:", "        return self.n", "    def other(self) -> Int:",
+   s!"        return self.{k}() + 1", "def main():", "    var s = S()", s!"    print(s.{k}())",
+   "    print(s.other())"]
+
+-- The compiler reads a method's name in a struct and the name after `.`
+-- with `allowKeyword`, so each keyword may be either (#278). On the pin,
+-- every one of them names a method that `s.k()` and `self.k()` call, and
+-- `s.k` on a struct without such a field is "'S' value has no attribute".
+#guard keywords.all fun k => runLines (keywordMethod k) == some (.finished ["1", "2"])
+#guard keywords.all fun k =>
+  runLines ["@fieldwise_init", "struct S(Movable):", "    var n: Int", "def main():",
+    "    var s = S(1)", s!"    print(s.{k})"] ==
+    some (.rejected ⟨"main", .unknownAttribute "S" k⟩)
+-- A method's body may use the keyword of its name, which the pin prints as
+-- `1 2`.
+#guard runLines ["struct S(Movable):", "    var n: Int", "    def __init__(out self):",
+  "        self.n = 1", "    def pass(self):", "        pass", "    def return(self) -> Int:",
+  "        return self.n", "    def while(self) -> Int:", "        var i = 0",
+  "        while i < 2:", "            i += 1", "        return i", "def main():",
+  "    var s = S()", "    s.pass()", "    print(s.return(), s.while())"] ==
+  some (.finished ["1 2"])
+-- A function, a variable and a field still may not be named `pass`.
+#guard readError ["def pass() -> Int:", "    return 1", "def main():", "    print(1)"] ==
+  some (.syntax ⟨1, "`pass` is a keyword"⟩)
+#guard readError ["struct S(Movable):", "    var True: Int", "def main():", "    pass"] ==
+  some (.syntax ⟨2, "`True` is a keyword"⟩)
 
 end MojoGrimoireTest.Parse.Subset
