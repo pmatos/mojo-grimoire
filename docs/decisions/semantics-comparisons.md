@@ -90,7 +90,13 @@ it to lists. Part 1 of #166 and #185 model the element types `Int`,
 
 Two `Bool`s also compare with `<`, `<=`, `>` and `>=`, `False` first, as
 `Int`s do (#185). A `Bool` compared with an `Int` is a type mismatch,
-and `1 < True` fits none of the literal's overloads.
+and `1 < True` fits none of the literal's overloads. A `Bool` compared
+with an empty literal, `t == []` or `True < []`, is the compiler's
+"cannot be converted from list literal to 'Bool'", `typeMismatch`,
+found before the operands are read, so also beside an uninitialized
+`t` (#286). The checker finds it on both paths, part 2's and `main`'s,
+so the bridge reports it too (`boolLiteralMisfit`). An empty literal on
+the left, `[] == t`, stays `invalidType`, as on the compiler.
 
 Until #96 part 4 orders the model's errors as the compiler does, a
 statement, or a condition, that part 2 rejects is checked again as `main`
