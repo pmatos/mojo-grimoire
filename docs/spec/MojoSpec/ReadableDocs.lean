@@ -22,6 +22,7 @@ import MojoSpec.Check.Block
 import MojoSpec.Check.Program
 import MojoSpec.Elab.Live
 import MojoSpec.Elab.Origins
+import MojoSpec.Elab.Operations
 import MojoSpec.Elab.Elaborate
 import MojoSpec.Elab.Strip
 import MojoSpec.Interp.Value

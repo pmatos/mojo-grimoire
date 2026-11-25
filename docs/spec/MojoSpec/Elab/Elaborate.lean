@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7109442342457413730")
+:::moduleDocs (fingerprint := "3809248701040443006")
 :::
 
 :::readable MojoGrimoire.Elab.needsDrop (fingerprint := "8076625837927918720")
@@ -53,81 +53,13 @@ dropped that a body declares, in order, each once. Variables of sibling blocks m
 name, and then share a slot, since neither is live in the other.
 :::
 
-:::readable MojoGrimoire.Elab.callModes MojoGrimoire.Elab.methodModes (fingerprint := "8918438346001052769")
-*Definition: operands passed by value.* A place passed to a `var`
-parameter, or an $`\mathsf{Int}` or a $`\mathsf{Bool}` passed to a `read`
-one, is passed by value: the call reads it once its arguments are
-evaluated. Any other place is passed by reference, and used until the call
-returns. The signature of what is called gives each parameter's
-convention, so a `@fieldwise_init` struct takes its fields by value,
-`append` its list by reference and its element by value, and `pop` its
-list by reference and its index by value. `len`, which has no signature,
-takes its list by reference, and the standard library's `range` its
-$`\mathsf{Int}`s by value (#121). A method's receiver is passed by value only
-to a `var self`; the receiver's type, from the variables declared so far,
-gives the method.
+:::readable MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.envAfter (fingerprint := "13050787995386939579")
+*Definition: helpers.* The slots that a list of operands read by reference
+uses directly, and the types of the variables after a statement, which a
+declaration or a `ref` binding extends.
 :::
 
-:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.directOf MojoGrimoire.Elab.opKeep MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "6670769228017152069")
-*Definition: what an operation destroys.* Inside a function, elaboration
-knows the program, the slots, the slots the function owns in the order they
-die, and the types of the variables declared so far. An operation uses
-directly the slots of the places among its operands, and those their
-index expressions use, and, by reference, the slots that a call returning
-a reference passed by reference points into, so that they outlive it:
-`len(first(xs))` destroys `xs` once `len` is done. By value, it uses the
-owned slots that such a call read by value points into, in the order of
-the owned slots, since Mojo reads the reference only once every operand
-is evaluated. A literal $`[e]_{\mathsf{Int}}` uses what $`e` uses, by
-value, since Mojo reads it as it reads $`e` (#103). Its other operands
-are operations of their own. Given the slots live once it is done, the
-slots it uses by value and nowhere later die once its operands are read,
-in the order they are read; those it uses by reference and nowhere later
-die once it is done, in the order of the owned slots. Its operands are
-evaluated with those slots, and the ones it reads, live after them. An
-operation that destroys nothing is left unwrapped.
-:::
-
-:::readable MojoGrimoire.Elab.consumedSlot MojoGrimoire.Elab.consumedIn MojoGrimoire.Elab.consumedList (fingerprint := "1304641025228155356")
-*Definition: consumed receivers.* A method call on $`q\,\hat{}`, where
-$`q` is a whole slot and the method takes `var self`, consumes $`q`: it
-moves the value away, and the method destroys it. An expression consumes
-the slots that the method calls in it consume, at any depth, also inside
-the argument of $`\mathsf{List}[u](e)`.
-:::
-
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "2000229492295173798")
-*Definition: elaborating expressions.* Each call, method call, operator,
-list literal, $`\mathsf{List}[u](e)` and `.copy()` is wrapped with what it
-destroys, and its operands are elaborated in turn, each with the slots that the later
-operands use live after it. A place is left as it is, and a literal
-$`[e]_{\mathsf{Int}}` has only its element elaborated: the operation that
-reads it destroys what its element uses. The operation at the
-top of a statement leaves what dies once it is done to the statement, as
-the compiler destroys a discarded result before those values. The right
-operand of `and` and `or` may not run: elaborated with the slots live
-after the operation, and those that a call of it returning a reference
-points into (`opKeep`), it destroys what it uses once it is read when it
-runs, and the operation destroys what it uses when it does not, before
-what the left operand last uses, which dies once that is tested (#191).
-A method call never destroys the slot it
-consumes, though it uses it. The argument of $`\mathsf{List}[u](e)` is
-used by reference, as that of `len`, so a value whose last use it is dies
-once the new list is built. So is an operand of a comparison of two
-arrays or two lists, a place or a call that returns a reference, which
-the comparison reads by reference (`MojoGrimoire.Check.byRef`, #166,
-#185): what it last uses dies once the comparison is done.
-:::
-
-:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.envAfter (fingerprint := "12467781390826100905")
-*Definition: helpers.* The slots that an elaborated expression destroys,
-also inside the argument of $`\mathsf{List}[u](e)`;
-the slots that a list of operands read by reference uses directly; and the types of
-the variables after a statement, which a declaration or a `ref` binding
-extends.
-:::
-
-:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "1324478406119127177")
+:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "3429393690790417993")
 *Definition: elaboration.* Given the slots live after a statement:
 
 - a simple statement's expressions are elaborated, and the statement is

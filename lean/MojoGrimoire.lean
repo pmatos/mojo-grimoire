@@ -22,6 +22,7 @@ import MojoGrimoire.Check.Block
 import MojoGrimoire.Check.Program
 import MojoGrimoire.Elab.Live
 import MojoGrimoire.Elab.Origins
+import MojoGrimoire.Elab.Operations
 import MojoGrimoire.Elab.Elaborate
 import MojoGrimoire.Elab.Strip
 import MojoGrimoire.Interp.Value
