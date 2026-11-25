@@ -58,9 +58,8 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       let params ← testParams f sig.params
       let fit := if (findStruct prog f).isSome then Fit.init (.struct f) else .call
       let locs ← locationArgs prog params args
-      let ks ← callOrder (ownArgs prog args) (arityMisfit fit f params.length args.length)
+      let ks ← callOrder (ownArgs prog args) (arityMisfit fit f params.length args.length) locs
         (checkArgs prog fit f params args params.length args.length)
-      checkExclusive locs
       recheckArgs prog args ks
       for q in ← changedArgs prog params args do changePlace prog q
       instCall prog f

@@ -202,17 +202,20 @@ comes only once the type phase has passed them. Then comes `arity`, the misfit o
 arguments, then each argument's type and mutability, left to right, the
 receiver first, and only then the implicit copies: when `check` fails
 with an implicit copy, it runs again from the same state without them
-(`copyChecks`), and a misfit that it finds comes first. Exclusivity is
-checked after this, by the caller. -/
+(`copyChecks`), and a misfit that it finds comes first. Last, the
+locations `locs` that the arguments pass, found before they were
+checked, must not alias a mutable one (`checkExclusive`). -/
 def callOrder {α : Type} (typing : CheckM Unit) (arity : Option CheckError)
-    (check : CheckM α) : CheckM α :=
-  tryCatch (do
+    (locs : List PassedLoc) (check : CheckM α) : CheckM α := do
+  let r ← tryCatch (do
     if let some err := arity then throw err
     tryCatch check fun err => do
       unless err matches .implicitCopy _ do throw err
       modify ({ · with copyChecks := false })
       let _ ← check
       throw err) fun err => if err.phase == .type then rejectAfter typing err else throw err
+  checkExclusive locs
+  pure r
 
 /-- The misfit of a call of `callee` of fit `fit` with `m` arguments to
 `n` parameters, when they differ. -/
@@ -226,8 +229,8 @@ given does: a method with several overloads reports every misfit as
 `noMatchingMethod`, of its receiver too, such as a list that may not
 change for `pop`. The arguments' own expressions, which `typing` types,
 come before any misfit, and the receiver is passed before the arguments
-are matched, in the order of `callOrder` (#89). Exclusivity, of the
-receiver too, is checked after. The receiver is passed by its convention, but when
+are matched, in the order of `callOrder` (#89), which checks the
+exclusivity of the receiver too. The receiver is passed by its convention, but when
 it is `q^` and `self` is `var`: then `q` is consumed once the arguments
 are read. -/
 def methodCall (prog : Program) (asRef : Bool) (p : Place) (t : Ty) (m : Name) (args : List Expr)
@@ -240,11 +243,10 @@ def methodCall (prog : Program) (asRef : Bool) (p : Place) (t : Ty) (m : Name) (
     | some q => do pure [← passedPlace .mutable q]
     | none => if self.conv == .owned then pure [] else do pure [← passedPlace self.conv p]
   let locs := recv ++ (← locationArgs prog sig.params args)
-  let (k, ks) ← callOrder typing (arityMisfit fit m sig.params.length args.length) do
+  let (k, ks) ← callOrder typing (arityMisfit fit m sig.params.length args.length) locs do
     if consumed.isNone then passPlace prog fit m self.conv t p
     let k ← mark
     pure (k, ← check fit)
-  checkExclusive locs
   recheckLocs prog (([p], k) :: ks)
   recheckLiterals prog args (ks.map (·.2))
   if let some q := consumed then let _ ← transferPlace prog q

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9341555976297903983")
+:::moduleDocs (fingerprint := "2803772486871195059")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.reflectedMethod MojoGrimoire.Check.unaryMethod (fingerprint := "14078108206647463870")
@@ -91,7 +91,7 @@ read. Any other number of arguments is `noMatchingInit` of $`?`, once
 they are typed.
 :::
 
-:::readable MojoGrimoire.Check.methodCall (fingerprint := "13453130389364436081")
+:::readable MojoGrimoire.Check.methodCall (fingerprint := "8745929957020336645")
 *Rule: a method call.* A call $`p.m(e^*)` of a method of signature
 $`\mathit{sig}`, once the indices of $`p` are checked, takes the method's
 receiver by its convention: $`p` is passed as a place, or, when $`p` is
@@ -124,13 +124,14 @@ compiler finds as it types it, comes first, and an error of a later
 phase, such as a read of an uninitialized value, comes after it.
 :::
 
-:::readable MojoGrimoire.Check.callOrder MojoGrimoire.Check.arityMisfit (fingerprint := "6007945752370457372")
+:::readable MojoGrimoire.Check.callOrder MojoGrimoire.Check.arityMisfit (fingerprint := "5498501564137483508")
 *Rule: the order inside a call.* The compiler reports a call's errors in
 this order (#89, #96 part 9): each argument's own expression, in full,
 left to right, the errors of a call nested in it included; the number of
 arguments; each argument's type and mutability, left to right, the
 receiver of a method first; the implicit copies; and the exclusivity of
-the arguments passed by reference, which the caller checks after. The
+the arguments passed by reference, whose locations are found before the
+arguments are checked. The
 checker checks the arguments in one pass and puts its errors in that
 order where they meet. When the check fails with an error of the type
 phase, the arguments' own expressions are typed first, and an error

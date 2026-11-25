@@ -85,9 +85,7 @@ def refResult (prog : Program) (asRef : Bool) (sig : Signature) (args : List Exp
     for (prm, a) in sig.params.zip args do
       if let .place p := a then
         if os.contains prm.name && (← intIndexed prog p) then throw (CheckError.notAList .int)
-  if sig.origin.isSome && !asRef && copyingOf prog sig.result != .implicit &&
-      (← get).copyChecks then
-    throw (CheckError.implicitCopy sig.result)
+  if sig.origin.isSome && !asRef then requireImplicitCopy prog sig.result
   pure sig.result
 
 /-- Checks the value `e`, given `check`, which checks it as a value

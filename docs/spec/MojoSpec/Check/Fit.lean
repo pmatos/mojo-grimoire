@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "215728997702860490")
+:::moduleDocs (fingerprint := "7551958062922610199")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -113,7 +113,7 @@ are the flow phase's, and the literal and the constant index the
 instantiation phase's.
 :::
 
-:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.callResultTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "8447603149935987209")
+:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.callResultTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "13380705890564266728")
 *Rule: a literal of the wrong length where an $`\mathsf{Int}` is
 expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1, which
 `wrongIntLiteral` picks out, fits no initializer of $`\mathsf{Int}`,

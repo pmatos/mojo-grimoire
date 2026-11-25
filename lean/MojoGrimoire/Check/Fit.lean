@@ -185,14 +185,19 @@ def wrongIntLiteral : Expr → Option (List Expr)
   | .list .int es => if es.length == 1 then none else some es
   | _ => none
 
-/-- The type of the result of the call or the method call `e`, which the
-compiler gives it before it copies a value that the call returns a
-reference to; `unknown` for any other expression. -/
+/-- The type of the result of the call or the method call `e` when it
+returns a reference, which the compiler gives it before it copies the
+value that the reference points to; `unknown` for any other expression,
+so that the copy of an argument of the call is not taken for it. -/
 def callResultTy (prog : Program) : Expr → CheckM Ty
-  | .call f _ => pure (((callSig prog f).toOption.map (·.result)).getD .int)
-  | .method p m args => do
-    pure (((methodSig prog (← placeTy prog p) m args.length).toOption.map (·.result)).getD .int)
+  | .call f _ => pure (refTy (callSig prog f).toOption)
+  | .method p m args => do pure (refTy (methodSig prog (← placeTy prog p) m args.length).toOption)
   | _ => pure .unknown
+where
+  /-- The result of the signature `sig`, when it returns a reference. -/
+  refTy : Option Signature → Ty
+    | some sig => if sig.origin.isSome then sig.result else .unknown
+    | none => .unknown
 
 /-- Rejects a `wrongIntLiteral` as a call of fit `fit` reports it. The
 compiler types its elements before it reads any: `misfit` types each in

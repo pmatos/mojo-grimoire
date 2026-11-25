@@ -28,6 +28,8 @@ private def lib : List String := [
   "    def mm(mut self, a: Int) -> Int:", "        return a",
   "def f(a: Bool, b: Int) -> Int:", "    return b",
   "def fv(var s: S, a: Bool) -> Int:", "    return 1",
+  "def idv(var s: S) -> S:", "    return s^",
+  "def fs(a: S, b: Bool) -> Int:", "    return 1",
   "def gm(mut a: S, b: Int) -> Int:", "    return 1",
   "def g(mut a: List[Int], b: List[Int]) -> Int:", "    return 1",
   "def gx(mut a: S, mut b: S, c: Bool) -> Int:", "    return 1",
@@ -48,6 +50,10 @@ private def rejects (body : List String) (p : CheckError → Bool) : Bool :=
 #guard rejects ["print(f(s, 1 + True))"] (· matches .noMatchingMethod _)
 #guard rejects ["xs.append(nope)"] (· matches .unknownVariable _)
 #guard rejects ["print(fv(u, nope))"] (· matches .unknownVariable _)
+-- A nested call's own implicit copy is part of its argument's expression,
+-- also when it copies a value of the type that the call returns.
+#guard rejects ["print(fs(idv(u), 1))"] (· matches .implicitCopy _)
+#guard rejects ["print(fs(idv(u)))"] (· matches .implicitCopy _)
 -- The number of arguments comes before their types and the receiver.
 #guard rejects ["print(f(1))"] (· matches .arityMismatch ..)
 #guard rejects ["print(s.mm(1, 2))"] (· matches .arityMismatch ..)
