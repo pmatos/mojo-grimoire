@@ -216,12 +216,48 @@ checks the value. A place through a subscript of a struct that declares
 such a subscript only as a call (#198): it keeps the index's error and
 the target's mutability (`throughGetter`).
 
+## The order inside declarations and literals
+
+A declaration's initializer is typed before its name is found to be
+declared already (#96 part 11, #134), probed on the pin
+(`order/decl_*`): `var s = s.nope` is `unknownAttribute` where `s`
+exists, and so is `ref s = s.nope`. The initializer's own expression
+comes first: a literal with no type expected in full, since its elements
+give its type, `var s = [1, True]` a `typeMismatch`, and a call by
+reference. Its conversion to a declared type comes after the duplicate:
+`var s: Int = True` is the redefinition.
+
+A literal's elements are typed before the literal's element type (#133):
+`[[], zz]` and `[1, True, zz]` are `unknownVariable`, and so is
+`var u: List[Int] = [True, zz]`.
+
+A value's type comes before its implicit copy, as in a call: the value
+of a declaration, an assignment and a `return`, and an element of a
+literal. `var b: Int = xs`, with `xs` a `List[Int]`, is `typeMismatch`,
+and `var a: List[Int] = [xs]` `noMatchingInit`; `var a: List[Int] = xs`
+alone is `implicitCopy`. A literal with no type expected is built on its
+own, so the copies inside it come first, before the misfit of the literal
+that holds it: `[[xs], [1]]` is `implicitCopy`, and `[xs, [1]]`
+`typeMismatch` (`order/decl_copy_*`, `order/decl_lit_*`).
+
+The checker types the initializer first when the duplicate name is found
+(`valueOwn`, `typedFirst`), and a literal's elements first when its
+check fails in the type phase (`untypedOwn`). When a value's check
+reports an implicit copy, it checks the value again without copies
+(`copyLast`), and a misfit comes first. The compiler's
+"invalid redefinition of 'V'" is `duplicate`.
+
+Inside a comparison, the compiler converts a literal operand to the type
+of the other operand, and that conversion decides the order of its copies
+and misfits; the model types such a literal as one with no type expected,
+which the comparisons' remaining work tracks (#96's comments on #166,
+`tests/sweep/order11/decl_cmp_*`).
+
 ## Where the model differs today
 
 The checker's phases follow the compiler's tiers, and each phase its
-order across the declarations, but the order inside a statement or an
-expression of the type tier is still the model's. So it differs from the compiler in these
-cases, which #96's later parts fix.
+order across the declarations, statements and expressions. The model
+still differs from the compiler in these cases.
 
 ### Operators
 

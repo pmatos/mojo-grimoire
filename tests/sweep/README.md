@@ -32,6 +32,12 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
   rejects for another reason: a temporary passed `mut` (#81), an element
   of an `Int` passed `mut` (#222), and an unknown function, which the
   compiler calls an unknown declaration.
+- `order11/`: Part 11's probes of the order inside declarations that the
+  model rejects for another reason: an unknown type name (#237), and a
+  comparison of an array of lists with a literal, which the bridge's
+  replay reads as an implicit copy (#337), and comparisons with a literal
+  operand, whose conversion to the other operand's type the model does
+  not follow (`decl_cmp_*`).
 - `corpus/`: random programs of #260's review whose class Part 4 of #96
   changed, each listed on its PR with the open issue of its rejection,
   named `GROUP_NAME` after their place in that corpus.

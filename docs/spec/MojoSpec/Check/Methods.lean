@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9703920064180243284")
+:::moduleDocs (fingerprint := "11002465330747129405")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.reflectedMethod MojoGrimoire.Check.unaryMethod (fingerprint := "14078108206647463870")
@@ -135,7 +135,7 @@ only through the call that inference makes of it (#198), and is left to
 the checks that report its error (`throughGetter`).
 :::
 
-:::readable MojoGrimoire.Check.callOrder MojoGrimoire.Check.arityMisfit (fingerprint := "1439446198402114007")
+:::readable MojoGrimoire.Check.callOrder MojoGrimoire.Check.arityMisfit (fingerprint := "3947265708956238022")
 *Rule: the order inside a call.* The compiler reports a call's errors in
 this order (#89, #96 part 9): each argument's own expression, in full,
 left to right, the errors of a call nested in it included; the number of

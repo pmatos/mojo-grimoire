@@ -150,8 +150,8 @@ invalidated, those that only a subscript of an array invalidated
 (`interior`), and the places changed as a whole so far in the current
 statement, in order, the phase and the stage of the flow phase, whether
 every check runs, whatever the phase (`allChecks`), whether implicit
-copies are checked (`copyChecks`, cleared only while a call's arguments
-are matched again before their copies), and what the instantiation phase
+copies are checked (`copyChecks`, cleared only while a value or a call's
+arguments are matched again before their copies, `copyLast`), and what the instantiation phase
 records (`InstEvent`). After a
 `return`, the current point cannot be reached. `mainTests` is set only
 while a statement is checked again to replay `main`'s order, in which a
@@ -199,6 +199,16 @@ def flowThrow (err : CheckError) : CheckM Unit := flowThrowAt .uses err
 phase has recorded since (`InstEvent`). -/
 def restoreKeeping (s : State) : CheckM Unit :=
   modify fun cur => { s with events := cur.events }
+
+/-- Throws `err`, an implicit copy, after any other error of `retry`,
+which checks the same again without the checks of implicit copies
+(`copyChecks`): the compiler reports a copy only once the types fit, in a
+call (#89), a declaration, an assignment and a `return` (#96 parts 9 and
+11). -/
+def copyLast {α : Type} (err : CheckError) (retry : CheckM Unit) : CheckM α := do
+  modify ({ · with copyChecks := false })
+  retry
+  throw err
 
 /-- Runs `x` in the type phase, as the compiler types what it checks, and
 then goes on in the phase it was in: what only a later phase checks, a use

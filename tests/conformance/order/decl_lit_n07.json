@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "implicitCopy",
+  "diagnostic": "value of type 'Array[Array[Int, Int(2)], Int(2)]' cannot be implicitly copied, it does not conform to 'ImplicitlyCopyable'"
+}

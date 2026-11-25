@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7636705156839249943")
+:::moduleDocs (fingerprint := "11551737319371957833")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "8079104089029179561")
@@ -58,7 +58,7 @@ element of an $`\mathsf{Int}` is a step of its own, since it is no
 location (#127).
 :::
 
-:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.Phase MojoGrimoire.Check.State MojoGrimoire.Check.CheckM MojoGrimoire.Check.Stage MojoGrimoire.Check.flowCheckAt MojoGrimoire.Check.flowCheck MojoGrimoire.Check.flowThrowAt MojoGrimoire.Check.flowThrow MojoGrimoire.Check.InstEvent MojoGrimoire.Check.restoreKeeping MojoGrimoire.Check.inTypePhase MojoGrimoire.Check.instCheck MojoGrimoire.Check.instThrow MojoGrimoire.Check.instRecord (fingerprint := "108941225007547675")
+:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.Phase MojoGrimoire.Check.State MojoGrimoire.Check.CheckM MojoGrimoire.Check.Stage MojoGrimoire.Check.flowCheckAt MojoGrimoire.Check.flowCheck MojoGrimoire.Check.flowThrowAt MojoGrimoire.Check.flowThrow MojoGrimoire.Check.InstEvent MojoGrimoire.Check.restoreKeeping MojoGrimoire.Check.copyLast MojoGrimoire.Check.inTypePhase MojoGrimoire.Check.instCheck MojoGrimoire.Check.instThrow MojoGrimoire.Check.instRecord (fingerprint := "8684874180467706477")
 *Definition: the checker's state.* A path $`\pi = f_1 \dots f_n` names a
 part of a variable: the empty path $`\epsilon` is the variable itself, and
 $`f_1 \dots f_n` its field $`f_1.\dots.f_n`. For each variable in scope,

@@ -36,6 +36,7 @@ import MojoGrimoireTest.Parse.TransferThroughRef
 import MojoGrimoireTest.Parse.TransferElement
 import MojoGrimoireTest.Parse.CallOrder
 import MojoGrimoireTest.Parse.PlaceOrder
+import MojoGrimoireTest.Parse.DeclInitOrder
 import MojoGrimoireTest.Parse.Initializers
 import MojoGrimoireTest.Parse.ListFromIterable
 import MojoGrimoireTest.Parse.ListRange

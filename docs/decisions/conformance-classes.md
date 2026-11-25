@@ -221,6 +221,15 @@ Rejected: `invalidType`, which maps no compiler message, and treating the
 programs as outside the subset, exit 3, which would hide a real
 disagreement, since the compiler rejects them.
 
+## Variables declared again
+
+A variable declared again in its scope, by `var` or `ref`, is
+"invalid redefinition of 'V'". `diagnostics.json` maps it, matched
+whole, to `duplicate`, as the model reports it (#134). The compiler
+reports it after the initializer's own errors and before the initializer's
+conversion to a declared type
+([semantics-error-order.md](semantics-error-order.md#the-order-inside-declarations-and-literals)).
+
 ## Subscripts of types that cannot be indexed
 
 A subscript, read or assigned, of a `Bool`, of `None` or of a struct

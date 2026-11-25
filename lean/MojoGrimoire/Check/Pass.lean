@@ -94,15 +94,17 @@ def refResult (prog : Program) (asRef : Bool) (sig : Signature) (args : List Exp
 a call returns a reference to (`refResult`) only once the type fits, so
 when the check of a call or a method call as a value reports that copy,
 `e` is checked again from the same state by reference, and a type that
-does not fit comes first. -/
+does not fit comes first. Any other value's copy, such as of a place or
+of a literal's element, comes after its misfit too (`copyLast`, #96
+part 11). -/
 def misfitFirst (e : Expr) (fit : Fit) (t : Ty) (check : Bool → CheckM Ty) :
     CheckM Unit := do
-  let s0 ← get
   expectArg fit t (← tryCatch (check false) fun err => do
-    if err matches .implicitCopy _ && e matches .call .. | .method .. then
-      set s0
+    unless err matches .implicitCopy _ do throw err
+    if e matches .call .. | .method .. then
       expectArg fit t (← tryCatch (check true) fun _ => throw err)
-    throw err)
+      throw err
+    copyLast err do expectArg fit t (← check false))
 
 /-- Rejects the place `p` through the element of an `Int` as `notAList`,
 as before #127, where the model cannot yet give the compiler's result. The
