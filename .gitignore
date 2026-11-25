@@ -4,3 +4,5 @@ __pycache__/
 .claude/scheduled_tasks.lock
 /docs/spec/.lake/
 /docs/spec/_out/
+
+.claude/settings.local.json
