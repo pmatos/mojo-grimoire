@@ -76,7 +76,7 @@ the type `t`, on the left when `left` holds, as the elements' forms give it
 (`MojoGrimoire.Check.literalFits`). -/
 def TyEnv.literalFit (prog : Program) (env : TyEnv) (left : Bool) (t : Ty) (lit : Expr) :
     Option Bool :=
-  (literalFits (m := Id) (fun e => env.leafTy prog e) left t lit).run
+  (literalFits (m := Id) (fun e => env.leafTy prog e) left t false lit).run
 
 /-- Whether the literal `e` holds, at any depth, a place whose value is not
 implicitly copyable, as the checker's `MojoGrimoire.Check.heldCopy` finds

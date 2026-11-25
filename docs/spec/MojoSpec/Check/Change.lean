@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Changes and late re-checks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9551400554931423020")
+:::moduleDocs (fingerprint := "6196204542057664592")
 :::
 
-:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "2705952006767251819")
+:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "1760972516223355294")
 *Rule: changes.* A call changes as a whole each place it is passed `mut`,
 and each place it is passed `ref` that the function may change and that
 is not reached through `p^`; for a
@@ -27,7 +27,7 @@ bound with `ref` whose origin the change invalidates. The mark of an
 operand is the number of changes recorded once it is checked.
 :::
 
-:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.lateLocs MojoGrimoire.Check.lateLocsList MojoGrimoire.Check.locsOf MojoGrimoire.Check.recheckPlaces MojoGrimoire.Check.firstElemLocs (fingerprint := "18027001617396330772")
+:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.lateLocs MojoGrimoire.Check.lateLocsList MojoGrimoire.Check.locsOf MojoGrimoire.Check.recheckPlaces MojoGrimoire.Check.firstElemLocs (fingerprint := "14858106631487428821")
 *Rule: places read late.* Mojo reads a place operand only once every
 operand of its operation is evaluated, and a place passed by reference is
 used during the call. So once the operands are checked, every operand that
@@ -48,4 +48,5 @@ change recorded after its mark invalidates it: in `print(xs[0], xs.pop())`, `pop
 the list that holds `xs[0]` before `xs[0]` is read. A place located once
 $`k` changes were recorded is invalidated when a change recorded since
 then invalidates it.
+Both rejections are checks of the flow phase.
 :::

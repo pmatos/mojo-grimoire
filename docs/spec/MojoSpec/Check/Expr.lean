@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1451862513602769364")
+:::moduleDocs (fingerprint := "7784323379589906230")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "1568428724942064848")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "5409470168266214550")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -207,4 +207,9 @@ type mismatch, as the compiler reports it. A literal $`[e]_{\mathsf{Int}}`
 passed `mut` or `ref` is a value, read late as the operand $`e` would be,
 so what $`e` reads is checked again with the other operands (#103).
 Checking the arguments gives the mark of each.
+A constant index that is negative or past the last element is a check
+of the flow phase until #96 part 7, which the type phase skips. In the
+type phase, a comparison whose left literal holds an inner literal of
+another length where an $`\mathsf{Int}` is expected, and fits the other
+operand, checks only its operands' own expressions (`typedSimdLeft`).
 :::

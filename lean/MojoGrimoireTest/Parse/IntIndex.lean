@@ -131,10 +131,12 @@ private def kAt (i : Int) : Place := .index (.var "k") (.int i)
 #guard rejects ["print(sr(k[0]))"] (.notAList .int)
 #guard rejects ["ref r = sr(k[0])", "k = 9", "print(r)"] (.notAList .int)
 -- Its index is checked first, as before, but for a constant out of the
--- `Int`'s range.
+-- `Int`'s range, or a negative one: the compiler finds those when it
+-- instantiates the call, after the type phase's `notAList` (#96). The pin
+-- builds `inc(k[-1])` and runs it (#222).
 #guard rejects ["inc(k[1])"] (.notAList .int)
 #guard rejects ["inc(k[0][1])"] (.notAList .int)
-#guard rejects ["inc(k[-1])"] (.negativeIndex (kAt (-1)))
+#guard rejects ["inc(k[-1])"] (.notAList .int)
 #guard rejects ["inc(k[zz])"] (.unknownVariable "zz")
 
 -- `p op= e` is read as `p = p op e`, which evaluates the indices of `p`

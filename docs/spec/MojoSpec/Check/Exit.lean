@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Ends, exits, joins and loops: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6987239339013558695")
+:::moduleDocs (fingerprint := "17252163279457160594")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -23,7 +23,7 @@ hold each of its fields. A part held whole whose field was moved out and
 assigned again is recorded as its fields, which hold all of it.
 :::
 
-:::readable MojoGrimoire.Check.partlyBuilt MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9136026478662908329")
+:::readable MojoGrimoire.Check.partlyBuilt MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "4829553154257033022")
 *Rule: the end of a variable.* The compiler destroys a struct whole, so a
 variable may not end when it still holds a part, in $`H`, and a field is
 in $`M`, moved out and not assigned again, or $`\epsilon` is in both
@@ -50,9 +50,11 @@ fields are, and is no piece then. The `self` of
 `__deinit__` is destroyed field by field: each of its fields is a value
 of its own, which may stay moved out. Each error is
 $`\mathsf{partiallyDestroyed}`.
+It is a check of the flow phase, which the type phase skips
+(`flowCheck`).
 :::
 
-:::readable MojoGrimoire.Check.checkExit (fingerprint := "16841318695536390912")
+:::readable MojoGrimoire.Check.checkExit (fingerprint := "303122175613233905")
 *Rule: a return.* When a function returns, each `mut` parameter and the
 `self` of `__init__` must be wholly initialized, since the caller holds
 them, with no piece in $`P`: otherwise the error is
@@ -63,15 +65,16 @@ reports. The `mut` parameters are checked in their order, then the
 then be allowed to end; the parameters are checked first, since the
 compiler reports a parameter left uninitialized before a variable that may
 not end.
+The whole check is the flow phase's.
 :::
 
-:::readable MojoGrimoire.Check.endScope (fingerprint := "10225848583509902724")
+:::readable MojoGrimoire.Check.endScope (fingerprint := "15173930807820393954")
 *Rule: the end of a scope.* The variables a block declared end with it,
 each checked as above if the end of the block is reached, and leave the
 set of invalidated references.
 :::
 
-:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "151849857318036827")
+:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "1999761062610100113")
 *Rule: joining branches.* After an `if`, a part is uninitialized when
 either branch leaves it so, and may hold a value when either branch may;
 $`M`, $`T` and $`P` are the unions of the branches' sets, and
@@ -80,11 +83,12 @@ that cannot reach its end, because it returned, does not count. A loop
 joins $`M`, $`H`, $`T` and $`P` the same way, as described below.
 :::
 
-:::readable MojoGrimoire.Check.checkLoop (fingerprint := "6169669695796580470")
+:::readable MojoGrimoire.Check.checkLoop (fingerprint := "11520629417625361493")
 *Rule: loops.* A loop body that can reach its end must leave initialized
 every part that was initialized before the loop, and may not add to $`M` a
 part that was initialized before it, or its next iteration would use a
 moved value. A part uninitialized before the loop may be assigned and
 moved out in each iteration. As Mojo does, the
 checker reports such a part as a use of an uninitialized value.
+The check is the flow phase's.
 :::

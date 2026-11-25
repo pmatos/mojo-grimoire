@@ -184,8 +184,9 @@ def rangeList (prog : Program) (u : Ty) (n : Nat) (typing : CheckM (Bool × Bool
   let r ← reading
   if let some err := r.owned then throw err
   recheckLocs prog r.locs
-  if literal || r.literal then throw (CheckError.noMatchingInit (.list u))
-  if let some err := r.index then throw err
+  flowCheck do
+    if literal || r.literal then throw (CheckError.noMatchingInit (.list u))
+    if let some err := r.index then throw err
   pure (.list .int)
 
 /-- The elements of a literal `[e₁, …, eₙ]`, `n ≠ 1`, typed `Int`, as
@@ -225,13 +226,15 @@ started from, `reads` reads them, and the compiler then fails SIMD's
 constraint of one element, `noMatchingInit`: by an initializer of `t` of
 `t`, and else of `Int`, also for a method or an operator with several
 overloads, since the literal fits the one that takes an `Int` and fails
-only once it is chosen (#169). -/
+only once it is chosen (#169). That failure is instantiation's, which
+the type phase skips: there the literal gives `skip`. -/
 def rejectIntLiteral {α : Type} (prog : Program) (fit : Fit) (misfit : CheckM (Option Ty))
-    (reads : CheckM (List (List Place × Nat))) : CheckM α := do
+    (reads : CheckM (List (List Place × Nat))) (skip : α) : CheckM α := do
   let s ← get
   if let some u ← misfit then throw (fit.misfit (CheckError.typeMismatch .int u))
   set s
   recheckLocs prog (← reads)
+  if (← get).phase == .type then return skip
   throw (if fit matches .overload _ then CheckError.noMatchingInit .int
     else fit.misfit (CheckError.noMatchingInit .int))
 

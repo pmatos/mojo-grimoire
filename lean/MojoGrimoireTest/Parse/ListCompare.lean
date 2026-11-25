@@ -118,11 +118,11 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 
 -- Not yet: a list of structs (#194), which keeps its result.
 #guard rejects ["var xs: List[P] = [P(1)]", "print(xs == xs)"] (.implicitCopy (.list (.struct "P")))
--- Nor an element that does not fit beside an uninitialized list, which
--- `main` reported after its use and keeps until #96 part 4, and an inner
+-- An element that does not fit beside an uninitialized list is the type
+-- phase's, before the use of the list (#96), as the pin says. An inner
 -- literal that initializes a `Bool` is no type mismatch for the compiler
 -- but `noMatchingInit` (#165).
-#guard rejects ["var xs: List[Int]", "print(xs == [True])"] (.uninitializedUse (.var "xs"))
+#guard rejects ["var xs: List[Int]", "print(xs == [True])"] (.typeMismatch .int .bool)
 #guard runMain ["var bs: List[Bool] = [True]", "print(bs == [[True]])"] matches
   some (.rejected ⟨"main", .typeMismatch ..⟩)
 

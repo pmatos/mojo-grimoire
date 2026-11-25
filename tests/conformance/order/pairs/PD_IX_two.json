@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "partiallyDestroyed",
+  "diagnostic": "value 'pd.start' cannot be consumed, because 'pd' is used later"
+}

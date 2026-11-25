@@ -88,7 +88,7 @@ def cannotEnd (prog : Program) (t : Ty) (us ms hs ts ps : List Path) (start : Na
 def checkEnd (prog : Program) (v : VarState) : CheckM Unit := do
   let start := if v.access == .dying then 1 else 0
   if cannotEnd prog v.ty v.uninit v.moved v.held v.touched v.pieces start then
-    throw (CheckError.partiallyDestroyed v.name)
+    flowCheck (throw (CheckError.partiallyDestroyed v.name))
 
 /-- Rejects the state at a return: every `mut` parameter and the `self` of
 `__init__` must be wholly initialized, with no part built from its fields,
@@ -97,7 +97,7 @@ reports a parameter left uninitialized first: the `mut` parameters in
 their order, then the `self` of `__init__`. The caller uses a `mut`
 parameter whole, so the compiler reports one that is itself built field by
 field as a use of it. -/
-def checkExit (prog : Program) : CheckM Unit := do
+def checkExit (prog : Program) : CheckM Unit := flowCheck do
   let vars := (← get).vars
   let params := vars.reverse.filter (·.access == .mutable) ++ vars.filter (·.access == .constructing)
   for v in params do
@@ -146,7 +146,7 @@ def joinStates (a b : State) : State :=
 part moved out that was initialized and not moved out before: the next
 iteration would use it uninitialized. A part uninitialized before the loop
 may be assigned and moved out in each iteration. -/
-def checkLoop (before after : State) : CheckM Unit := do
+def checkLoop (before after : State) : CheckM Unit := flowCheck do
   if after.live then
     for (v, w) in List.zip before.vars after.vars do
       let fresh := w.uninit.filter (fun u => !v.uninit.any (·.isPrefixOf u)) ++

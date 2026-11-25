@@ -24,6 +24,7 @@ The last column is what holds now: the ADR and every ADR that its
 | [ADR-2026-11-15-1907](2026-11-15-1907-the-compiler-is-the-reference.md) | [semantics](../decisions/semantics.md) | The open-source Mojo compiler at a pinned version is the reference, and the model departs from it only by a logged decision | this ADR |
 | [ADR-2026-11-15-1908](2026-11-15-1908-the-model-is-independent-of-the-isabelle-formalisation.md) | [semantics](../decisions/semantics.md) | The model is independent of the Isabelle formalisation of Mojo | this ADR |
 | [ADR-2026-11-15-2030](2026-11-15-2030-the-spec-is-lean-rendered-with-verso-as-readable-blocks.md) | [spec](../decisions/spec.md) | The spec is Lean rendered with Verso, shown as readable blocks checked against the Lean, from the first module on | this ADR |
+| [ADR-2026-11-21-1941](2026-11-21-1941-the-checker-reports-errors-in-the-compilers-three-tiers.md) | [semantics](../decisions/semantics.md) | The checker reports errors in the compiler's three tiers | this ADR |
 
 ## Implementation
 

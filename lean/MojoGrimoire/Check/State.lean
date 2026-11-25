@@ -46,6 +46,11 @@ array's elements are not invalidated by changes to the array, since an array hol
 records the references bound with `ref` that are invalidated, and the
 changes made so far in the current statement, so that an operand located
 before a later operand changes its list is found too.
+
+The checker checks a program in two phases, which report the compiler's
+tiers of errors (`Phase`): the type phase skips the checks of the flow
+phase, uses of what is uninitialized and of invalidated references among
+them, so that in it every variable is whole.
 -/
 
 namespace MojoGrimoire.Check
@@ -100,10 +105,21 @@ inductive ShapeStep where
 from, and the steps down from it. -/
 abbrev Shape := Name × List ShapeStep
 
+/-- The phases of the checker, which report the compiler's tiers of errors
+(`MojoGrimoire.Check.checkProgram`): `type`, the errors that the
+compiler reports while it parses, and then `flow`, those of its pass
+manager and, until #96 part 7, of instantiation. The type phase skips the
+checks of the flow phase, so that in it every variable is whole and no
+reference is invalidated. -/
+inductive Phase where
+  | type
+  | flow
+  deriving BEq
+
 /-- The checker's state: the variables in scope, innermost first, whether
 the current point can be reached, the references bound with `ref` that are
 invalidated, and the places changed as a whole so far in the current
-statement, in order. After a
+statement, in order, and the phase. After a
 `return`, the current point cannot be reached. `mainTests` is set only
 while a statement is checked again to replay `main`'s order, in which a
 struct test is rejected, and `ownChecks` is cleared only while it is
@@ -117,11 +133,17 @@ structure State where
   changes : List Shape
   mainTests : Bool := false
   ownChecks : Bool := true
+  phase : Phase := .flow
   deriving BEq
 
 /-- The monad of the checker: it reads and updates the state, and may reject
 the program. -/
 abbrev CheckM := StateT State (Except CheckError)
+
+/-- Runs `check`, a check of the flow phase, only in that phase: it is
+skipped in the type phase. -/
+def flowCheck (check : CheckM Unit) : CheckM Unit := do
+  if (← get).phase == .flow then check
 
 /-- The variable a place starts from, and the path from it to the place.
 The elements of a list or an array are not parts that the checker follows:
@@ -316,7 +338,7 @@ field by field. -/
 def requireInit (v : VarState) (p : Place) : CheckM Unit := do
   let q := (splitPlace p).2
   unless initialized v.uninit q && !(v.moved ++ v.pieces).any (q.isPrefixOf ·) do
-    throw (CheckError.uninitializedUse p)
+    flowCheck (throw (CheckError.uninitializedUse p))
 
 /-- The type of a place that is initialized, so that its value may be read;
 it rejects a use of a part that is uninitialized. A place reached through a
@@ -327,7 +349,7 @@ def readPlace (prog : Program) (p : Place) : CheckM Ty := do
   let v ← lookup (splitPlace p).1
   match v.access with
   | .alias os _ =>
-    if (← get).stale.contains v.name then throw (CheckError.invalidatedReference p)
+    if (← get).stale.contains v.name then flowCheck (throw (CheckError.invalidatedReference p))
     for o in os do requireInit (← lookup (splitPlace o).1) o
   | _ => requireInit v p
   pure t

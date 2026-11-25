@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4094016480770156981")
+:::moduleDocs (fingerprint := "8616726849986018863")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -45,7 +45,7 @@ does. $`\mathsf{List}[u](e)` builds its result in place, and passes $`e`
 by `ref` (#103).
 :::
 
-:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "16696507702684755224")
+:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "17779422910902368329")
 *Rule: initializing values.* A value that initializes a declared variable,
 a place assigned to, or a function's result must have its type. A literal
 $`[e^*]_{?}`, which has no list or array expected, where that
@@ -59,6 +59,8 @@ $`[e^*]_{\mathsf{Int}}` of any length but 1 initializes an
 $`\mathsf{Int}`, and is rejected by `rejectIntLiteral` as an initializer
 of the type reports it (#153, #154). An assignment of either literal
 types its place first.
+In the type phase, which skips that literal's failure, it initializes the
+value with no other check.
 :::
 
 :::readable MojoGrimoire.Check.checkReturnValue (fingerprint := "6201929813473914141")
@@ -67,7 +69,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "6279711092864589028")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "7250709436485764811")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 
@@ -123,4 +125,5 @@ an expression, so a place is copied implicitly.
   location whose origins are all within its own origin, as the previous
   section says;
 * `drop p` transfers $`p` away.
+That the old value may not end is a check of the flow phase.
 :::

@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14629522898710504043")
+:::moduleDocs (fingerprint := "11449757614782067551")
 :::
 
-:::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.mainRead MojoGrimoire.Check.testParams MojoGrimoire.Check.notOperand MojoGrimoire.Check.bridged (fingerprint := "4355055010676681703")
+:::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.mainRead MojoGrimoire.Check.testParams MojoGrimoire.Check.notOperand MojoGrimoire.Check.bridged (fingerprint := "7295086214043047374")
 *Rule: the bridge to `main`'s order (temporary, until #96 part 4).*
 `main` rejected a test of a struct, by $`\mathsf{and}`, $`\mathsf{or}` or
 $`\mathsf{not}`, as $`\mathsf{typeMismatch}` once its operands were
@@ -112,4 +112,16 @@ those checks out (`State.ownChecks`), the test is rejected so, or passes
 with no check of its own, a tested call of `__bool__` taken as a
 $`\mathsf{Bool}`. Both are parts of the bridge, temporary, until #96
 part 4.
+:::
+
+:::readable MojoGrimoire.Check.typedSimdLeft (fingerprint := "12331177160465563474")
+*Rule: a comparison that only the type phase converts.* A literal on the
+left of a comparison that holds an inner literal of another length than
+one where an $`\mathsf{Int}` is expected keeps the checks it had before
+#166, which find errors the compiler does not report. The compiler fails
+SIMD's constraint of that inner literal only when it instantiates the
+call. So when the other operand is no literal and the left literal fits
+its type, with that inner literal fitting as the compiler types it
+(`literalFits` with `typing`), the type phase checks only the operands'
+own expressions (#96).
 :::

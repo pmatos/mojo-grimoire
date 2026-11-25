@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expected types of literals: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2793904399368221008")
+:::moduleDocs (fingerprint := "16449340370209101502")
 :::
 
 :::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected (fingerprint := "17740833371835876722")
@@ -31,7 +31,7 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv.leafTy MojoGrimoire.Parse.TyEnv.literalFit MojoGrimoire.Parse.TyEnv.heldCopy MojoGrimoire.Parse.converts (fingerprint := "14857081779414229261")
+:::readable MojoGrimoire.Parse.TyEnv.leafTy MojoGrimoire.Parse.TyEnv.literalFit MojoGrimoire.Parse.TyEnv.heldCopy MojoGrimoire.Parse.converts (fingerprint := "15324301281009556699")
 *Rule: the fit of a compared literal.* The literal is inferred once with
 no type expected, so that an operator or a call of a struct in it is a
 call of the method it calls. An element of it then has the type its form
