@@ -36,6 +36,15 @@ def checkDistinct : List Name → Except CheckError Unit
   | [] => pure ()
   | x :: xs => if xs.contains x then throw (.duplicate x) else checkDistinct xs
 
+/-- Checks the signature of the function `fd`: its parameters have distinct
+names and declarable types, and its result is declarable or `None`. The
+compiler resolves `main`'s signature so before it checks its shape. -/
+def checkSignature (prog : Program) (fd : FunDecl) : Except CheckError Unit := do
+  checkDistinct (fd.params.map (·.name))
+  for prm in fd.params do
+    unless validTy prog prm.ty do throw (typeError prm.ty)
+  unless fd.result == .noneType || validTy prog fd.result do throw (typeError fd.result)
+
 /-- Checks the body of the function `fd`, a member of the struct `owner`
 or a free function when `owner` is none: its parameters and result must
 have declarable types, its origin must name parameters passed as locations,
@@ -48,10 +57,7 @@ return, which the flow phase reports before its other errors
 return. -/
 def checkBody (prog : Program) (phase : Phase) (stage : Stage) (owner : Option Name)
     (fd : FunDecl) : Except CheckError (Option CheckError) := do
-  checkDistinct (fd.params.map (·.name))
-  for prm in fd.params do
-    unless validTy prog prm.ty do throw (typeError prm.ty)
-  unless fd.result == .noneType || validTy prog fd.result do throw (typeError fd.result)
+  checkSignature prog fd
   checkOrigin fd
   let start : State :=
     { vars := fd.params.reverse.map paramState, live := true, stale := [], changes := [], phase,
@@ -137,35 +143,46 @@ def memberCheck (prog : Program) (sd : StructDecl) :
 /-- Checks that every field of the struct `sd` can be copied as `sd`
 declares its values are: at all for `Copyable`, implicitly for
 `ImplicitlyCopyable`. The first field that cannot is the error, since the
-compiler cannot synthesize the copy initializer from it (#164). -/
-def checkCopying (prog : Program) (sd : StructDecl) : Except CheckError Unit :=
+compiler cannot synthesize the copy initializer from it (#164). With
+`cycles`, a field on a cycle of fields that the fixed compiler rejects is
+the error at its place too, as the pin reports it in the implicit copy
+initializer that follows `__init__`. -/
+def checkCopying (prog : Program) (sd : StructDecl) (cycles : Bool := false) :
+    Except CheckError Unit :=
   for (f, t) in sd.fields do
+    if cycles && rejectedCycle prog sd.name t then throw (.recursiveStruct sd.name)
     let ok := match sd.copying with
       | .none => true
       | .explicit => copyingOf prog t != Copying.none
       | .implicit => copyingOf prog t == Copying.implicit
     unless ok do throw (CheckError.uncopyableField sd.name f t)
 
+/-- The result of the type phase's check of the body at `w`: its error,
+located there, or its missing return, if any. -/
+def located (w : Name) : Except CheckError (Option CheckError) → Except Rejection (List Rejection)
+  | .error e => throw ⟨w, e⟩
+  | .ok r => pure (r.map (⟨w, ·⟩)).toList
+
 /-- Checks the struct `sd` in the type phase, as the compiler does once it
 has checked the free functions, and gives its missing returns: its members
-in their order `ms`, a failure located at `S.m` for a member `m`, and the
-copy initializer that the compiler synthesizes, right after `__init__`,
-or after the last member when the struct declares none, with a cycle of
-fields that the fixed compiler rejects (#164, #96 part 6). -/
+in their order `ms`, a failure located at `S.m` for a member `m`. The
+copy initializer that the compiler synthesizes is checked right after
+`__init__`, where an implicit one also meets a cycle of fields that the
+fixed compiler rejects, field by field. Otherwise a cycle comes after the
+last member, and then the copy initializer when the struct declares no
+`__init__` (#164, #96 part 6). -/
 def checkStruct (prog : Program) (sd : StructDecl) (ms : List Member) :
     Except Rejection (List Rejection) := do
-  let synthesized : Except Rejection Unit := Except.mapError (⟨sd.name, ·⟩) do
-    for (_, t) in sd.fields do
-      if rejectedCycle prog sd.name t then throw (.recursiveStruct sd.name)
-    checkCopying prog sd
+  let atStruct (c : Except CheckError Unit) : Except Rejection Unit := c.mapError (⟨sd.name, ·⟩)
   let mut missing : List Rejection := []
   for m in ms do
     if let some (where_, check) := memberCheck prog sd m then
-      match check .type .ends with
-      | .error e => throw ⟨where_, e⟩
-      | .ok r => missing := missing ++ (r.map (⟨where_, ·⟩)).toList
-    if m == .init then synthesized
-  if sd.init.isNone then synthesized
+      missing := missing ++ (← located where_ (check .type .ends))
+    if m == .init then atStruct (checkCopying prog sd (sd.copying == .implicit))
+  atStruct do
+    for (_, t) in sd.fields do
+      if rejectedCycle prog sd.name t then throw (.recursiveStruct sd.name)
+  if sd.init.isNone then atStruct (checkCopying prog sd)
   pure missing
 
 /-- Checks a program in the type phase, in the compiler's order (#96 part
@@ -173,33 +190,35 @@ def checkStruct (prog : Program) (sd : StructDecl) (ms : List Member) :
 phase reports, or rejected with the first error found and where it was
 found. First, no struct has the name of another struct or of a function.
 Then, in the order of the declarations, each free function, with `main`'s
-signature, which must take nothing and return nothing, before its body,
+signature, resolved and then of the shape that takes nothing and returns
+nothing, before its conventions and its body,
 and a function of the name of an earlier one, and each struct's own
 declaration (`checkFields`). Last, each struct in the order of the
 declarations (`checkStruct`). -/
 def checkTypes (prog : Program) : Except Rejection (List Rejection) := do
   let structs := prog.structs.map (·.name)
   (checkDistinct structs).mapError (⟨"", ·⟩)
-  if let some s := structs.find? fun s => prog.funs.any (·.name == s) then
+  if let some s := structs.find? fun s => (findFun prog s).isSome then
     throw ⟨"", .duplicate s⟩
   let mut missing : List Rejection := []
   let mut seen : List Name := []
+  let mut declared : List (StructDecl × List Member) := []
   for d in prog.declOrder do
     match d with
     | .func i =>
       let some fd := prog.funs[i]? | continue
       if seen.contains fd.name then throw ⟨"", .duplicate fd.name⟩
       seen := fd.name :: seen
-      if fd.name == "main" && !(fd.params.isEmpty && fd.result == .noneType) then
-        throw ⟨"main", .noMain⟩
-      match checkFun prog .type .ends fd with
-      | .error e => throw ⟨fd.name, e⟩
-      | .ok r => missing := missing ++ (r.map (⟨fd.name, ·⟩)).toList
-    | .struct i _ =>
-      if let some sd := prog.structs[i]? then (checkFields prog sd).mapError (⟨sd.name, ·⟩)
-  for d in prog.declOrder do
-    if let .struct i ms := d then
-      if let some sd := prog.structs[i]? then missing := missing ++ (← checkStruct prog sd ms)
+      if fd.name == "main" then
+        (checkSignature prog fd).mapError (⟨"main", ·⟩)
+        unless fd.params.isEmpty && fd.result == .noneType do throw ⟨"main", .noMain⟩
+      missing := missing ++ (← located fd.name (checkFun prog .type .ends fd))
+    | .struct i ms =>
+      let some sd := prog.structs[i]? | continue
+      (checkFields prog sd).mapError (⟨sd.name, ·⟩)
+      declared := (sd, ms) :: declared
+  for (sd, ms) in declared.reverse do
+    missing := missing ++ (← checkStruct prog sd ms)
   pure missing
 
 /-- The bodies of the program `prog` in the order of its declarations in

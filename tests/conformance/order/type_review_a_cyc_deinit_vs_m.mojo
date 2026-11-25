@@ -1,0 +1,16 @@
+struct S(Movable):
+    var s: S
+
+    def __init__(out self):
+        pass
+
+    def __deinit__(deinit self):
+        pass
+
+    def m(self):
+        var b: Bool = 5
+        print(b)
+
+
+def main():
+    print(1)

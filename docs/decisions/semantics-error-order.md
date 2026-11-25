@@ -116,16 +116,19 @@ The type phase follows the order of the compiler's first pass (#96 part
 
 1. A struct of the name of another struct or of a function comes first.
 2. Then the declarations in the order of the source. A free function's
-   signature and body: `main`'s signature, which takes nothing and
-   returns nothing, before its body, and a function of the name of an
-   earlier one at its place. A struct's own declaration: the names of its
-   fields and methods, and the types of its fields.
+   signature and body: `main`'s parameters and result are resolved, and
+   then it must take nothing and return nothing, before its conventions
+   and its body; a function of the name of an earlier one fails at its
+   place. A struct's own declaration: the names of its fields and methods,
+   and the types of its fields.
 3. Then each struct in the order of the declarations: its initializer,
-   destructor and methods, signature and body, in their order, and the copy
-   initializer that the compiler synthesizes, right after `__init__`, or
-   after the last member when the struct declares none, with a cycle of
-   fields that the fixed compiler rejects. A hidden type,
-   `valueAsType`, takes its place in that order like any error (#193).
+   destructor and methods, signature and body, in their order. The copy
+   initializer that the compiler synthesizes is checked right after
+   `__init__`, and an implicit one there also meets a field on a cycle
+   that the fixed compiler rejects, field by field. Otherwise such a cycle
+   comes after the last member, and then the copy initializer of a struct
+   that declares no `__init__`. A hidden type, `valueAsType`, takes its
+   place in that order like any error (#193).
 
 The compiler resolves a method's or a function's signature where a body
 first refers to it, which the model does not follow yet (#231).

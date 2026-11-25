@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": null,
+  "diagnostic": "invalid redefinition of 'y'"
+}
