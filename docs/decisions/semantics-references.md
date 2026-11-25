@@ -61,8 +61,10 @@ choices (#18):
   `ref e = xs[0]; e = grow(xs)`. The compiler accepts that and stores into
   a stale element, as it does for `xs[0] = grow(xs)`; the human ruled on
   2026-11-16 that this is a compiler bug (#57,
-  [D-0002](../conformance/decision-log.md)). The model evaluates the value
-  of `xs[0] = grow(xs)` first, then stores into the grown list. It keeps
+  [D-0002](../conformance/decision-log.md)). The model checks the index
+  of `xs[0] = grow(xs)` against the list before the call, as the
+  compiler does, then locates the element again once the value is
+  evaluated, and stores into the grown list. It keeps
   rejecting the `ref` form, since running it could leave the interpreter
   stuck when the call shrinks the list.
 - An assignment into a list element is rejected (`argumentExclusivity`)
