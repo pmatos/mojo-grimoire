@@ -395,20 +395,17 @@ def execStmt (prog : Program) (fuel : Nat) (refs : Bool) (env : Env) (s : Stmt) 
       pure ((x, ⟨← alloc v, true, t⟩) :: env)
     | .refDecl x e => do pure ((x, ⟨← evalRef prog n env e, false, refTy prog env e⟩) :: env)
     | .assign p e => do
-      let (v, r) ← match p with
-        | .index q i =>
-          if placeTy prog env q == some .int then do
-            let r ← placeRef prog n env q
-            let o ← evalOperand prog n env i
-            let v ← evalExpr prog n env e
-            let _ ← position 1 (← asInt (← loadOperand prog n env o))
-            pure (v, r)
-          else do
-            let v ← evalExpr prog n env e
-            pure (v, ← placeRef prog n env p)
-        | _ => do
+      let (v, r) ← match intElem prog env p with
+        | some (q, i) => do
+          let r ← placeRef prog n env q
+          let o ← evalOperand prog n env i
           let v ← evalExpr prog n env e
-          pure (v, ← placeRef prog n env p)
+          let _ ← position 1 (← asInt (← loadOperand prog n env o))
+          pure (v, r)
+        | none => do
+          let q ← fixIndices (fun i => do asInt (← evalExpr prog n env i)) (placeRef prog n env) p
+          let v ← evalExpr prog n env e
+          pure (v, ← placeRef prog n env q)
       let old ← readRef r
       writeRef r v
       destroy prog n old

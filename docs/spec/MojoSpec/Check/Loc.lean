@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Located operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6252894720499367893")
+:::moduleDocs (fingerprint := "13228418024861090423")
 :::
 
-:::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable MojoGrimoire.Check.passedMutable (fingerprint := "13335214914752779514")
+:::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable MojoGrimoire.Check.passedMutable (fingerprint := "3842386159444939216")
 *Definition: places that may change.* A function may change a place, by
 assigning to it or passing it `mut`, unless its variable is a `read` or
 `ref` parameter, or a reference that may not be changed; a `ref` binding

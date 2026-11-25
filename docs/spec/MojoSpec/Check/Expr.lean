@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17782961927663375207")
+:::moduleDocs (fingerprint := "5485501305523812425")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "3370010895706944923")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "15249100416375932645")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -165,7 +165,8 @@ several overloads, checked by `checkArg`, so that a misfit is
 type mismatch;
 a constant index may not be negative, nor, into an array of $`n`
 elements, $`n` or more, nor, into an $`\mathsf{Int}`, 1 or more (#127). Mojo locates $`q` in $`q[i]` before it
-evaluates $`i`, so $`i` may not invalidate $`q`. Each $`q\,\hat{}` in a
+evaluates $`i`, so $`i` may not invalidate $`q`, and then subscripts
+$`q`, which changes an array that may change (`subscript`, #282). Each $`q\,\hat{}` in a
 place needs $`q` whole, as `p^` would, and a value that $`q\,\hat{}`
 could transfer, by the conditions above.
 Before that, $`p\,\hat{}` and each $`q\,\hat{}` in a place is rejected
@@ -203,9 +204,14 @@ $`\mathsf{transferFromBorrowed}`, as the compiler reports them.
 The numbers of arguments and parameters must be equal. A literal of an
 expected type passed to a function or a method is converted to the
 parameter's type, and one that does not fit, or holds such a literal, is a
-type mismatch, as the compiler reports it. A literal $`[e]_{\mathsf{Int}}`
-passed `mut` or `ref` is a value, read late as the operand $`e` would be,
-so what $`e` reads is checked again with the other operands (#103).
+type mismatch, as the compiler reports it. A literal passed to a parameter is
+read late, as a literal operand is, so what its elements read is checked
+again with the other operands, once the call's arguments are
+(`recheckArgs`, #282), and a literal among the elements of a literal reads
+only what the rule of `nestedLocs` gives;
+so is a literal
+$`[e]_{\mathsf{Int}}` passed `mut` or `ref`, a value read as the operand
+$`e` would be (#103).
 Checking the arguments gives the mark of each.
 A constant index that is negative or past the last element is a check
 of the flow phase until #96 part 7, which the type phase skips. In the

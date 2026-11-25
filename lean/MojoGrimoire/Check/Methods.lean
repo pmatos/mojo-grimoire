@@ -223,6 +223,7 @@ def methodCall (prog : Program) (asRef : Bool) (p : Place) (t : Ty) (m : Name) (
   let k ← mark
   let ks ← check fit
   recheckLocs prog (([p], k) :: ks)
+  recheckLiterals prog args (ks.map (·.2))
   if let some q := consumed then let _ ← transferPlace prog q
   for q in ← changedArgs prog sig.allParams (.place p :: args) do changePlace prog q
   refResult prog asRef sig args

@@ -4,8 +4,9 @@ import MojoGrimoire.Check.Env
 /-!
 The arguments and operands of the evaluator (`MojoGrimoire.Interp.Eval`):
 what a call receives, what evaluation finds of an operand before it
-reads it, once every operand of its operation is evaluated, and the
-binding of a function's parameters to its arguments.
+reads it, once every operand of its operation is evaluated, the
+binding of a function's parameters to its arguments, and the indices of
+an assigned place, evaluated before its value.
 
 An operand that is a place passed by value, or a call that returns a
 reference, is only located when it is evaluated: as in Mojo, it is read
@@ -171,5 +172,27 @@ def rangeOf (fuel : Nat) (args : List Arg) : EvalM Value := do
 def lookupVar (env : Env) (x : Name) : EvalM Ref := do
   let some b := env.lookup x | stuck s!"unknown variable {x}"
   pure b.ref
+
+/-- The `Int` and the index of the place `p` of the variables `env` when
+`p` is an element of an `Int` (#127). -/
+def intElem (prog : Program) (env : Env) : Place → Option (Place × Expr)
+  | .index q i => if placeTy prog env q == some .int then some (q, i) else none
+  | _ => none
+
+/-- The place `p` with each of its indices replaced by its value, which
+`index` evaluates, outermost first, as the compiler does before it
+evaluates an assigned value (#205). Once an index is evaluated, `locate`
+locates the element it names, so that an index out of bounds stops the
+run there, before any index after it is evaluated. An assignment
+locates the element again once its value is evaluated (D-0002). -/
+def fixIndices (index : Expr → EvalM Int) (locate : Place → EvalM Ref) : Place → EvalM Place
+  | .var x => pure (.var x)
+  | .field q f => do pure (.field (← fixIndices index locate q) f)
+  | .index q i => do
+    let q ← fixIndices index locate q
+    let p := Place.index q (.int (← index i))
+    let _ ← locate p
+    pure p
+  | .transferred q => do pure (.transferred (← fixIndices index locate q))
 
 end MojoGrimoire.Interp

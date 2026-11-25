@@ -10,10 +10,12 @@ place the function may change, and `var` copies it implicitly
 (`MojoGrimoire.Check.Transfer`). A misfit is reported as the call's fit
 says (`MojoGrimoire.Check.Fit`). An error of a later pass than typing, in
 an argument of `range`, may be recorded instead of thrown (`lateErrors`),
-so that the passes report in the compiler's order (#121). What a call
-types before it reads its first argument is in `typeFirst`. A module
-outside the mutual block of the checker of expressions is given the checks
-of the expressions inside the ones it checks as `Below` says.
+so that the passes report in the compiler's order (#121), and an index's
+such error waits for the type errors of an assigned value (`typedFirst`,
+#280). What a call types before it reads its first argument is in
+`typeFirst`. A module outside the mutual block of the checker of
+expressions is given the checks of the expressions inside the ones it
+checks as `Below` says.
 -/
 
 namespace MojoGrimoire.Check
@@ -53,6 +55,30 @@ throws (`CheckError.late`), or a nested literal's failed SIMD constraint,
 def lateErrors (x : CheckM RangeArgs) : CheckM RangeArgs :=
   tryCatch x fun err =>
     if err.late || err == .noMatchingInit .int then pure (RangeArgs.ofLate err) else throw err
+
+/-- The compiler's pass that reports the error `e`, in order: typing; a
+use of an uninitialized or invalidated value; a nested literal's failed
+SIMD constraint, `noMatchingInit` of `Int`; a constant index out of
+range (#121, #280). Between the last two, the compiler's order at `-O0`
+is kept: at `-O3` it reports a constant index into an array before a
+literal found after it. -/
+def CheckError.pass (e : CheckError) : Nat :=
+  if e matches .negativeIndex _ | .constantIndexOutOfBounds _ then 3
+  else if e == .noMatchingInit .int then 2
+  else if e.late then 1 else 0
+
+/-- Runs `first`, then `next`, and gives `next`'s result. When `first`
+throws an error of a later pass than typing (`CheckError.pass`), `next`
+is still checked, from the state before `first`: an error of its own
+from an earlier pass stands, as the compiler runs each pass over both, and
+else `first`'s error does (#280). A temporary bridge until the checker
+runs the compiler's passes over the whole program (#96). -/
+def typedFirst {α : Type} (first : CheckM Unit) (next : CheckM α) : CheckM α := do
+  tryCatch first fun e => do
+    if e.pass == 0 then throw e
+    tryCatch (discard next) fun e' => throw (if e'.pass < e.pass then e' else e)
+    throw e
+  next
 
 /-- The type of a call of signature `sig`, with the arguments `args`. A
 call that returns a reference, used as a value, copies the value it points

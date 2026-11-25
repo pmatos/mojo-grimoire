@@ -224,8 +224,10 @@ def passLeft (prog : Program) (self : Param) (callee : Name) (a : Expr) (t : Ty)
 
 /-- The type of the binary operation `a op b`, of operand types `ta` and `tb`
 (`methodBinaryTy`), once both operands are checked, the places among
-them read late (`recheckPlaces`, from the marks `ka` and `kb`), but those
-of `and` and `or`, which are read when tested. A test of a struct
+them read late (`recheckPlaces`, from the marks `ka` and `kb`), and, once
+the operation is typed, what a literal operand reads late
+(`recheckLiterals`, #282), but those of `and` and `or`, which are read
+when tested. A test of a struct
 operand of `and` or `or` whose `__bool__` returns no `Bool` lacks
 `__mlir_bool__` (`missingMethod`): a call of it that inference made, and
 the left operand when both have the same struct type. That operand is
@@ -248,7 +250,9 @@ def checkedBinaryTy (prog : Program) (op : BinOp) (a b : Expr) (ta tb : Ty) (ka 
     (before afterLeft : State) : CheckM Ty := do
   unless op == .and || op == .or do
     recheckPlaces prog [a, b] [ka, kb]
-    return ← lift (methodBinaryTy prog op ta tb)
+    let t ← lift (methodBinaryTy prog op ta tb)
+    recheckLiterals prog [a, b] [ka, kb]
+    return t
   let left := match boolTest a, ta, tb with
     | some (s, e), _, _ => [(s, e, true, false)]
     | none, .struct s, .struct s' => if s == s' then [(s, a, true, true)] else []

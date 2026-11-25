@@ -13,12 +13,13 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3258553835566770178")
+:::moduleDocs (fingerprint := "2500644587005679612")
 :::
 
-:::readable MojoGrimoire.Check.paramState (fingerprint := "17131055927722852879")
-*Definition: parameters on entry.* A `read` or `ref` parameter is
-read-only, a `mut` parameter mutable, a `var` parameter owned, the
+:::readable MojoGrimoire.Check.paramState (fingerprint := "17933977108324489146")
+*Definition: parameters on entry.* A `read` parameter is read-only, a
+`ref` parameter held as one, read-only too but subscripted as one that
+may change (#282), a `mut` parameter mutable, a `var` parameter owned, the
 `self` of `__init__` constructing and wholly uninitialized, and the
 `self` of `__deinit__` dying. No parameter starts with a field moved out,
 touched or built from its fields, and each holds its whole value but the
@@ -31,7 +32,7 @@ repeats. Only the `self` of `__init__` may be `out`, and only the
 `self` of `__deinit__` `deinit`.
 :::
 
-:::readable MojoGrimoire.Check.checkBody (fingerprint := "3623980452092522997")
+:::readable MojoGrimoire.Check.checkBody (fingerprint := "4455961697245696526")
 *Rule: function bodies.* The parameters have distinct names and declarable
 types, and the result type is declarable or $`\mathsf{None}`; a type in
 which a variable hides a name is `valueAsType`, in that order. An origin

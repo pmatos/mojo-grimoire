@@ -106,7 +106,7 @@ def checkExit (prog : Program) : CheckM Unit := flowCheck do
     if !v.uninit.isEmpty || !v.pieces.isEmpty then
       throw (CheckError.uninitializedAtExit v.name)
   for v in vars do
-    if v.access != .readOnly then checkEnd prog v
+    unless v.access matches .readOnly | .refParam do checkEnd prog v
 
 /-- Ends the variables declared since the scope had `n` variables: checks
 that each may end, if the end of the scope is reached, and removes them. -/
@@ -116,7 +116,8 @@ def endScope (prog : Program) (n : Nat) : CheckM Unit := do
   if s.live then
     for v in ended do checkEnd prog v
   set { s with vars := s.vars.drop (s.vars.length - n),
-               stale := s.stale.filter fun x => !ended.any (·.name == x) }
+               stale := s.stale.filter fun x => !ended.any (·.name == x),
+               interior := s.interior.filter fun x => !ended.any (·.name == x) }
 
 /-- The uninitialized parts after two branches: those of either. -/
 def joinUninit (a b : List Path) : List Path :=
@@ -139,7 +140,7 @@ def joinStates (a b : State) : State :=
          vars := List.zipWith (fun v w =>
              { joinMay v w with uninit := joinUninit v.uninit w.uninit })
            a.vars b.vars,
-         stale := union a.stale b.stale }
+         stale := union a.stale b.stale, interior := union a.interior b.interior }
 
 /-- Rejects a loop whose body, from the state `before`, ends in the state
 `after` with a part uninitialized that was initialized before, or with a

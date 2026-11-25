@@ -27,8 +27,9 @@ reports both alike, as an expression with no origin of its own.
 several overloads, none of which its arguments fit, a wrong number of them
 included: the compiler reports only that none fits (#88).
 `missingMethod` is a method that an operator or a call needs and the type
-`ty` lacks: an operator's method on its operand, or `__call__` on a
-variable that is called (#176). `violatedConstraint` is a call of the
+`ty` lacks: an operator's method on its operand, `__call__` on a
+variable that is called (#176), or `__getitem__` on a struct that declares
+`__setitem__`, whose subscript is assigned to (#296). `violatedConstraint` is a call of the
 method `method` of the type `ty` whose constraint on `ty`'s parameters
 fails: two arrays compared whose element type does not conform to the
 trait that the operator needs (#166). `uncopyableField` is the field `field`, of

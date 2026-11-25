@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Evaluation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9755481599213851700")
+:::moduleDocs (fingerprint := "6681329111348338188")
 :::
 
-:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.loadOperand MojoGrimoire.Interp.loadGetter MojoGrimoire.Interp.loadArgs MojoGrimoire.Interp.loadArg MojoGrimoire.Interp.evalLogic MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "12844503214609305320")
+:::readable MojoGrimoire.Interp.destroy MojoGrimoire.Interp.runBody MojoGrimoire.Interp.destroyOwned MojoGrimoire.Interp.placeRef MojoGrimoire.Interp.evalExpr MojoGrimoire.Interp.evalResult MojoGrimoire.Interp.dropPlace MojoGrimoire.Interp.dropAll MojoGrimoire.Interp.evalOperand MojoGrimoire.Interp.loadOperand MojoGrimoire.Interp.loadGetter MojoGrimoire.Interp.loadArgs MojoGrimoire.Interp.loadArg MojoGrimoire.Interp.evalLogic MojoGrimoire.Interp.evalArgs MojoGrimoire.Interp.callFun MojoGrimoire.Interp.evalCall MojoGrimoire.Interp.evalListArg MojoGrimoire.Interp.evalRef MojoGrimoire.Interp.execStmt MojoGrimoire.Interp.evalReturn MojoGrimoire.Interp.execBlock (fingerprint := "6347773664654431428")
 *Definition: evaluation.* Every function below takes fuel and spends one
 unit at each step; with none left, the run stops with `outOfFuel`.
 
@@ -103,8 +103,12 @@ unit at each step; with none left, the run stops with `outOfFuel`.
   a value, such a call's result is read where a place would be. A call gives what it returns, a
   reference or a value, and any other expression its value.
 - *Statements.* A declaration puts its value, or the blank of its type
-  when it has none, at a new location the function owns. An assignment evaluates its value, then its place, writes
-  it, and destroys the old value; into the element of an $`\mathsf{Int}`,
+  when it has none, at a new location the function owns. An assignment evaluates the indices of its place,
+  outermost first, locating each element once its index is evaluated, so
+  that an index out of bounds stops the run before the value is evaluated
+  (`fixIndices`, #205); then it evaluates the value, locates the element
+  again, in the list as the value left it (D-0002), writes it, and
+  destroys the old value; into the element of an $`\mathsf{Int}`,
   it locates the $`\mathsf{Int}` and evaluates the index as an operand
   first, then the value, and reads the index last and checks it against 1,
   as the arguments of `__setitem__` are (#127). Whether the base is an

@@ -34,9 +34,13 @@ the list.
 
 ## Model
 
-Evaluates the value before it locates the element, so
-`store_after_grow` prints `5 3`, and the shrink case fails at run time
-with `indexOutOfBounds`. The `ref` form is rejected
+Evaluates the index and checks it against the list before the call, as the
+compiler does (#205), then locates the element again once the value is
+evaluated and stores there, so `store_after_grow` prints `5 3`, and the
+shrink case fails at run time with `indexOutOfBounds`. An index that only
+the grown list holds, as in `xs[2] = grow(xs)` on a list of two, stops
+the run before the call, as the compiler does
+(`tests/conformance/lists/store_grow_at_length.mojo`). The `ref` form is rejected
 (`invalidatedReference`): the call invalidates `e` before the store, and
 running it could leave the interpreter stuck when the call shrinks the
 list, since `e` would name an element that no longer exists.

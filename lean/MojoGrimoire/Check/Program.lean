@@ -24,7 +24,8 @@ parts are uninitialized on entry: the `self` of `__init__` is wholly
 uninitialized, and every other parameter wholly initialized. -/
 def paramState (prm : Param) : VarState :=
   match prm.conv with
-  | .read | .ref => ⟨prm.name, prm.ty, .readOnly, [], [], [[]], [], []⟩
+  | .read => ⟨prm.name, prm.ty, .readOnly, [], [], [[]], [], []⟩
+  | .ref => ⟨prm.name, prm.ty, .refParam, [], [], [[]], [], []⟩
   | .mutable => ⟨prm.name, prm.ty, .mutable, [], [], [[]], [], []⟩
   | .owned => ⟨prm.name, prm.ty, .owned, [], [], [[]], [], []⟩
   | .out => ⟨prm.name, prm.ty, .constructing, [[]], [], [], [], []⟩

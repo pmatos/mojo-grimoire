@@ -29,7 +29,15 @@ result fits no initializer of its type (#46), nor, where an `Int` is
 expected, does one of any length but 1 (#153, #154). A function that returns a reference
 returns a location within its own origin, as `withinOrigin` decides.
 
-An assignment changes its place as a whole. Into the element of an `Int`,
+An assignment changes its place as a whole. Into a subscript of a struct
+that declares `__setitem__` but not `__getitem__`, it is `missingMethod`,
+before any error of the place but its receiver's (#296). It checks the
+indices of its place before its value, as the compiler does, so the value
+sees what an index moves out or changes, and an index's error of a later
+pass than typing waits for the value's errors of earlier passes
+(`typedFirst`, #280). That the place may be changed is checked once its
+indices are typed, before the value, as the compiler does (#174). Into the
+element of an `Int`,
 it locates the `Int` before it evaluates the value, as `__setitem__` takes
 it as `self`, so the value may not invalidate that location, and reads
 the index, an argument of `__setitem__`, once the value is evaluated, so
@@ -142,25 +150,28 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
   | .refDecl x e => do
     if (← get).vars.any (·.name == x) then throw (CheckError.duplicate x)
     let (t, origins, m) ← refTarget prog sig.name e
-    modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
+    let sub ← refSubscripts prog e
+    modify fun s => { s with vars := ⟨x, t, .alias origins m sub, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
+    rejectSetterOnly prog p
     if let some g ← valueSubscript prog p then
       return ← assignGetter prog p g fun t => checkInitValue prog t e (checkExpr prog e)
     let k ← mark
+    let before := (← get).interior
     if let .binary _ (.place q) _ := e then
       if q == p && !plainIndices p then rejectIntElem prog p (checkIndices prog p)
-    let t ← if e matches .list .unknown _ || (wrongIntLiteral e).isSome then do
-        let u ← placeTy prog p
-        checkInitValue prog u e (checkExpr prog e)
-        pure u
-      else tryCatch (checkExpr prog e) fun err => do
-        if err matches .implicitCopy _ && e matches .call .. | .method .. then
-          expect (← placeTy prog p) (← tryCatch (checkExprAs prog true e) fun _ => throw err)
-        throw err
-    checkIndices prog p
-    expect (← placeTy prog p) t
-    checkConstructed prog p e
-    requireMutable p
+    typedFirst (checkIndices prog p) do
+      requireMutable p
+      let t ← if e matches .list .unknown _ || (wrongIntLiteral e).isSome then do
+          let u ← placeTy prog p
+          checkInitValue prog u e (checkExpr prog e)
+          pure u
+        else tryCatch (checkExpr prog e) fun err => do
+          if err matches .implicitCopy _ && e matches .call .. | .method .. then
+            expect (← placeTy prog p) (← tryCatch (checkExprAs prog true e) fun _ => throw err)
+          throw err
+      expect (← placeTy prog p) t
+      checkConstructed prog p e
     if let .index q i := p then
       if (← placeTy prog q) == .int then
         requireUnchanged prog q k
@@ -169,7 +180,10 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let (x, path) := splitPlace p
     let v ← lookup x
     if splitPlace.indexed p || v.access matches .alias .. then
+      let s ← get
+      set { s with interior := before }
       let _ ← readPlace prog p
+      set s
       return
     let ts := (if (above path v.touched).isEmpty then [] else [[]]) ++ atOrBelow path v.touched
     if cannotEnd prog (partTy prog v.ty path) (partsWithin path v.uninit) (atOrBelow path v.moved)
@@ -189,6 +203,7 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     rejectCalledVar prog "print" (typeArgs prog args)
     let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark
     recheckPlaces prog args ks
+    recheckLiterals prog args ks
   | .ret value => do
     match value, sig.origin with
     | none, _ => unless sig.result == .noneType do throw (CheckError.invalidReturn sig.name)

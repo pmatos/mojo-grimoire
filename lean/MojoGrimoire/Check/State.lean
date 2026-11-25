@@ -41,9 +41,13 @@ are all assigned, it is whole, unless it was moved out whole before.
 A reference into an element of a list is invalidated when the list, or a
 place that holds it, is changed as a whole: assigned, or passed `mut`, or
 `ref` from a place that may be changed, which includes the list methods
-`append` and `pop`. Changing one element does not invalidate it, and an
-array's elements are not invalidated by changes to the array, since an array holds them in place. The state
-records the references bound with `ref` that are invalidated, and the
+`append` and `pop`. Changing one element of a list does not invalidate
+it, and an array's elements are not invalidated by changes to the array,
+since an array holds them in place. A subscript of an array that may change
+invalidates it too, when the list is inside the array (#282): the compiler
+passes the array to `__getitem__` as a mutable `self`. The state
+records the references bound with `ref` that are invalidated, those that
+only such a subscript invalidated apart, and the
 changes made so far in the current statement, so that an operand located
 before a later operand changes its list is found too.
 
@@ -60,17 +64,21 @@ open MojoGrimoire.Core
 /-- How a function holds a variable. `owned` is a local variable or a `var`
 parameter; `constructing` the `self` of `__init__`, which starts
 uninitialized and must be initialized when the function returns; `mutable` a
-`mut` parameter; `readOnly` a `read` or `ref` parameter; and `dying` the
+`mut` parameter; `readOnly` a `read` parameter; `refParam` a `ref`
+parameter, which may not be changed either, but which the compiler
+subscripts as one that may (#282); and `dying` the
 `self` of `__deinit__`, which owns its value and may leave fields moved out.
-`alias os m` is a reference bound with `ref`: it points into the places `os`,
-and may be changed when `m` holds. -/
+`alias os m s` is a reference bound with `ref`: it points into the places `os`,
+may be changed when `m` holds, and is subscripted as one that may change
+when `s` holds (#282). -/
 inductive Access where
   | owned
   | constructing
   | mutable
   | readOnly
+  | refParam
   | dying
-  | alias (origins : List Place) (mutable : Bool)
+  | alias (origins : List Place) (mutable : Bool) (subscripts : Bool)
   deriving BEq
 
 /-- A path of field names, from a variable to one of its parts. -/
@@ -118,7 +126,8 @@ inductive Phase where
 
 /-- The checker's state: the variables in scope, innermost first, whether
 the current point can be reached, the references bound with `ref` that are
-invalidated, and the places changed as a whole so far in the current
+invalidated, those that only a subscript of an array invalidated
+(`interior`), and the places changed as a whole so far in the current
 statement, in order, and the phase. After a
 `return`, the current point cannot be reached. `mainTests` is set only
 while a statement is checked again to replay `main`'s order, in which a
@@ -130,6 +139,7 @@ structure State where
   vars : List VarState
   live : Bool
   stale : List Name
+  interior : List Name := []
   changes : List Shape
   mainTests : Bool := false
   ownChecks : Bool := true
@@ -303,7 +313,7 @@ place reached through a reference, the same place in each of its origins,
 or `p` itself. -/
 def resolvePlace (vars : List VarState) (p : Place) : List Place :=
   match vars.find? (·.name == (splitPlace p).1) with
-  | some ⟨_, _, .alias os _, _, _, _, _, _⟩ => os.map (rebase · p)
+  | some ⟨_, _, .alias os _ _, _, _, _, _, _⟩ => os.map (rebase · p)
   | _ => [p]
 
 /-- The shape of the place `p`. -/
@@ -351,8 +361,10 @@ def readPlace (prog : Program) (p : Place) : CheckM Ty := do
   let t ← placeTy prog p
   let v ← lookup (splitPlace p).1
   match v.access with
-  | .alias os _ =>
-    if (← get).stale.contains v.name then flowThrow (CheckError.invalidatedReference p)
+  | .alias os _ _ =>
+    let s ← get
+    if s.stale.contains v.name || s.interior.contains v.name then
+      flowThrow (CheckError.invalidatedReference p)
     for o in os do requireInit (← lookup (splitPlace o).1) o
   | _ => requireInit v p
   pure t

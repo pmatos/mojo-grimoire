@@ -46,8 +46,9 @@ of these classes, each with the names or types it concerns:
   and a call of the built-in `len` that no overload fits (#190), a call of a method or an operator with several overloads, none of which
   its arguments fit, a wrong number of them included (`noMatchingMethod`,
   one class for the same reason, #88), and a method that a type lacks, an
-  operator's on its operand's type or `__call__` on a variable that is
-  called (`missingMethod`, #176), and a call of a method whose constraint
+  operator's on its operand's type, `__call__` on a variable that is
+  called, or `__getitem__` on a struct with a setter whose subscript is
+  assigned to (`missingMethod`, #176, #296), and a call of a method whose constraint
   on its type's parameters fails, two arrays compared whose element type
   does not conform to the operator's trait (`violatedConstraint`, #166);
 * declarations: a parameter of a convention its function may not have
