@@ -31,7 +31,13 @@ returns a location within its own origin, as `withinOrigin` decides.
 
 An assignment changes its place as a whole. Into a subscript of a struct
 that declares `__setitem__` but not `__getitem__`, it is `missingMethod`,
-before any error of the place but its receiver's (#296). Into the element of an `Int`,
+before any error of the place but its receiver's (#296). It checks the
+indices of its place before its value, as the compiler does, so the value
+sees what an index moves out or changes, and an index's error of a later
+pass than typing waits for the value's errors of earlier passes
+(`typedFirst`, #280). That the place may be changed is checked once its
+indices are typed, before the value, as the compiler does (#174). Into the
+element of an `Int`,
 it locates the `Int` before it evaluates the value, as `__setitem__` takes
 it as `self`, so the value may not invalidate that location, and reads
 the index, an argument of `__setitem__`, once the value is evaluated, so
@@ -153,18 +159,18 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let before := (← get).interior
     if let .binary _ (.place q) _ := e then
       if q == p && !plainIndices p then rejectIntElem prog p (checkIndices prog p)
-    let t ← if e matches .list .unknown _ || (wrongIntLiteral e).isSome then do
-        let u ← placeTy prog p
-        checkInitValue prog u e (checkExpr prog e)
-        pure u
-      else tryCatch (checkExpr prog e) fun err => do
-        if err matches .implicitCopy _ && e matches .call .. | .method .. then
-          expect (← placeTy prog p) (← tryCatch (checkExprAs prog true e) fun _ => throw err)
-        throw err
-    checkIndices prog p
-    expect (← placeTy prog p) t
-    checkConstructed prog p e
-    requireMutable p
+    typedFirst (checkIndices prog p) do
+      requireMutable p
+      let t ← if e matches .list .unknown _ || (wrongIntLiteral e).isSome then do
+          let u ← placeTy prog p
+          checkInitValue prog u e (checkExpr prog e)
+          pure u
+        else tryCatch (checkExpr prog e) fun err => do
+          if err matches .implicitCopy _ && e matches .call .. | .method .. then
+            expect (← placeTy prog p) (← tryCatch (checkExprAs prog true e) fun _ => throw err)
+          throw err
+      expect (← placeTy prog p) t
+      checkConstructed prog p e
     if let .index q i := p then
       if (← placeTy prog q) == .int then
         requireUnchanged prog q k

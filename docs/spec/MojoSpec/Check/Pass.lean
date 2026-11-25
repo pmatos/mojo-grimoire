@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11545881592566240005")
+:::moduleDocs (fingerprint := "6540334220846004626")
 :::
 
 :::readable MojoGrimoire.Check.Below (fingerprint := "14513104375151688470")
@@ -44,6 +44,20 @@ value or a constant index out of range (`CheckError.late`), or a nested
 literal's failed SIMD constraint, `noMatchingInit` of $`\mathsf{Int}`, is recorded
 instead of thrown, so that the errors of all the arguments can be reported
 in the compiler's order of passes (#121).
+:::
+
+:::readable MojoGrimoire.Check.CheckError.pass MojoGrimoire.Check.typedFirst (fingerprint := "2057998350370531524")
+*Definition: the order of passes.* The compiler reports an error in one
+of its passes, in this order: typing; a use of an uninitialized or
+invalidated value; a nested literal's failed SIMD constraint,
+$`\mathsf{noMatchingInit}` of $`\mathsf{Int}`; a constant index out of
+range (#121). Of two parts of a statement checked in order, an error of
+the first from a later pass than typing waits until the second is checked
+from the state before the first. An error of the second from an earlier
+pass then comes first, since the compiler runs each pass over the whole
+statement; else the first part's error stands (#280). Between the last
+two passes, the order is the compiler's at `-O0`. This is a temporary
+bridge until the checker runs each pass over the whole program (#96).
 :::
 
 :::readable MojoGrimoire.Check.refResult (fingerprint := "5596166513625506680")

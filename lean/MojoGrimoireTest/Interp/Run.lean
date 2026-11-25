@@ -52,7 +52,8 @@ private def lib : List FunDecl :=
      [.assign (fld "r" "id") (.binary .add (.place (fld "r" "id")) (.int 10)),
       .ret (some (.int 0))], none⟩,
    ⟨"two", [⟨.read, "x", .int⟩, ⟨.read, "y", .int⟩], .noneType,
-     [.print [use "x", use "y"]], none⟩]
+     [.print [use "x", use "y"]], none⟩,
+   ⟨"echo", [⟨.read, "k", .int⟩], .int, [.print [use "k"], .ret (some (use "k"))], none⟩]
 
 /-- Runs a program whose `main` has the body `body`, where `Pair` has the
 destructor body `pairDeinit`, if one is given. -/
@@ -60,6 +61,19 @@ private def go (body : List Stmt) (pairDeinit : Option (List Stmt) := none)
     (fuel : Nat := 10000) : Outcome :=
   run { structs := [resDecl, pairDecl pairDeinit, counterDecl],
         funs := lib ++ [⟨"main", [], .noneType, body, none⟩] } fuel
+
+/-- `var xs = [1, 2]; xs[echo(i)] = echo(7); print(xs[0], xs[1])`. -/
+private def echoAt (i : Int) : Outcome :=
+  let xs := v "xs"
+  go [.decl "xs" (.list .int) (some (.list (.list .int) [.int 1, .int 2])),
+    .assign (.index xs (.call "echo" [.int i])) (.call "echo" [.int 7]),
+    .print [.place (.index xs (.int 0)), .place (.index xs (.int 1))]]
+
+-- The index of an assigned element is evaluated before the value (#205).
+#guard echoAt 1 == .finished ["1", "7", "1 7"]
+
+-- An index out of bounds stops the run before the value is evaluated.
+#guard echoAt 5 == .failed .indexOutOfBounds ["5"]
 
 -- `print("hi", 1 + 2, True, 7 // -2, -7 % 3)`
 #guard go [.print [.str "hi", .binary .add (.int 1) (.int 2), .bool true,

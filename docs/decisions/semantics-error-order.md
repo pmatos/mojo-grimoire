@@ -116,15 +116,23 @@ model reports `recursiveStruct` first.
 
 ## Temporary bridges to `main`'s order
 
-Two bridges keep the results that `main` gave where a change exposed the
-compiler's order before the model could follow it. Part 4 of #96 removes
-both.
+Three bridges keep the results that `main` gave where a change exposed
+the compiler's order before the model could follow it. Part 4 of #96
+removes all three.
 
 - The struct tests of #191, by `and`, `or` and `not`:
   [semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares).
 - The comparisons that part 2 of #166 converts, bridged statement by
   statement to `main`'s twin (#281):
   [semantics-comparisons.md](semantics-comparisons.md).
+- The checks of an assignment (#280). The checker checks the indices of
+  the place before the value, as the compiler does. `typedFirst` then
+  makes an index's error of a later pass wait for the value's errors of
+  earlier passes, which `CheckError.pass` ranks. The human ruled on
+  2026-11-25 that this is a bridge of this kind. Between a literal of
+  `Int`s of the wrong length and a constant index into an array, the
+  compiler's order differs between `-O0` and `-O3`. The model keeps the
+  order at `-O0`, and no suite program pins it.
 
 Other notes that wait for #96 stay on their pages: the comparisons not yet
 modelled in [semantics-comparisons.md](semantics-comparisons.md), and

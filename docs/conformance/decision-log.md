@@ -76,9 +76,10 @@ Each move of the Mojo pin gets an entry below.
 - Compiler: `xs[0] = bump(xs)`, where `bump` appends to `xs`, locates the
   element before the call and stores into a stale buffer, printing `1 3`
   ([detail](decision-log-d0002.md#compiler)).
-- Model: evaluates the value before it locates the element, so it prints
-  `5 3`; the shrinking and `ref` forms are on
-  [the detail page](decision-log-d0002.md#model).
+- Model: evaluates the index and checks it against the list before the
+  call, as the compiler does, then locates the element again once the
+  value is evaluated, so it prints `5 3`; the shrinking and `ref` forms
+  are on [the detail page](decision-log-d0002.md#model).
 - Classification: compiler bug, ruled by the human on 2026-11-16 (#57).
 - Decision and rationale: the model keeps its behaviour, since the
   compiler's store writes to memory the list no longer owns

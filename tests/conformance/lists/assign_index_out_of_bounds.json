@@ -1,0 +1,8 @@
+{
+  "outcome": "failed",
+  "stdout": [
+    "eval 5"
+  ],
+  "class": null,
+  "diagnostic": "index 5 is out of bounds, valid range is 0 to 1"
+}
