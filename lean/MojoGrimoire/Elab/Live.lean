@@ -13,7 +13,10 @@ of every slot it may point into.
 
 The checker forbids a declaration that hides a variable in scope, so a name
 names one variable wherever it is used, and the analysis can track slots by
-name.
+name. A simple statement uses, moves and defines slots as its parts do,
+and the slots that die right after it follow from them (`dying`). Only
+values of struct type, and lists and arrays of them, are dropped
+(`needsDrop`), each by a `drop` statement (`drops`).
 -/
 
 namespace MojoGrimoire.Elab
@@ -142,6 +145,71 @@ def liveBlock (sl : Slots) (b : List Stmt) (after : List Place) : List Place :=
   match b with
   | [] => after
   | s :: rest => liveStmt sl s (liveBlock sl rest after)
+end
+
+/-- The slots that the simple statement `s` defines: a declaration with an
+initial value, or an assignment to a whole slot. -/
+def defs (sl : Slots) : Stmt → List Place
+  | .decl x _ (some _) => [.var x]
+  | .assign p _ => if sl.isSlot p then [p] else []
+  | _ => []
+
+/-- The slots that the simple statement `s` uses. An assignment to a part of
+a slot uses the slot. -/
+def usesStmt (sl : Slots) : Stmt → List Place
+  | .decl _ _ init => usesOpt sl init
+  | .refDecl _ e => uses sl e
+  | .assign p e =>
+    if sl.isSlot p then uses sl e else union (uses sl e) (union (sl.of p) (indexUses sl p))
+  | .expr e => uses sl e
+  | .print args => usesList sl args
+  | _ => []
+
+/-- The slots that the simple statement `s` moves away whole. -/
+def movesStmt (sl : Slots) : Stmt → List Place
+  | .decl _ _ (some e) | .refDecl _ e | .expr e => moves sl e
+  | .assign p e => union (moves sl e) (indexMoves sl p)
+  | .print args => movesList sl args
+  | _ => []
+
+/-- The slots that die right after the simple statement `s`, given the
+slots `gone` that its expressions destroy or consume, and the slots `after`
+live after it: those it uses but neither moves away nor leaves in `gone`,
+and those it defines, unless they are live. `gone` holds values that die
+before `s` defines anything, so it never holds the value that `s` defines,
+even when an assignment destroys or consumes the old value of the slot it
+assigns. -/
+def dying (sl : Slots) (s : Stmt) (gone after : List Place) : List Place :=
+  diff (union (diff (usesStmt sl s) (union (movesStmt sl s) gone)) (defs sl s)) after
+
+/-- Whether a value of type `t` is dropped: one of struct type, or a list
+or an array of them. -/
+def needsDrop : Ty → Bool
+  | .struct _ => true
+  | .list t | .array t _ => needsDrop t
+  | _ => false
+
+/-- The statements that drop the slots of `d`, in the order of `owned`, the
+slots a function owns, in the order they die when several die at once. A
+slot that the function does not own, such as a borrowed parameter, is never
+dropped. -/
+def drops (owned d : List Place) : List Stmt :=
+  (owned.filter (d.contains ·)).map .drop
+
+mutual
+/-- The local variables whose values are dropped that the statement `s`
+declares, in order, each once. -/
+def declared : Stmt → List Place
+  | .decl x t _ => if needsDrop t then [.var x] else []
+  | .ifElse _ a b => union (declaredBlock a) (declaredBlock b)
+  | .whileLoop _ body => declaredBlock body
+  | _ => []
+
+/-- The local variables whose values are dropped that the block `b`
+declares, in order, each once. -/
+def declaredBlock : List Stmt → List Place
+  | [] => []
+  | s :: rest => union (declared s) (declaredBlock rest)
 end
 
 end MojoGrimoire.Elab

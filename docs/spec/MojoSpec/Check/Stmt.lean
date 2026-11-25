@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "67836114728436700")
+:::moduleDocs (fingerprint := "7858289065828133266")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -118,14 +118,16 @@ does. $`\mathsf{List}[u](e)` builds its result in place, and passes $`e`
 by `ref` (#103).
 :::
 
-:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "3556521052256848185")
+:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "10243898178486431986")
 *Rule: initializing values.* A value that initializes a declared variable,
 a place assigned to, or a function's result must have its type. A literal
 $`[e^*]_{?}`, which has no list or array expected, where that
 type is neither, such as a struct or a $`\mathsf{Bool}`, is
 `noMatchingInit` of that type once its elements are checked on their own:
 Mojo calls the type's initializer with the elements and the keyword
-`__list_literal__`, which none takes (#46). A literal
+`__list_literal__`, which none takes (#46). A call that returns a
+reference to a value that is not implicitly copyable reports a type that
+does not fit before its copy (`misfitFirst`). A literal
 $`[e^*]_{\mathsf{Int}}` of any length but 1 initializes an
 $`\mathsf{Int}`, and is rejected by `rejectIntLiteral` as an initializer
 of the type reports it (#153, #154). An assignment of either literal
@@ -138,7 +140,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "13338840248750142160")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "6162841913101988469")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 
@@ -152,8 +154,13 @@ an expression, so a place is copied implicitly.
   compiler does (#123);
 * $`\mathsf{ref}~x = e` binds $`x` to a reference, as the next section
   says; $`x` may not hide a variable in scope either;
-* $`p = e` checks $`e` first, then the indices of $`p`, then needs $`p`
-  of $`e`'s type, then that $`e` does not build its result into $`p`
+* $`p = e` on a subscript of a struct that has a getter and no setter
+  is checked through the getter (`assignGetter`, #191); else
+  it checks $`e` first, then the indices of $`p`. When $`e` is a call or
+  a method call that would be copied implicitly, its type, read by
+  reference, must first fit $`p`, or the assignment is a type mismatch, as
+  the compiler reports it before the copy; then then needs $`p` of
+  $`e`'s type, then that $`e` does not build its result into $`p`
   while changing the list that holds it, then needs a place the function may change; $`p` is changed as a
   whole, its old value ends, and $`p` is initialized. The old value may
   not end, as at the end of a variable, with the parts of $`p` taken as
@@ -177,7 +184,8 @@ an expression, so a place is copied implicitly.
   twice where the compiler evaluates them once (#198), such an assignment
   into the element of an $`\mathsf{Int}` is $`\mathsf{notAList}`, as before
   #127, unless every index of $`p` is plain;
-* an expression statement checks its expression;
+* an expression statement checks its expression, once `checkSetter` has
+  checked what a setter call needs;
 * `print`, unless a variable in scope named `print` hides it, which
   `rejectCalledVar` rejects once the arguments are typed (#176), checks
   its arguments as above, then that its place arguments are still
