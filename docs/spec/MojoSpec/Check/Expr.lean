@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7602724289485626105")
+:::moduleDocs (fingerprint := "10246490321562266220")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "15700635915172387065")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "10199789124247337944")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -81,7 +81,11 @@ type:
   parameter of type $`u`, and an array must have as many elements as its
   type says, or the literal is `noMatchingInit` $`t`; with $`t` the type
   $`?`, no type is expected, and the literal is an array of the type of
-  its first element, whose other elements must have that type;
+  its first element, whose other elements must have that type. Once
+  every element is evaluated, the first element is read again from its
+  place, or, for a subscript that Mojo reads late, from its getter's
+  arguments, since the getter is called only then (`firstElemLocs`,
+  #191); so an element after it that moves that place is caught;
 * $`[e]_{\mathsf{Int}}` has the type of $`e`, which must be an
   $`\mathsf{Int}` (#103). Passed to a parameter, a literal whose type is
   not a list or an array is checked as a value, as is any literal

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4328338466005485906")
+:::moduleDocs (fingerprint := "7858289065828133266")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -140,7 +140,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "10703637107472354869")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "6162841913101988469")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 
@@ -156,7 +156,10 @@ an expression, so a place is copied implicitly.
   says; $`x` may not hide a variable in scope either;
 * $`p = e` on a subscript of a struct that has a getter and no setter
   is checked through the getter (`assignGetter`, #191); else
-  it checks $`e` first, then the indices of $`p`, then needs $`p` of
+  it checks $`e` first, then the indices of $`p`. When $`e` is a call or
+  a method call that would be copied implicitly, its type, read by
+  reference, must first fit $`p`, or the assignment is a type mismatch, as
+  the compiler reports it before the copy; then then needs $`p` of
   $`e`'s type, then that $`e` does not build its result into $`p`
   while changing the list that holds it, then needs a place the function may change; $`p` is changed as a
   whole, its old value ends, and $`p` is initialized. The old value may

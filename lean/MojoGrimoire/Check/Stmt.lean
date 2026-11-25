@@ -294,7 +294,10 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
         let u ← placeTy prog p
         checkInitValue prog u e (checkExpr prog e)
         pure u
-      else checkExpr prog e
+      else tryCatch (checkExpr prog e) fun err => do
+        if err matches .implicitCopy _ && e matches .call .. | .method .. then
+          expect (← placeTy prog p) (← tryCatch (checkExprAs prog true e) fun _ => throw err)
+        throw err
     checkIndices prog p
     expect (← placeTy prog p) t
     checkConstructed prog p e

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Changes and late re-checks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9836053865802648086")
+:::moduleDocs (fingerprint := "9551400554931423020")
 :::
 
 :::readable MojoGrimoire.Check.mark MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "2705952006767251819")
@@ -27,7 +27,7 @@ bound with `ref` whose origin the change invalidates. The mark of an
 operand is the number of changes recorded once it is checked.
 :::
 
-:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.lateLocs MojoGrimoire.Check.lateLocsList MojoGrimoire.Check.locsOf MojoGrimoire.Check.recheckPlaces (fingerprint := "16833300760366547918")
+:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.lateLocs MojoGrimoire.Check.lateLocsList MojoGrimoire.Check.locsOf MojoGrimoire.Check.recheckPlaces MojoGrimoire.Check.firstElemLocs (fingerprint := "18027001617396330772")
 *Rule: places read late.* Mojo reads a place operand only once every
 operand of its operation is evaluated, and a place passed by reference is
 used during the call. So once the operands are checked, every operand that
@@ -39,7 +39,10 @@ Mojo also does only then: `two(first(xs), take(xs^))` and
 is a temporary is left out. A subscript of a struct read late
 (`lateGetter`) reads the places among its getter's arguments then, its
 receiver among them: `print(w[0], take(w^))` is a use of `w` after its
-move when `w`'s struct declares `__setitem__` (#191). A place is also
+move when `w`'s struct declares `__setitem__` (#191). The first element
+of an untyped literal is read again from those places too
+(`firstElemLocs`), so `[w[0], take(w^)]` is rejected; its other elements
+are rechecked as operands. A place is also
 rejected as invalidated when a
 change recorded after its mark invalidates it: in `print(xs[0], xs.pop())`, `pop` changes
 the list that holds `xs[0]` before `xs[0]` is read. A place located once

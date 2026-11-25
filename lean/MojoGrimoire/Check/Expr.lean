@@ -92,7 +92,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     let t := Ty.array u (es.length + 1)
     unless declarableTy prog u do throw (CheckError.invalidType t)
     let k ← mark
-    recheckLocs prog ((if let .place p := e then [p] else [], k) ::
+    recheckLocs prog ((← firstElemLocs prog e, k) ::
       (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
         es.length es.length))
     pure t

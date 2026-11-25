@@ -105,4 +105,13 @@ once it was checked. -/
 def recheckPlaces (prog : Program) (es : List Expr) (ks : List Nat) : CheckM Unit := do
   recheckLocs prog (← (es.zip ks).mapM fun (e, k) => do pure (← lateLocs prog e, k))
 
+/-- The places that the first element `e` of an untyped literal is read
+from once every element is evaluated: a place itself, or the arguments of
+a subscript that Mojo reads late (`lateGetter`), since the getter is called
+only then. Any other element is not rechecked, as before #191. -/
+def firstElemLocs (prog : Program) : Expr → CheckM (List Place)
+  | .place p => pure [p]
+  | .call f args => if lateGetter prog f then lateLocsList prog args else pure []
+  | _ => pure []
+
 end MojoGrimoire.Check

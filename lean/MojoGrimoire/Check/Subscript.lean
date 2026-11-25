@@ -29,9 +29,12 @@ def valueSubscript (prog : Program) (p : Place) : CheckM (Option Expr) := do
 /-- Checks `q[i] = e`, an assignment of the subscript `p` of a struct that
 declares `__getitem__` but not `__setitem__`, given `g`, the call of its
 getter (`valueSubscript`), and `value`, which checks `e` against a type.
-The compiler first checks the call, by reference. A getter that returns a
-value, or a reference that may not be changed through, gives a place that
-may not change: `immutablePlace`, before `e` is checked. Through a
+The compiler first types the call, by reference: its type errors and its
+implicit copies come first, but not a later pass's errors, such as a read
+of a moved receiver. A getter that returns a value, or a reference that
+may not be changed through, gives a place that may not change:
+`immutablePlace`, before those later errors and before `e` is checked.
+Through a
 reference that may be changed, `e` is checked against the type it points
 to, and the assignment is then `notAList`, as main reports it, as for any
 subscript of a struct used as a place beyond reading it and assigning it
@@ -39,6 +42,12 @@ through a setter: its write through the reference is not yet modelled
 (#198). -/
 def assignGetter (prog : Program) (p : Place) (g : Expr) (value : Ty → CheckM Unit) :
     CheckM Unit := do
+  let s0 ← get
+  modify State.typing
+  try let _ ← checkExprAs prog true g
+  catch err => unless err.late do throw err
+  set s0
+  unless (← locOf prog g) matches some (_, true) do throw (CheckError.immutablePlace p)
   let t ← checkExprAs prog true g
   if let (some (_, true), .index q _) := (← locOf prog g, p) then
     value t
