@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Elaboration only inserts drops: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15220977457961493405")
+:::moduleDocs (fingerprint := "12438627357944022468")
 :::
 
 :::readable MojoGrimoire.Elab.stripPlace MojoGrimoire.Elab.stripExpr MojoGrimoire.Elab.stripExprs (fingerprint := "653050961833656016")
@@ -38,7 +38,7 @@ with its drops erased.
 that elaboration adds to nothing.
 :::
 
-:::readable MojoGrimoire.Elab.stripExpr_withDropsOf MojoGrimoire.Elab.stripExpr_elabExpr MojoGrimoire.Elab.stripExprs_elabOps MojoGrimoire.Elab.stripExpr_elabLate (fingerprint := "10659900468834403461")
+:::readable MojoGrimoire.Elab.stripExpr_withDropsOf MojoGrimoire.Elab.stripExpr_elabExpr MojoGrimoire.Elab.stripExprs_elabOps MojoGrimoire.Elab.stripExpr_elabLate (fingerprint := "8640328033391100900")
 *Lemma: expressions.* Erasing the drops of an operation that elaboration
 wraps gives the operation, and erasing the drops of an elaborated
 expression, or list of operands, gives what was elaborated, with its drops

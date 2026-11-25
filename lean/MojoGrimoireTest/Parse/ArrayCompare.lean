@@ -112,5 +112,15 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
   ["True True"]
 -- An empty literal is an array only compared with one.
 #guard rejects ["var x = True", "print(x and [])"] (.invalidType .unknown)
+#guard rejects ["print([] == True)"] (.invalidType .unknown)
+-- Beside a `Bool` on the left, it is the argument `rhs` of the `Bool`'s
+-- method, which the compiler cannot convert to a `Bool`, before the
+-- operands are read (#286).
+#guard rejects ["var x = True", "print(x == [], 1)"] (.typeMismatch .bool .unknown)
+#guard rejects ["var x = True", "print(x < [])"] (.typeMismatch .bool .unknown)
+#guard rejects ["print(False != [])"] (.typeMismatch .bool .unknown)
+#guard rejects ["var x: Bool", "print(x >= [])"] (.typeMismatch .bool .unknown)
+#guard rejects ["var x = True", "var y = x^", "print(x == [])"] (.typeMismatch .bool .unknown)
+#guard rejects ["var x = True", "if x == []:", "    f()"] (.typeMismatch .bool .unknown)
 
 end MojoGrimoireTest.Parse.ArrayCompare

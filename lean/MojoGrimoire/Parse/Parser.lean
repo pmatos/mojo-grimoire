@@ -101,19 +101,18 @@ def keywords : List String :=
   ["def", "fn", "struct", "var", "ref", "if", "elif", "else", "while", "return", "pass",
    "and", "or", "not", "True", "False", "out", "mut", "deinit", "raises"] ++ loopExits
 
-/-- Reads a name, or fails. -/
-def name : P Name := do
+/-- Reads a name where the compiler also takes every keyword, since it reads
+it with `allowKeyword`: a method's name in a struct, and the name of a field
+or a method after `.` (#268, #278). -/
+def memberName : P Name := do
   match ← next with
-  | .ident x => if keywords.contains x then fail s!"`{x}` is a keyword" else pure x
+  | .ident x => pure x
   | _ => fail "expected a name"
 
-/-- Reads a name where the compiler also takes `break` and `continue`: a
-method's name in a struct, and the name of a field or a method after `.`
-(#268). -/
-def memberName : P Name := do
-  match ← peek with
-  | some (.ident x) => if loopExits.contains x then let _ ← next; pure x else name
-  | _ => name
+/-- Reads a name, or fails. -/
+def name : P Name := do
+  let x ← memberName
+  if keywords.contains x then fail s!"`{x}` is a keyword" else pure x
 
 /-- A type argument of `List` or `Array` as the parser reads it: `None`
 there is a value where Mojo expects a type, which the compiler rejects. It

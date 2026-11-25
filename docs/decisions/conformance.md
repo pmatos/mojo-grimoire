@@ -210,9 +210,13 @@ compiler and compare its first error with this list
 | `def g(continue: Int)` | expected argument name | `Subset.lean`: `"def g(continue: Int):"` |
 | `def break() -> Int` | 'break' cannot be used as a function name in this context | `Subset.lean`: `"def break() -> Int:"` |
 | `var break: Int`, a field | expected name for 'var' declaration | `Subset.lean`: `"    var break: Int"` |
+| `var pass = 1` | unexpected token in expression | `Subset.lean`: `inMain ["var pass = 1", "print(pass)"]` |
+| `def pass() -> Int` | 'pass' cannot be used as a function name in this context | `Subset.lean`: `"def pass() -> Int:"` |
+| `var True: Int`, a field | expected name for 'var' declaration | `Subset.lean`: `"    var True: Int"` |
 
-The last four rows were probed against the nightly alone, on 2026-11-22
-(#268).
+The four rows for `break` and `continue` were probed against the
+nightly alone, on 2026-11-22 (#268), and the last three on 2026-11-25
+(#278).
 
 `x^ + 1` and `x^ 5`, which #54 also pins as syntax errors, are not on the
 list: the compiler builds them and prints `2` and `6`. They are outside the

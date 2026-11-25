@@ -15,9 +15,12 @@ import MojoSpec.Check.Operators
 import MojoSpec.Check.Methods
 import MojoSpec.Check.Compare
 import MojoSpec.Check.Logic
+import MojoSpec.Check.Elems
+import MojoSpec.Check.Range
 import MojoSpec.Check.Expr
 import MojoSpec.Check.Ref
 import MojoSpec.Check.Subscript
+import MojoSpec.Check.Exit
 import MojoSpec.Check.Stmt
 import MojoSpec.Check.Block
 import MojoSpec.Check.Program
@@ -25,6 +28,7 @@ import MojoSpec.Elab.Live
 import MojoSpec.Elab.Origins
 import MojoSpec.Elab.Late
 import MojoSpec.Elab.Operands
+import MojoSpec.Elab.Operations
 import MojoSpec.Elab.Elaborate
 import MojoSpec.Elab.Strip
 import MojoSpec.Interp.Value
