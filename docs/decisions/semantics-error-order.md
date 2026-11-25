@@ -80,11 +80,39 @@ errors that it orders wrongly inside the tier. Each such program that
 Part 4 changed is listed on its PR with the open issue of its rejection,
 as [process.md](process.md#one-issue-several-prs) allows.
 
+## The order of the flow phase
+
+The flow phase follows the order of the compiler's pass manager (#96
+part 5, `checkFlow`), probed on the pin:
+
+1. A missing return, anywhere in the program, in the order of the
+   declarations, comes before every other flow error. The model finds it as
+   the type phase checks a body, which on a program that the type phase
+   accepts finds nothing else.
+2. Then each function in the order of the declarations in the source, the
+   members of a struct interleaved with the free functions, and in a
+   struct its members in their order: a function's errors all come before
+   the next function's.
+3. Inside a function, its uses of values and what it leaves at a
+   `return` or its end come in the order of the body, and a value that
+   may not end, `partiallyDestroyed`, comes after them all (#159). The
+   model checks a body once through every stage (`Stage`), and, only
+   when that fails, once more without the values that may not end.
+
+The plan of #96 put the errors at a return after every use. The pin
+reports an exit error at an early `return` before a use after it
+(`order/flow_use_after_exit`), so the two share a stage. The suite's
+`order/flow_*` and `order/missing_return_*` programs hold the pairs of
+each rule.
+
+A missing `main` comes after the flow phase. The instantiation errors are
+still found in the flow phase, as uses, until Part 7.
+
 ## Where the model differs today
 
-The checker's phases follow the compiler's tiers, but the order inside each
-tier is still the model's program order, and the instantiation errors are
-still found in the flow phase. So it differs from the compiler in these
+The checker's phases follow the compiler's tiers, and the flow phase its
+order, but the order inside the type tier is still the model's program
+order, and the instantiation errors are still found in the flow phase. So it differs from the compiler in these
 cases, which #96's later parts fix.
 
 ### Calls and initializers

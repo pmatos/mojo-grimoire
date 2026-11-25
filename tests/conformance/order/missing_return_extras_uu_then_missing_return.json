@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "missingReturn",
+  "diagnostic": "return expected at end of function with results"
+}

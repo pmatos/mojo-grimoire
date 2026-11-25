@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17660839503099489840")
+:::moduleDocs (fingerprint := "14718153934778611376")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -69,7 +69,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "17107803443743671361")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "5203734728174704065")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 
@@ -134,5 +134,6 @@ an expression, so a place is copied implicitly.
   location whose origins are all within its own origin, as the previous
   section says;
 * `drop p` transfers $`p` away.
-That the old value may not end is a check of the flow phase.
+That the old value may not end is a check of the flow phase's last
+stage, `ends`.
 :::

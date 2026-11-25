@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Changes and late re-checks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5355775152835050633")
+:::moduleDocs (fingerprint := "3334149853126089232")
 :::
 
-:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.invalidatedBy MojoGrimoire.Check.recordChange MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "1583204110483758771")
+:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.invalidatedBy MojoGrimoire.Check.recordChange MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "500505168706313198")
 *Rule: changes.* A call changes as a whole each place it is passed `mut`,
 and each place it is passed `ref` that the function may change and that
 is not reached through `p^`; for a
