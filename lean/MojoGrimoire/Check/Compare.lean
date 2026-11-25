@@ -28,10 +28,10 @@ that does not fit is a type mismatch, found before the operands are
 read. A comparison with a literal that holds a place whose value is not
 implicitly copyable or one with `List[u]()`, keeps the checks it had
 before #166 (`keepsBefore`): the compiler builds the literal, and copies
-the place, in an order against its conversion that waits for #96. A
+the place, in an order against its conversion that waits for #338. A
 literal on the left that holds an inner literal of another length than
 one where an `Int` is expected is not converted: the order of SIMD's
-failure and the reads waits for #96. An element type that holds a struct
+failure and the reads waits for #338. An element type that holds a struct
 waits for its conformances (#194), and a literal that would initialize a
 `Bool` for #165: those comparisons keep the checks they had before #166.
 A list of structs compared with an empty literal, `List[P]() == []`, is
@@ -115,7 +115,7 @@ initialize a `Bool` is left to #165, and an operand whose type `leafTy`
 does not give is not known: both are `none`. So is, when `left` holds,
 an inner literal of another length than one where an `Int` is expected:
 the order of the compiler's failure of SIMD's constraint and of the reads
-waits for #96, and a literal on the left that holds one keeps the checks
+waits for #338, and a literal on the left that holds one keeps the checks
 it had before #166. Off the left, it fits as the compiler types it, since
 that failure is instantiation's (`typedSimdLeft`). -/
 def literalFits {m : Type → Type} [Monad m] (leafTy : Expr → m (Option Ty)) (left : Bool)
@@ -212,7 +212,7 @@ place whose value is not implicitly copyable (`heldCopy`), or an empty
 list built by `List[u]()`, which is no literal that the compiler
 converts (`emptyList`). The compiler builds such a literal, and copies
 the place, in an order against its conversion and its misfit that waits
-for #96. In a program checked as `main` did (`Program.mainMode`), every
+for #338. In a program checked as `main` did (`Program.mainMode`), every
 comparison keeps them. -/
 def keepsBefore (prog : Program) (op : BinOp) (a b : Expr) : CheckM Bool := do
   pure (compares op && (prog.mainMode ||

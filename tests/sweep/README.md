@@ -37,9 +37,12 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
   comparison of an array of lists with a literal, which the bridge's
   replay reads as an implicit copy (#337), and comparisons with a literal
   operand, whose conversion to the other operand's type the model does
-  not follow (`decl_cmp_*`).
-- `corpus/`: random programs of #260's review whose class Part 4 of #96
-  changed, each listed on its PR with the open issue of its rejection,
+  not follow (`decl_cmp_*`, #338). `decl_empty_*` are empty literals that the
+  compiler reports with a message that has no class yet (#128), and
+  `decl_i11` agrees only because the model rejects its unknown type name
+  as another error (#237).
+- `corpus/`: random programs of #260's review whose class Part 4 or Part
+  11 of #96 changed, each listed on its PR with the open issue of its rejection,
   named `GROUP_NAME` after their place in that corpus.
 
 A program that the compiler's result differs on at `-O0` is not recorded,

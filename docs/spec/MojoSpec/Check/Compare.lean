@@ -68,7 +68,7 @@ other type, except that whether one fits $`\mathsf{Bool}` is left to
 give, is unknown, and so is the fit of a literal with an unknown element
 and no element that does not fit. On the left, so is the fit of an
 inner literal of another length than one where an $`\mathsf{Int}` is
-expected: the order of SIMD's failure and the reads waits for #96, and
+expected: the order of SIMD's failure and the reads waits for #338, and
 such a literal keeps the checks it had before #166.
 Off the left, such an inner literal fits as the compiler types it, which
 the type phase uses (`typedSimdLeft`).
@@ -122,7 +122,7 @@ value is not implicitly copyable, or is an empty list built by
 check it had before #166:
 the compiler builds such a literal, and copies the place, in an order
 against the literal's conversion and the comparison's misfit that waits
-for #96. In a program checked as `main` did, every comparison keeps
+for #338. In a program checked as `main` did, every comparison keeps
 them. Before #166, a comparison with a literal that the compiler
 converts, one that holds a literal with types not known to be the same,
 or one with no type of its own beside a list, found no misfit from the

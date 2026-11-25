@@ -39,10 +39,9 @@ It finds it again once the operands are read, from their checked types,
 when their form did not give one. A misfit of the built-in `len` is found
 the same way (`lenCall`), and a wrong number of its arguments once they
 are typed (#190). A misfit of a method's overload set is found as
-an ordinary call finds its misfit, once its argument is read, so an
-uninitialized argument of the wrong type is still `uninitializedUse`
-first, where the compiler reports `noMatchingMethod`: that order across
-the compiler's passes is left to #96.
+an ordinary call finds its misfit; the type phase finds it before the
+flow phase reads the argument, so an uninitialized argument of the wrong
+type is its misfit first, as the compiler reports it (#96 part 4).
 
 The comparisons of arrays and lists, and the operands they read by
 reference, are `MojoGrimoire.Check.Compare`'s.

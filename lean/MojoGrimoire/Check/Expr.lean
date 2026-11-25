@@ -111,7 +111,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
           es.length es.length))
       pure t
-    typedFirst (untypedOwn prog (e :: es)) do
+    typedFirst (ownArgs prog (e :: es)) <| typedFirst (literalElems prog (e :: es)) do
       tryCatch lit fun err => do
         unless err matches .implicitCopy _ do throw err
         copyLast err (discard lit)
@@ -200,15 +200,16 @@ def ownArgs (prog : Program) : List Expr → CheckM Unit
   | e :: rest => do let _ ← typeArg prog e; ownArgs prog rest
   termination_by es => (sizeOf es, 2)
 
-/-- Types the own expressions of the elements `es` of a literal with no
-type expected: an element that is such a literal too, with elements, is
-built on its own, in full, its copies included, and any other element is
-typed as an argument's own expression (`ownArgs`, #96 part 11). -/
-def untypedOwn (prog : Program) : List Expr → CheckM Unit
+/-- Builds, in order, the elements `es` of a literal with no type expected
+that the compiler builds on their own, once every element's own expression
+is typed and before it matches them with the literal's element type (#96
+part 11): an empty literal, which has no type, and a literal with elements,
+in full, its own misfits and copies included. -/
+def literalElems (prog : Program) : List Expr → CheckM Unit
   | [] => pure ()
-  | e@(.list .unknown (_ :: _)) :: rest => do let _ ← checkExprAs prog false e; untypedOwn prog rest
-  | .list _ es :: rest => do ownArgs prog es; untypedOwn prog rest
-  | e :: rest => do let _ ← typeArg prog e; untypedOwn prog rest
+  | .list .unknown [] :: _ => throw (CheckError.invalidType .unknown)
+  | e@(.list .unknown (_ :: _)) :: rest => do let _ ← checkExprAs prog false e; literalElems prog rest
+  | _ :: rest => literalElems prog rest
   termination_by es => (sizeOf es, 3)
 
 /-- Checks each of the arguments `args` of `List[u](…)` on its own: a place

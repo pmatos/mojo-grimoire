@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15559458132360383048")
+:::moduleDocs (fingerprint := "16994589544790569046")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.untypedOwn MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "5565709494303922156")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.literalElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "4289456742752641234")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -98,11 +98,13 @@ type:
   arguments, since the getter is called only then (`firstElemLocs`,
   #191); so an element after it that moves that place is caught. When
   the literal's check fails in the type phase, its elements' own
-  expressions are typed first (`untypedOwn`, `typedFirst`, #133, #96 part
-  11), so an element's own error comes before the literal's element type,
-  as the compiler does; an element that is a literal with no type expected
-  is built on its own, in full, its copies included. The copy of any
-  other element comes after the literal's misfit (`copyLast`);
+  expressions are typed first, at any depth (`ownArgs`, `typedFirst`,
+  #133, #96 part 11), so an element's own error comes before the literal's
+  element type, as the compiler does; then its elements that are literals
+  with no type expected are built in order (`literalElems`): an empty one
+  has no type, and one with elements is checked in full, its copies
+  included. The copy of any other element comes after the literal's
+  misfit (`copyLast`);
 * $`[e]_{\mathsf{Int}}` has the type of $`e`, which must be an
   $`\mathsf{Int}` (#103). Passed to a parameter, a literal whose type is
   not a list or an array is checked as a value, as is any literal
