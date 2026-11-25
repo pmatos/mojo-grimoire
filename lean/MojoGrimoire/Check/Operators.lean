@@ -4,7 +4,9 @@ import MojoGrimoire.Check.Errors
 The types and constant values of operators, which the checker gives the
 operands of a unary or a binary operator, and the indices that Mojo
 computes when it compiles the program. The type of a binary operator's
-result, whatever its operands, is also what inference gives it.
+result, whatever its operands, is also what inference gives it. A `Bool`
+compared with an empty literal is a type mismatch, found from the forms
+of the operands before they are read (#286).
 -/
 
 namespace MojoGrimoire.Check
@@ -27,6 +29,16 @@ def binaryTy (op : BinOp) (a b : Ty) : Except CheckError Ty :=
     unless a == .bool do throw (.typeMismatch .bool a)
     unless b == .bool do throw (.typeMismatch .bool b)
     pure .bool
+
+/-- The error of the comparison `op` of an operand of type `ta` with the
+right operand `b`, found before they are read: an empty literal with no
+type beside a `Bool` is the argument `rhs` of the `Bool`'s method, which
+the compiler cannot convert to a `Bool`, a type mismatch (#286). A
+literal with elements tries `Bool`'s initializers instead (#165). -/
+def boolLiteralMisfit (op : BinOp) (ta : Option Ty) (b : Expr) : Option CheckError :=
+  if (op matches .lt | .le | .gt | .ge | .eq | .ne) && ta == some .bool &&
+      b matches .list .unknown [] then some (.typeMismatch .bool .unknown)
+  else none
 
 /-- The type of the result of the binary operator `op`, whatever its
 operands: an `Int` for arithmetic, and a `Bool` for any other. -/

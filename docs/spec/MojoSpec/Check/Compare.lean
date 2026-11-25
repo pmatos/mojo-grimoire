@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18340965127348353091")
+:::moduleDocs (fingerprint := "14635928940583203952")
 :::
 
 :::readable MojoGrimoire.Check.compares MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "12823475274059033023")
@@ -83,7 +83,7 @@ when that gives none, the form of the whole nested test is not computed,
 which keeps the check of a chain of tests linear in its length.
 :::
 
-:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "461793544575156199")
+:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "2625803560397476612")
 *Rule: operands of a comparison of arrays or lists.* The misfit of a
 binary operator is found from its operands' forms before they are read
 (`operandTy`, or the types that `main` gave them, in the replay of #191's
@@ -100,7 +100,9 @@ that does not fit keeps its own type, and the right operand is then
 converted to it. A comparison with a literal that holds a place whose
 value is not implicitly copyable takes the checks it had before #166
 (`keepsBefore`). A literal whose fit is unknown gives no type, and is
-left to the checks that follow, as before #166. An integer literal on
+left to the checks that follow, as before #166. A $`\mathsf{Bool}` on
+the left of an empty literal with no type is a type mismatch, on this
+path and the one before #166 (`boolLiteralMisfit`). An integer literal on
 the left gives no type, so that its overloads report a comparison with
 an array or a list (`noMatchingMethod`). An operand compared as an array
 or a list is passed by reference, as the comparisons of `Array` and
@@ -110,7 +112,7 @@ unknown and which inference did not give the operand's type, beside a
 list, or an array when that literal holds a literal.
 :::
 
-:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "18078458469295481078")
+:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "4416701048091780842")
 *Rule: comparisons that keep the checks they had before #166.* A
 literal holds the places that are its elements, at any depth. A
 comparison of which either operand is a literal that holds a place whose
@@ -125,7 +127,8 @@ converts, one that holds a literal with types not known to be the same,
 or one with no type of its own beside a list, found no misfit from the
 forms of its operands, passed neither by reference, and checked only a
 literal on the right of $`==` or $`!=` of a list as the argument `other`
-of the list's type.
+of the list's type. A $`\mathsf{Bool}` compared with an empty literal is
+a type mismatch there too (`boolLiteralMisfit`, #286).
 :::
 
 :::readable MojoGrimoire.Check.rightParam MojoGrimoire.Check.rightParamOf (fingerprint := "10936977070781752747")
