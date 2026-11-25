@@ -7,10 +7,11 @@ references, [semantics-lists.md](semantics-lists.md) with lists and
 arrays, [semantics-operators.md](semantics-operators.md) with operators
 and calls on structs,
 [semantics-comparisons.md](semantics-comparisons.md) with comparisons of
-arrays and lists, [semantics-parser.md](semantics-parser.md) with
-the parser and the driver, and
-[semantics-interpreter.md](semantics-interpreter.md) with elaboration and
-the interpreter.
+arrays and lists, [semantics-parser.md](semantics-parser.md) with the
+parser and the driver,
+[semantics-error-order.md](semantics-error-order.md) with the order of
+errors, and [semantics-interpreter.md](semantics-interpreter.md) with
+elaboration and the interpreter.
 
 ## The reference
 
@@ -100,10 +101,8 @@ two disagree, the model follows the compiler.
   transfers and exclusivity come first: before it looks at what is
   initialized or invalidated, the list or an index, at a constant index
   out of range, and at the `mut` parameter it may be passed to, also
-  through a reference. The model does the same (#119). Its index check
-  stops at the first of those later errors and leaves it out, so any
-  error that follows one in the same index, such as an unknown name, a
-  type error or an implicit copy, is not reported either (#96). A place
+  through a reference. The model does the same (#119), in the order of
+  [semantics-error-order.md](semantics-error-order.md#transfers-of-an-element). A place
   that is not transferred is still checked in the old order (#142).
 - `p^` followed by a field or a method, `p^.f` or `p^.m(…)`, is the place
   `transferred p` (#66). The compiler warns that the transfer has no
@@ -220,10 +219,9 @@ two disagree, the model follows the compiler.
   call on a struct calls the method it declares
   ([semantics-operators.md](semantics-operators.md), #191); operator
   methods that a trait supplies are not yet modelled (#194). The checker finds a missing method from the
-  operands' types before it reads them, as the compiler does; a misfit of
-  an overload set is found once the argument is read, as for any call
-  (#96)
-  ([conformance-classes.md](conformance-classes.md#calls-that-fit-no-overload-and-methods-a-type-lacks)).
+  operands' types before it reads them, as the compiler does
+  ([conformance-classes.md](conformance-classes.md#calls-that-fit-no-overload-and-methods-a-type-lacks),
+  [semantics-error-order.md](semantics-error-order.md#calls-and-initializers)).
 - A struct may not lie on a cycle of fields with no field that holds the
   next struct through a list, such as a struct that holds itself directly
   or through arrays: the compiler rejects it, and so does the model
@@ -239,8 +237,8 @@ two disagree, the model follows the compiler.
 - A struct that declares `Copyable`, or `ImplicitlyCopyable`, is
   rejected when a field cannot be copied so, `uncopyableField`. Where it
   comes among the compiler's errors, and where the model differs, is in
-  [conformance-classes.md](conformance-classes.md#copyable-structs-whose-fields-cannot-be-copied)
-  (#164, #96).
+  [semantics-error-order.md](semantics-error-order.md#copyable-structs-whose-fields-cannot-be-copied)
+  (#164).
 - A declaration may not reuse the name of a variable in scope, a
   parameter included, so no variable hides another. Sibling blocks may
   reuse a name. ASAP elaboration relies on this, since it tracks

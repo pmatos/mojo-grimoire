@@ -13,52 +13,15 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "646541145040986712")
+:::moduleDocs (fingerprint := "12664595425618084172")
 :::
 
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps MojoGrimoire.Elab.elabLate (fingerprint := "5832643723799175716")
-*Definition: elaborating expressions.* Each call, method call, operator,
-list literal, $`\mathsf{List}[u](e)` and `.copy()` is wrapped with what it
-destroys, and its operands are elaborated in turn, each with the slots that the later
-operands use, and the places of the subscripts read late before it, live
-after it. A subscript read late whose getter returns a value is read only
-once every operand is evaluated: it is elaborated with the slots live
-then and those of the subscripts read late after it, so its getter
-destroys what it last uses right after it is called, while the places of
-those read late before it, and what the later operands use, live as its
-arguments are evaluated, in operand order (#191).
-On the left of `and` or `or`, a subscript read late is elaborated as a
-call of its getter made as it is evaluated, as a subscript of a struct
-with no setter is, so it destroys what its index last uses before its
-getter is called; the compiler reads it again there, a bug (D-0011,
-#211). As the right operand, such a subscript keeps only what its
-reference points into. A place is left as it is, and a literal
-$`[e]_{\mathsf{Int}}` has only its element elaborated: the operation that
-reads it destroys what its element uses. The operation at the
-top of a statement leaves what dies once it is done to the statement, as
-the compiler destroys a discarded result before those values. The right
-operand of `and` and `or` may not run: elaborated with the slots live
-after the operation, and those that a call of it returning a reference
-points into (`opKeep`), it destroys what it uses once it is read when it
-runs, and the operation destroys what it uses when it does not, before
-what the left operand last uses, which dies once that is tested (#191).
-A method call never destroys the slot it
-consumes, though it uses it. The argument of $`\mathsf{List}[u](e)` is
-used by reference, as that of `len`, so a value whose last use it is dies
-once the new list is built. So is an operand of a comparison of two
-arrays or two lists, a place or a call that returns a reference, which
-the comparison reads by reference (`MojoGrimoire.Check.byRef`, #166,
-#185): what it last uses dies once the comparison is done.
+:::readable MojoGrimoire.Elab.envAfter (fingerprint := "3023937792142485577")
+*Definition: the types after a statement.* The types of the variables
+after a statement, which a declaration or a `ref` binding extends.
 :::
 
-:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList MojoGrimoire.Elab.droppedOpt MojoGrimoire.Elab.envAfter (fingerprint := "10237194049534601213")
-*Definition: helpers.* The slots that an elaborated expression destroys,
-also inside the argument of $`\mathsf{List}[u](e)`; and the types of
-the variables after a statement, which a declaration or a `ref` binding
-extends.
-:::
-
-:::readable MojoGrimoire.Elab.elabPrintOps MojoGrimoire.Elab.elabPrintArgs (fingerprint := "15539588873786545709")
+:::readable MojoGrimoire.Elab.elabPrintOps MojoGrimoire.Elab.elabPrintArgs (fingerprint := "17802690047684658857")
 *Definition: the operands of print.* `print` reads its operands once every
 operand is evaluated, and a place operand lives until it is done: each
 operand is elaborated with the slots live after `print`, those of its
@@ -72,7 +35,7 @@ getters before it, and what the later operands use, live as its arguments
 are evaluated (#191).
 :::
 
-:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "12807690894885017943")
+:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "3980773780576500172")
 *Definition: elaboration.* Given the slots live after a statement:
 
 - a simple statement's expressions are elaborated, and the statement is
@@ -118,7 +81,7 @@ that the body never uses is destroyed before the body runs, and every
 other one right after its own last use, as the compiler does.
 :::
 
-:::readable MojoGrimoire.Elab.elabStruct MojoGrimoire.Elab.elabProgram (fingerprint := "16301212516985014332")
+:::readable MojoGrimoire.Elab.elabStruct MojoGrimoire.Elab.elabProgram (fingerprint := "11000933209213596924")
 *Definition: programs.* A program is elaborated function by function:
 every function, initializer, method and destructor.
 :::

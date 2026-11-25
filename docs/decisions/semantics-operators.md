@@ -165,6 +165,10 @@ is: `t < u` may give an `Int`.
   write through the reference is not yet modelled, so the model then
   reports `notAList`, as for the other subscripts of a struct used as
   places (#198).
+- `p[i] = v` and `p[i] op= v` on a struct that declares `__setitem__`
+  but not `__getitem__` are `missingMethod` of `__getitem__`, as the
+  compiler reports them once it has typed `p`, before `i`, `v` and a
+  later pass's errors (#296).
 - Where a value of a type is expected, an argument, an initial value or a
   returned value, a call that returns a reference to a value that is not
   `ImplicitlyCopyable` reports a type that does not fit before its
@@ -215,9 +219,9 @@ Each of these keeps the result the model gave before #191:
   `while` condition of struct type (#195), and a call of a field (#196).
 - `not` on an `Int` that `__bool__` gives, and `and` or `or` on an `Int`
   operand beside a struct, which the compiler accepts (#179, #187).
-- The order of the compiler's passes across a call: an uninitialized
-  receiver comes before an argument's type error in the model (#96), and
-  a temporary receiver passed to `mut self` is `notAPlace` (#81).
+- The order of the compiler's passes across a call
+  ([semantics-error-order.md](semantics-error-order.md#calls-and-initializers)),
+  and a temporary receiver passed to `mut self`, which is `notAPlace` (#81).
 - The order in which a call's temporaries are destroyed (#199), an
   in-place method whose result is not `None` (#200), a missing argument
   reported before a misfit of the others (#201), and the destination of

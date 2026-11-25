@@ -21,6 +21,7 @@ import MojoGrimoireTest.Parse.ListPop
 import MojoGrimoireTest.Parse.ListPopIndex
 import MojoGrimoireTest.Parse.Methods
 import MojoGrimoireTest.Parse.StructOperators
+import MojoGrimoireTest.Parse.SetterOnly
 import MojoGrimoireTest.Parse.CopyableFields
 import MojoGrimoireTest.Parse.StaleRefs
 import MojoGrimoireTest.Parse.ReturnedElements
@@ -46,4 +47,5 @@ import MojoGrimoireTest.Parse.IntIndex
 import MojoGrimoireTest.Parse.Len
 import MojoGrimoireTest.Parse.HiddenTypes
 import MojoGrimoireTest.Parse.Subset
+import MojoGrimoireTest.Parse.DeclOrder
 import MojoGrimoireCli

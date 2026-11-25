@@ -13,7 +13,15 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12193719849143606231")
+:::moduleDocs (fingerprint := "6540334220846004626")
+:::
+
+:::readable MojoGrimoire.Check.Below (fingerprint := "14513104375151688470")
+*Definition: a check below a bound.* A check of the values of a type no
+larger than a list of expressions $`r`, each given with a proof of that
+bound. The modules outside the mutual block of the checker of expressions
+are given so the checks of the expressions and places inside the
+expressions they check, so that the checker's recursion still ends (#96).
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -47,7 +55,9 @@ range (#121). Of two parts of a statement checked in order, an error of
 the first from a later pass than typing waits until the second is checked
 from the state before the first. An error of the second from an earlier
 pass then comes first, since the compiler runs each pass over the whole
-statement; else the first part's error stands (#280).
+statement; else the first part's error stands (#280). Between the last
+two passes, the order is the compiler's at `-O0`. This is a temporary
+bridge until the checker runs each pass over the whole program (#96).
 :::
 
 :::readable MojoGrimoire.Check.refResult (fingerprint := "5596166513625506680")

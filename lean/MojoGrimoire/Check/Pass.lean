@@ -13,7 +13,9 @@ an argument of `range`, may be recorded instead of thrown (`lateErrors`),
 so that the passes report in the compiler's order (#121), and an index's
 such error waits for the type errors of an assigned value (`typedFirst`,
 #280). What a call types before it reads its first argument is in
-`typeFirst`.
+`typeFirst`. A module outside the mutual block of the checker of
+expressions is given the checks of the expressions inside the ones it
+checks as `Below` says.
 -/
 
 namespace MojoGrimoire.Check
@@ -22,6 +24,19 @@ open MojoGrimoire.Core
 
 /-- Lifts a result of the program's tables into the checker. -/
 def lift {α : Type} (r : Except CheckError α) : CheckM α := StateT.lift r
+
+/-- A check of each value of type `β` no larger than the expressions `r`,
+giving an `α`. A module outside the mutual block of
+`MojoGrimoire.Check.Expr` is given so the checks of the expressions and
+places inside the expressions `r` that it checks, so that the recursion
+still ends (#96). -/
+abbrev Below (β α : Type) [SizeOf β] (r : List Expr) : Type :=
+  (x : β) → sizeOf x ≤ sizeOf r → CheckM α
+
+/-- Proves that a part of a value whose size the hypothesis `h` bounds,
+such as an element of a list or the elements of a literal in it, is no
+larger than that bound, for a check of `Below`. -/
+macro "below_bound " h:ident : tactic => `(tactic| (subst_vars; simp at $h:ident ⊢; omega))
 
 /-- Rejects unless the type `actual` is the type `expected`. -/
 def expect (expected actual : Ty) : CheckM Unit :=
@@ -44,7 +59,9 @@ def lateErrors (x : CheckM RangeArgs) : CheckM RangeArgs :=
 /-- The compiler's pass that reports the error `e`, in order: typing; a
 use of an uninitialized or invalidated value; a nested literal's failed
 SIMD constraint, `noMatchingInit` of `Int`; a constant index out of
-range (#121, #280). -/
+range (#121, #280). Between the last two, the compiler's order at `-O0`
+is kept: at `-O3` it reports a constant index into an array before a
+literal found after it. -/
 def CheckError.pass (e : CheckError) : Nat :=
   if e matches .negativeIndex _ | .constantIndexOutOfBounds _ then 3
   else if e == .noMatchingInit .int then 2
@@ -54,7 +71,8 @@ def CheckError.pass (e : CheckError) : Nat :=
 throws an error of a later pass than typing (`CheckError.pass`), `next`
 is still checked, from the state before `first`: an error of its own
 from an earlier pass stands, as the compiler runs each pass over both, and
-else `first`'s error does (#280). -/
+else `first`'s error does (#280). A temporary bridge until the checker
+runs the compiler's passes over the whole program (#96). -/
 def typedFirst {α : Type} (first : CheckM Unit) (next : CheckM α) : CheckM α := do
   tryCatch first fun e => do
     if e.pass == 0 then throw e

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and declarations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3748717236180677733")
+:::moduleDocs (fingerprint := "961200513250835029")
 :::
 
 :::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.augCallee MojoGrimoire.Parse.exprStmt (fingerprint := "14674107341489909627")
@@ -72,13 +72,13 @@ followed by the parameter's name, and `owned` is a name, not a convention:
 a method, whose type is its struct. A function without a result returns
 $`\mathsf{None}`. `raises` is read and ignored: the subset raises no
 errors. A result `ref [a, b] T` is a reference with the origins of the
-parameters named; it names at least one. A method's name may be `break`
-or `continue`, as in the compiler, and a function's may not
-(`memberName`, #268). Each function is recorded with the lines where the
+parameters named; it names at least one. A method's name may be a
+keyword, as in the compiler, and a function's may not (`memberName`,
+#268, #278). Each function is recorded with the lines where the
 statements of its body start.
 :::
 
-:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.PState.deinitScope MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "12612530014366367951")
+:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.PState.deinitScope MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "18275070692354261957")
 *Definition: structs.*
 
 $$`\begin{array}{lcl}
@@ -94,11 +94,15 @@ the name hold at least one conformance. The method `__init__` is the
 initializer and the body of `__deinit__` is the destructor; every other
 function is a method. The destructor is recorded with `self` alone as its
 parameter (`deinitScope`), the scope in which the later passes check it.
+The parser also gives the order of the members in the source: each field
+and each method where it stands, and a second `__init__` or `__deinit__`,
+which replaces the first, where it stands.
 :::
 
-:::readable MojoGrimoire.Parse.decls MojoGrimoire.Parse.parseLines MojoGrimoire.Parse.parseRaw (fingerprint := "6794322797399104787")
+:::readable MojoGrimoire.Parse.addStruct MojoGrimoire.Parse.addFun MojoGrimoire.Parse.decls MojoGrimoire.Parse.parseLines MojoGrimoire.Parse.parseRaw (fingerprint := "11523914578383755609")
 *Definition: programs.* A program is a sequence of structs and functions,
-in any order. The only decorator is `@fieldwise_init`. The parser is given
+in any order, which the parser records in the program's order of
+declarations, each struct with the order of its members (#96). The only decorator is `@fieldwise_init`. The parser is given
 ten times the number of tokens, plus a hundred, as fuel, which is more than
 any program spends. `parseLines` also gives every function, method,
 initializer and destructor in the order of the file, with the lines of its

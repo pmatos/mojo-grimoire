@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": null,
+  "diagnostic": "redefinition of function 'dup2' with identical signature"
+}

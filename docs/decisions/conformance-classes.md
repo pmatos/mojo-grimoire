@@ -78,14 +78,8 @@ be converted from list literal", and a literal with no expected type whose
 elements differ, which it reports as "not compatible". An ownership
 error, such as `implicitCopy` or `uninitializedUse`, keeps its class, and
 so does an error inside an argument that the model checks before it finds
-the misfit. The order still differs from the compiler's in two ways. The
-compiler checks every argument before it looks for an initializer, so an
-error in a later argument, `P(True, nope)`, comes first there, where the
-model reports the misfit, as it does for an ordinary call (#89). And the
-compiler reports ownership errors only after every type error, so
-`P(b)` with `b` an uninitialized `Bool` is `noMatchingInit` there, where
-the model, which checks in program order, reports `uninitializedUse`
-(#96).
+the misfit. Where the order still differs from the compiler's is in
+[semantics-error-order.md](semantics-error-order.md#calls-and-initializers).
 
 Rejected: leaving the message unclassified, which the suite counts as a
 disagreement, so that these programs could never be compared; and letting
@@ -154,15 +148,8 @@ a type of its name in a type, as the next section says.
 Both patterns come first in `diagnostics.json`, since each message holds
 a name of the program's, a type or a method, that a later pattern could
 match. The compiler finds both errors when it types the operands, before
-any read. The model finds a missing method from the operands' types
-before it reads them, once it has typed them, so that an error inside an
-operand comes first (`s + nope` is `unknownVariable`) and an
-uninitialized operand after (`var s: S; s + 1` is `missingMethod`); a
-struct, list or array operand is never copied first. It finds a misfit of
-an overload set as an ordinary call finds a misfit, once the argument is
-read, so `var b: Bool; xs[b]` is `uninitializedUse` in the model and
-`noMatchingMethod` in the compiler. That order across the compiler's
-passes is left to #96.
+any read. The model's order is in
+[semantics-error-order.md](semantics-error-order.md#calls-and-initializers).
 
 A temporary bridge keeps `main`'s results for the struct tests that part
 2 of #191 accepts, until #96 part 4
@@ -226,15 +213,13 @@ methods, the first error in declaration order comes first, as in the
 compiler; one in `__init__` or the destructor is reported only when no
 method has another error, for the same reason. It does
 not check the methods of the structs after it, since the compiler checks
-those bodies after the functions'. Four cases differ. A later pass's
-error before it, such as a use of an uninitialized value, comes first in
-the model (#96). The compiler resolves a function's or a method's
+those bodies after the functions'. Two cases of the order of errors
+differ, as
+[semantics-error-order.md](semantics-error-order.md#types-that-a-variable-hides)
+says. The compiler also resolves a function's or a method's
 signature where a body first refers to it, and a struct's `__init__`
 signature with the struct, in declaration order, where the model checks a
-signature with its body (#231). A hidden type in a function comes
-after an error in a struct's method in the model, which checks structs
-first (#96), and one in a struct's method comes after a later struct's
-`recursiveStruct` there (#96). And
+signature with its body (#231). And
 `ref r = List[T]()` stays `notAReference`, and `List[T]()` passed to a
 `mut` parameter `notAPlace`, since the model rejects what is not a
 location there before it checks the expression.
@@ -257,6 +242,15 @@ methods". `diagnostics.json` maps it, matched whole and first, to
 (#182). The compiler reports it before any error in the index or in the
 assigned value, which the model reports first (#227).
 
+A subscript, read or assigned, of a struct that declares `__setitem__`
+but not `__getitem__` is "'T' has '__setitem__' but no '__getitem__'
+method", reported once its receiver is typed, before its index, the
+assigned value and a later pass's errors. `diagnostics.json` maps it,
+matched whole, to `missingMethod`. The human ruled this on 2026-11-25
+(#296); a class of its own and leaving it unclassed were rejected. The
+model reports it for `p[i] = v` and `p[i] op= v`; a read of such a
+subscript is still `notAList` in the model (#298).
+
 ## Copyable structs whose fields cannot be copied
 
 The compiler synthesizes the copy initializer of a struct that declares
@@ -274,18 +268,9 @@ matched whole, to `uncopyableField`. The human ruled this on 2026-11-20
 (#164). A hand-written copy initializer, `__init__(out self, *, copy:
 Self)`, which the compiler accepts, is not yet parsed (#184).
 
-In its first pass, the compiler checks the bodies of the functions and
-`main`'s signature, wherever they are declared, then each struct in
-declaration order: its methods, then its copy initializer. Its later
-passes, such as a use of an uninitialized value or a missing return, and
-a missing `main` come after. The model checks every struct, then every
-function and `main`'s signature, then these fields, then that `main` exists.
-Three cases differ, as on `main`, and are left to #96. A later pass's
-error in a body comes first in the model (`uninitializedUse`,
-`missingReturn`). So does a first-pass error in a method of a struct
-declared after the bad one. And "attempt to resolve a recursive reference
-to declaration" is ordered with this error by declaration, where the
-model reports `recursiveStruct` first.
+Where this error comes among the compiler's, and the three cases where
+the model differs, are in
+[semantics-error-order.md](semantics-error-order.md#copyable-structs-whose-fields-cannot-be-copied).
 
 Rejected: an existing class, `notCopyable` or `implicitCopy`, which would
 merge an error at a struct's declaration with an error at a copy.

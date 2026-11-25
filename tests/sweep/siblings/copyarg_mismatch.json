@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "invalid call to 'one': value passed to 'x' cannot be converted from 'List[Int]' to 'Int'"
+}

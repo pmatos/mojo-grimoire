@@ -210,9 +210,13 @@ compiler and compare its first error with this list
 | `def g(continue: Int)` | expected argument name | `Subset.lean`: `"def g(continue: Int):"` |
 | `def break() -> Int` | 'break' cannot be used as a function name in this context | `Subset.lean`: `"def break() -> Int:"` |
 | `var break: Int`, a field | expected name for 'var' declaration | `Subset.lean`: `"    var break: Int"` |
+| `var pass = 1` | unexpected token in expression | `Subset.lean`: `inMain ["var pass = 1", "print(pass)"]` |
+| `def pass() -> Int` | 'pass' cannot be used as a function name in this context | `Subset.lean`: `"def pass() -> Int:"` |
+| `var True: Int`, a field | expected name for 'var' declaration | `Subset.lean`: `"    var True: Int"` |
 
-The last four rows were probed against the nightly alone, on 2026-11-22
-(#268).
+The four rows for `break` and `continue` were probed against the
+nightly alone, on 2026-11-22 (#268), and the last three on 2026-11-25
+(#278).
 
 `x^ + 1` and `x^ 5`, which #54 also pins as syntax errors, are not on the
 list: the compiler builds them and prints `2` and `6`. They are outside the
@@ -222,3 +226,29 @@ Rejected: changing `scripts/conformance.py` so that a model syntax error
 agrees with a compiler parse error, and holding these programs in
 `tests/conformance/rejected/` under a class of `diagnostics.json`. It
 changes the checking machinery for programs that the guards already pin.
+
+## The probe sweep
+
+The parts of #96 change the order in which the model reports errors, and
+the suite alone cannot show which programs that change moves: its
+programs mostly hold one error each. The probe sweep, in `tests/sweep/`,
+holds the probe programs of #96, most of them with two errors, each with
+the pinned compiler's result recorded by `scripts/conformance.py record`.
+`scripts/sweep.py --base MODEL --head MODEL` runs the model built from
+`main` and the model built from a change on every program, and counts the
+programs that agree on both, those that the change fixes, those that
+disagree on both, and those that agreed on `main` and no longer do. Of
+the last, a change of rejection class is allowed to a part of #96 whose PR
+lists the program with the open issue of its wrong rejection
+([process.md](process.md#one-issue-several-prs)); any other, such as a
+run that becomes a rejection, fails the sweep. A run that times out or
+cannot start counts as that build's error. A recorded rejection whose
+diagnostic has no class yet (#319) agrees with any rejection that prints
+the same lines. A part of #96 runs the sweep by hand and gives its counts
+in the PR body. The human ruled on
+2026-11-22 that the sweep is committed as a corpus and one script, run by
+hand and not as a hook (#96, Q8).
+
+Rejected: keeping the sweep in a session's scratchpad, which does not
+last, and running it as a hook, which would rebuild the model twice for
+every commit.
