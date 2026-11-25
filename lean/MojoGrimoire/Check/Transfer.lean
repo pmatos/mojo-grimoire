@@ -32,14 +32,6 @@ bound with `ref`, mutable or not. -/
 def noOwnOrigin (p : Place) : CheckM Bool := do
   pure (splitPlace.indexed p || (← lookup (splitPlace p).1).access matches .alias ..)
 
-/-- Whether the compiler reports the error `e` in a later pass than a
-transfer with no origin of its own: a use of an uninitialized or
-invalidated value, and a constant index out of range (#119). -/
-def CheckError.late : CheckError → Bool
-  | .uninitializedUse _ | .invalidatedReference _ | .negativeIndex _
-  | .constantIndexOutOfBounds _ => true
-  | _ => false
-
 /-- Rejects unless the value in the place `p` may be transferred out, and
 gives its type. It must have an origin of its own (`noOwnOrigin`), checked
 before anything else, be initialized, and the function must own it, or

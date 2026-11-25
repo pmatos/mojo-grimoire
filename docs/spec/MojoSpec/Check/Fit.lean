@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17416461130753244102")
+:::moduleDocs (fingerprint := "9608899401486681158")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -87,7 +87,7 @@ named `range` is no such call. Such an argument of the standard library's `range
 fits none of its forms (#121).
 :::
 
-:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "9014630784740985675")
+:::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append MojoGrimoire.Check.RangeArgs.ofLate (fingerprint := "15579420573004099868")
 *Definition: what reading the arguments of a range finds.* Reading the
 arguments of `range`, once they are typed, records the errors of the
 compiler's later passes in the order it reports them: the first use of an
@@ -99,7 +99,7 @@ error of a later pass than typing is a constant index out of range,
 a nested literal's failed constraint, or else a use of a value.
 :::
 
-:::readable MojoGrimoire.Check.rangeList (fingerprint := "289590715317819451")
+:::readable MojoGrimoire.Check.rangeList (fingerprint := "18390113362267453304")
 *Rule: $`\mathsf{List}[u](\mathsf{range}(e^*))`.* The arguments of
 `range` are typed first, and the state that typing leaves is dropped.
 An argument that fits no form of `range`, no argument or more than three,
@@ -115,20 +115,15 @@ are the flow phase's, and the literal and the constant index the
 instantiation phase's.
 :::
 
-:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "1964980399200886381")
+:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.callResultTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "8447603149935987209")
 *Rule: a literal of the wrong length where an $`\mathsf{Int}` is
 expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1, which
 `wrongIntLiteral` picks out, fits no initializer of $`\mathsf{Int}`,
 which is $`\mathsf{SIMD}[\mathsf{int}, 1]` (#153, #154). The compiler
 types its elements before it reads any. So each element is typed first,
-in the state's `State.typing`, where every variable is whole and no
-reference invalidated. An element whose check still gives an error that
-the compiler reports after its types, one of a later pass or a nested
-literal's failed constraint, has its `lateElemTy`, as has such an
-argument of `range` (#121): the result of its
-operator, call or method, the type of the place it reads, the list that
-$`\mathsf{List}[u](e)` builds, an array of its first element, or else
-$`\mathsf{Int}`. The first element that is no $`\mathsf{Int}`, nor such
+in the type phase, which finds no error of a later phase. A call whose
+check gives the implicit copy of the value it returns a reference to has
+the type of its result (`callResultTy`). The first element that is no $`\mathsf{Int}`, nor such
 a literal of $`\mathsf{Int}`s, is a misfit, reported before any element
 is read: by a function or a method, which converts the literal, as a type
 mismatch, and by an initializer of $`t` as `noMatchingInit` $`t`. With no

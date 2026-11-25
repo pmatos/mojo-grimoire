@@ -197,6 +197,22 @@ phase has recorded since (`InstEvent`). -/
 def restoreKeeping (s : State) : CheckM Unit :=
   modify fun cur => { s with events := cur.events }
 
+/-- Runs `x` in the type phase, as the compiler types what it checks, and
+then goes on in the phase it was in: what only a later phase checks, a use
+of an uninitialized value or a constant index out of range, is skipped.
+While a statement replays `main`'s order in the instantiation phase
+(`mainTests`), it stays in that phase, as `main`'s replay of a struct
+test then stops at the instantiation's error (#191's bridge, until #323
+is ruled). -/
+def typing {α : Type} (x : CheckM α) : CheckM α := do
+  let s ← get
+  if s.mainTests && s.phase == .inst then return ← x
+  let phase := s.phase
+  modify ({ · with phase := .type })
+  let r ← x
+  modify ({ · with phase })
+  pure r
+
 /-- Runs `check`, a check of the instantiation phase, only in that phase. -/
 def instCheck (check : CheckM Unit) : CheckM Unit := do
   let s ← get

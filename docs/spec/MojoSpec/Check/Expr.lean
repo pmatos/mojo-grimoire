@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15675642059807520211")
+:::moduleDocs (fingerprint := "13565710016154550697")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "18263706456108760107")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "5709418042534114173")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -118,9 +118,10 @@ type:
   (`typeRangeArgs`), and an unknown name or a misfit of a call inside any
   argument is reported at once. An argument that holds a
   string or a call of `range` (`holdsStrOrRange`) is typed only in its
-  other parts, by `typeArg`, and an argument whose check gives an error that the compiler reports
-  after its types, or after the misfit, an implicit copy of the value a
-  call returns a reference to, has its `lateElemTy`. Then the call is `noMatchingInit` $`\mathsf{List}[u]`:
+  other parts, by `typeArg`, in the type phase, and a call whose check
+  gives the implicit copy of the value it returns a reference to, which
+  the compiler reports after the misfit, has the type of its result
+  (`callResultTy`). Then the call is `noMatchingInit` $`\mathsf{List}[u]`:
   when an argument is not an $`\mathsf{Int}`, holds a string or a
   `range`, or is an open literal other than one of $`\mathsf{Int}`s at
   any depth; when the first argument is an empty literal, or one whose

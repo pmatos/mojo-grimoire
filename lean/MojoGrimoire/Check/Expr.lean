@@ -154,10 +154,10 @@ the compiler types it before it finds the form of `range` that fits. One
 that holds a string or a call of the standard library's `range`
 (`holdsStrOrRange`) fits none: it
 is typed only in its other parts, and has no type here, `unknown`. So has a
-literal in it. A place is typed by `typePlace`. One whose check gives an
-error that the compiler reports after its types, or after the misfit, a
-call's implicit copy of the value it returns a reference to, has its
-`lateElemTy`. -/
+literal in it. A place is typed by `typePlace`, in the phase the caller
+types in (`typing`). A call whose check gives the implicit copy of the
+value it returns a reference to, which the compiler reports after the
+misfit, has the type of its result (`callResultTy`). -/
 def typeArg (prog : Program) (e : Expr) : CheckM Ty :=
   if holdsStrOrRange prog e then do
     match e with
@@ -169,14 +169,12 @@ def typeArg (prog : Program) (e : Expr) : CheckM Ty :=
   else
     match e with
     | .place p => do
-      try typePlace prog p catch err => unless err.late || err == .noMatchingInit .int do throw err
+      typePlace prog p
       placeTy prog p
     | .list .unknown es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => do typeArgs prog es; pure .unknown
     | e => try checkExprAs prog false e catch err => do
-        let t ← lateElemTy prog e
-        if err.late || err == .noMatchingInit .int ||
-          (e matches .call .. | .method .. && err == .implicitCopy t) then pure t
-        else throw err
+        let t ← callResultTy prog e
+        if (e matches .call .. | .method ..) && err == .implicitCopy t then pure t else throw err
   termination_by (sizeOf e, 1)
 
 /-- Types each of the expressions `es` (`typeArg`). -/
@@ -245,8 +243,9 @@ def requireOwnOrigin (prog : Program) (p : Place) : CheckM Unit := do
 /-- Types the place `p` as the compiler does, from its variable outward,
 each indexed place before its index, each index as
 an `Int`, and each `q^` in it, but of an `Int` or a `Bool`, which is the
-place `q`, as one that could transfer `q`, initialized or not. An index's error that the compiler reports later (`CheckError.late`)
-is left out: the transfer is rejected first. -/
+place `q`, as one that could transfer `q`, initialized or not. An index's
+error of a later phase is not found in the type phase, so the transfer is
+rejected first. -/
 def typePlace (prog : Program) : Place → CheckM Unit
   | .var x => do let _ ← lookup x
   | .field p f => do typePlace prog p; let _ ← placeTy prog (.field p f)
@@ -254,7 +253,7 @@ def typePlace (prog : Program) : Place → CheckM Unit
     typePlace prog p
     let t ← placeTy prog p
     let _ ← lift (indexedOf t)
-    try checkIndex prog (some t) i catch e => unless e.late do throw e
+    checkIndex prog (some t) i
     let _ ← placeTy prog (.index p i)
   | .transferred p => do
     typePlace prog p

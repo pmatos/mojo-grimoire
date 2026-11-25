@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Elements of literals: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2981908511083249993")
+:::moduleDocs (fingerprint := "6453199234288588442")
 :::
 
 :::readable MojoGrimoire.Check.checkIterableElems (fingerprint := "13926820991139293986")
@@ -27,14 +27,13 @@ gives the literal's type from them. Any other element is checked by the
 check that the checker of expressions gives (`Below`).
 :::
 
-:::readable MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.rejectIntElems (fingerprint := "8884764126426799288")
+:::readable MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.rejectIntElems (fingerprint := "12007245744658358507")
 *Rule: the elements of a literal of $`\mathsf{Int}`s.* For a literal
 $`[e^*]_{\mathsf{Int}}` of any length but 1, `intMisfit` gives the type
 of its first element that is no $`\mathsf{Int}`, nor such a literal, each
-typed in `State.typing`: a place by the `typePlace` it is given, an
-error that the compiler reports later left out; a nested literal by its
-own elements; and any other element by the check it is given, one whose
-error the compiler reports later having its `lateElemTy`. `readIntElems`
+typed in the type phase: a place by the `typePlace` it is given, a
+nested literal by its own elements, and any other element by the check it
+is given. `readIntElems`
 then reads the elements as $`\mathsf{Int}`s passed `var`, a nested such
 literal's in turn, and gives what each reads late. `rejectIntElems` runs
 both for `rejectIntLiteral`, which reports the misfit as the rule of
