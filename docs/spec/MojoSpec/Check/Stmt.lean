@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14341089901258080535")
+:::moduleDocs (fingerprint := "10429226197434297498")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -67,7 +67,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "16059728251006842734")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "15277390012183732359")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 
@@ -105,7 +105,9 @@ an expression, so a place is copied implicitly.
   fields are all assigned, since it is then whole, unless it was moved out
   whole first. Assigning a part below a field in $`M` does not remove it.
   Through a reference or to an element, the old value is read first, so
-  it must be initialized. Into the element of an $`\mathsf{Int}`, the
+  it must be initialized, and the reference not invalidated, but by a
+  subscript of an array in $`e`, which the compiler makes after it
+  locates the reference (#282). Into the element of an $`\mathsf{Int}`, the
   $`\mathsf{Int}` is located before the value is evaluated, so a change
   the value makes may not invalidate it, and the index, an argument of
   `__setitem__`, is read once the value is evaluated, so the value may not
@@ -118,8 +120,8 @@ an expression, so a place is copied implicitly.
   checked what a setter call needs;
 * `print`, unless a variable in scope named `print` hides it, which
   `rejectCalledVar` rejects once the arguments are typed (#176), checks
-  its arguments as above, then that its place arguments are still
-  initialized and not invalidated;
+  its arguments as above, then that its place arguments, and what its
+  literal arguments read late, are still initialized and not invalidated;
 * `return` needs a value of the result type exactly when the result type
   is not $`\mathsf{None}`, checks the state at a return, and makes what
   follows unreachable; a function that returns a reference returns a

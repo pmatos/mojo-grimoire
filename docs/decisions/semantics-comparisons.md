@@ -115,7 +115,12 @@ checks of a declaration as a whole, such as its parameters, a missing
 where `main` rejected it with another, keeps `main`'s class until #96
 part 4: `a == [[1, 2]]` with `a = [1]` stays `implicitCopy` where the
 compiler gives `noMatchingInit`, and `[1] < xs` stays `implicitCopy`
-where it gives `typeMismatch`. #96 lists those comparisons, and the suite
+where it gives `typeMismatch`. So does `[w[0][0]] == w[0]`, with
+`w: Array[List[Int], 1]`: the subscript `w[0]` invalidates the element
+that the literal reads late, which part 2 rejects, as the compiler does
+(`invalidatedReference`, #282,
+[semantics-references.md](semantics-references.md#references)), but
+`main` copied the array, and the bridge keeps `implicitCopy`. #96 lists those comparisons, and the suite
 programs and tests that part 4 adds back. A program of several statements
 is not bridged across statements; process.md's exceptions cover those.
 
@@ -148,11 +153,6 @@ the compiler's; where #185 changed the class, the bullet says so:
   reports the comparison's `violatedConstraint` or the uninitialized read
   first. Part 2 rejects the literal at once, and so keeps `main`'s
   `implicitCopy`, the copy of the named operand (#170).
-- An element of an array read inside a literal compared with that
-  element, `[w[0][0]] == w[0]` with `w: Array[List[Int], 1]`, which the
-  compiler rejects as the use of an invalidated interior reference
-  (`invalidatedReference`, #282). `main` copied the array,
-  `implicitCopy`; part 2 runs the comparison.
 - A transfer in a loop's condition, `while a^ < [1, 3] and t:`, which the
   compiler borrows and the model moves: the second check of the condition
   is stuck at run time (#84). `while ab^ < [True, True] and t:`, with

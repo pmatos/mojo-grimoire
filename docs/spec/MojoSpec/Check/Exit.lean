@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Ends, exits, joins and loops: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6987239339013558695")
+:::moduleDocs (fingerprint := "7171503081720541391")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -52,7 +52,7 @@ of its own, which may stay moved out. Each error is
 $`\mathsf{partiallyDestroyed}`.
 :::
 
-:::readable MojoGrimoire.Check.checkExit (fingerprint := "16841318695536390912")
+:::readable MojoGrimoire.Check.checkExit (fingerprint := "17650490170654427682")
 *Rule: a return.* When a function returns, each `mut` parameter and the
 `self` of `__init__` must be wholly initialized, since the caller holds
 them, with no piece in $`P`: otherwise the error is
@@ -65,13 +65,13 @@ compiler reports a parameter left uninitialized before a variable that may
 not end.
 :::
 
-:::readable MojoGrimoire.Check.endScope (fingerprint := "10225848583509902724")
+:::readable MojoGrimoire.Check.endScope (fingerprint := "12475957554459155936")
 *Rule: the end of a scope.* The variables a block declared end with it,
 each checked as above if the end of the block is reached, and leave the
-set of invalidated references.
+sets of invalidated references.
 :::
 
-:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "151849857318036827")
+:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "780484172269793629")
 *Rule: joining branches.* After an `if`, a part is uninitialized when
 either branch leaves it so, and may hold a value when either branch may;
 $`M`, $`T` and $`P` are the unions of the branches' sets, and

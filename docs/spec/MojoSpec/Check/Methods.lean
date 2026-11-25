@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8119551463829153626")
+:::moduleDocs (fingerprint := "11898623300828376635")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.reflectedMethod MojoGrimoire.Check.unaryMethod (fingerprint := "14078108206647463870")
@@ -91,7 +91,7 @@ read. Any other number of arguments is `noMatchingInit` of $`?`, once
 they are typed.
 :::
 
-:::readable MojoGrimoire.Check.methodCall (fingerprint := "5560809483516187005")
+:::readable MojoGrimoire.Check.methodCall (fingerprint := "17339314998728003688")
 *Rule: a method call.* A call $`p.m(e^*)` of a method of signature
 $`\mathit{sig}`, once the indices of $`p` are checked, takes the method's
 receiver by its convention: $`p` is passed as a place, or, when $`p` is
@@ -105,7 +105,8 @@ checked with the fit
 that every misfit, a wrong number of arguments or a receiver that may not
 change included, is `noMatchingMethod` (#88, #169), and as an ordinary
 call otherwise. The
-receiver and the arguments are checked again once all are read, the
+receiver and the arguments are checked again once all are read, and so
+is what a literal argument reads late (`recheckLiterals`, #282); the
 places the call changes are changed, and the call gives its result.
 :::
 

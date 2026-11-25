@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14629522898710504043")
+:::moduleDocs (fingerprint := "4340798362097175674")
 :::
 
-:::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.mainRead MojoGrimoire.Check.testParams MojoGrimoire.Check.notOperand MojoGrimoire.Check.bridged (fingerprint := "4355055010676681703")
+:::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.mainRead MojoGrimoire.Check.testParams MojoGrimoire.Check.notOperand MojoGrimoire.Check.bridged (fingerprint := "6377951914217233585")
 *Rule: the bridge to `main`'s order (temporary, until #96 part 4).*
 `main` rejected a test of a struct, by $`\mathsf{and}`, $`\mathsf{or}` or
 $`\mathsf{not}`, as $`\mathsf{typeMismatch}` once its operands were
@@ -70,11 +70,13 @@ $`[x\ \mathsf{or}\ y]` is an array of $`\mathsf{Bool}`s
 (`mainFormTy`), as `main` did.
 :::
 
-:::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.checkedBinaryTy (fingerprint := "4847192746108488197")
+:::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.checkedBinaryTy (fingerprint := "14539781843735670874")
 *Rule: binary operations.* Once both operands are checked, the places
 among them that are read late are checked again, but for `and` and `or`,
 whose operands are read when tested; the operation then has the type
-that its operands' types give. A struct operand of `and` or `or` is
+that its operands' types give, and only then is what a literal operand
+reads late checked again (`recheckLiterals`, #282), since the compiler
+reports a misfit of the types first. A struct operand of `and` or `or` is
 tested with its struct's `__bool__`, which takes only `self`, as the
 declaration's check requires. What it returns must be a
 $`\mathsf{Bool}`: anything else lacks `__mlir_bool__`, which converts

@@ -50,12 +50,49 @@ choices (#18):
   or on a later iteration of a loop, is rejected (`invalidatedReference`),
   as the compiler does (#55). Changing one element, reading the list,
   or assigning a whole array does not invalidate it, since an array holds
-  its elements in place. Any other change to an origin while a reference to it
-  is live is not rejected.
+  its elements in place, but a subscript of an array that holds the list
+  does, as the next bullet says. Any other change to an origin while a
+  reference to it is live is not rejected.
+- A subscript of an array that may change, `v[i]`, changes the array too,
+  for the references into an element of a list inside it (#282): the
+  compiler passes the array to `__getitem__` as a mutable `self`, and
+  rejects a later use of such a reference as "use of invalidated interior
+  reference" (`invalidatedReference`). With `v: Array[List[Int], 1]`,
+  `print(v[0][0], v[0])`, `two(v[0][0], v[0])` and `ref r = v[0][0]`
+  followed by `print(len(v[0]))` and `print(r)` are rejected. So is
+  `u[0][0].append(u[0][0][0])`, whose receiver is located first. An array
+  may change when it is a local variable, a `var`, `mut` or `ref`
+  parameter or `self`, or a reference into one that may change. A `ref`
+  parameter counts, since the compiler does not know its mutability, and
+  so does `ref e = v` with `v` one. A reference that a call returns
+  through a `read` parameter does not. A `read` parameter, a
+  place reached through `p^` and a subscript of a list do not:
+  `print(v[0][0], v[0])` runs in a function that takes `v` `read`, and so
+  does `print(z[0][0][0], z[0])` with `z` a list of such arrays. Reading
+  the array whole, `print(v[0][0], v)`, does not invalidate either. Neither
+  does a subscript after an operand that is read at once,
+  `print(v[0][0] + 1, v[0])`. A reference to the array's element itself,
+  `ref e = v[0]`, stays valid. A store through a reference that an earlier
+  statement invalidated so is rejected. When the store's own value
+  invalidates it, as in `r = v[0][0] + 1`, the compiler locates `r` before
+  the value and accepts the store, and so does the model. Only a later
+  read of `r` is rejected.
 - A place operand that goes through a list element is located before the
   operands after it are evaluated, and read once they all are. A later
   operand that changes the list invalidates it, and the model rejects the
-  operation, as the compiler does: `print(xs[0], xs.pop())`.
+  operation, as the compiler does: `print(xs[0], xs.pop())`. A literal
+  operand is built from its elements only once every operand of its
+  operation is evaluated, so its element places are read then too:
+  `print([xs[0]], xs.pop())` and `[xs[0]] == [xs.pop()]` are rejected
+  (#282). A literal passed to `len` is built, and read, at once. A later
+  operand that transfers a place gives it up only once the literal is
+  built: `print([b[0]], b^)` runs, but `print([b[0]], take(b^))` is a use
+  of `b` after its move, as the call takes `b` before. A literal
+  nested in a literal operand is built in its turn, before its later
+  siblings: `print(r > [[b[0]], b^])` runs. That it reads its places after
+  the operation's later operands, as in `print([[v[0][0]]], v[0])`, which
+  the compiler rejects, is not modelled yet (#308): the model runs it, as
+  `main` did.
 - An assignment through a reference into a list element is rejected
   (`invalidatedReference`) when its own value invalidates the reference:
   `ref e = xs[0]; e = grow(xs)`. The compiler accepts that and stores into
