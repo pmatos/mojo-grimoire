@@ -267,6 +267,27 @@ Each move of the Mojo pin gets an entry below.
   `-O0` and every control do ([evidence](decision-log-d0010.md#evidence)).
 - Upstream report: not filed; a draft on #235 awaits the human.
 
+### D-0011: a getter-and-setter subscript that decides `and`/`or` calls its getter twice (provisional)
+
+- Date: 2026-11-21
+- Mojo release and commit: nightly 1.3.0.dev2026111905 (D-0007)
+- Programs: six in `tests/conformance/`, listed on
+  [the detail page](decision-log-d0011.md#programs).
+- Compiler: when a struct declares `__getitem__` and `__setitem__`, a
+  subscript `w[i]` on the left of `and` or `or` that decides calls the
+  getter twice, and keeps the index's values alive for the second call
+  even when it does not decide ([detail](decision-log-d0011.md#compiler)).
+- Model: calls the getter once, with the destroy order of the same struct
+  without `__setitem__`.
+- Classification: compiler bug, ruled by the human on 2026-11-20 (#211);
+  its two side effects, the destroy order and the consumed index, ruled
+  part of it on 2026-11-21. The ruling is provisional, until the human
+  has discussed it with Modular.
+- Decision and rationale: the fixed compiler does what it does for the
+  same struct without `__setitem__`, since `and` and `or` never write
+  ([evidence](decision-log-d0011.md#evidence)).
+- Upstream report: not filed; a draft on #211 awaits the human.
+
 ### D-0012: an assignment whose value is the target itself destroys the old value first (provisional)
 
 - Date: 2026-11-21

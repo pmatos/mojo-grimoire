@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.Ref
+import MojoGrimoire.Check.Subscript
 
 /-!
 The checking of statements, and what blocks need: their scopes, the join
@@ -260,7 +260,7 @@ def checkInitValue (prog : Program) (t : Ty) (e : Expr) (value : CheckM Ty) : Ch
     unless t matches .list _ | .array .. do
       checkOperands prog es
       throw (CheckError.noMatchingInit t)
-  expect t (← value)
+  misfitFirst e .call t fun r => if r then checkExprAs prog true e else value
 
 /-- The type of the value of `return e`: a variable that the function owns
 is moved out, and any other expression is checked as usual. -/
@@ -291,6 +291,8 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let (t, origins, m) ← refTarget prog sig.name e
     modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
+    if let some g ← valueSubscript prog p then
+      return ← assignGetter prog p g fun t => checkInitValue prog t e (checkExpr prog e)
     let k ← mark
     if let .binary _ (.place q) _ := e then
       if q == p && !plainIndices p then rejectIntElem prog p (checkIndices prog p)
@@ -300,7 +302,10 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
           let u ← placeTy prog p
           checkInitValue prog u e (checkExpr prog e)
           pure u
-        else checkExpr prog e
+        else tryCatch (checkExpr prog e) fun err => do
+          if err matches .implicitCopy _ && e matches .call .. | .method .. then
+            expect (← placeTy prog p) (← tryCatch (checkExprAs prog true e) fun _ => throw err)
+          throw err
       expect (← placeTy prog p) t
       checkConstructed prog p e
     if let .index q i := p then
@@ -324,7 +329,9 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     setVar { v with uninit, moved := outside v.moved, held := uninitialize v.held path,
                     touched := union (outside v.touched) (above path v.held),
                     pieces := if whole then pieces.filter (!·.isEmpty) else pieces }
-  | .expr e => do let _ ← checkExpr prog e
+  | .expr e => do
+    checkSetter prog e
+    let _ ← checkExpr prog e
   | .print args => do
     rejectCalledVar prog "print" (typeArgs prog args)
     let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark
