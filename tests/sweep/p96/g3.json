@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": null,
+  "diagnostic": "module does not contain a 'main' function"
+}

@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "negativeIndex",
+  "diagnostic": "function instantiation failed: constraint failed: negative indexing is not supported, use e.g. `x[len(x) - 1]`"
+}

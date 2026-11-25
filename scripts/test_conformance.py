@@ -459,5 +459,8 @@ def whole(pattern: str) -> bool:
     return pattern.startswith("^") and pattern.endswith("$") and not literal
 
 
+# The probe sweep's tests run with the runner's, under its hook.
+from test_sweep import Arguments, Kind  # noqa: F401
+
 if __name__ == "__main__":
     unittest.main()

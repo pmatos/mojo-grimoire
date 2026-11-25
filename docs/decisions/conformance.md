@@ -226,3 +226,26 @@ Rejected: changing `scripts/conformance.py` so that a model syntax error
 agrees with a compiler parse error, and holding these programs in
 `tests/conformance/rejected/` under a class of `diagnostics.json`. It
 changes the checking machinery for programs that the guards already pin.
+
+## The probe sweep
+
+The parts of #96 change the order in which the model reports errors, and
+the suite alone cannot show which programs that change moves: its
+programs mostly hold one error each. The probe sweep, in `tests/sweep/`,
+holds the probe programs of #96, most of them with two errors, each with
+the pinned compiler's result recorded by `scripts/conformance.py record`.
+`scripts/sweep.py --base MODEL --head MODEL` runs the model built from
+`main` and the model built from a change on every program, and counts the
+programs that agree on both, those that the change fixes, those that
+disagree on both, and those that agreed on `main` and no longer do. Of
+the last, a change of rejection class is allowed to a part of #96 whose PR
+lists the program with the open issue of its wrong rejection
+([process.md](process.md#one-issue-several-prs)); any other, such as a
+run that becomes a rejection, fails the sweep. A part of #96 runs the
+sweep by hand and gives its counts in the PR body. The human ruled on
+2026-11-22 that the sweep is committed as a corpus and one script, run by
+hand and not as a hook (#96, Q8).
+
+Rejected: keeping the sweep in a session's scratchpad, which does not
+last, and running it as a hook, which would rebuild the model twice for
+every commit.
