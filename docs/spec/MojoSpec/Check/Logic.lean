@@ -17,7 +17,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 :::
 
 :::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.mainRead MojoGrimoire.Check.testParams MojoGrimoire.Check.notOperand MojoGrimoire.Check.bridged (fingerprint := "6563111203122782306")
-*Rule: the bridge to `main`'s order (temporary, until #96 part 4).*
+*Rule: the bridge to `main`'s order (temporary, until #96 removes it (#323)).*
 `main` rejected a test of a struct, by $`\mathsf{and}`, $`\mathsf{or}` or
 $`\mathsf{not}`, as $`\mathsf{typeMismatch}` once its operands were
 checked. When a statement, or the condition of an `if` or a `while`,
@@ -113,7 +113,7 @@ test itself, whose errors `main` could not report. When the state leaves
 those checks out (`State.ownChecks`), the test is rejected so, or passes
 with no check of its own, a tested call of `__bool__` taken as a
 $`\mathsf{Bool}`. Both are parts of the bridge, temporary, until #96
-part 4.
+removes it (#323).
 :::
 
 :::readable MojoGrimoire.Check.typedSimdLeft (fingerprint := "14638421453085381312")

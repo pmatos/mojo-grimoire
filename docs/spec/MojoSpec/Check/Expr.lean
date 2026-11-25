@@ -47,7 +47,7 @@ type:
 * operators have the types above, but a method that an operand's type
   lacks is `missingMethod` (#176): found from the operands' types
   (`operandTy`, `binaryMisfit`, `unaryMisfit`; in the replay of the bridge
-  to `main`'s order, temporary, until #96 part 4, a struct test has
+  to `main`'s order, temporary, until #96 removes it (#323), a struct test has
   `main`'s type at any depth, `mainFormTy`) before they are
   read, once both are typed by `typeArg`, and else from their checked
   types. The

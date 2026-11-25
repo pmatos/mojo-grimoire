@@ -12,8 +12,10 @@ checked here as that call would be, its operand passed to `self` as an
 argument (`MojoGrimoire.Check.checkArg`), without being checked again
 (`passLeft`).
 
-A struct test also bridges an order of `main`'s, until #96 part 4
-types a function before it checks its flow, as the compiler does.
+A struct test also bridges an order of `main`'s, until #96 removes it
+(#323): part 4 types a function before it checks its flow, as the
+compiler does, but checking a call's arguments before its misfit waits
+for #89.
 `main` rejected every struct test as `typeMismatch` once its operands
 were checked, so an error that the checker finds after a struct test, in
 the same statement, was `main`'s `typeMismatch`, or an error that
@@ -23,7 +25,7 @@ again replaying `main`'s order (`bridged`, `State.mainTests`), and
 then the first error stands. An error of the test itself, such as a
 `__bool__` that returns no `Bool`, stays only when the statement holds
 no other error; else `main`'s `typeMismatch` came first, and stands
-(`State.ownChecks`). #96 part 4 removes the bridge.
+(`State.ownChecks`). #96 removes the bridge, as the ruling on #323 says.
 -/
 
 namespace MojoGrimoire.Check
@@ -32,7 +34,7 @@ open MojoGrimoire.Core
 
 /-- Rejects a struct test, as `main` did, when the state replays `main`'s
 order (`State.mainTests`): `typeMismatch` of a `Bool` and the struct `s`.
-Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
+Part of the bridge to `main`'s order: temporary, until #96 removes it (#323). -/
 def mainTest (s : Name) : CheckM Unit := do
   if (← get).mainTests then throw (CheckError.typeMismatch .bool (.struct s))
 
@@ -43,7 +45,7 @@ read that operand as a value, which copies a place: a struct that is not
 `ImplicitlyCopyable` is then `implicitCopy`. When the state leaves out
 the checks of a struct test itself (`State.ownChecks`), the test is a
 `Bool`, whatever `__bool__` returns.
-Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
+Part of the bridge to `main`'s order: temporary, until #96 removes it (#323). -/
 def mainRead (prog : Program) (a : Expr) (check : CheckM Ty) : CheckM Ty := do
   let t ← check
   if let some (s, e) := boolTest a then
@@ -57,7 +59,7 @@ reference, when `f` is the `__bool__` of a struct test (`boolTest`) and
 the state leaves out the checks of a struct test itself
 (`State.ownChecks`): its convention is then not checked, as `main` made
 no call, and its operand is only read.
-Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
+Part of the bridge to `main`'s order: temporary, until #96 removes it (#323). -/
 def testParams (f : Name) (ps : List Param) : CheckM (List Param) := do
   if (← get).ownChecks then return ps
   match calleeMethod f, ps with
@@ -67,7 +69,7 @@ def testParams (f : Name) (ps : List Param) : CheckM (List Param) := do
 /-- Checks the operand `a` of `not` by `check` (`mainRead`), then rejects
 a test of a struct there as `main` did, when the state replays `main`'s
 order (`mainTest`).
-Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
+Part of the bridge to `main`'s order: temporary, until #96 removes it (#323). -/
 def notOperand (prog : Program) (a : Expr) (check : CheckM Ty) : CheckM Ty := do
   let t ← mainRead prog a check
   if let some (s, _) := boolTest a then mainTest s
@@ -76,7 +78,7 @@ def notOperand (prog : Program) (a : Expr) (check : CheckM Ty) : CheckM Ty := do
 /-- Whether the expression `e` is `and` or `or` of two operands of the
 same struct type, which it has (`operandTy`): a same-type test, which
 `main` typed as a `Bool`.
-Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
+Part of the bridge to `main`'s order: temporary, until #96 removes it (#323). -/
 def sameTest (prog : Program) (e : Expr) : CheckM Bool :=
   match e with
   | .binary op _ _ => do
@@ -87,13 +89,13 @@ def sameTest (prog : Program) (e : Expr) : CheckM Bool :=
 when the state replays `main`'s order, with `and` and `or` typed as a
 `Bool` at any depth, as `main` typed them: a same-type test (`sameTest`)
 too, and one inside a literal, `[x or y]` an array of `Bool`.
-Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
+Part of the bridge to `main`'s order: temporary, until #96 removes it (#323). -/
 def mainFormTy (prog : Program) (e : Expr) : CheckM (Option Ty) := do
   operandTy prog e (← get).mainTests
 
 /-- The binary operator whose method, or whose reflected method when
 `reflected` holds, is `m`.
-Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
+Part of the bridge to `main`'s order: temporary, until #96 removes it (#323). -/
 def methodOperator (m : Name) (reflected : Bool) : Option BinOp :=
   [BinOp.add, .sub, .mul, .floorDiv, .mod, .lt, .le, .gt, .ge, .eq, .ne].find? fun op =>
     (if reflected then reflectedMethod op else binaryMethod op) == m
@@ -105,7 +107,7 @@ left operand's struct, whether or not the right one fits it, else the
 reflected method of the right operand's struct, when it takes the left
 operand's type, not as `mut`, and its `self` takes the right operand
 (`canB`, for a `mut self`); `none` leaves the operator as it is.
-Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
+Part of the bridge to `main`'s order: temporary, until #96 removes it (#323). -/
 def mainCallee (prog : Program) (op : BinOp) (ta tb : Option Ty) (canB : Bool) :
     Option Name :=
   let declared (t : Option Ty) (m : Name) : Option (Name × FunDecl) := match t with
@@ -136,7 +138,7 @@ call does. Typing an operand stops at an error of a later pass, which it
 leaves out (`typeArg`), and at a struct test, which the replay rejects as
 `main` did (`mainTest`): so a test reached first is `typeMismatch`, and
 else the misfit itself, such as `missingMethod` for `+` on a `Bool`.
-Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
+Part of the bridge to `main`'s order: temporary, until #96 removes it (#323). -/
 def mainOperator (prog : Program) (f : Name) (args : List Expr) (typing : CheckM Unit) :
     CheckM Name := do
   unless (← get).mainTests do return f
@@ -170,7 +172,7 @@ own order without those checks, shows; else `main` reported the test's
 `typeMismatch`, and the second replay's error is `main`'s. A replay's
 error that is not of the compiler's later pass (`CheckError.late`) is
 reported, and else the first error stands.
-The bridge to `main`'s order: temporary, until #96 part 4. -/
+The bridge to `main`'s order: temporary, until #96 removes it (#323). -/
 def bridged {α : Type} (check : CheckM α) : CheckM α :=
   tryCatch check fun err => do
     let start ← get
@@ -245,7 +247,7 @@ rejected as `main` rejected it once both operands were checked
 could not report. When the state leaves those checks out
 (`State.ownChecks`), the test is rejected so, or passes with no check
 of its own, a tested call taken as a `Bool`. Both are parts of the bridge
-to `main`'s order: temporary, until #96 part 4. -/
+to `main`'s order: temporary, until #96 removes it (#323). -/
 def checkedBinaryTy (prog : Program) (op : BinOp) (a b : Expr) (ta tb : Ty) (ka kb : Nat)
     (before afterLeft : State) : CheckM Ty := do
   unless op == .and || op == .or do

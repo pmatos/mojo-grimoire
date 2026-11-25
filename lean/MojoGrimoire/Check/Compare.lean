@@ -36,7 +36,7 @@ waits for its conformances (#194), and a literal that would initialize a
 `Bool` for #165: those comparisons keep the checks they had before #166.
 A list of structs compared with an empty literal, `List[P]() == []`, is
 a type mismatch where the compiler gives `violatedConstraint` (#194).
-So is a `Bool` compared with one, on both paths (`boolLiteralMisfit`).
+So is a `Bool` compared with one, in the type phase (`boolLiteralMisfit`).
 -/
 
 namespace MojoGrimoire.Check
@@ -214,7 +214,9 @@ converts (`emptyList`). The compiler builds such a literal, and copies
 the place, in an order against its conversion and its misfit that waits
 for #96. -/
 def keepsBefore (prog : Program) (op : BinOp) (a b : Expr) : CheckM Bool := do
-  pure (compares op && (emptyList a || emptyList b || (← heldCopy prog a) || (← heldCopy prog b)))
+  if !compares op then return false
+  if emptyList a || emptyList b then return true
+  return (← heldCopy prog a) || (← heldCopy prog b)
 
 /-- Whether the operand `e` is a binary operation, under the drops that
 the elaborator adds: in an operand of struct type, a nested test of `and`
@@ -270,7 +272,7 @@ def convertsLiteral (op : BinOp) (a b : Expr) (ta tb : Option Ty) : Bool :=
 
 /-- The error of `op` that the forms of `a` and `b` give (`operandTy`, or
 `formTy` when given: `main`'s typing in the bridge to its order of #191,
-temporary, until #96 part 4), before #166's conversions: an integer
+temporary, until #96 removes it (#323)), before #166's conversions: an integer
 literal's comparison with an array or a list is left to its overloads,
 an empty literal with no type compared with an array has no type that
 fits it, and a literal that the compiler converts (`convertsLiteral`) is

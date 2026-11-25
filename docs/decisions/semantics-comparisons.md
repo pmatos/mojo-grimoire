@@ -51,11 +51,6 @@ it to lists. Part 1 of #166 and #185 model the element types `Int`,
   length where an `Int` is expected on the right, `a == [[1, 2], 3]`, fits
   no initializer of `Int` (`noMatchingInit`), but only once `a` is read,
   as in a call: beside an uninitialized `a` it is `uninitializedUse`.
-  Where `main` rejected such a comparison with another class, the model
-  keeps `main`'s class by the bridge below until #96 part 4:
-  `a == [[]]`, `[True] == xs`, `[ys^] == xs`, `[[1]] < v` and
-  `a == [[1, 2], 3]` are still `implicitCopy`, and `xs == [True]` beside
-  an uninitialized `xs` is `uninitializedUse`.
   Otherwise a literal is an array, unless the other operand is an `Int`
   (see [semantics-lists.md](semantics-lists.md#arrays)).
 - An operand of another type, an array or a list of another length or
@@ -132,13 +127,12 @@ the compiler's; where #185 changed the class, the bullet says so:
   is `implicitCopy`, and an uninitialized read is `uninitializedUse`, as
   the compiler says.
 - A literal on the right that holds an inner literal of another length
-  where an `Int` is expected, beside another error of the statement:
-  `v >= [[[3, 0]]]` with `v: Array[List[Int], 1]`, or `a == [[1, 2], ux]`
-  with `ux` an uninitialized `Int`. The compiler fails SIMD's constraint
-  (`noMatchingInit`) as it instantiates, after every other pass, and
-  reports the comparison's `violatedConstraint` or the uninitialized read
-  first. Part 2 rejects the literal at once, and so keeps `main`'s
-  `implicitCopy`, the copy of the named operand (#170).
+  where an `Int` is expected, beside an uninitialized read of the
+  statement: `a == [[1, 2], ux]` with `ux` an uninitialized `Int`. The
+  compiler fails SIMD's constraint (`noMatchingInit`) as it instantiates,
+  after every other pass, and reports the uninitialized read first. The
+  model rejects the literal in the flow phase, in the order of the
+  statement, so it gives `noMatchingInit` until Part 7 of #96 (#170).
 - A transfer in a loop's condition, `while a^ < [1, 3] and t:`, which the
   compiler borrows and the model moves: the second check of the condition
   is stuck at run time (#84). `while ab^ < [True, True] and t:`, with

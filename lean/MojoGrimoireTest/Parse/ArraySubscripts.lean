@@ -207,11 +207,7 @@ private def method (conv : String) : List String :=
 -- A comparison with a literal that part 2 of #166 converts is rejected
 -- too: the subscript on the right invalidates the element that the
 -- literal reads late, as the pin says.
-#guard match runBody ["print([v[0][0]] == v[0])"] with
-  | some (.rejected ⟨"main", .invalidatedReference _⟩) => true
-  | _ => false
-#guard match runBody ["print([v[0][0]] == v[0].copy())"] with
-  | some (.rejected ⟨"main", .invalidatedReference _⟩) => true
-  | _ => false
+#guard stale ["print([v[0][0]] == v[0])"]
+#guard stale ["print([v[0][0]] == v[0].copy())"]
 
 end MojoGrimoireTest.Parse.ArraySubscripts

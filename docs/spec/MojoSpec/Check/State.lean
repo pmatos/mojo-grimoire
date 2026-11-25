@@ -76,7 +76,7 @@ only a subscript of an array invalidated (#282), and the shapes of the
 places changed as a whole so far in the current statement, in order. A
 flag, unset but while a statement is checked again to replay `main`'s
 order, makes a struct test rejected as `main` rejected it
-(`MojoGrimoire.Check.bridged`, until #96 part 4); another, set but while
+(`MojoGrimoire.Check.bridged`, until #96 removes it, #323); another, set but while
 that replay runs without them, keeps the checks of a struct test
 itself. The state holds the phase too, type or flow (`Phase`): the
 type phase skips the checks of the flow phase (`flowCheck`, and

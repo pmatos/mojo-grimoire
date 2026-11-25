@@ -152,7 +152,7 @@ any read. The model's order is in
 [semantics-error-order.md](semantics-error-order.md#calls-and-initializers).
 
 A temporary bridge keeps `main`'s results for the struct tests that part
-2 of #191 accepts, until #96 part 4
+2 of #191 accepts, until #96 removes it, as the ruling on #323 says
 ([semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares)
 says how).
 

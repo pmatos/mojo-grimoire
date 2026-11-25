@@ -8,10 +8,7 @@ element, as a call converts its argument. A literal on the right takes
 the left operand's type, and one on the left the right operand's, unless
 that is a literal too. One that does not fit is a type mismatch, found
 before the operands are read. Each verdict is the pinned compiler's for
-the program, probed on the nightly 1.3.0.dev2026111905. Where `main`
-rejected a statement with another class and part 2 rejects it too, the
-statement keeps `main`'s class until #96 part 4
-(`MojoGrimoire.Check.bridgedToTwin`): those guards wait on #96.
+the program, probed on the nightly 1.3.0.dev2026111905.
 -/
 
 namespace MojoGrimoireTest.Parse.LiteralCompare

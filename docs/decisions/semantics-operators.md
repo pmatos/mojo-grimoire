@@ -79,8 +79,10 @@ is: `t < u` may give an `Int`.
   on both sides, lives until the test is done. The right operand and
   `not e` move a temporary into `self`, as a call does.
 - A temporary bridge keeps `main`'s results for these tests until #96
-  part 4 types a function before it checks its flow; that part removes
-  it. `main` rejected every test of a struct, by `and`, `or` or `not`, as
+  removes it. Part 4 of #96 types a function before it checks its flow,
+  but removing the bridge loses two suite programs whose order is #89's,
+  so it waits for the ruling on #323
+  ([semantics-error-order.md](semantics-error-order.md)). `main` rejected every test of a struct, by `and`, `or` or `not`, as
   `typeMismatch` once its operands were checked. So a statement, or a
   condition of an `if` or a `while`, that throws an error is checked
   again replaying `main`'s order (`bridged`), and the replay's error is
