@@ -43,26 +43,35 @@ def invalidatedBy (prog : Program) (m : Shape) : CheckM (List Name) := do
   for v in (← get).vars do
     if let .alias os _ _ := v.access then
       for o in os do
-        if (splitPlace o).1 == m.1 && invalidates m (← shapeOf prog o) then
-          stale := v.name :: stale
+        if (splitPlace o).1 == m.1 then
+          if invalidates m (← shapeOf prog o) then stale := v.name :: stale
   pure stale
 
 /-- Records that the place `p` is changed as a whole, and invalidates every
-reference bound with `ref` into an element of a list that `p` holds. -/
-def changePlace (prog : Program) (p : Place) : CheckM Unit := do
+reference bound with `ref` into an element of a list that `p` holds: in
+the state's `stale`, or, `apart`, in its `interior`. -/
+def recordChange (prog : Program) (p : Place) (apart : Bool) : CheckM Unit := do
   for q in resolvePlace (← get).vars p do
     let m ← shapeOf prog q
-    let stale ← invalidatedBy prog m
-    modify fun s => { s with stale := union s.stale stale, changes := s.changes ++ [m] }
+    let ns ← invalidatedBy prog m
+    modify fun s => if apart then { s with interior := union s.interior ns, changes := s.changes ++ [m] }
+      else { s with stale := union s.stale ns, changes := s.changes ++ [m] }
+
+/-- Records that the place `p` is changed as a whole (`recordChange`). -/
+def changePlace (prog : Program) (p : Place) : CheckM Unit := recordChange prog p false
+
+/-- The access `a` as a subscript sees it (#282): a `ref` parameter, whose
+mutability the compiler does not know, as one that may change, and a
+reference bound with `ref` as one that may change when it is subscripted
+so. -/
+def Access.asSubscripted : Access → Access
+  | .refParam => .mutable
+  | .alias os _ s => .alias os s s
+  | a => a
 
 /-- Whether a variable held this way is passed to `__getitem__` as a
-mutable `self` when it is subscripted: one that may be changed, a `ref`
-parameter, whose mutability the compiler does not know, and a reference
-bound with `ref` that is subscripted so. -/
-def Access.subscriptsMutable : Access → Bool
-  | .refParam => true
-  | .alias _ _ s => s
-  | a => a.canChange
+mutable `self` when it is subscripted (`Access.asSubscripted`). -/
+def Access.subscriptsMutable (a : Access) : Bool := a.asSubscripted.canChange
 
 /-- Whether a subscript of the place `p` passes it to `__getitem__` as a
 mutable `self`: its variable is so held, and `p` is not reached through
@@ -104,11 +113,8 @@ records that `p` is changed as a whole, and invalidates the references
 bound with `ref` into an element of a list that `p` holds, apart (#282). -/
 def subscript (prog : Program) (p : Place) (k : Nat) : CheckM Unit := do
   requireUnchanged prog p k
-  unless (← placeTy prog p) matches .array .. && (← subscriptsMutable p) do return
-  for q in resolvePlace (← get).vars p do
-    let m ← shapeOf prog q
-    let stale ← invalidatedBy prog m
-    modify fun s => { s with interior := union s.interior stale, changes := s.changes ++ [m] }
+  unless ← subscriptsMutable p do return
+  if (← placeTy prog p) matches .array .. then recordChange prog p true
 
 /-- The origins of the call `e` that returns a reference, those of its
 origin arguments that are temporaries left out; none for any other
@@ -144,30 +150,23 @@ def lateLocsList (prog : Program) : List Expr → CheckM (List Place)
   | e :: es => do pure ((← lateLocs prog e) ++ (← lateLocsList prog es))
 end
 
+/-- The places that `e`, an element of a literal or an argument, reads late
+of its own (`lateLocs`). A literal reads only what a literal `[e]` of an
+`Int`, the `Int` `e`, reads (#103): one that is an operand is read as
+`literalLocs` says, and one inside a literal is built in its turn, before
+the elements after it are evaluated; what else it reads waits for #308. -/
+def nestedLocs (prog : Program) : Expr → CheckM (List Place)
+  | .list .int [x] => lateLocs prog x
+  | .list .. => pure []
+  | e => lateLocs prog e
+
 /-- The places that the literal operand `e` reads once every operand of its
 operation is evaluated: Mojo builds a literal operand only then (#282), so
-each element's `lateLocs` are read then. A literal among them, built in its
-turn, reads late only what a literal `[e]` of an `Int`, the `Int` `e`,
-reads; what else it reads waits for #308. An operand that is no literal
-reads none so. -/
+what each element reads late (`nestedLocs`) is read then. An operand that
+is no literal reads none so. -/
 def literalLocs (prog : Program) : Expr → CheckM (List Place)
-  | .list _ es => do
-    pure (← es.mapM fun
-      | .list .int [x] => lateLocs prog x
-      | .list .. => pure []
-      | e => lateLocs prog e).flatten
+  | .list _ es => do pure (← es.mapM (nestedLocs prog)).flatten
   | _ => pure []
-
-/-- The late reads of the elements `es` of a literal, from those that
-checking each as an argument gave, `ls`: a literal among them is built in
-its turn, before the elements after it are evaluated, so it reads late only
-what a literal `[e]` of an `Int`, the `Int` `e`, reads (#103). -/
-def elemLocs (prog : Program) (es : List Expr) (ls : List (List Place × Nat)) :
-    CheckM (List (List Place × Nat)) :=
-  (es.zip ls).mapM fun
-    | (.list .int [x], (_, k)) => do pure (← lateLocs prog x, k)
-    | (.list .., (_, k)) => pure ([], k)
-    | (_, l) => pure l
 
 /-- Rechecks the operands among `es`, read from their `lateLocs`, with
 `recheckLocs`. `ks` holds, for each operand, how many changes were recorded
@@ -176,9 +175,26 @@ def recheckPlaces (prog : Program) (es : List Expr) (ks : List Nat) : CheckM Uni
   recheckLocs prog (← (es.zip ks).mapM fun (e, k) => do pure (← lateLocs prog e, k))
 
 /-- Rechecks the literal operands among `es`, read from their `literalLocs`,
-with `recheckLocs`; `ks` as for `recheckPlaces`. -/
-def recheckLiterals (prog : Program) (es : List Expr) (ks : List Nat) : CheckM Unit := do
-  recheckLocs prog (← (es.zip ks).mapM fun (e, k) => do pure (← literalLocs prog e, k))
+as `recheckLocs` does; `ks` as for `recheckPlaces`. A place that a later
+operand transfers, `q^`, may be uninitialized now: the compiler builds the
+literal before it takes `q`, so `print([b[0]], b^)` runs, but not before a
+call that takes `q^` runs, so `print([b[0]], take(b^))` is rejected. -/
+def recheckLiterals (prog : Program) : List Expr → List Nat → CheckM Unit
+  | e :: es, k :: ks => do
+    let later := es.filterMap fun | .transfer q => some q | _ => none
+    for p in ← literalLocs prog e do
+      tryCatch (do let _ ← readPlace prog p) fun err => do
+        unless err matches .uninitializedUse _ && later.any (overlaps · p) do throw err
+      requireUnchanged prog p k
+    recheckLiterals prog es ks
+  | _, _ => pure ()
+
+/-- Rechecks the arguments `args` of a call once every one is evaluated:
+what checking them gave, `ls` (`recheckLocs`), then what a literal among
+them reads (`recheckLiterals`). -/
+def recheckArgs (prog : Program) (args : List Expr) (ls : List (List Place × Nat)) : CheckM Unit := do
+  recheckLocs prog ls
+  recheckLiterals prog args (ls.map (·.2))
 
 /-- The places that the first element `e` of an untyped literal is read
 from once every element is evaluated: a place itself, or the arguments of

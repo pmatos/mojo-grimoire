@@ -84,7 +84,10 @@ choices (#18):
   operand is built from its elements only once every operand of its
   operation is evaluated, so its element places are read then too:
   `print([xs[0]], xs.pop())` and `[xs[0]] == [xs.pop()]` are rejected
-  (#282). A literal passed to `len` is built, and read, at once. A literal
+  (#282). A literal passed to `len` is built, and read, at once. A later
+  operand that transfers a place gives it up only once the literal is
+  built: `print([b[0]], b^)` runs, but `print([b[0]], take(b^))` is a use
+  of `b` after its move, as the call takes `b` before. A literal
   nested in a literal operand is built in its turn, before its later
   siblings: `print(r > [[b[0]], b^])` runs. That it reads its places after
   the operation's later operands, as in `print([[v[0][0]]], v[0])`, which

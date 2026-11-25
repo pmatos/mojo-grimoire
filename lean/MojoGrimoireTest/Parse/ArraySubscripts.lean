@@ -47,6 +47,12 @@ private def lib : List String := [
   "",
   "def firstMut(mut a: Array[List[Int], 1]) -> ref [a] Array[List[Int], 1]:",
   "    return a",
+  "",
+  "def pairOwned(a: List[Int], var b: List[Int]):",
+  "    print(a, b)",
+  "",
+  "def takeList(var b: List[Int]) -> Int:",
+  "    return len(b)",
   ""]
 
 /-- The program of `lib`, the declarations `extra` and a `main` that starts
@@ -123,6 +129,13 @@ private def prints (body : List String) (out : List String) : Bool :=
 #guard stale ["print([w[0]], w.pop())"]
 #guard stale ["print([x, w[0]], w.pop())"]
 #guard stale ["print([w[0]] == [w.pop()])"]
+-- A later operand that transfers a place gives it up only once the literal
+-- is built; a call that takes it runs before.
+#guard prints ["var b: List[Int] = [1]", "print([b[0]], b^)"] ["[1] [1]"]
+#guard prints ["var b: List[Int] = [1]", "pairOwned([b[0]], b^)"] ["[1] [1]"]
+#guard match runBody ["var b: List[Int] = [1]", "print([b[0]], takeList(b^))"] with
+  | some (.rejected ⟨"main", .uninitializedUse _⟩) => true
+  | _ => false
 -- A literal inside a literal operand is built in its turn, before its later
 -- siblings: `b^` moves `b` after `[b[0]]` reads it.
 #guard prints ["var b = [1]", "var r: Array[Array[Int, 1], 2] = [[1], [0]]", "print(r > [[b[0]], b^])"]

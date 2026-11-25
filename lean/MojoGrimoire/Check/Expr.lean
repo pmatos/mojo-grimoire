@@ -54,7 +54,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       let params ← testParams f sig.params
       let fit := if (findStruct prog f).isSome then Fit.init (.struct f) else .call
       checkExclusive (← locationArgs prog params args)
-      recheckLocs prog (← checkArgs prog fit f params args params.length args.length)
+      recheckArgs prog args (← checkArgs prog fit f params args params.length args.length)
       for q in ← changedArgs prog params args do changePlace prog q
       refResult prog asRef sig args
     | .error err =>
@@ -93,15 +93,15 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     unless declarableTy prog u do throw (CheckError.invalidType t)
     let k ← mark
     recheckLocs prog ((← firstElemLocs prog e, k) ::
-      (← elemLocs prog es (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
-        es.length es.length)))
+      (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
+        es.length es.length))
     pure t
   | .list .int [e] => do expect .int (← checkExprAs prog false e); pure .int
   | .list .int es => rejectIntLiteral prog .call (intMisfit prog es) (readIntElems prog es)
   | .list t es => do
     let u ← literalElem prog (.init t) t es.length
-    recheckLocs prog (← elemLocs prog es (← checkArgs prog (.init t) (typeName t)
-      (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length))
+    recheckLocs prog (← checkArgs prog (.init t) (typeName t)
+      (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length)
     pure t
   | .listInit u [e] => do
     rejectHidden u
@@ -380,12 +380,12 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
         checkExprAs prog false (.list t es)
       else do
         let u ← literalElem prog .call t es.length
-        recheckLocs prog (← elemLocs prog es (← checkArgs prog .call (typeName t)
-          (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length))
+        recheckLocs prog (← checkArgs prog .call (typeName t)
+          (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length)
         pure t
     expectArg fit prm.ty t'
     let k ← mark
-    pure (← literalLocs prog (.list t es), k)
+    pure (← nestedLocs prog (.list t es), k)
   | e => do
     if e matches .str _ && fit matches .overload _ then
       throw (fit.misfit (CheckError.typeMismatch prm.ty .str))

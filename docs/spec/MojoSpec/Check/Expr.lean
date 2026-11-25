@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9586464400285386575")
+:::moduleDocs (fingerprint := "7545125641403712667")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "7071109964855871827")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.checkIterableElems MojoGrimoire.Check.typeRangeArgs MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.readRangeArgs MojoGrimoire.Check.intMisfit MojoGrimoire.Check.readIntElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "7523514247501723411")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -209,8 +209,9 @@ expected type passed to a function or a method is converted to the
 parameter's type, and one that does not fit, or holds such a literal, is a
 type mismatch, as the compiler reports it. A literal passed to a parameter is
 read late, as a literal operand is, so what its elements read is checked
-again with the other operands (`literalLocs`, #282), and a literal among
-the elements of a literal reads only what the rule of `elemLocs` gives;
+again with the other operands, once the call's arguments are
+(`recheckArgs`, #282), and a literal among the elements of a literal reads
+only what the rule of `nestedLocs` gives;
 so is a literal
 $`[e]_{\mathsf{Int}}` passed `mut` or `ref`, a value read as the operand
 $`e` would be (#103).

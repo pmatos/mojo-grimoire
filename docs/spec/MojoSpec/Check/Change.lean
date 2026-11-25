@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Changes and late re-checks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "202091220525775183")
+:::moduleDocs (fingerprint := "10669255726755352303")
 :::
 
-:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.invalidatedBy MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "16208851434039671369")
+:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.invalidatedBy MojoGrimoire.Check.recordChange MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "12255894962175073090")
 *Rule: changes.* A call changes as a whole each place it is passed `mut`,
 and each place it is passed `ref` that the function may change and that
 is not reached through `p^`; for a
@@ -27,7 +27,7 @@ bound with `ref` whose origin the change invalidates. The mark of an
 operand is the number of changes recorded once it is checked.
 :::
 
-:::readable MojoGrimoire.Check.Access.subscriptsMutable MojoGrimoire.Check.subscriptsMutable MojoGrimoire.Check.subscript (fingerprint := "745385924708920763")
+:::readable MojoGrimoire.Check.Access.asSubscripted MojoGrimoire.Check.Access.subscriptsMutable MojoGrimoire.Check.subscriptsMutable MojoGrimoire.Check.subscript (fingerprint := "18289901038864932271")
 *Rule: subscripts.* Once the index of $`q[i]` is evaluated, $`q` must
 not be invalidated by it, and $`q` is passed to `__getitem__`. An array
 passed so as a mutable `self` is changed as a whole, as far as the
@@ -43,7 +43,7 @@ change nothing. The references that such a subscript invalidates are kept
 apart from the others, as `State.interior` says.
 :::
 
-:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.lateLocs MojoGrimoire.Check.lateLocsList MojoGrimoire.Check.locsOf MojoGrimoire.Check.literalLocs MojoGrimoire.Check.elemLocs MojoGrimoire.Check.recheckPlaces MojoGrimoire.Check.recheckLiterals MojoGrimoire.Check.firstElemLocs (fingerprint := "498997209519842773")
+:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.lateLocs MojoGrimoire.Check.lateLocsList MojoGrimoire.Check.locsOf MojoGrimoire.Check.nestedLocs MojoGrimoire.Check.literalLocs MojoGrimoire.Check.recheckPlaces MojoGrimoire.Check.recheckLiterals MojoGrimoire.Check.recheckArgs MojoGrimoire.Check.firstElemLocs (fingerprint := "6323882986305852094")
 *Rule: places read late.* Mojo reads a place operand only once every
 operand of its operation is evaluated, and a place passed by reference is
 used during the call. So once the operands are checked, every operand that
@@ -65,7 +65,10 @@ the list that holds `xs[0]` before `xs[0]` is read. A place located once
 $`k` changes were recorded is invalidated when a change recorded since
 then invalidates it. A literal operand is built from its elements only
 once every operand is evaluated, so what its elements read is read late
-too: `print([xs[0]], xs.pop())` is rejected (#282). A literal among the
+too: `print([xs[0]], xs.pop())` is rejected (#282), and so is a literal
+argument of a call. A place that a later operand transfers, $`q\,\hat{}`,
+is given up only once the literal is built, so `print([b[0]], b^)` runs,
+while a call that takes $`q\,\hat{}` runs first. A literal among the
 elements of a literal is built in its turn, before the elements after it
 are evaluated, so it reads late only what a literal $`[e]_{\mathsf{Int}}`,
 the $`\mathsf{Int}` $`e`, reads; that it reads the rest after the
