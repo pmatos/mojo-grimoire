@@ -1,0 +1,33 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "pr 3",
+    "get 1 2",
+    "del K 2",
+    "sh 1 3",
+    "1",
+    "pr 5",
+    "get 1 4",
+    "del K 4",
+    "sh 1 5",
+    "del W 1",
+    "1",
+    "pr 8",
+    "get 6 7",
+    "del K 7",
+    "sh2 6 8",
+    "del W 6",
+    "6",
+    "get 9 11",
+    "del K 11",
+    "sh 9 12",
+    "get 9 10",
+    "del K 10",
+    "sh 9 9",
+    "del W 9",
+    "9",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

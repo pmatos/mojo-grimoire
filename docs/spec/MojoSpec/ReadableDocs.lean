@@ -17,11 +17,14 @@ import MojoSpec.Check.Compare
 import MojoSpec.Check.Logic
 import MojoSpec.Check.Expr
 import MojoSpec.Check.Ref
+import MojoSpec.Check.Subscript
 import MojoSpec.Check.Stmt
 import MojoSpec.Check.Block
 import MojoSpec.Check.Program
 import MojoSpec.Elab.Live
 import MojoSpec.Elab.Origins
+import MojoSpec.Elab.Late
+import MojoSpec.Elab.Operands
 import MojoSpec.Elab.Operations
 import MojoSpec.Elab.Elaborate
 import MojoSpec.Elab.Strip
@@ -38,6 +41,7 @@ import MojoSpec.Parse.HiddenTypes
 import MojoSpec.Parse.SelfType
 import MojoSpec.Parse.Dispatch
 import MojoSpec.Parse.Compared
+import MojoSpec.Parse.InferExpr
 import MojoSpec.Parse.Infer
 import MojoSpec.Parse.Subset
 import MojoSpec.Driver.Main

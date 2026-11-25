@@ -1,0 +1,14 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "get 1 5",
+    "get 1 5",
+    "del K 5",
+    "True",
+    "get 1 6",
+    "del K 6",
+    "False"
+  ],
+  "class": null,
+  "diagnostic": null
+}

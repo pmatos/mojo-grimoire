@@ -33,6 +33,13 @@ reads the reference only then, and those that die then are destroyed the
 last declared first. An operand of a comparison of two arrays or two
 lists is passed by reference (#166, #185). The value of a `return` uses
 them until it is read.
+A subscript of a struct that Mojo reads late (#191) uses the places among
+its getter's arguments: they live until the operands are read, when the
+getter is called, and the getter destroys what it last uses right after it,
+but what a reference it returns points into (`MojoGrimoire.Elab.Late`),
+also under `print`, before `print` writes. On the left of `and` or `or`, it is read as a
+subscript of a struct with no setter is, once, as it is evaluated: the
+compiler reads it twice there, a bug (D-0011, #211).
 Inside `__deinit__(deinit self)`, each field of `self` is destroyed on its own,
 at the same points, so a field the body never uses is destroyed before the
 body runs.
@@ -53,85 +60,37 @@ namespace MojoGrimoire.Elab
 
 open MojoGrimoire.Core MojoGrimoire.Check
 
-/-- Whether a value of type `t` is dropped: one of struct type, or a list
-or an array of them. -/
-def needsDrop : Ty → Bool
-  | .struct _ => true
-  | .list t | .array t _ => needsDrop t
-  | _ => false
-
-/-- The statements that drop the slots of `d`, in the order of `owned`, the
-slots a function owns, in the order they die when several die at once. A
-slot that the function does not own, such as a borrowed parameter, is never
-dropped. -/
-def drops (owned d : List Place) : List Stmt :=
-  (owned.filter (d.contains ·)).map .drop
-
-/-- The slots that the simple statement `s` defines: a declaration with an
-initial value, or an assignment to a whole slot. -/
-def defs (sl : Slots) : Stmt → List Place
-  | .decl x _ (some _) => [.var x]
-  | .assign p _ => if sl.isSlot p then [p] else []
-  | _ => []
-
-/-- The slots that the simple statement `s` uses. An assignment to a part of
-a slot uses the slot. -/
-def usesStmt (sl : Slots) : Stmt → List Place
-  | .decl _ _ init => usesOpt sl init
-  | .refDecl _ e => uses sl e
-  | .assign p e =>
-    if sl.isSlot p then uses sl e else union (uses sl e) (union (sl.of p) (indexUses sl p))
-  | .expr e => uses sl e
-  | .print args => usesList sl args
-  | _ => []
-
-/-- The slots that the simple statement `s` moves away whole. -/
-def movesStmt (sl : Slots) : Stmt → List Place
-  | .decl _ _ (some e) | .refDecl _ e | .expr e => moves sl e
-  | .assign p e => union (moves sl e) (indexMoves sl p)
-  | .print args => movesList sl args
-  | _ => []
-
-/-- The slots that die right after the simple statement `s`, given the
-slots `gone` that its expressions destroy or consume, and the slots `after`
-live after it: those it uses but neither moves away nor leaves in `gone`,
-and those it defines, unless they are live. `gone` holds values that die
-before `s` defines anything, so it never holds the value that `s` defines,
-even when an assignment destroys or consumes the old value of the slot it
-assigns. -/
-def dying (sl : Slots) (s : Stmt) (gone after : List Place) : List Place :=
-  diff (union (diff (usesStmt sl s) (union (movesStmt sl s) gone)) (defs sl s)) after
-
-mutual
-/-- The local variables whose values are dropped that the statement `s`
-declares, in order, each once. -/
-def declared : Stmt → List Place
-  | .decl x t _ => if needsDrop t then [.var x] else []
-  | .ifElse _ a b => union (declaredBlock a) (declaredBlock b)
-  | .whileLoop _ body => declaredBlock body
-  | _ => []
-
-/-- The local variables whose values are dropped that the block `b`
-declares, in order, each once. -/
-def declaredBlock : List Stmt → List Place
+/-- Elaborates the operands `es`, the last of the operands `args` of
+`print`, given the slots `atLoad` live once `print` has read them, but
+those of its subscripts. `print` reads its operands once every operand is
+evaluated, and a place operand lives until it is done. A subscript that
+Mojo reads late calls its getter then, so what the getter last uses dies
+right after it, before `print` writes, and lives until then. -/
+def elabPrintOps (ctx : Ctx) (args : List Expr) (atLoad : List Place) : List Expr → List Expr
   | [] => []
-  | s :: rest => union (declared s) (declaredBlock rest)
-end
+  | e :: rest =>
+    let late := isGetter ctx.prog e
+    let live := union atLoad (placeUses ctx ((if late then rest else args).filter (isGetter ctx.prog)))
+    let held := placeUses ctx ((args.take (args.length - rest.length - 1)).filter (isGetter ctx.prog))
+    (if late then (elabLate ctx e live (union held (usesList ctx.sl rest))).out
+      else (elabExpr ctx false e (union live (usesList ctx.sl rest))).out) ::
+      elabPrintOps ctx args atLoad rest
 
-/-- The slots that the operands `es`, read by reference, use directly. -/
-def placeUses (ctx : Ctx) : List Expr → List Place
-  | [] => []
-  | e :: es => union (directOf ctx e false).1 (placeUses ctx es)
+/-- Elaborates the operands `args` of `print`, given the slots live after
+it (`elabPrintOps`). -/
+def elabPrintArgs (ctx : Ctx) (args : List Expr) (after : List Place) : List Expr :=
+  elabPrintOps ctx args (union after (placeUses ctx (args.filter (!isGetter ctx.prog ·)))) args
 
 /-- Elaborates the value `e` of a `return`. A call that returns a reference
 is read once it is done, so the values it points into that the function
 owns live until then, and die then in the order of `owned`. The inner
 `withDrops` makes the call one operand, so that they die after it is read,
-not before it is made. -/
+not before it is made. A subscript read late keeps only what its getter's
+reference points into: its getter destroys what else it last uses. -/
 def elabReturn (ctx : Ctx) (e : Expr) : Expr :=
-  match e, directOf ctx e true with
+  match e, opKeep ctx e with
   | .place _, _ => e
-  | e, (keep, _) =>
+  | e, keep =>
     let e' := (elabExpr ctx false e keep).out
     if keep.isEmpty then e' else .withDrops (.withDrops e' [] []) keep []
 
@@ -184,8 +143,8 @@ def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
     let e' := elabExpr ctx true e after
     rest (.expr e'.out) (e'.dropped ++ consumedIn ctx e)
   | .print args =>
-    let args' := elabOps ctx args (union after (placeUses ctx args))
-    rest (.print args'.out) (args'.dropped ++ consumedList ctx args)
+    let args' := elabPrintArgs ctx args after
+    rest (.print args') (droppedList args' ++ consumedList ctx args)
 
 /-- Elaborates the block `b`, given the slots live after it. -/
 def elabBlock (ctx : Ctx) (b : List Stmt) (after : List Place) : List Stmt :=
