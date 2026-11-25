@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "67836114728436700")
+:::moduleDocs (fingerprint := "5476796168649407560")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -138,7 +138,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "13338840248750142160")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "12992501303213953596")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 
@@ -152,8 +152,11 @@ an expression, so a place is copied implicitly.
   compiler does (#123);
 * $`\mathsf{ref}~x = e` binds $`x` to a reference, as the next section
   says; $`x` may not hide a variable in scope either;
-* $`p = e` checks $`e` first, then the indices of $`p`, then needs $`p`
-  of $`e`'s type, then that $`e` does not build its result into $`p`
+* $`p = e` checks the indices of $`p` first, as the compiler does, so
+  that $`e` sees what they move out or change, then $`e`, then needs $`p`
+  of $`e`'s type; an error of a later pass than typing in an index
+  waits until $`e` and its type are checked, and a type error there
+  comes first (`typedFirst`, #280). It then needs that $`e` does not build its result into $`p`
   while changing the list that holds it, then needs a place the function may change; $`p` is changed as a
   whole, its old value ends, and $`p` is initialized. The old value may
   not end, as at the end of a variable, with the parts of $`p` taken as

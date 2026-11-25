@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14691553354732856269")
+:::moduleDocs (fingerprint := "11487140420402981250")
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
@@ -36,6 +36,15 @@ value or a constant index out of range (`CheckError.late`), or a nested
 literal's failed SIMD constraint, `noMatchingInit` of $`\mathsf{Int}`, is recorded
 instead of thrown, so that the errors of all the arguments can be reported
 in the compiler's order of passes (#121).
+:::
+
+:::readable MojoGrimoire.Check.typedFirst (fingerprint := "6194860945527907568")
+*Definition: typing before a later pass.* Of two parts of a statement
+checked in order, an error of the first from a later pass than typing
+(`CheckError.late`) waits until the second is checked from the state
+before the first. A type error of the second then comes first, since the
+compiler types the whole statement before it checks what is initialized
+or invalidated; else the first part's error stands (#280).
 :::
 
 :::readable MojoGrimoire.Check.refResult (fingerprint := "5596166513625506680")

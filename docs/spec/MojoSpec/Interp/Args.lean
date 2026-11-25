@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments and operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2999292388053604629")
+:::moduleDocs (fingerprint := "15327793565397090961")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "12042878878789727990")
@@ -40,6 +40,18 @@ passed by value.
 reference points to. An index is an $`\mathsf{Int}`, a condition a
 $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
+:::
+
+:::readable MojoGrimoire.Interp.intElem MojoGrimoire.Interp.fixIndices (fingerprint := "15538845494017396651")
+*Definition: the indices of an assigned place.* An assignment into the
+element of an $`\mathsf{Int}` keeps the order of `__setitem__`'s
+arguments (#127). Into any other place, the indices are evaluated first,
+outermost first, each replaced by its value, as the compiler does before
+it evaluates the value (#205). Before each index is evaluated, the place
+it indexes is located, and once it is, the element it names, so that an
+index out of bounds stops the run where the compiler's does. The element
+is located again once the value is evaluated, in the list as the value
+left it (D-0002).
 :::
 
 :::readable MojoGrimoire.Interp.copiedTest (fingerprint := "18126999313800057970")

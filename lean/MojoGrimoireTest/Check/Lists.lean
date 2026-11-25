@@ -25,7 +25,9 @@ private def resDecl : StructDecl :=
 private def lib : List FunDecl :=
   [⟨"show", [⟨.read, "r", res⟩], .noneType, [], none⟩,
    ⟨"bump", [⟨.mutable, "r", res⟩], .noneType, [], none⟩,
-   ⟨"swapRes", [⟨.mutable, "a", res⟩, ⟨.mutable, "b", res⟩], .noneType, [], none⟩]
+   ⟨"swapRes", [⟨.mutable, "a", res⟩, ⟨.mutable, "b", res⟩], .noneType, [], none⟩,
+   ⟨"spend", [⟨.owned, "r", res⟩], .int, [.ret (some (.int 0))], none⟩,
+   ⟨"peek", [⟨.read, "r", res⟩], .int, [.ret (some (.int 1))], none⟩]
 
 /-- A program whose `main` has the body `body`. -/
 private def prog (body : List Stmt) : Program :=
@@ -103,6 +105,29 @@ private def ress : Stmt := .decl "rs" (.list res) (some (.list (.list res) [newR
 #guard verdict (prog [.decl "r" res (some (newRes 1)), ress,
   .expr (.method (v "rs") "append" [.transfer (v "r")]),
   .expr (.call "show" [use "r"])]) == some (.uninitializedUse (v "r"))
+
+/-- `var r = Res(1); var xs = [1, 2]`, then the assignment `xs[i] = e`. -/
+private def assignAt (i e : Expr) : Program :=
+  prog [.decl "r" res (some (newRes 1)), ints, .assign (.index (v "xs") i) e]
+
+private def spendR : Expr := .call "spend" [.transfer (v "r")]
+private def peekR : Expr := .call "peek" [use "r"]
+
+-- `xs[spend(r^)] = peek(r)`: the index is checked first, so the value
+-- reads `r` moved out (#280).
+#guard verdict (assignAt spendR peekR) == some (.uninitializedUse (v "r"))
+
+-- `xs[peek(r)] = spend(r^)`: the index reads `r` before the value moves it.
+#guard verdict (assignAt peekR spendR) == none
+
+-- `xs[spend(r^) + peek(r)] = True`: the value's type error comes from an
+-- earlier pass than the index's use of `r` moved out.
+#guard verdict (assignAt (.binary .add spendR peekR) (.bool true)) ==
+  some (.typeMismatch .int .bool)
+
+-- `xs[True] = spend(r^) + peek(r)`: the index's type error comes first.
+#guard verdict (assignAt (.bool true) (.binary .add spendR peekR)) ==
+  some (.noMatchingMethod "__getitem__")
 
 /-- The body of `main` once elaborated. -/
 private def elabMain (body : List Stmt) : List Stmt :=

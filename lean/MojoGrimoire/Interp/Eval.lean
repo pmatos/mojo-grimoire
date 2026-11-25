@@ -19,7 +19,9 @@ run that spends it all stops with `outOfFuel`, so every run ends, even of a
 program that loops forever. The standard library's `range`, which only
 `List[u](…)` takes (#121), reads its `Int`s as a call reads `read`
 arguments, and gives their list, whose length the fuel left at the call
-bounds: a longer range runs out of fuel before the list is built.
+bounds: a longer range runs out of fuel before the list is built. An
+assignment evaluates the indices of its place before its value
+(`fixIndices`, #205).
 
 A value is destroyed where elaboration put a `drop` or a `withDrops`, when
 it is replaced by an assignment, when a temporary passed to a borrowing
@@ -389,20 +391,17 @@ def execStmt (prog : Program) (fuel : Nat) (refs : Bool) (env : Env) (s : Stmt) 
       pure ((x, ⟨← alloc v, true, t⟩) :: env)
     | .refDecl x e => do pure ((x, ⟨← evalRef prog n env e, false, refTy prog env e⟩) :: env)
     | .assign p e => do
-      let (v, r) ← match p with
-        | .index q i =>
-          if placeTy prog env q == some .int then do
-            let r ← placeRef prog n env q
-            let o ← evalOperand prog n env i
-            let v ← evalExpr prog n env e
-            let _ ← position 1 (← asInt (← o.load))
-            pure (v, r)
-          else do
-            let v ← evalExpr prog n env e
-            pure (v, ← placeRef prog n env p)
-        | _ => do
+      let (v, r) ← match intElem prog env p with
+        | some (q, i) => do
+          let r ← placeRef prog n env q
+          let o ← evalOperand prog n env i
           let v ← evalExpr prog n env e
-          pure (v, ← placeRef prog n env p)
+          let _ ← position 1 (← asInt (← o.load))
+          pure (v, r)
+        | none => do
+          let q ← fixIndices (fun i => do asInt (← evalExpr prog n env i)) (placeRef prog n env) p
+          let v ← evalExpr prog n env e
+          pure (v, ← placeRef prog n env q)
       let old ← readRef r
       writeRef r v
       destroy prog n old

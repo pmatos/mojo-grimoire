@@ -48,7 +48,11 @@ result fits no initializer of its type (#46), nor, where an `Int` is
 expected, does one of any length but 1 (#153, #154). A function that returns a reference
 returns a location within its own origin, as `withinOrigin` decides.
 
-An assignment changes its place as a whole. Into the element of an `Int`,
+An assignment changes its place as a whole. It checks the indices of its
+place before its value, as the compiler does, so the value sees what an
+index moves out or changes, and an index's error of a later pass than
+typing waits for the value's type errors (`typedFirst`, #280). Into the
+element of an `Int`,
 it locates the `Int` before it evaluates the value, as `__setitem__` takes
 it as `self`, so the value may not invalidate that location, and reads
 the index, an argument of `__setitem__`, once the value is evaluated, so
@@ -288,13 +292,13 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let k ← mark
     if let .binary _ (.place q) _ := e then
       if q == p && !plainIndices p then rejectIntElem prog p (checkIndices prog p)
-    let t ← if e matches .list .unknown _ || (wrongIntLiteral e).isSome then do
-        let u ← placeTy prog p
-        checkInitValue prog u e (checkExpr prog e)
-        pure u
-      else checkExpr prog e
-    checkIndices prog p
-    expect (← placeTy prog p) t
+    typedFirst (checkIndices prog p) do
+      let t ← if e matches .list .unknown _ || (wrongIntLiteral e).isSome then do
+          let u ← placeTy prog p
+          checkInitValue prog u e (checkExpr prog e)
+          pure u
+        else checkExpr prog e
+      expect (← placeTy prog p) t
     checkConstructed prog p e
     requireMutable p
     if let .index q i := p then

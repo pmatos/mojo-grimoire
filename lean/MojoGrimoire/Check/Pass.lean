@@ -10,7 +10,9 @@ place the function may change, and `var` copies it implicitly
 (`MojoGrimoire.Check.Transfer`). A misfit is reported as the call's fit
 says (`MojoGrimoire.Check.Fit`). An error of a later pass than typing, in
 an argument of `range`, may be recorded instead of thrown (`lateErrors`),
-so that the passes report in the compiler's order (#121).
+so that the passes report in the compiler's order (#121), and an index's
+such error waits for the type errors of an assigned value (`typedFirst`,
+#280).
 -/
 
 namespace MojoGrimoire.Check
@@ -37,6 +39,19 @@ throws (`CheckError.late`), or a nested literal's failed SIMD constraint,
 def lateErrors (x : CheckM RangeArgs) : CheckM RangeArgs :=
   tryCatch x fun err =>
     if err.late || err == .noMatchingInit .int then pure (RangeArgs.ofLate err) else throw err
+
+/-- Runs `first`, then `next`, and gives `next`'s result. When `first`
+throws an error of a later pass than typing (`CheckError.late`), `next`
+is still checked, from the state before `first`: an error of its own
+from typing stands, as the compiler types both before it checks either's
+ownership, and else `first`'s error does (#280). -/
+def typedFirst {α : Type} (first : CheckM Unit) (next : CheckM α) : CheckM α := do
+  let late ← tryCatch (do first; pure none) fun e => if e.late then pure (some e) else throw e
+  match late with
+  | none => next
+  | some e => do
+    tryCatch (do let _ ← next) fun e' => unless e'.late do throw e'
+    throw e
 
 /-- The type of a call of signature `sig`, with the arguments `args`. A
 call that returns a reference, used as a value, copies the value it points
