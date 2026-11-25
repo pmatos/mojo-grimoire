@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11717772980221419843")
+:::moduleDocs (fingerprint := "9688956826981186846")
 :::
 
-:::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "1675389372256504091")
+:::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "13546443985139768063")
 *Definition: lookups.* The checker finds a struct or a function of the
 program by its name, the first one declared with that name, and a field or
 method of a struct by its name. `fieldOf` gives the type of the field
@@ -62,7 +62,16 @@ reflected operator's operands, evaluated left to right, bind the right
 one to `self` (#191).
 :::
 
-:::readable MojoGrimoire.Check.callSig MojoGrimoire.Check.methodSig (fingerprint := "17017399791582438206")
+:::readable MojoGrimoire.Check.lateGetter (fingerprint := "42637902341149441")
+*Definition: subscripts read late.* A call of $`S.\mathtt{\_\_getitem\_\_}`
+that inference makes of a subscript $`p[i]` is read late when $`S` also
+declares `__setitem__`: the subscript is then a place of its own, which
+Mojo reads, as it reads a place operand, once every operand of its
+operation is evaluated, when it calls the getter. With no setter the
+subscript is a value, and the getter is called in order.
+:::
+
+:::readable MojoGrimoire.Check.callSig MojoGrimoire.Check.methodSig (fingerprint := "11405014974626582237")
 *Definition: the signature of a call.* $`f(e^*)` constructs the struct
 $`f`, when the program declares one, with the parameters of its `__init__`
 after `self`, or with one `var` parameter per field if it is

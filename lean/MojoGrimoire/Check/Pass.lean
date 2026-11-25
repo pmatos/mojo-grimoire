@@ -10,7 +10,8 @@ place the function may change, and `var` copies it implicitly
 (`MojoGrimoire.Check.Transfer`). A misfit is reported as the call's fit
 says (`MojoGrimoire.Check.Fit`). An error of a later pass than typing, in
 an argument of `range`, may be recorded instead of thrown (`lateErrors`),
-so that the passes report in the compiler's order (#121).
+so that the passes report in the compiler's order (#121). What a call
+types before it reads its first argument is in `typeFirst`.
 -/
 
 namespace MojoGrimoire.Check
@@ -54,6 +55,22 @@ def refResult (prog : Program) (asRef : Bool) (sig : Signature) (args : List Exp
     throw (CheckError.implicitCopy sig.result)
   pure sig.result
 
+/-- Checks the value `e`, given `check`, which checks it as a value
+(`false`) or by reference, uncopied (`true`), and then that its type is
+`t`, else the misfit that `fit` reports (`expectArg`). The compiler reports the implicit copy of the value that
+a call returns a reference to (`refResult`) only once the type fits, so
+when the check of a call or a method call as a value reports that copy,
+`e` is checked again from the same state by reference, and a type that
+does not fit comes first. -/
+def misfitFirst (e : Expr) (fit : Fit) (t : Ty) (check : Bool → CheckM Ty) :
+    CheckM Unit := do
+  let s0 ← get
+  expectArg fit t (← tryCatch (check false) fun err => do
+    if err matches .implicitCopy _ && e matches .call .. | .method .. then
+      set s0
+      expectArg fit t (← tryCatch (check true) fun _ => throw err)
+    throw err)
+
 /-- Rejects the place `p` through the element of an `Int` as `notAList`,
 as before #127, where the model cannot yet give the compiler's result. The
 indices are checked first by `check`, as before, but for a constant out of
@@ -91,5 +108,34 @@ def passPlace (prog : Program) (fit : Fit) (callee : Name) (c : Conv) (t : Ty) (
     requireMutable p fit
   | .owned => expectArg fit t (← copyPlace prog p)
   | .out | .deinit => throw (CheckError.invalidConvention callee)
+
+/-- What the compiler types of a call of `f` before it reads its first
+argument, a place: `recv` types that place, and `rest` the other
+arguments. The receiver of an in-place method that inference made is
+typed first, its indices included. A subscript `p[i]` of a struct, which
+inference makes the call `S.__getitem__(p, i)`, has its index typed
+against the getter's parameter first, as any subscript's is
+(`checkIndex`), so that an unknown name or a type that does not fit in it
+is reported before a use of `p` moved or uninitialized (#191), and so is
+an implicit copy in the index, or of a place it passes to a `var`
+parameter, which the compiler reports after the types; errors of a later
+pass do not count there, nor an index with no type here, such as a
+literal of `Int`s of the wrong length, which the call reports later. The
+state is left as it was. -/
+def typeFirst (prog : Program) (f : Name) (recv : CheckM Unit) (rest : List (Expr × CheckM Ty)) :
+    CheckM Unit := do
+  let s0 ← get
+  if inPlaceCallee f then recv
+  else if let (some (_, "__getitem__", false), .ok sig) := (calleeMethod f, callSig prog f) then
+    modify State.typing
+    try
+      for (prm, a, t) in sig.params.drop 1 |>.zip rest do
+        let ty ← t
+        unless ty == .unknown do
+          expect prm.ty ty
+          if prm.conv == .owned && a matches .place _ && copyingOf prog ty != .implicit then
+            throw (CheckError.implicitCopy ty)
+    catch err => unless err.late || err matches .noMatchingInit .int do throw err
+  set s0
 
 end MojoGrimoire.Check

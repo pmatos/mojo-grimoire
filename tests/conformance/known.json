@@ -13,6 +13,8 @@
     "rejected/list_cycle_beside_self_loop_deinit": "D-0006",
     "rejected/list_of_arrays_cycle_deinit": "D-0006",
     "rejected/list_of_self_deinit_off_cycle": "D-0006",
+    "rejected/operator_method_bool_getter_consumed": "D-0011",
+    "rejected/operator_method_bool_getter_transfer": "D-0011",
     "rejected/recursive_cycle_and_list_of_self": "D-0006",
     "rejected/recursive_list_array_cycle": "D-0006",
     "rejected/recursive_list_cycle": "D-0006",
@@ -37,6 +39,10 @@
     "structs/field_by_field_unset_overwritten": "D-0003",
     "structs/field_by_field_unset_whole_branch": "D-0003",
     "structs/field_by_field_unset_whole_loop": "D-0003",
-    "structs/field_by_field_whole_branch_then_fields": "D-0003"
+    "structs/field_by_field_whole_branch_then_fields": "D-0003",
+    "structs/operator_method_bool_getter_drop_order": "D-0011",
+    "structs/operator_method_bool_getter_index_order": "D-0011",
+    "structs/operator_method_bool_getter_temporary": "D-0011",
+    "structs/operator_method_bool_getter_twice": "D-0011"
   }
 }

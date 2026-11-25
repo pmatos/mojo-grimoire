@@ -1,0 +1,18 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "get 4 0",
+    "bool 4",
+    "del W 4",
+    "True",
+    "get 0 1",
+    "bool 0",
+    "del W 0",
+    "False",
+    "4 0",
+    "del W 0",
+    "del W 4"
+  ],
+  "class": null,
+  "diagnostic": null
+}
