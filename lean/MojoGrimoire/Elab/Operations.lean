@@ -8,10 +8,9 @@ elaborates the statements that hold them.
 
 Elaboration returns, with each elaborated expression, the slots that the
 expression uses and those that the elaboration destroys. An operation reads
-them from its operands, and does not walk the operands again, so that a
-right-nested chain of operations, such as `a and (b or (a and …))`, is
-elaborated in time linear in its depth (#283). Theorems at the end show
-that they are what `uses` and `droppedIn` give.
+them from its operands instead of walking the operands again, so that a
+right-nested chain of operators, such as `a and (b or (a and …))` or
+`k + (k + …)`, is elaborated in time linear in its depth (#283).
 -/
 
 namespace MojoGrimoire.Elab
@@ -130,19 +129,18 @@ def opKeep (ctx : Ctx) (e : Expr) : List Place := (directOf ctx e true).1
 
 /-- An elaboration, `out`, of an expression or of a list of operands, with
 the slots that the input uses, `uses`, and those that `out` destroys,
-`dropped`. Each operation reads both from the results of its operands, so
-that elaborating an expression walks it once (#283); `elabExpr_uses` and
-`elabExpr_dropped` show that they are `uses` and `droppedIn`. -/
+`dropped`: `elabExpr_uses` and `elabExpr_dropped` show that they are
+`uses` and `droppedIn`. -/
 structure Elaborated (α : Type) where
   out : α
   uses : List Place
   dropped : List Place
 
-/-- The elaborated operation `mk r.out`, which uses `u` and destroys `pre`
-once its operands, elaborated as `r`, are read and `post` once it is done. -/
-def Elaborated.wrap {α : Type} (r : Elaborated α) (mk : α → Expr) (u pre post : List Place) :
-    Elaborated Expr :=
-  ⟨withDropsOf (mk r.out) pre post, u, pre ++ post ++ r.dropped⟩
+/-- The elaborated operation `e`, which uses `u`, destroys `pre` once its
+operands are read and `post` once it is done, and whose operands destroy
+`inner`. -/
+def Elaborated.op (e : Expr) (u pre post inner : List Place) : Elaborated Expr :=
+  ⟨withDropsOf e pre post, u, pre ++ post ++ inner⟩
 
 mutual
 /-- Elaborates the expression `e`, given the slots live once it is
@@ -160,15 +158,15 @@ def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Elaborat
   | .call f args =>
     let d := opDrops ctx.owned (directArgs ctx args (callModes ctx.prog f)) after
     let r := elabOps ctx args d.2.2
-    r.wrap (.call f) r.uses d.1 (if top then [] else d.2.1)
+    .op (.call f r.out) r.uses d.1 (if top then [] else d.2.1) r.dropped
   | .method p m args =>
     let ms := methodModes ctx.prog ctx.env p m args.length
     let d := opDrops ctx.owned (directOf ctx (.place p) ms.1 :: directArgs ctx args ms.2)
       after
     let gone := consumedSlot ctx p m args.length
     let r := elabOps ctx args d.2.2
-    r.wrap (.method p m) (union (union (ctx.sl.of p) (indexUses ctx.sl p)) r.uses)
-      (diff d.1 gone) (if top then [] else diff d.2.1 gone)
+    .op (.method p m r.out) (union (uses ctx.sl (.place p)) r.uses) (diff d.1 gone)
+      (if top then [] else diff d.2.1 gone) r.dropped
   | .binary op a b =>
     if op == .and || op == .or then
       let rb := elabExpr ctx false b (union after (opKeep ctx b))
@@ -176,20 +174,19 @@ def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Elaborat
       let rest := diff d.2.1 rb.dropped
       let b' := if rest.isEmpty then rb.out else .withDrops (.withDrops rb.out [] []) [] rest
       let ra := elabExpr ctx false a d.2.2
-      ⟨withDropsOf (.binary op ra.out b') d.1 d.2.1, union ra.uses rb.uses,
-        d.1 ++ d.2.1 ++ (ra.dropped ++ (rest ++ rb.dropped))⟩
+      .op (.binary op ra.out b') (union ra.uses rb.uses) d.1 d.2.1
+        (ra.dropped ++ (rest ++ rb.dropped))
     else
       let byVal := fun e => ((refSlots ctx.prog ctx.sl ctx.env e).2.bind (seqCompare op)).isNone
       let d := opDrops ctx.owned (directArgs ctx [a, b] [byVal a, byVal b]) after
       let rb := elabExpr ctx false b d.2.2
       let ra := elabExpr ctx false a (union d.2.2 rb.uses)
-      let post := if top then [] else d.2.1
-      ⟨withDropsOf (.binary op ra.out rb.out) d.1 post, union ra.uses rb.uses,
-        d.1 ++ post ++ (ra.dropped ++ rb.dropped)⟩
+      .op (.binary op ra.out rb.out) (union ra.uses rb.uses) d.1 (if top then [] else d.2.1)
+        (ra.dropped ++ rb.dropped)
   | .unary op a =>
     let d := opDrops ctx.owned [directOf ctx a true] after
     let r := elabExpr ctx false a d.2.2
-    r.wrap (.unary op) r.uses d.1 (if top then [] else d.2.1)
+    .op (.unary op r.out) r.uses d.1 (if top then [] else d.2.1) r.dropped
   | .list t es =>
     if t == .int then
       let r := elabOps ctx es after
@@ -197,15 +194,14 @@ def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Elaborat
     else
     let d := opDrops ctx.owned (directArgs ctx es (es.map fun _ => true)) after
     let r := elabOps ctx es d.2.2
-    r.wrap (.list t) r.uses d.1 (if top then [] else d.2.1)
+    .op (.list t r.out) r.uses d.1 (if top then [] else d.2.1) r.dropped
   | .listInit u es =>
     let d := opDrops ctx.owned (directArgs ctx es []) after
     let r := elabOps ctx es d.2.2
-    r.wrap (.listInit u) r.uses d.1 (if top then [] else d.2.1)
+    .op (.listInit u r.out) r.uses d.1 (if top then [] else d.2.1) r.dropped
   | .copy p =>
     let d := opDrops ctx.owned [directOf ctx (.place p) false] after
-    let post := if top then [] else d.2.1
-    ⟨withDropsOf (.copy p) d.1 post, union (ctx.sl.of p) (indexUses ctx.sl p), d.1 ++ post⟩
+    .op (.copy p) (uses ctx.sl (.copy p)) d.1 (if top then [] else d.2.1) []
   | e => ⟨e, uses ctx.sl e, droppedIn e⟩
 
 /-- Elaborates the operands `es`, evaluated in order, given the slots live
@@ -230,17 +226,16 @@ mutual
 theorem elabExpr_uses (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) :
     (elabExpr ctx top e after).uses = uses ctx.sl e := by
   match e with
-  | .call f args | .listInit _ args =>
-    simp [elabExpr, Elaborated.wrap, uses, elabOps_uses]
-  | .method p m args => simp [elabExpr, Elaborated.wrap, uses, elabOps_uses]
+  | .call _ args | .method _ _ args | .listInit _ args =>
+    simp [elabExpr, Elaborated.op, uses, elabOps_uses]
   | .binary op a b =>
     simp only [elabExpr]
-    split <;> simp [uses, elabExpr_uses]
-  | .unary op a => simp [elabExpr, Elaborated.wrap, uses, elabExpr_uses]
+    split <;> simp [Elaborated.op, uses, elabExpr_uses]
+  | .unary op a => simp [elabExpr, Elaborated.op, uses, elabExpr_uses]
   | .list t es =>
     simp only [elabExpr]
-    split <;> simp [Elaborated.wrap, uses, elabOps_uses]
-  | .copy p => simp [elabExpr, uses]
+    split <;> simp [Elaborated.op, uses, elabOps_uses]
+  | .copy p => simp [elabExpr, Elaborated.op]
   | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .withDrops .. => simp [elabExpr]
 
 /-- Elaboration finds the slots that operands use. -/
@@ -256,21 +251,19 @@ mutual
 theorem elabExpr_dropped (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) :
     (elabExpr ctx top e after).dropped = droppedIn (elabExpr ctx top e after).out := by
   match e with
-  | .call f args | .listInit _ args =>
-    simp [elabExpr, Elaborated.wrap, droppedIn_withDropsOf, droppedIn, elabOps_dropped]
-  | .method p m args =>
-    simp [elabExpr, Elaborated.wrap, droppedIn_withDropsOf, droppedIn, elabOps_dropped]
+  | .call _ args | .method _ _ args | .listInit _ args =>
+    simp [elabExpr, Elaborated.op, droppedIn_withDropsOf, droppedIn, elabOps_dropped]
   | .binary op a b =>
     simp only [elabExpr]
     split
-    · split <;> simp_all [droppedIn_withDropsOf, droppedIn, elabExpr_dropped]
-    · simp [droppedIn_withDropsOf, droppedIn, elabExpr_dropped]
+    · split <;> simp_all [Elaborated.op, droppedIn_withDropsOf, droppedIn, elabExpr_dropped]
+    · simp [Elaborated.op, droppedIn_withDropsOf, droppedIn, elabExpr_dropped]
   | .unary op a =>
-    simp [elabExpr, Elaborated.wrap, droppedIn_withDropsOf, droppedIn, elabExpr_dropped]
+    simp [elabExpr, Elaborated.op, droppedIn_withDropsOf, droppedIn, elabExpr_dropped]
   | .list t es =>
     simp only [elabExpr]
-    split <;> simp [Elaborated.wrap, droppedIn_withDropsOf, droppedIn, elabOps_dropped]
-  | .copy p => simp [elabExpr, droppedIn_withDropsOf, droppedIn]
+    split <;> simp [Elaborated.op, droppedIn_withDropsOf, droppedIn, elabOps_dropped]
+  | .copy p => simp [elabExpr, Elaborated.op, droppedIn_withDropsOf, droppedIn]
   | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .withDrops .. => simp [elabExpr]
 
 /-- Elaboration finds the slots that the elaborated operands destroy. -/

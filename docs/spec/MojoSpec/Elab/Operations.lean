@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Elaborating operations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6017998791009370866")
+:::moduleDocs (fingerprint := "15173989851661100415")
 :::
 
 :::readable MojoGrimoire.Elab.callModes MojoGrimoire.Elab.methodModes (fingerprint := "8918438346001052769")
@@ -65,15 +65,15 @@ drops of an elaborated expression, or list of operands, name, at every
 depth, also inside the argument of $`\mathsf{List}[u](e)`.
 :::
 
-:::readable MojoGrimoire.Elab.Elaborated MojoGrimoire.Elab.Elaborated.wrap (fingerprint := "7959517574041165778")
+:::readable MojoGrimoire.Elab.Elaborated MojoGrimoire.Elab.Elaborated.op (fingerprint := "14122874099859979553")
 *Definition: an elaboration.* An elaborated expression, or list of
 operands, with the slots that the input uses and those that the
-elaborated form destroys. An operation wraps the elaboration of its
-operands with what it destroys once they are read and once it is done,
-and destroys those slots before the ones its operands destroy.
+elaborated form destroys. An elaborated operation is wrapped with what it
+destroys once its operands are read and once it is done, and destroys
+those slots before the ones its operands destroy.
 :::
 
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "12913770860234678931")
+:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps (fingerprint := "1860024666557582413")
 *Definition: elaborating expressions.* Each call, method call, operator,
 list literal, $`\mathsf{List}[u](e)` and `.copy()` is wrapped with what it
 destroys, and its operands are elaborated in turn, each with the slots that the later
@@ -111,7 +111,8 @@ names, then what its operands destroy.
 gives as used are those that the expression, or list of operands, uses,
 and the slots it gives as destroyed are those that its elaborated form
 destroys. So each operation decides its drops as it would by walking its
-operands again, and a right-nested chain of operations is elaborated in
-time linear in its depth (#283). The proofs are by mutual induction on
+operands again, and a right-nested chain of operators, such as
+$`a\ \mathsf{and}\ (b\ \mathsf{or}\ \ldots)` or $`k + (k + \ldots)`, is elaborated
+in time linear in its depth (#283). The proofs are by mutual induction on
 expressions and lists of them.
 :::

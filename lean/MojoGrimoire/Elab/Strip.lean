@@ -100,18 +100,18 @@ mutual
 theorem stripExpr_elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) :
     stripExpr (elabExpr ctx top e after).out = stripExpr e := by
   match e with
-  | .call f args => simp [elabExpr, Elaborated.wrap, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
+  | .call f args => simp [elabExpr, Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
   | .method p m args =>
-    simp [elabExpr, Elaborated.wrap, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
+    simp [elabExpr, Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
   | .binary op a b =>
     simp only [elabExpr]
-    split <;> (try split) <;> simp [stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
-  | .unary op a => simp [elabExpr, Elaborated.wrap, stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
+    split <;> (try split) <;> simp [Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
+  | .unary op a => simp [elabExpr, Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExpr_elabExpr]
   | .list t es =>
     simp only [elabExpr]
-    split <;> simp [Elaborated.wrap, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
-  | .listInit _ es => simp [elabExpr, Elaborated.wrap, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
-  | .copy p => simp [elabExpr, stripExpr_withDropsOf]
+    split <;> simp [Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
+  | .listInit _ es => simp [elabExpr, Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
+  | .copy p => simp [elabExpr, Elaborated.op, stripExpr_withDropsOf]
   | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .withDrops .. =>
     simp [elabExpr]
 
