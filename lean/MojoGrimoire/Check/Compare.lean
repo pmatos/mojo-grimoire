@@ -36,16 +36,12 @@ waits for its conformances (#194), and a literal that would initialize a
 `Bool` for #165: those comparisons keep the checks they had before #166.
 A list of structs compared with an empty literal, `List[P]() == []`, is
 a type mismatch where the compiler gives `violatedConstraint` (#194).
+So is a `Bool` compared with one, on both paths (`boolLiteralMisfit`).
 -/
 
 namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
-
-/-- Whether the operator `op` compares: `<`, `<=`, `>`, `>=`, `==` or
-`!=`. -/
-def compares (op : BinOp) : Bool :=
-  op matches .lt | .le | .gt | .ge | .eq | .ne
 
 /-- Whether the comparison `op` of two arrays, or two lists, of type `t` is
 modelled, and then whether `t`'s element type conforms to the trait that
@@ -287,7 +283,7 @@ def operandMisfit (prog : Program) (op : BinOp) (a b : Expr)
   let tb ← if compares op && b matches .list .unknown [] then pure (some .unknown)
     else formTy b
   let tb := if convertsLiteral op a b ta tb then none else tb
-  pure (binaryMisfit prog op ta tb)
+  pure (binaryMisfit prog op ta tb <|> boolLiteralMisfit op ta b)
 
 /-- Whether the operand `e` of `op` is passed by reference, before #166's
 conversions: not beside a literal that the compiler converts. -/
@@ -333,7 +329,8 @@ def operandMisfit (prog : Program) (op : BinOp) (a b : Expr)
   let fb ← operandFit prog op b ta'
   if fa == some (some false) && ta.isSome || fb == some (some false) then
     return some (.typeMismatch (ta'.getD .unknown) (tb.getD .unknown))
-  pure (binaryMisfit prog op (if fa == some (some false) then none else ta') (fitTy fb ta' tb))
+  pure (binaryMisfit prog op (if fa == some (some false) then none else ta') (fitTy fb ta' tb) <|>
+    boolLiteralMisfit op ta b)
 
 /-- Whether the operand `e` of the operator `op`, whose other operand is
 `other`, is passed by reference, uncopied, as the comparisons of `Array`
