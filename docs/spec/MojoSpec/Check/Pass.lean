@@ -13,7 +13,15 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18244925090822143400")
+:::moduleDocs (fingerprint := "11545881592566240005")
+:::
+
+:::readable MojoGrimoire.Check.Below (fingerprint := "14513104375151688470")
+*Definition: a check below a bound.* A check of the values of a type no
+larger than a list of expressions $`r`, each given with a proof of that
+bound. The modules outside the mutual block of the checker of expressions
+are given so the checks of the expressions and places inside the
+expressions they check, so that the checker's recursion still ends (#96).
 :::
 
 :::readable MojoGrimoire.Check.lift MojoGrimoire.Check.expect (fingerprint := "8319086590657683010")
