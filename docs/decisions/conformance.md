@@ -241,8 +241,11 @@ disagree on both, and those that agreed on `main` and no longer do. Of
 the last, a change of rejection class is allowed to a part of #96 whose PR
 lists the program with the open issue of its wrong rejection
 ([process.md](process.md#one-issue-several-prs)); any other, such as a
-run that becomes a rejection, fails the sweep. A part of #96 runs the
-sweep by hand and gives its counts in the PR body. The human ruled on
+run that becomes a rejection, fails the sweep. A run that times out or
+cannot start counts as that build's error. A recorded rejection whose
+diagnostic has no class yet (#319) agrees with any rejection that prints
+the same lines. A part of #96 runs the sweep by hand and gives its counts
+in the PR body. The human ruled on
 2026-11-22 that the sweep is committed as a corpus and one script, run by
 hand and not as a hook (#96, Q8).
 

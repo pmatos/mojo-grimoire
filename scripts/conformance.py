@@ -152,6 +152,14 @@ def runs_cleanly(actual: Result) -> list[str]:
     return []
 
 
+def recorded(program: Path) -> Result | None:
+    """The compiler's result recorded beside a program, or None."""
+    expected_file = program.with_suffix(".json")
+    if not expected_file.exists():
+        return None
+    return Result.from_json(json.loads(expected_file.read_text()))
+
+
 def load_patterns(path: Path = SUITE / "diagnostics.json") -> list[tuple[str, str]]:
     data = json.loads(path.read_text())
     return [(entry["pattern"], entry["class"]) for entry in data["patterns"]]
@@ -204,7 +212,17 @@ def compiler_args(args: list[str], jobs_ok: bool) -> tuple[str, int, list[Path]]
     `levels` is given; ValueError when an argument is neither."""
     if len(args) < 2 or args[0] != "--mojo":
         raise ValueError("no --mojo WRAPPER")
-    mojo, rest, jobs, chosen = args[1], args[2:], 4, []
+    jobs, chosen = jobs_and_programs(args[2:], 4, jobs_ok)
+    return args[1], jobs, chosen
+
+
+def jobs_and_programs(
+    rest: list[str], jobs: int, jobs_ok: bool = True
+) -> tuple[int, list[Path]]:
+    """The number of jobs, `jobs` unless --jobs N is given, and the programs
+    named in `rest`; ValueError when an argument is neither."""
+    chosen = []
+    rest = list(rest)
     while rest:
         arg = rest.pop(0)
         if jobs_ok and arg == "--jobs" and rest and rest[0].isdigit():
@@ -213,7 +231,7 @@ def compiler_args(args: list[str], jobs_ok: bool) -> tuple[str, int, list[Path]]
             chosen.append(Path(arg).resolve())
         else:
             raise ValueError(f"neither a program nor an option: {arg}")
-    return mojo, jobs, chosen
+    return jobs, chosen
 
 
 def with_compiler(command, args: list[str], ruled, jobs_ok: bool) -> int:
@@ -315,14 +333,13 @@ def check(args: list[str]) -> int:
     for program in progs:
         name = name_of(program)
         actual = run_model(program)
-        expected_file = program.with_suffix(".json")
-        if not expected_file.exists():
+        expected = recorded(program)
+        if expected is None:
             counts["unrecorded"] += 1
             found = runs_cleanly(actual)
             if not allow_unrecorded:
                 found = ["no expected result is recorded", *found]
         else:
-            expected = Result.from_json(json.loads(expected_file.read_text()))
             found = compare(expected, actual)
             if found and name in known:
                 counts["known"] += 1
