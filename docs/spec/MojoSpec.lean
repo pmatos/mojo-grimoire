@@ -120,6 +120,8 @@ compiler destroys a value, so that the interpreter destroys only what a
 
 {includeReadable "." MojoGrimoire.Elab.Operands "What an operation destroys" MojoSpec.Elab.Operands (level := 2)}
 
+{includeReadable "." MojoGrimoire.Elab.Operations "Elaborating operations" MojoSpec.Elab.Operations (level := 2)}
+
 {includeReadable "." MojoGrimoire.Elab.Elaborate "Inserting drops" MojoSpec.Elab.Elaborate (level := 2)}
 
 {includeReadable "." MojoGrimoire.Elab.Strip "Elaboration only inserts drops" MojoSpec.Elab.Strip (level := 2)}
