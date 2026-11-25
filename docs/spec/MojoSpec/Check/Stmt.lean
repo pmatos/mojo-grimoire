@@ -13,85 +13,12 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7858289065828133266")
+:::moduleDocs (fingerprint := "13833975500838489961")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
 *Definition: an expression's type.* An expression used as a value is
 checked by `checkExprAs`, not as a reference, and has the type it gives.
-:::
-
-:::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
-*Definition: holding a part whole.* The parts $`H` hold all of the part
-$`q` when one of them is at or above $`q`, or $`q` is a struct and they
-hold each of its fields. A part held whole whose field was moved out and
-assigned again is recorded as its fields, which hold all of it.
-:::
-
-:::readable MojoGrimoire.Check.partlyBuilt MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "9136026478662908329")
-*Rule: the end of a variable.* The compiler destroys a struct whole, so a
-variable may not end when it still holds a part, in $`H`, and a field is
-in $`M`, moved out and not assigned again, or $`\epsilon` is in both
-$`M` and $`P`, so that it was moved out whole and then built from its
-fields. A variable that holds nothing may end with fields moved out, since
-nothing of it is destroyed (#51), unless a field in $`M` is at or below a
-touched part in $`T`: a field moved out of a part held whole, or out of
-one whose inside was assigned. Nor may it end partly built, however it got
-there, which is the human's ruling R on D-0003, provisional until it is
-discussed with Modular. It is partly built when a part $`u` in $`U` and a
-different part $`h` in $`H` meet: disjoint, or $`h` above $`u`, or
-$`u` above $`h` while $`H` does not hold all of $`u`; or when a piece
-in $`P` with a part of $`U` at or above it has a part of $`H` at,
-above or below it. Since $`U`, $`H` and $`P` hold what may be so on
-some path, a field uninitialized on one path and held on another counts,
-as the compiler counts a field moved out on one path only. A part held
-whole on every path that holds it does not, as for a variable assigned
-whole in only one branch; a part built from its fields is a piece, which
-counts even when the join of $`H` folded its fields into it. This
-rejects a struct built in only one branch of an `if`, even wholly, or in
-a loop, and a struct whose fields are all `Int`s too. The `self` of
-`__init__` built wholly in one branch is not, since it is whole once its
-fields are, and is no piece then. The `self` of
-`__deinit__` is destroyed field by field: each of its fields is a value
-of its own, which may stay moved out. Each error is
-$`\mathsf{partiallyDestroyed}`.
-:::
-
-:::readable MojoGrimoire.Check.checkExit (fingerprint := "16841318695536390912")
-*Rule: a return.* When a function returns, each `mut` parameter and the
-`self` of `__init__` must be wholly initialized, since the caller holds
-them, with no piece in $`P`: otherwise the error is
-$`\mathsf{uninitializedAtExit}`, or a use of the variable when it is
-itself the only piece and nothing of it is uninitialized, as the compiler
-reports. The `mut` parameters are checked in their order, then the
-`self` of `__init__`, as the compiler reports them. Every variable must
-then be allowed to end; the parameters are checked first, since the
-compiler reports a parameter left uninitialized before a variable that may
-not end.
-:::
-
-:::readable MojoGrimoire.Check.endScope (fingerprint := "10225848583509902724")
-*Rule: the end of a scope.* The variables a block declared end with it,
-each checked as above if the end of the block is reached, and leave the
-set of invalidated references.
-:::
-
-:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "151849857318036827")
-*Rule: joining branches.* After an `if`, a part is uninitialized when
-either branch leaves it so, and may hold a value when either branch may;
-$`M`, $`T` and $`P` are the unions of the branches' sets, and
-a reference is invalidated when either branch invalidates it. A branch
-that cannot reach its end, because it returned, does not count. A loop
-joins $`M`, $`H`, $`T` and $`P` the same way, as described below.
-:::
-
-:::readable MojoGrimoire.Check.checkLoop (fingerprint := "6169669695796580470")
-*Rule: loops.* A loop body that can reach its end must leave initialized
-every part that was initialized before the loop, and may not add to $`M` a
-part that was initialized before it, or its next iteration would use a
-moved value. A part uninitialized before the loop may be assigned and
-moved out in each iteration. As Mojo does, the
-checker reports such a part as a use of an uninitialized value.
 :::
 
 :::readable MojoGrimoire.Check.printable MojoGrimoire.Check.checkPrintArg (fingerprint := "6868542877883536562")
@@ -118,7 +45,7 @@ does. $`\mathsf{List}[u](e)` builds its result in place, and passes $`e`
 by `ref` (#103).
 :::
 
-:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "10243898178486431986")
+:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "14388027950222287796")
 *Rule: initializing values.* A value that initializes a declared variable,
 a place assigned to, or a function's result must have its type. A literal
 $`[e^*]_{?}`, which has no list or array expected, where that
@@ -140,7 +67,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "6162841913101988469")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "6279711092864589028")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 

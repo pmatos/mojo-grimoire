@@ -11,7 +11,9 @@ place the function may change, and `var` copies it implicitly
 says (`MojoGrimoire.Check.Fit`). An error of a later pass than typing, in
 an argument of `range`, may be recorded instead of thrown (`lateErrors`),
 so that the passes report in the compiler's order (#121). What a call
-types before it reads its first argument is in `typeFirst`.
+types before it reads its first argument is in `typeFirst`. A module
+outside the mutual block of the checker of expressions is given the checks
+of the expressions inside the ones it checks as `Below` says.
 -/
 
 namespace MojoGrimoire.Check
@@ -20,6 +22,14 @@ open MojoGrimoire.Core
 
 /-- Lifts a result of the program's tables into the checker. -/
 def lift {α : Type} (r : Except CheckError α) : CheckM α := StateT.lift r
+
+/-- A check of each value of type `β` no larger than the expressions `r`,
+giving an `α`. A module outside the mutual block of
+`MojoGrimoire.Check.Expr` is given so the checks of the expressions and
+places inside the expressions `r` that it checks, so that the recursion
+still ends (#96). -/
+abbrev Below (β α : Type) [SizeOf β] (r : List Expr) : Type :=
+  (x : β) → sizeOf x ≤ sizeOf r → CheckM α
 
 /-- Rejects unless the type `actual` is the type `expected`. -/
 def expect (expected actual : Ty) : CheckM Unit :=

@@ -93,11 +93,17 @@ compared with the compiler's diagnostics.
 
 {includeReadable "." MojoGrimoire.Check.Logic "The test of a struct operand" MojoSpec.Check.Logic (level := 2)}
 
+{includeReadable "." MojoGrimoire.Check.Elems "Elements of literals" MojoSpec.Check.Elems (level := 2)}
+
+{includeReadable "." MojoGrimoire.Check.Range "The arguments of range" MojoSpec.Check.Range (level := 2)}
+
 {includeReadable "." MojoGrimoire.Check.Expr "Expressions and arguments" MojoSpec.Check.Expr (level := 2)}
 
 {includeReadable "." MojoGrimoire.Check.Ref "References" MojoSpec.Check.Ref (level := 2)}
 
 {includeReadable "." MojoGrimoire.Check.Subscript "Assigning a subscript of a struct" MojoSpec.Check.Subscript (level := 2)}
+
+{includeReadable "." MojoGrimoire.Check.Exit "Ends, exits, joins and loops" MojoSpec.Check.Exit (level := 2)}
 
 {includeReadable "." MojoGrimoire.Check.Stmt "Statements" MojoSpec.Check.Stmt (level := 2)}
 
