@@ -20,7 +20,8 @@ open MojoGrimoire.Core MojoGrimoire.Check MojoGrimoire.Parse MojoGrimoire.Interp
 
 /-- The declarations the programs share: `T` holds an array of lists, with
 a method that takes `self` `read`, and the functions take such an array
-`read`, and two values. -/
+`read`, two values, or such an array `read` or `mut`, which they return
+by reference. -/
 private def lib : List String := [
   "@fieldwise_init",
   "struct T(Movable):",
@@ -40,6 +41,12 @@ private def lib : List String := [
   "",
   "def pair(a: List[Int], b: List[Int]):",
   "    print(a, b)",
+  "",
+  "def firstRead(a: Array[List[Int], 1]) -> ref [a] Array[List[Int], 1]:",
+  "    return a",
+  "",
+  "def firstMut(mut a: Array[List[Int], 1]) -> ref [a] Array[List[Int], 1]:",
+  "    return a",
   ""]
 
 /-- The program of `lib`, the declarations `extra` and a `main` that starts
@@ -140,6 +147,20 @@ private def method (conv : String) : List String :=
 #guard staleIn "own" (fn "own" "var ") ["own(v^)"]
 #guard staleIn "rfAlias" ["def rfAlias(ref v: Array[List[Int], 1]):", "    ref e = v",
   "    print(e[0][0], e[0])", ""] ["rfAlias(v)"]
+#guard staleIn "T2.__init__" ["struct T2(Movable):", "    var a: Array[List[Int], 1]",
+  "    def __init__(out self):", "        self.a = [[1]]", "        print(self.a[0][0], self.a[0])", ""]
+  ["var t2 = T2()", "print(t2.a[0])"]
+-- A reference that a call returns through a `mut` parameter may change;
+-- one through a `read` parameter may not, and its subscript changes nothing.
+#guard stale ["ref e = firstMut(v)", "print(e[0][0], e[0])"]
+#guard prints ["ref e = firstRead(v)", "print(e[0][0], e[0])"] ["1 [1]"]
+-- A `ref` binding to a place reached through `p^` may change it.
+#guard stale ["ref e = t^.a", "print(e[0][0], e[0])"]
+-- On a later iteration of a loop, and only while the reference is in scope.
+#guard stale ["ref r = v[0][0]", "var i = 0", "while i < 2:", "    print(r)", "    print(v[0])",
+  "    i += 1"]
+#guard prints ["if True:", "    ref r = v[0][0]", "    print(v[0])", "ref r = v[0][0]", "print(r)"]
+  ["[1]", "1"]
 #guard staleIn "S.m" (method "mut ") ["var s = S([[1]])", "s.m()"]
 #guard staleIn "S.m" (method "ref ") ["var s = S([[1]])", "s.m()"]
 -- A `read` parameter or `self` is subscripted as one that may not change.

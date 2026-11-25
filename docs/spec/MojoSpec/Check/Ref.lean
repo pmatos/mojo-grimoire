@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "References: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4483866480187268903")
+:::moduleDocs (fingerprint := "4797647668482815830")
 :::
 
 :::readable MojoGrimoire.Check.refTarget (fingerprint := "15477698907736277328")
@@ -31,6 +31,18 @@ A place through the element of an $`\mathsf{Int}` has no memory origin,
 and is $`\mathsf{escapingReference}`, in a binding or a return alike,
 once the place is typed, and in a return once its type is compared with
 the result type, before any later error (#127).
+:::
+
+:::readable MojoGrimoire.Check.Access.asSubscripted MojoGrimoire.Check.refSubscripts (fingerprint := "556903438703702070")
+*Rule: references that a subscript changes.* A reference bound with
+`ref` is subscripted as one that may change when it may be changed, as
+the rule above finds, with each `ref` parameter taken as one that may
+change, and each reference as one that may when it is subscripted so
+(#282). The compiler does not know a `ref` parameter's mutability, so it
+subscripts `ref e = v`, with `v` a `ref` parameter, as one that may
+change, though nothing may be changed through `e`. A reference that a
+call returns through a `read` parameter is subscripted as one that may
+not.
 :::
 
 :::readable MojoGrimoire.Check.withinOrigin (fingerprint := "1783623240663657123")

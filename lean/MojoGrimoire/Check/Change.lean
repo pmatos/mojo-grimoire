@@ -16,7 +16,9 @@ calls `__getitem__` with a mutable `self`, which invalidates them. A
 `read` parameter, or `q` reached through `p^`, passes an immutable one;
 a `ref` parameter passes one that may be mutable. Such a reference bound
 with `ref` is invalidated apart (`State.interior`): a store through it is
-rejected only when it was invalidated before the store's value.
+rejected only when it was invalidated before the store's value. A literal
+operand is built only once every operand of its operation is evaluated,
+so what its elements read is read late too (`literalLocs`).
 
 Mojo reads a place operand only once every operand of its operation is
 evaluated, and so it reads a call that returns a reference, used as a
@@ -39,7 +41,7 @@ as a whole invalidates: those into an element of a list that it holds. -/
 def invalidatedBy (prog : Program) (m : Shape) : CheckM (List Name) := do
   let mut stale := []
   for v in (← get).vars do
-    if let .alias os _ := v.access then
+    if let .alias os _ _ := v.access then
       for o in os do
         if (splitPlace o).1 == m.1 && invalidates m (← shapeOf prog o) then
           stale := v.name :: stale
@@ -54,21 +56,20 @@ def changePlace (prog : Program) (p : Place) : CheckM Unit := do
     modify fun s => { s with stale := union s.stale stale, changes := s.changes ++ [m] }
 
 /-- Whether a variable held this way is passed to `__getitem__` as a
-mutable `self` when it is subscripted: one that may be changed, and a
-`ref` parameter, whose mutability the compiler does not know. -/
+mutable `self` when it is subscripted: one that may be changed, a `ref`
+parameter, whose mutability the compiler does not know, and a reference
+bound with `ref` that is subscripted so. -/
 def Access.subscriptsMutable : Access → Bool
   | .refParam => true
+  | .alias _ _ s => s
   | a => a.canChange
 
 /-- Whether a subscript of the place `p` passes it to `__getitem__` as a
-mutable `self`: each place that `p` may be has a variable so held, and
-`p` is not reached through `q^`, which the compiler borrows as a value
-that cannot be changed. -/
+mutable `self`: its variable is so held, and `p` is not reached through
+`q^`, which the compiler borrows as a value that cannot be changed. -/
 def subscriptsMutable (p : Place) : CheckM Bool := do
   if throughTransfer p then return false
-  let s ← get
-  pure ((resolvePlace s.vars p).all fun q =>
-    (s.vars.find? (·.name == (splitPlace q).1)).any (·.access.subscriptsMutable))
+  pure (((← get).vars.find? (·.name == (splitPlace p).1)).any (·.access.subscriptsMutable))
 
 /-- The places among the arguments `args` that a call changes: those passed
 `mut`, and those passed `ref` that pass on a mutable reference. A call that

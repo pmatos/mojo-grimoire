@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Changes and late re-checks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13241193582858417506")
+:::moduleDocs (fingerprint := "15849310890999484462")
 :::
 
-:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.invalidatedBy MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "501367742909949773")
+:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.invalidatedBy MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "16208851434039671369")
 *Rule: changes.* A call changes as a whole each place it is passed `mut`,
 and each place it is passed `ref` that the function may change and that
 is not reached through `p^`; for a
@@ -27,7 +27,7 @@ bound with `ref` whose origin the change invalidates. The mark of an
 operand is the number of changes recorded once it is checked.
 :::
 
-:::readable MojoGrimoire.Check.Access.subscriptsMutable MojoGrimoire.Check.subscriptsMutable MojoGrimoire.Check.subscript (fingerprint := "3848891845321623395")
+:::readable MojoGrimoire.Check.Access.subscriptsMutable MojoGrimoire.Check.subscriptsMutable MojoGrimoire.Check.subscript (fingerprint := "745385924708920763")
 *Rule: subscripts.* Once the index of $`q[i]` is evaluated, $`q` must
 not be invalidated by it, and $`q` is passed to `__getitem__`. An array
 passed so as a mutable `self` is changed as a whole, as far as the
@@ -35,8 +35,9 @@ references into an element of a list inside it go (#282): with
 `v: Array[List[Int], 1]`, the subscript in `print(v[0][0], v[0])`
 invalidates `v[0][0]` before it is read, and a `ref` binding to
 `v[0][0]` is invalidated by any later subscript of `v`. Its `self` is
-mutable when its variable may be changed, or is a `ref` parameter, whose
-mutability the compiler does not know, and when $`q` is not reached
+mutable when its variable may be changed, is a `ref` parameter, whose
+mutability the compiler does not know, or is a reference bound with `ref`
+that is subscripted so (`refSubscripts`), and when $`q` is not reached
 through $`p\,\hat{}`. A `read` parameter, and a subscript of a list,
 change nothing. The references that such a subscript invalidates are kept
 apart from the others, as `State.interior` says.

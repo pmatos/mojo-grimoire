@@ -284,7 +284,8 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
   | .refDecl x e => do
     if (← get).vars.any (·.name == x) then throw (CheckError.duplicate x)
     let (t, origins, m) ← refTarget prog sig.name e
-    modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
+    let sub ← refSubscripts prog e
+    modify fun s => { s with vars := ⟨x, t, .alias origins m sub, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
     let k ← mark
     let before := (← get).interior

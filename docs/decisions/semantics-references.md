@@ -50,8 +50,9 @@ choices (#18):
   or on a later iteration of a loop, is rejected (`invalidatedReference`),
   as the compiler does (#55). Changing one element, reading the list,
   or assigning a whole array does not invalidate it, since an array holds
-  its elements in place. Any other change to an origin while a reference to it
-  is live is not rejected.
+  its elements in place, but a subscript of an array that holds the list
+  does, as the next bullet says. Any other change to an origin while a
+  reference to it is live is not rejected.
 - A subscript of an array that may change, `v[i]`, changes the array too,
   for the references into an element of a list inside it (#282): the
   compiler passes the array to `__getitem__` as a mutable `self`, and
@@ -61,8 +62,10 @@ choices (#18):
   followed by `print(len(v[0]))` and `print(r)` are rejected. So is
   `u[0][0].append(u[0][0][0])`, whose receiver is located first. An array
   may change when it is a local variable, a `var`, `mut` or `ref`
-  parameter or `self`, or a reference into one. A `ref` parameter counts,
-  since the compiler does not know its mutability. A `read` parameter, a
+  parameter or `self`, or a reference into one that may change. A `ref`
+  parameter counts, since the compiler does not know its mutability, and
+  so does `ref e = v` with `v` one. A reference that a call returns
+  through a `read` parameter does not. A `read` parameter, a
   place reached through `p^` and a subscript of a list do not:
   `print(v[0][0], v[0])` runs in a function that takes `v` `read`, and so
   does `print(z[0][0][0], z[0])` with `z` a list of such arrays. Reading

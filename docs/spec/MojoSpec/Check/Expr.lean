@@ -201,7 +201,9 @@ expected type passed to a function or a method is converted to the
 parameter's type, and one that does not fit, or holds such a literal, is a
 type mismatch, as the compiler reports it. A literal passed to a parameter is
 read late, as a literal operand is, so what its elements read is checked
-again with the other operands (`lateLocs`, #282); so is a literal
+again with the other operands (`literalLocs`, #282), and a literal among
+the elements of a literal reads only what the rule of `elemLocs` gives;
+so is a literal
 $`[e]_{\mathsf{Int}}` passed `mut` or `ref`, a value read as the operand
 $`e` would be (#103).
 Checking the arguments gives the mark of each.

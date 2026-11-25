@@ -63,8 +63,9 @@ uninitialized and must be initialized when the function returns; `mutable` a
 parameter, which may not be changed either, but which the compiler
 subscripts as one that may (#282); and `dying` the
 `self` of `__deinit__`, which owns its value and may leave fields moved out.
-`alias os m` is a reference bound with `ref`: it points into the places `os`,
-and may be changed when `m` holds. -/
+`alias os m s` is a reference bound with `ref`: it points into the places `os`,
+may be changed when `m` holds, and is subscripted as one that may change
+when `s` holds (#282). -/
 inductive Access where
   | owned
   | constructing
@@ -72,7 +73,7 @@ inductive Access where
   | readOnly
   | refParam
   | dying
-  | alias (origins : List Place) (mutable : Bool)
+  | alias (origins : List Place) (mutable : Bool) (subscripts : Bool)
   deriving BEq
 
 /-- A path of field names, from a variable to one of its parts. -/
@@ -287,7 +288,7 @@ place reached through a reference, the same place in each of its origins,
 or `p` itself. -/
 def resolvePlace (vars : List VarState) (p : Place) : List Place :=
   match vars.find? (·.name == (splitPlace p).1) with
-  | some ⟨_, _, .alias os _, _, _, _, _, _⟩ => os.map (rebase · p)
+  | some ⟨_, _, .alias os _ _, _, _, _, _, _⟩ => os.map (rebase · p)
   | _ => [p]
 
 /-- The shape of the place `p`. -/
@@ -335,7 +336,7 @@ def readPlace (prog : Program) (p : Place) : CheckM Ty := do
   let t ← placeTy prog p
   let v ← lookup (splitPlace p).1
   match v.access with
-  | .alias os _ =>
+  | .alias os _ _ =>
     let s ← get
     if s.stale.contains v.name || s.interior.contains v.name then
       throw (CheckError.invalidatedReference p)

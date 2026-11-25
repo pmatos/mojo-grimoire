@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8917408046820696117")
+:::moduleDocs (fingerprint := "11432308953012704403")
 :::
 
-:::readable MojoGrimoire.Check.Access (fingerprint := "5759132414038015456")
+:::readable MojoGrimoire.Check.Access (fingerprint := "8079104089029179561")
 *Definition: access.* How a function holds a variable:
 
 ```grammar MojoGrimoire.Check.Access
@@ -27,7 +27,7 @@ mutable       \mathsf{mutable}
 readOnly      \mathsf{readOnly}
 refParam      \mathsf{refParam}
 dying         \mathsf{dying}
-alias         \mathsf{alias}(p^*, m)
+alias         \mathsf{alias}(p^*, m, s)
 ```
 
 A local variable or a `var` parameter is $`\mathsf{owned}`; the `self`
@@ -36,8 +36,9 @@ $`\mathsf{mutable}`; a `read` parameter is $`\mathsf{readOnly}`; a
 `ref` parameter is $`\mathsf{refParam}`, which may not be changed either,
 but which the compiler subscripts as one that may (#282); and the `self` of `__deinit__` is
 $`\mathsf{dying}`. A reference bound with `ref` is
-$`\mathsf{alias}(p^*, m)`: it may point into the places $`p^*`, its
-origins, and may be changed when $`m` holds.
+$`\mathsf{alias}(p^*, m, s)`: it may point into the places $`p^*`, its
+origins, may be changed when $`m` holds, and is subscripted as one that
+may change when $`s` holds (#282).
 :::
 
 :::readable MojoGrimoire.Check.ShapeStep MojoGrimoire.Check.Shape (fingerprint := "17175472047769601315")
@@ -140,7 +141,7 @@ scope with that name, if there is one, and updating a variable replaces
 the innermost variable with its name. An unknown name is rejected.
 :::
 
-:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.indexedOf MojoGrimoire.Check.fixedLength MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "17077147349380441877")
+:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.indexedOf MojoGrimoire.Check.fixedLength MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "11962076201797507754")
 *Definition: reading a place.* The type of a place is the type of its
 variable, then of each field or element on the way; only a list or an
 array has elements, and $`p\,\hat{}` has the type of $`p`. An index
