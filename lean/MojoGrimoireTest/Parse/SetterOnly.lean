@@ -39,6 +39,7 @@ private def noGetter : CheckError := .missingMethod (.struct "T") "__getitem__"
 #guard rejects ["var t = T(1)", "t[nope] += 1"] noGetter
 #guard rejects ["var t = T(1)", "var u = t^", "t[0] = 5"] noGetter
 #guard rejects ["var t: T", "t[0] = 5"] noGetter
+#guard rejects ["var ts: List[T] = [T(1)]", "ts[[1, 2]][0] = 5"] noGetter
 -- Through a reference, and inside a place.
 #guard rejects ["var t = T(1)", "ref r = t", "r[0] = 5"] noGetter
 #guard rejects ["var ts: List[T] = [T(1)]", "ts[0][0] = 5"] noGetter

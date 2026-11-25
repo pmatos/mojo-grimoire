@@ -30,20 +30,14 @@ def valueSubscript (prog : Program) (p : Place) : CheckM (Option Expr) := do
         return some (.call (methodCallee s "__getitem__") [.place q, i])
   pure none
 
-/-- Whether the type `t` is a struct that declares `__setitem__` but not
-`__getitem__`. -/
-def setterOnly (prog : Program) : Ty → Bool
-  | .struct s => (findStruct prog s).any fun sd =>
-      (findMethod sd "__setitem__").isSome && (findMethod sd "__getitem__").isNone
-  | _ => false
-
 /-- Rejects the place `p`, assigned to, when it holds a subscript `q[i]` of
-a struct that declares `__setitem__` but not `__getitem__` (`setterOnly`):
-`missingMethod` of `__getitem__`, as the compiler reports it once it has
-typed `q`, from its variable outward (`typePlace`), and before it looks at
-`i`, at the value assigned, or at what a later pass checks, such as a read
-of a moved or uninitialized receiver (#296). The subscript nearest `p`'s
-variable is the one reported. A place whose type is unknown is left to the
+a struct that declares `__setitem__` but not `__getitem__`: `missingMethod`
+of `__getitem__`, as the compiler reports it once it has typed `q`, from
+its variable outward (`typePlace`), and before it looks at `i`, at the
+value assigned, or at what a later pass checks, such as a read of a moved
+or uninitialized receiver, or a literal of `Int`s of the wrong length
+(#296). The subscript nearest `p`'s variable is the one reported. A place
+whose type is unknown, such as one read through a getter, is left to the
 checking that reports its error. -/
 def rejectSetterOnly (prog : Program) : Place → CheckM Unit
   | .var _ => pure ()
@@ -51,11 +45,10 @@ def rejectSetterOnly (prog : Program) : Place → CheckM Unit
   | .index q _ => do
     rejectSetterOnly prog q
     let t ← tryCatch (placeTy prog q) fun _ => pure .unknown
-    if setterOnly prog t then
-      modify State.typing
-      try typePlace prog q
-      catch err => unless err.late do throw err
-      throw (CheckError.missingMethod t "__getitem__")
+    if hasMethod prog t "__setitem__" then
+      rejectMisfit (lacks prog "__getitem__" (some t)) do
+        try typePlace prog q
+        catch err => unless err.late || err matches .noMatchingInit .int do throw err
 
 /-- Checks `q[i] = e`, an assignment of the subscript `p` of a struct that
 declares `__getitem__` but not `__setitem__`, given `g`, the call of its
