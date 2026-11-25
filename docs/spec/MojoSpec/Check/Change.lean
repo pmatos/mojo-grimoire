@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Changes and late re-checks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15849310890999484462")
+:::moduleDocs (fingerprint := "202091220525775183")
 :::
 
 :::readable MojoGrimoire.Check.mark MojoGrimoire.Check.invalidatedBy MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "16208851434039671369")
@@ -43,7 +43,7 @@ change nothing. The references that such a subscript invalidates are kept
 apart from the others, as `State.interior` says.
 :::
 
-:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.lateLocs MojoGrimoire.Check.literalLocs MojoGrimoire.Check.elemLocs MojoGrimoire.Check.recheckPlaces MojoGrimoire.Check.recheckLiterals (fingerprint := "15939276191922570524")
+:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.lateLocs MojoGrimoire.Check.lateLocsList MojoGrimoire.Check.locsOf MojoGrimoire.Check.literalLocs MojoGrimoire.Check.elemLocs MojoGrimoire.Check.recheckPlaces MojoGrimoire.Check.recheckLiterals MojoGrimoire.Check.firstElemLocs (fingerprint := "498997209519842773")
 *Rule: places read late.* Mojo reads a place operand only once every
 operand of its operation is evaluated, and a place passed by reference is
 used during the call. So once the operands are checked, every operand that
@@ -52,7 +52,14 @@ after its move. So must every origin of a call that returns a reference
 and is a located operand, passed by reference, or read by value, which
 Mojo also does only then: `two(first(xs), take(xs^))` and
 `print(pick(a, b, True), eat(a^))` are rejected. An origin argument that
-is a temporary is left out. It is also rejected as invalidated when a
+is a temporary is left out. A subscript of a struct read late
+(`lateGetter`) reads the places among its getter's arguments then, its
+receiver among them: `print(w[0], take(w^))` is a use of `w` after its
+move when `w`'s struct declares `__setitem__` (#191). The first element
+of an untyped literal is read again from those places too
+(`firstElemLocs`), so `[w[0], take(w^)]` is rejected; its other elements
+are rechecked as operands. A place is also
+rejected as invalidated when a
 change recorded after its mark invalidates it: in `print(xs[0], xs.pop())`, `pop` changes
 the list that holds `xs[0]` before `xs[0]` is read. A place located once
 $`k` changes were recorded is invalidated when a change recorded since

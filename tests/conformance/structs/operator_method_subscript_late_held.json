@@ -1,0 +1,26 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "rd 1",
+    "get 1 0",
+    "del W 1",
+    "get 2 0",
+    "del W 2",
+    "3",
+    "bump 103",
+    "get 103 0",
+    "del W 103",
+    "get 4 1",
+    "del W 4",
+    "103 5",
+    "bump 105",
+    "get 105 0",
+    "del W 105",
+    "get 6 1",
+    "del W 6",
+    "2",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

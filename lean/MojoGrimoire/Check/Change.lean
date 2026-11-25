@@ -110,6 +110,12 @@ def subscript (prog : Program) (p : Place) (k : Nat) : CheckM Unit := do
     let stale ← invalidatedBy prog m
     modify fun s => { s with interior := union s.interior stale, changes := s.changes ++ [m] }
 
+/-- The origins of the call `e` that returns a reference, those of its
+origin arguments that are temporaries left out; none for any other
+expression. -/
+def locsOf (prog : Program) (e : Expr) : CheckM (List Place) := do
+  pure (((← locOfAs prog false e).map (·.1)).getD [])
+
 /-- Rejects a place among the operands' locations `ls` that a later operand
 left uninitialized or invalidated: Mojo reads a place operand only once
 every operand of its operation is evaluated, and a reference argument is
@@ -120,13 +126,23 @@ def recheckLocs (prog : Program) (ls : List (List Place × Nat)) : CheckM Unit :
     let _ ← readPlace prog p
     requireUnchanged prog p k
 
+mutual
 /-- The places that the operand `e` is read from once every operand of its
 operation is evaluated: a place itself, or the origins of a call that
 returns a reference, those of its origin arguments that are temporaries
-left out. Mojo reads such a call's reference only then. -/
+left out. Mojo reads such a call's reference only then. A subscript that
+Mojo reads late reads those of its getter's arguments then, when it calls
+the getter (`lateGetter`, #191). -/
 def lateLocs (prog : Program) : Expr → CheckM (List Place)
   | .place p => pure [p]
-  | e => do pure (((← locOfAs prog false e).map (·.1)).getD [])
+  | .call f args => if lateGetter prog f then lateLocsList prog args else locsOf prog (.call f args)
+  | e => locsOf prog e
+
+/-- The places that the operands `es` are read from late (`lateLocs`). -/
+def lateLocsList (prog : Program) : List Expr → CheckM (List Place)
+  | [] => pure []
+  | e :: es => do pure ((← lateLocs prog e) ++ (← lateLocsList prog es))
+end
 
 /-- The places that the literal operand `e` reads once every operand of its
 operation is evaluated: Mojo builds a literal operand only then (#282), so
@@ -163,5 +179,14 @@ def recheckPlaces (prog : Program) (es : List Expr) (ks : List Nat) : CheckM Uni
 with `recheckLocs`; `ks` as for `recheckPlaces`. -/
 def recheckLiterals (prog : Program) (es : List Expr) (ks : List Nat) : CheckM Unit := do
   recheckLocs prog (← (es.zip ks).mapM fun (e, k) => do pure (← literalLocs prog e, k))
+
+/-- The places that the first element `e` of an untyped literal is read
+from once every element is evaluated: a place itself, or the arguments of
+a subscript that Mojo reads late (`lateGetter`), since the getter is called
+only then. Any other element is not rechecked, as before #191. -/
+def firstElemLocs (prog : Program) : Expr → CheckM (List Place)
+  | .place p => pure [p]
+  | .call f args => if lateGetter prog f then lateLocsList prog args else pure []
+  | _ => pure []
 
 end MojoGrimoire.Check

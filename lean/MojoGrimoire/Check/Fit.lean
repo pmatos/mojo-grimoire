@@ -73,6 +73,18 @@ def passValue (fit : Fit) (callee : Name) (c : Conv) : CheckM Unit := do
   if c == .out || c == .deinit then throw (CheckError.invalidConvention callee)
   if c == .mutable then throw (fit.misfit (CheckError.notAPlace callee))
 
+/-- The error for a value `e` passed `mut` to `callee`, of a call of fit
+`fit`: `notAPlace`, but `notAList` for a subscript of a struct that Mojo
+reads late, as for any subscript of a struct used as a place beyond
+reading and assigning it, whose write-back is not yet modelled (#198). -/
+def notPlaceError (prog : Program) (fit : Fit) (callee : Name) (e : Expr) : CheckError :=
+  fit.misfit <| match e with
+  | .call g _ =>
+    match calleeMethod g with
+    | some (s, _, _) => if lateGetter prog g then .notAList (.struct s) else .notAPlace callee
+    | none => .notAPlace callee
+  | _ => .notAPlace callee
+
 /-- Rejects the type `t` as `valueAsType` when a variable hides a name in
 it (`MojoGrimoire.Core.hiddenTy`): the type of a declared variable, before
 any other error of its declaration, and of `List[u](…)`, before its
