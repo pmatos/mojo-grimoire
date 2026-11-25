@@ -21,6 +21,9 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
   `instprobe2/`, `mrprobe/`, `dlprobe/` and `extras/`: the ruling's
   probes of two errors in one call, of implicit copies, of instantiation
   errors, of missing returns and of declarations.
+- `order6/`: Part 6's probes of the type phase's order whose compiler
+  diagnostic has no class yet (#319), or whose class the model does not
+  give, so that the suite cannot hold them.
 - `corpus/`: random programs of #260's review whose class Part 4 of #96
   changed, each listed on its PR with the open issue of its rejection,
   named `GROUP_NAME` after their place in that corpus.

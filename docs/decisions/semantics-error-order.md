@@ -108,11 +108,34 @@ each rule.
 A missing `main` comes after the flow phase. The instantiation errors are
 still found in the flow phase, as uses, until Part 7.
 
+## The order of the type phase
+
+The type phase follows the order of the compiler's first pass (#96 part
+6, `checkTypes`), probed on the pin
+(`order/type_*`, `tests/sweep/order6/`):
+
+1. A struct of the name of another struct or of a function comes first.
+2. Then the declarations in the order of the source. A free function's
+   signature and body: `main`'s signature, which takes nothing and
+   returns nothing, before its body, and a function of the name of an
+   earlier one at its place. A struct's own declaration: the names of its
+   fields and methods, and the types of its fields.
+3. Then each struct in the order of the declarations: its initializer,
+   destructor and methods, signature and body, in their order, and the copy
+   initializer that the compiler synthesizes, right after `__init__`, or
+   after the last member when the struct declares none, with a cycle of
+   fields that the fixed compiler rejects. A hidden type,
+   `valueAsType`, takes its place in that order like any error (#193).
+
+The compiler resolves a method's or a function's signature where a body
+first refers to it, which the model does not follow yet (#231).
+
 ## Where the model differs today
 
-The checker's phases follow the compiler's tiers, and the flow phase its
-order, but the order inside the type tier is still the model's program
-order, and the instantiation errors are still found in the flow phase. So it differs from the compiler in these
+The checker's phases follow the compiler's tiers, and each phase its
+order across the declarations, but the order inside a statement or an
+expression of the type tier is still the model's, and the instantiation
+errors are still found in the flow phase. So it differs from the compiler in these
 cases, which #96's later parts fix.
 
 ### Calls and initializers
@@ -142,29 +165,6 @@ before the literal and before an index into a list on the compiler, and
 the model reports it as any index. A nested `List[Int](range([1, 2]))`
 fails at once in the model, before a use of an uninitialized value in
 another argument.
-
-### Types that a variable hides
-
-Where a hidden type comes among a program's errors is in
-[conformance-classes.md](conformance-classes.md#types-that-a-variable-hides).
-A hidden type in a function comes after an error in a struct's method in
-the model, which checks structs first, and one in a struct's method comes
-after a later struct's `recursiveStruct` there (#96).
-
-### Copyable structs whose fields cannot be copied
-
-In its first pass, the compiler checks the bodies of the functions and
-`main`'s signature, wherever they are declared, then each struct in
-declaration order: its methods, then its copy initializer. Its later
-passes, such as a use of an uninitialized value or a missing return, and
-a missing `main` come after. The model checks every struct, then every
-function and `main`'s signature, then the fields of the structs that
-declare `Copyable` or `ImplicitlyCopyable`
-([conformance-classes.md](conformance-classes.md#copyable-structs-whose-fields-cannot-be-copied)),
-then that `main` exists. Two cases differ (#164). A first-pass error in a
-method of a struct declared after the bad one comes first in the model. And "attempt to resolve a recursive reference
-to declaration" is ordered with this error by declaration, where the
-model reports `recursiveStruct` first.
 
 ## Temporary bridges to `main`'s order
 

@@ -127,8 +127,8 @@ private def prints (pre body : List String) (out : List String) : Bool :=
 #guard rejects ["var P = 5", "var q: P = zz"] (.valueAsType "P")
 #guard rejects ["var P = 5", "var P: P = mk()"] (.valueAsType "P")
 -- Inside a struct's method, initializer or destructor, it comes after the
--- functions' bodies, before that struct's copyability check, and the
--- methods of later structs are not checked.
+-- functions' bodies, and in the order of the struct's members, as every
+-- error of the type phase (#96 part 6).
 private def method (body : List String) : List String :=
   ["@fieldwise_init", "struct Q(Copyable, Movable):", "    var x: Int",
    "    def m(self, P: Int, q: P) -> Int:", "        return self.x"] ++ body
@@ -140,16 +140,15 @@ private def method (body : List String) : List String :=
   (.valueAsType "P")
 #guard rejectsIn "R" (["@fieldwise_init", "struct R(ImplicitlyCopyable):", "    var xs: List[Int]"] ++
   method []) ["print(1)"] (.uncopyableField "R" "xs" (.list .int))
--- Among a struct's methods, the first error in declaration order comes
--- first; a hidden type in its initializer or destructor only when no
--- method has another error, since the model keeps no order among them.
+-- Among a struct's members, the first error in declaration order comes
+-- first, as the pin says.
 #guard rejectsIn "R.m" ["@fieldwise_init", "struct R(Movable):", "    var q: Int",
   "    def m(self):", "        print(zz)", "    def n(self):", "        var P = 1",
   "        var z: P = mk()"] ["print(1)"] (.unknownVariable "zz")
 #guard rejectsIn "R.m" ["@fieldwise_init", "struct R(Movable):", "    var q: Int",
   "    def m(self):", "        print(zz)", "    def __deinit__(deinit self):", "        var P = 1",
   "        var z: P = mk()"] ["print(1)"] (.unknownVariable "zz")
-#guard rejectsIn "R.__deinit__" ["@fieldwise_init", "struct R(Movable):", "    var q: Int",
+#guard rejectsIn "R.m" ["@fieldwise_init", "struct R(Movable):", "    var q: Int",
   "    def m(self, P: Int, q: P):", "        pass", "    def __deinit__(deinit self):",
   "        var P = 1", "        var z: P = mk()"] ["print(1)"] (.valueAsType "P")
 -- With its own `__init__`, a struct's copy initializer is checked right
