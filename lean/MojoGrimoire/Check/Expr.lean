@@ -1,4 +1,6 @@
 import MojoGrimoire.Check.Logic
+import MojoGrimoire.Check.Elems
+import MojoGrimoire.Check.Range
 
 /-!
 The checking of expressions and of the arguments of calls.
@@ -15,7 +17,9 @@ a `read`, `mut` or `ref` parameter or to `len`: it is not copied, and it
 stands for its origins. The operands read late, and the places that a call
 changes, are checked as `MojoGrimoire.Check.Change` says. An argument that
 does not fit is reported as `MojoGrimoire.Check.Fit` says, which also gives
-the rules of literals, of `List[u](…)` and of its `range` argument. An
+the rules of literals, of `List[u](…)` and of its `range` argument; the
+elements of some literals are checked as `MojoGrimoire.Check.Elems` says,
+and the arguments of `range` as `MojoGrimoire.Check.Range` says. An
 operator or a call that its operands' types reject, a method that a type
 lacks, no overload that fits or a comparison that does not fit, is
 reported before they are read, as
@@ -97,7 +101,8 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         es.length es.length))
     pure t
   | .list .int [e] => do expect .int (← checkExprAs prog false e); pure .int
-  | .list .int es => rejectIntLiteral prog .call (intMisfit prog es) (readIntElems prog es)
+  | .list .int es =>
+    rejectIntElems prog .call es (fun p _ => typePlace prog p) (fun a _ => checkExprAs prog false a)
   | .list t es => do
     let u ← literalElem prog (.init t) t es.length
     recheckLocs prog (← checkArgs prog (.init t) (typeName t)
@@ -113,10 +118,15 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       | .str _ => throw (CheckError.noMatchingInit (.list u))
       | e => do
         let t ← match e with
-          | .list .unknown es => do iterableLiteralTy prog u (← checkIterableElems prog u es)
+          | .list .unknown es => do
+            iterableLiteralTy prog u (← checkIterableElems prog u
+              (fun a _ => checkExprAs prog false a) es (Nat.le_refl _))
           | .call f args =>
             if builtinRange prog f && (← findVar f).isNone then
-              rangeList prog u args.length (typeRangeArgs prog true args) (readRangeArgs prog args)
+              rangeList prog u args.length
+                (typeRangeArgs (fun a _ => typeArg prog a) true args (Nat.le_refl _))
+                (readRangeArgs prog (fun p _ => checkIndices prog p)
+                  (fun a _ => checkExprAs prog false a) args (Nat.le_refl _))
             else do checkExprAs prog (← locOf prog (.call f args)).isSome (.call f args)
           | e => do checkExprAs prog (← locOf prog e).isSome e
         iterableFits prog u t
@@ -129,56 +139,6 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     throw (CheckError.noMatchingInit (.list u))
   | .withDrops e _ _ => checkExprAs prog asRef e
   termination_by e => (sizeOf e, 0)
-
-/-- Checks the elements `es` of a literal with no type expected that is
-the argument of `List[u](…)`, in order, each as passed to a `var`
-parameter, and gives the type of each, with the places it is read from
-once every element is evaluated and how many changes were recorded once
-it was checked; `iterableLiteralTy` gives the literal's type. -/
-def checkIterableElems (prog : Program) (u : Ty) : List Expr → CheckM (List (Ty × List Place × Nat))
-  | [] => pure []
-  | e :: es => do
-    let t ← match e with
-      | .list .unknown es' => do iterableLiteralTy prog u (← checkIterableElems prog u es')
-      | e => checkExprAs prog false e
-    let k ← mark
-    pure ((t, ← lateLocs prog e, k) :: (← checkIterableElems prog u es))
-  termination_by es => (sizeOf es, 2)
-
-/-- Types the arguments of the standard library's `range` in the argument
-of `List[u](…)`, each in `State.typing`, and gives whether one fits no form
-of `range`, and whether one is an open literal of `Int`s, which the
-compiler takes for an `Int` and rejects only when it instantiates the call
-(#121). An error of typing is thrown, in any argument; a literal is typed
-by `typeLiteral`, and any other argument by `typeArg`. A literal whose first
-element, at any depth, is an empty literal fits no form as the `first`
-argument, and is such a literal of `Int`s after it. -/
-def typeRangeArgs (prog : Program) (first : Bool) : List Expr → CheckM (Bool × Bool)
-  | [] => pure (false, false)
-  | a :: as => do
-    modify State.typing
-    let (misfit, literal) ← match a with
-      | .list .unknown es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => do
-        let (ints, empty) ← typeLiteral prog es
-        pure (if ints && !(first && empty) then (false, true) else (true, false))
-      | a => do pure ((← typeArg prog a) != .int, false)
-    let (misfit', literal') ← typeRangeArgs prog false as
-    pure (misfit || misfit', literal || literal')
-  termination_by as => (sizeOf as, 2)
-
-/-- Types the elements `es` of an open literal that is an argument of
-`range`, and gives whether every element that is not a literal, at any
-depth, is an `Int`, and whether its first element, at any depth, is an
-empty literal: such a literal fits no form of `range` (#121). -/
-def typeLiteral (prog : Program) : List Expr → CheckM (Bool × Bool)
-  | [] => pure (true, true)
-  | e :: es => do
-    let (ints, empty) ← match e with
-      | .list .unknown es' | .list .int es'@([]) | .list .int es'@(_ :: _ :: _) => typeLiteral prog es'
-      | e => do pure ((← typeArg prog e) == .int, false)
-    let (ints', _) ← typeLiteral prog es
-    pure (ints && ints', empty)
-  termination_by es => (sizeOf es, 2)
 
 /-- The type of the argument `e` of `range`, or of an element of one, as
 the compiler types it before it finds the form of `range` that fits. One
@@ -216,25 +176,6 @@ def typeArgs (prog : Program) : List Expr → CheckM Unit
   | e :: es => do let _ ← typeArg prog e; typeArgs prog es
   termination_by es => (sizeOf es, 2)
 
-/-- Reads the arguments `args` of `range`, typed by `typeRangeArgs`, in
-order, as `Int`s passed to `read` parameters, and an open literal's
-elements in turn. An error of a later pass than typing is recorded
-(`lateErrors`), and the arguments and elements after it still read. -/
-def readRangeArgs (prog : Program) : List Expr → CheckM RangeArgs
-  | [] => pure {}
-  | a :: as => do
-    let r ← match a with
-      | .list .unknown es | .list .int es@([]) | .list .int es@(_ :: _ :: _) => readRangeArgs prog es
-      | .place p => lateErrors (do
-        checkIndices prog p
-        let _ ← readPlace prog p
-        pure { locs := [([p], ← mark)] })
-      | a => lateErrors (do
-        let _ ← checkExprAs prog false a
-        pure { locs := [(← lateLocs prog a, ← mark)] })
-    pure (r.append (← readRangeArgs prog as))
-  termination_by as => (sizeOf as, 2)
-
 /-- Checks each of the arguments `args` of `List[u](…)` on its own: a place
 is located, and any other expression checked, before the call is rejected. -/
 def checkOperands (prog : Program) : List Expr → CheckM Unit
@@ -246,37 +187,6 @@ def checkOperands (prog : Program) : List Expr → CheckM Unit
   | e :: args => do
     let _ ← checkExprAs prog false e
     checkOperands prog args
-  termination_by es => (sizeOf es, 2)
-
-/-- The type of the first of the elements `es` of a literal where an `Int`
-is expected that is no `Int`, nor such a literal of `Int`s. Each is typed
-in `State.typing`, a place by `typePlace`; one whose check gives an error
-that the compiler reports later has its `lateElemTy`. -/
-def intMisfit (prog : Program) : List Expr → CheckM (Option Ty)
-  | [] => pure none
-  | e :: es => do
-    modify State.typing
-    let u ← match e with
-      | .place p => do
-        try typePlace prog p catch err =>
-          unless err.late || err == .noMatchingInit .int do throw err
-        placeTy prog p
-      | .list .int es' => do pure ((← intMisfit prog es').getD .int)
-      | e => try checkExprAs prog false e catch err =>
-          if err.late || err == .noMatchingInit .int then lateElemTy prog e else throw err
-    if u == .int then intMisfit prog es else pure (some u)
-  termination_by es => (sizeOf es, 2)
-
-/-- Reads the elements `es` of such a literal of `Int`s, as `Int`s passed
-`var`, a nested one's elements in turn, and gives what each reads late. -/
-def readIntElems (prog : Program) : List Expr → CheckM (List (List Place × Nat))
-  | [] => pure []
-  | e :: es => do
-    let ks ← match e with
-      | .list .int [] => pure []
-      | .list .int es'@(_ :: _ :: _) => readIntElems prog es'
-      | e => do expect .int (← checkExprAs prog false e); let k ← mark; pure [(← lateLocs prog e, k)]
-    pure (ks ++ (← readIntElems prog es))
   termination_by es => (sizeOf es, 2)
 
 /-- Checks the index expressions of the place `p`: each is an `Int`, and
@@ -375,7 +285,7 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
   | .list t es => do
     passValue fit callee prm.conv
     let t' ← if t == .int && es.length != 1 then
-        rejectIntLiteral prog fit (intMisfit prog es) (readIntElems prog es)
+        rejectIntElems prog fit es (fun p _ => typePlace prog p) (fun a _ => checkExprAs prog false a)
       else if !(t matches .list _ | .array ..) || fit matches .init _ then
         checkExprAs prog false (.list t es)
       else do

@@ -47,4 +47,5 @@ import MojoGrimoireTest.Parse.IntIndex
 import MojoGrimoireTest.Parse.Len
 import MojoGrimoireTest.Parse.HiddenTypes
 import MojoGrimoireTest.Parse.Subset
+import MojoGrimoireTest.Parse.DeclOrder
 import MojoGrimoireCli

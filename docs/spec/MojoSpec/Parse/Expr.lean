@@ -68,8 +68,8 @@ which is outside the subset, and the parser fails (#54). So $`p\,\hat{}`
 ends a chain, what follows it being an operator or the end of the
 expression, unless `.` follows it: then it is the place $`p\,\hat{}`,
 whose fields and methods the chain goes on to read, as the compiler does
-for `p^.f` and `p^.m(…)` (#66). The name after `.` may be `break` or
-`continue`, as in the compiler (`memberName`, #268).
+for `p^.f` and `p^.m(…)` (#66). The name after `.` may be a keyword,
+as in the compiler (`memberName`, #268, #278).
 A literal $`[e^*]` is left for inference to type, and $`\mathsf{List}[\mathit{type}]()` is an empty list literal.
 Its type is a type argument, read by `typeArgument`, so $`\mathsf{List}[\mathsf{None}]` is no list of $`\mathsf{None}` (#183).
 With arguments, $`\mathsf{List}[\mathit{type}](e^+)` is its own expression, which the checker accepts only for one
