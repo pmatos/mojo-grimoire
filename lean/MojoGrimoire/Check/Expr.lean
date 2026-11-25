@@ -96,15 +96,15 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     unless declarableTy prog u do throw (CheckError.invalidType t)
     let k ← mark
     recheckLocs prog ((if let .place p := e then [p] else [], k) ::
-      (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
-        es.length es.length))
+      (← elemLocs prog es (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
+        es.length es.length)))
     pure t
   | .list .int [e] => do expect .int (← checkExprAs prog false e); pure .int
   | .list .int es => rejectIntLiteral prog .call (intMisfit prog es) (readIntElems prog es)
   | .list t es => do
     let u ← literalElem prog (.init t) t es.length
-    recheckLocs prog (← checkArgs prog (.init t) (typeName t)
-      (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length)
+    recheckLocs prog (← elemLocs prog es (← checkArgs prog (.init t) (typeName t)
+      (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length))
     pure t
   | .listInit u [e] => do
     rejectHidden u
@@ -285,7 +285,7 @@ def readIntElems (prog : Program) : List Expr → CheckM (List (List Place × Na
 /-- Checks the index expressions of the place `p`: each is an `Int`, and
 one that Mojo computes when it compiles the program may not be negative,
 nor, into an array or an `Int`, beyond its last element. Mojo locates `q` in `q[i]`
-before it evaluates `i`, so `i` may not invalidate `q`. Each `q^` in `p`
+before it evaluates `i`, then subscripts it (`subscript`). Each `q^` in `p`
 needs `q` whole, and a value that `q^` could transfer. -/
 def checkIndices (prog : Program) : Place → CheckM Unit
   | .var _ => pure ()
@@ -294,7 +294,7 @@ def checkIndices (prog : Program) : Place → CheckM Unit
     checkIndices prog p
     let k ← mark
     checkIndex prog (← operandTy prog (.place p)) i
-    requireUnchanged prog p k
+    subscript prog p k
     if let some k := constInt i then
       if k < 0 then throw (CheckError.negativeIndex (.index p i))
       if let some n := fixedLength (← placeTy prog p) then
@@ -383,13 +383,12 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
         checkExprAs prog false (.list t es)
       else do
         let u ← literalElem prog .call t es.length
-        recheckLocs prog (← checkArgs prog .call (typeName t)
-          (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length)
+        recheckLocs prog (← elemLocs prog es (← checkArgs prog .call (typeName t)
+          (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length))
         pure t
     expectArg fit prm.ty t'
     let k ← mark
-    let late ← if let [x] := es then if t == .int then lateLocs prog x else pure [] else pure []
-    pure (late, k)
+    pure (← literalLocs prog (.list t es), k)
   | e => do
     if e matches .str _ && fit matches .overload _ then
       throw (fit.misfit (CheckError.typeMismatch prm.ty .str))

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "67836114728436700")
+:::moduleDocs (fingerprint := "11240028662659726924")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -57,7 +57,7 @@ of its own, which may stay moved out. Each error is
 $`\mathsf{partiallyDestroyed}`.
 :::
 
-:::readable MojoGrimoire.Check.checkExit (fingerprint := "16841318695536390912")
+:::readable MojoGrimoire.Check.checkExit (fingerprint := "16035883555150241288")
 *Rule: a return.* When a function returns, each `mut` parameter and the
 `self` of `__init__` must be wholly initialized, since the caller holds
 them, with no piece in $`P`: otherwise the error is
@@ -70,13 +70,13 @@ compiler reports a parameter left uninitialized before a variable that may
 not end.
 :::
 
-:::readable MojoGrimoire.Check.endScope (fingerprint := "10225848583509902724")
+:::readable MojoGrimoire.Check.endScope (fingerprint := "12475957554459155936")
 *Rule: the end of a scope.* The variables a block declared end with it,
 each checked as above if the end of the block is reached, and leave the
-set of invalidated references.
+sets of invalidated references.
 :::
 
-:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "151849857318036827")
+:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "780484172269793629")
 *Rule: joining branches.* After an `if`, a part is uninitialized when
 either branch leaves it so, and may hold a value when either branch may;
 $`M`, $`T` and $`P` are the unions of the branches' sets, and
@@ -138,7 +138,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "13338840248750142160")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "5017835224004253786")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 
@@ -168,7 +168,9 @@ an expression, so a place is copied implicitly.
   fields are all assigned, since it is then whole, unless it was moved out
   whole first. Assigning a part below a field in $`M` does not remove it.
   Through a reference or to an element, the old value is read first, so
-  it must be initialized. Into the element of an $`\mathsf{Int}`, the
+  it must be initialized, and the reference not invalidated, but by a
+  subscript of an array in $`e`, which the compiler makes after it
+  locates the reference (#282). Into the element of an $`\mathsf{Int}`, the
   $`\mathsf{Int}` is located before the value is evaluated, so a change
   the value makes may not invalidate it, and the index, an argument of
   `__setitem__`, is read once the value is evaluated, so the value may not
@@ -180,8 +182,8 @@ an expression, so a place is copied implicitly.
 * an expression statement checks its expression;
 * `print`, unless a variable in scope named `print` hides it, which
   `rejectCalledVar` rejects once the arguments are typed (#176), checks
-  its arguments as above, then that its place arguments are still
-  initialized and not invalidated;
+  its arguments as above, then that its place arguments, and what its
+  literal arguments read late, are still initialized and not invalidated;
 * `return` needs a value of the result type exactly when the result type
   is not $`\mathsf{None}`, checks the state at a return, and makes what
   follows unreachable; a function that returns a reference returns a

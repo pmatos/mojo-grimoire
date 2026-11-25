@@ -148,7 +148,7 @@ def checkExit (prog : Program) : CheckM Unit := do
     if !v.uninit.isEmpty || !v.pieces.isEmpty then
       throw (CheckError.uninitializedAtExit v.name)
   for v in vars do
-    if v.access != .readOnly then checkEnd prog v
+    unless v.access matches .readOnly | .refParam do checkEnd prog v
 
 /-- Ends the variables declared since the scope had `n` variables: checks
 that each may end, if the end of the scope is reached, and removes them. -/
@@ -158,7 +158,8 @@ def endScope (prog : Program) (n : Nat) : CheckM Unit := do
   if s.live then
     for v in ended do checkEnd prog v
   set { s with vars := s.vars.drop (s.vars.length - n),
-               stale := s.stale.filter fun x => !ended.any (·.name == x) }
+               stale := s.stale.filter fun x => !ended.any (·.name == x),
+               interior := s.interior.filter fun x => !ended.any (·.name == x) }
 
 /-- The uninitialized parts after two branches: those of either. -/
 def joinUninit (a b : List Path) : List Path :=
@@ -181,7 +182,7 @@ def joinStates (a b : State) : State :=
          vars := List.zipWith (fun v w =>
              { joinMay v w with uninit := joinUninit v.uninit w.uninit })
            a.vars b.vars,
-         stale := union a.stale b.stale }
+         stale := union a.stale b.stale, interior := union a.interior b.interior }
 
 /-- Rejects a loop whose body, from the state `before`, ends in the state
 `after` with a part uninitialized that was initialized before, or with a
@@ -286,6 +287,7 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     modify fun s => { s with vars := ⟨x, t, .alias origins m, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
     let k ← mark
+    let before := (← get).interior
     if let .binary _ (.place q) _ := e then
       if q == p && !plainIndices p then rejectIntElem prog p (checkIndices prog p)
     let t ← if e matches .list .unknown _ || (wrongIntLiteral e).isSome then do
@@ -305,7 +307,10 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let (x, path) := splitPlace p
     let v ← lookup x
     if splitPlace.indexed p || v.access matches .alias .. then
+      let s ← get
+      set { s with interior := before }
       let _ ← readPlace prog p
+      set s
       return
     let ts := (if (above path v.touched).isEmpty then [] else [[]]) ++ atOrBelow path v.touched
     if cannotEnd prog (partTy prog v.ty path) (partsWithin path v.uninit) (atOrBelow path v.moved)
@@ -323,6 +328,7 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     rejectCalledVar prog "print" (typeArgs prog args)
     let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark
     recheckPlaces prog args ks
+    recheckLiterals prog args ks
   | .ret value => do
     match value, sig.origin with
     | none, _ => unless sig.result == .noneType do throw (CheckError.invalidReturn sig.name)

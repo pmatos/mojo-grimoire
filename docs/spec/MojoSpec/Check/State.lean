@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9270260805180439659")
+:::moduleDocs (fingerprint := "8917408046820696117")
 :::
 
-:::readable MojoGrimoire.Check.Access (fingerprint := "4845031522016519524")
+:::readable MojoGrimoire.Check.Access (fingerprint := "5759132414038015456")
 *Definition: access.* How a function holds a variable:
 
 ```grammar MojoGrimoire.Check.Access
@@ -25,14 +25,16 @@ owned         \mathsf{owned}
 constructing  \mathsf{constructing}
 mutable       \mathsf{mutable}
 readOnly      \mathsf{readOnly}
+refParam      \mathsf{refParam}
 dying         \mathsf{dying}
 alias         \mathsf{alias}(p^*, m)
 ```
 
 A local variable or a `var` parameter is $`\mathsf{owned}`; the `self`
 of `__init__` is $`\mathsf{constructing}`; a `mut` parameter is
-$`\mathsf{mutable}`; a `read` or `ref` parameter is
-$`\mathsf{readOnly}`; and the `self` of `__deinit__` is
+$`\mathsf{mutable}`; a `read` parameter is $`\mathsf{readOnly}`; a
+`ref` parameter is $`\mathsf{refParam}`, which may not be changed either,
+but which the compiler subscripts as one that may (#282); and the `self` of `__deinit__` is
 $`\mathsf{dying}`. A reference bound with `ref` is
 $`\mathsf{alias}(p^*, m)`: it may point into the places $`p^*`, its
 origins, and may be changed when $`m` holds.
@@ -55,7 +57,7 @@ element of an $`\mathsf{Int}` is a step of its own, since it is no
 location (#127).
 :::
 
-:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.State MojoGrimoire.Check.CheckM (fingerprint := "591165480568758191")
+:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.State MojoGrimoire.Check.CheckM (fingerprint := "1448946028188291665")
 *Definition: the checker's state.* A path $`\pi = f_1 \dots f_n` names a
 part of a variable: the empty path $`\epsilon` is the variable itself, and
 $`f_1 \dots f_n` its field $`f_1.\dots.f_n`. For each variable in scope,
@@ -68,7 +70,8 @@ function; the set $`T` of its touched parts, held whole when a part
 inside them was moved out or assigned; and the set $`P` of its pieces,
 the parts built from their fields, which Mojo never counts as whole. The state also says whether the current
 point can be reached; after a `return` it cannot. It holds the set of
-references bound with `ref` that are invalidated, and the shapes of the
+references bound with `ref` that are invalidated, the set of those that
+only a subscript of an array invalidated (#282), and the shapes of the
 places changed as a whole so far in the current statement, in order. A
 flag, unset but while a statement is checked again to replay `main`'s
 order, makes a struct test rejected as `main` rejected it
@@ -131,13 +134,13 @@ uninitialized, assigning $`\rho` builds from their fields the parts from
 $`\pi` down to the part just above $`\rho`.
 :::
 
-:::readable MojoGrimoire.Check.findVar MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "16817304179593671700")
+:::readable MojoGrimoire.Check.findVar MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "16164781018541207343")
 *Definition: variables in scope.* A name refers to the innermost variable in
 scope with that name, if there is one, and updating a variable replaces
 the innermost variable with its name. An unknown name is rejected.
 :::
 
-:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.indexedOf MojoGrimoire.Check.fixedLength MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "13959565986772566554")
+:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.indexedOf MojoGrimoire.Check.fixedLength MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "17077147349380441877")
 *Definition: reading a place.* The type of a place is the type of its
 variable, then of each field or element on the way; only a list or an
 array has elements, and $`p\,\hat{}` has the type of $`p`. An index
@@ -150,7 +153,8 @@ below it, and is otherwise rejected as a use of an uninitialized value: a
 field moved out and refilled one sub-field at a time is still not whole,
 and nor is a struct built field by field, even once every field is
 assigned, as the compiler reports. Through a
-reference, the reference must not be invalidated, and every origin must be
+reference, the reference must be in neither set of invalidated
+references, and every origin must be
 initialized: a value moved away cannot be used through a reference to it.
 A place reached through a reference resolves to the same place in each of
 its origins, the reference's variable replaced by the origin; any other

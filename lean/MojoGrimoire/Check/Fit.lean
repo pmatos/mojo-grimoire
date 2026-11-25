@@ -186,7 +186,7 @@ def wrongIntLiteral : Expr → Option (List Expr)
 in which an expression is typed without its reads failing. -/
 def State.typing (s : State) : State :=
   { s with vars := s.vars.map fun v => { v with uninit := [], moved := [], pieces := [] },
-           stale := [] }
+           stale := [], interior := [] }
 
 /-- The type of an element `e` of a literal where an `Int` is expected, or
 of an argument of `range` (#121), when checking it gives an error that the compiler reports after its types: one

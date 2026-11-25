@@ -33,7 +33,7 @@ open MojoGrimoire.Core
 /-- Whether a variable held this way may be changed: assigned to, or passed
 `mut`. -/
 def Access.canChange : Access → Bool
-  | .readOnly => false
+  | .readOnly | .refParam => false
   | .alias _ m => m
   | _ => true
 
