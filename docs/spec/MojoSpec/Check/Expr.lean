@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8651366978850599933")
+:::moduleDocs (fingerprint := "16321808596982137405")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.literalElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "709623310528360297")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.literalElems MojoGrimoire.Check.lenLiteral MojoGrimoire.Check.lenFirst MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "611558511138821469")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -157,7 +157,15 @@ type:
   operand, is read, not copied. A $`\mathsf{Bool}`, `None` or a struct,
   or another number of arguments, fits no overload of `len`:
   `noMatchingInit`, found by `lenCall` before any argument is read
-  (#190);
+  (#190). A literal argument has the type that inference gives it
+  (`inferLenLiteral`, #341), the array it initializes, so a misfit inside it
+  is `noMatchingInit`, reported after its elements' own errors and before
+  its copies (`copyLast`). It is checked by `lenLiteral` as a literal with
+  no type expected is: its first element on its own, by this rule when it
+  is such a literal (`lenFirst`), and the others converted to that
+  element's type. One with no type, empty or whose first element
+  is, at any depth (`emptyFirst`), is `noMatchingInit` once its elements
+  are typed;
 * $`\mathsf{drops}(e; p^*; q^*)`, which only elaboration inserts, after
   checking, has the type of $`e`.
 
@@ -202,7 +210,10 @@ with `ref`, passed by reference, or read by `len` or `print`.
 
 The arguments of a call are checked in order against the parameters, each
 by `checkArg`, after the exclusivity rule; a string literal fits no
-overload. A place is passed by `passPlace`; a call that returns a
+overload, and a literal with no type that is or holds an empty literal
+(`holdsEmpty`) fits no parameter but a list or an array: once its
+elements are typed, the call's fit reports a type mismatch (#341). A place is
+passed by `passPlace`; a call that returns a
 reference and is a located operand, passed to a `read`, `mut` or `ref`
 parameter, as a location, which must be mutable for `mut`, or the call is
 $`\mathsf{immutablePlace}`, named by its first origin; and any other
