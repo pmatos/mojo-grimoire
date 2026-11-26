@@ -22,7 +22,7 @@ elements of some literals are checked as `MojoGrimoire.Check.Elems` says,
 and the arguments of `range` as `MojoGrimoire.Check.Range` says. A
 literal passed to `len` has the type that inference gives it
 (`MojoGrimoire.Parse.inferLenLiteral`), the array it initializes, so a misfit
-inside it is `noMatchingInit`, reported before its copies (`copyLast`);
+inside it is `noMatchingInit`, reported before its copies (`lenLiteral`);
 one with no type, empty or whose first element is, is `noMatchingInit`
 once its elements are typed (#341). An
 operator or a call that its operands' types reject, a method that a type
@@ -73,8 +73,8 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         | .place p => do checkIndices prog p; readPlace prog p
         | e@(.list t es) =>
           if emptyFirst e then rejectAfter (typeArgs prog es) (.noMatchingInit .unknown)
-          else if t == .unknown then checkExprAs prog false e
-          else copyLast (checkExprAs prog false e)
+          else if t matches .array .. then lenLiteral prog es
+          else checkExprAs prog false e
         | e => do checkExprAs prog (← locOf prog e).isSome e)
       | "len", _, .unknownFunction _ => lenCall prog args (typeArgs prog args) (pure .unknown)
       | _, _, .missingMethod .. => rejectAfter (typeArgs prog args) err
@@ -214,6 +214,31 @@ def literalElems (prog : Program) : List Expr → CheckM Unit
   | e@(.list .unknown _) :: rest => do let _ ← checkExprAs prog false e; literalElems prog rest
   | _ :: rest => literalElems prog rest
   termination_by es => (sizeOf es, 3)
+
+/-- Checks the elements `es` of a literal passed to `len`, typed by
+inference (#341), as the compiler converts it: the first is built on its
+own, by this rule when it is such a literal (`lenFirst`), and the others
+are converted to its type, a misfit `noMatchingInit`, as a literal with
+no type expected builds them, its copies after its misfits. -/
+def lenLiteral (prog : Program) : List Expr → CheckM Ty
+  | [] => throw (CheckError.noMatchingInit .unknown)
+  | e :: es => typedFirst (ownArgs prog (e :: es)) <| copyLast do
+    let u ← lenFirst prog e
+    let t := Ty.array u (es.length + 1)
+    unless declarableTy prog u do throw (CheckError.invalidType t)
+    let k ← mark
+    recheckLocs prog ((← firstElemLocs prog e, k) ::
+      (← checkArgs prog (.init t) "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
+        es.length es.length))
+    pure t
+  termination_by es => (sizeOf es, 3)
+
+/-- The type of the first element `e` of a literal passed to `len`
+(`lenLiteral`). -/
+def lenFirst (prog : Program) : Expr → CheckM Ty
+  | .list (.array ..) es => lenLiteral prog es
+  | e => checkExprAs prog false e
+  termination_by e => (sizeOf e, 4)
 
 /-- Checks each of the arguments `args` of `List[u](…)` on its own: a place
 is located, and any other expression checked, before the call is rejected. -/

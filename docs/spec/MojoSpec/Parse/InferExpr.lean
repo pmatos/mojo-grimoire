@@ -46,7 +46,7 @@ A call or a method call
 has the result of its signature. A call of a struct that cannot be built
 still has the struct's type, so that the checker reports why, and `len`
 gives an $`\mathsf{Int}`. Its one argument, when the program declares no
-function `len` and no variable hides it, is inferred by `inferLenArgs`: a
+function or struct `len` and no variable hides it, is inferred by `inferLenArgs`: a
 literal left open is converted as the compiler converts it to `len`'s
 parameter, by `inferLenLiteral` (#341). Its first element is inferred
 once, by this rule in turn when it is a literal left open, and the
