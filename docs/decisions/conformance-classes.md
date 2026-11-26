@@ -54,9 +54,14 @@ with the note "constraint failed: expected N elements in the SIMD list
 literal, found M" (D-0005). `diagnostics.json` maps it, matched whole with
 its note, to `noMatchingInit` (#160); a failed instantiation with any other
 note does not match it. The nightly gives it in every position, a
-converted argument or operand too (but for D-0014's operand of `or`,
-which it drops at `-O1` and above), so the model reports `noMatchingInit`
-there as well (#154); a literal whose elements are not all `Int`s gives
+converted argument or operand too, so the model reports `noMatchingInit`
+there as well (#154). The exceptions are operands that the nightly never
+instantiates. At `-O1` and above it drops the right operand of `or`
+after a variable that holds `True`, a compiler bug (D-0014), and also
+the right operand of `and` after a variable that holds `False`, and a
+dead `if` branch. At every level it drops the operand after a literal
+`True or` or `False and`. The model rejects all of these; #346 asks
+about all but D-0014's. A literal whose elements are not all `Int`s gives
 the first message where it initializes the `Int`, and "cannot be converted
 from list literal" where it is converted (#153). The table of positions is
 on [semantics-lists.md](semantics-lists.md).
