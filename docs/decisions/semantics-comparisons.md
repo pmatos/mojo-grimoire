@@ -101,23 +101,34 @@ So `a == [[1, 2]]` with `a = [1]` is `noMatchingInit`, `[1] < xs` is
 is `invalidatedReference`: the subscript `w[0]` invalidates the element
 that the literal reads late (#282,
 [semantics-references.md](semantics-references.md#references)), as the
-compiler says. A comparison with a literal that holds a place whose value
-is not implicitly copyable keeps the checks it had before #166, in an
-order that #338 tracks.
+compiler says.
+
+A literal that holds a place whose value is not implicitly copyable is
+ordered by its conversion to the other operand's type (#338). On the
+left, beside a right operand that is no literal, one that fits is
+converted, and its copy comes as its elements are built:
+`[y, [x]] != rl`, with `y: List[Int]` and `rl: List[List[Int]]`, is
+`implicitCopy`, as the compiler says. One that is not converted, or does
+not fit, or that is compared with another literal, is built on its own
+first, so that `[y] > al` and `[y] == t` are `implicitCopy` before the
+misfit (`ownLeft`). On the right, beside a left operand that holds no
+such place, one that does not fit is a type mismatch before its
+elements are built: `rl == [y, [t]]` and `[[1]] >= [y]` are
+`typeMismatch`.
 
 Not yet modelled. Each stays rejected, with a class that is still not
 the compiler's; where #185 changed the class, the bullet says so:
 
-- A comparison of which either operand is a literal that holds a place
-  whose value is not implicitly copyable, at any depth, such as `ys` or
-  `a` in `[ys] == xs`, `[[ys]] == 1`, `[a] == [[1], [2]]` or
-  `xs == [ys]`. The compiler builds the literal, and copies the place,
-  in an order against the literal's conversion and the misfit that
-  waits for #338. The comparison keeps every check it had before #166
-  (`keepsBefore`): most are `implicitCopy`, as the compiler says, but
-  `xs == [ys]`, a type mismatch for the compiler, is `implicitCopy` too.
-  So does a comparison with `List[u]()`, which is no literal the
-  compiler converts: `List[Int]() < a` is `missingMethod`, as it says.
+- The rest of the comparisons with a literal that holds a place whose
+  value is not implicitly copyable keep every check they had before
+  #166 (`keepsBefore`), and wait for #338: a literal on the right that
+  fits an array whose comparison does not conform, `al < [y, [x]]`,
+  is `implicitCopy` where the compiler reports `violatedConstraint`
+  first, and one compared with an `Int` or a `Bool`, `x == [[y]]` or
+  `[y, y] == x`, whose conversion waits for #165 and #170, keeps its
+  class too. So does a comparison with `List[u]()`, which is no literal
+  the compiler converts: `List[Int]() < a` is `missingMethod`, as it
+  says.
 - A literal on the left that holds an inner literal of another length
   where an `Int` is expected, `[[1, 2], 3] == a`. The compiler converts
   it, fails SIMD's constraint (`noMatchingInit`) in a later pass than its

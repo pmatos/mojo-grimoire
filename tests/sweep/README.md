@@ -49,6 +49,12 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
   operand holds a place that cannot be copied implicitly, after another
   argument of the statement (#338). Each comparison alone is wrong before
   and after #342, and #323 lists them.
+- `cmp338/`: #338's probes of a comparison whose literal operand holds
+  a place that cannot be copied implicitly: the one-statement
+  regressions of #96's stack that #338 fixes (`one_statement`,
+  `nested_array`), and the shapes it leaves, a literal converted to an
+  `Int` or a `Bool` (#165, #170) and one on the right of an array whose
+  comparison does not conform.
 - `corpus/`: random programs of #260's review whose class Part 4 or Part
   11 of #96 changed, each listed on its PR with the open issue of its rejection,
   named `GROUP_NAME` after their place in that corpus.

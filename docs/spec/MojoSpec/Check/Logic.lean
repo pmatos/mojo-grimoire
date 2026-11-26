@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2227814630432759629")
+:::moduleDocs (fingerprint := "2694347187595963349")
 :::
 
 :::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.checkedBinaryTy (fingerprint := "14619223166697949421")
@@ -66,4 +66,14 @@ from before #166 for another reason (`keepsBefore`), and the left literal
 fits the other operand's type, with that inner literal fitting as the
 compiler types it, as off the left (`literalFits`), the type phase types
 the left literal and checks the right operand, read by reference (#96).
+:::
+
+:::readable MojoGrimoire.Check.ownLeft (fingerprint := "1276094026207736391")
+*Rule: a literal on the left built on its own.* A literal on the left of
+a comparison that holds a place whose value is not implicitly copyable
+(`heldCopy`) is built on its own, and checked in full, before the
+comparison's misfit is reported, when the right operand is a literal
+too, but `List[u]()`, or has a known type that the literal is not
+converted to or does not fit (`operandFit`). The compiler reports the
+literal's own errors, its copies among them, first (#338).
 :::

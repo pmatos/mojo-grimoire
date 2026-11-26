@@ -23,7 +23,10 @@ and the arguments of `range` as `MojoGrimoire.Check.Range` says. An
 operator or a call that its operands' types reject, a method that a type
 lacks, no overload that fits or a comparison that does not fit, is
 reported before they are read, as
-`MojoGrimoire.Check.Methods` and `MojoGrimoire.Check.Compare` say.
+`MojoGrimoire.Check.Methods` and `MojoGrimoire.Check.Compare` say; a
+literal on the left of a comparison that holds a place whose value is
+not implicitly copyable, and that the comparison does not convert, is
+checked before (`MojoGrimoire.Check.ownLeft`, #338).
 -/
 
 namespace MojoGrimoire.Check
@@ -87,8 +90,11 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         let _ ← typeArg prog a
         let _ ← checkExprAs prog true b
         return .bool
+    let own ← ownLeft prog op a b
     rejectMisfit (← operandMisfit prog op a b)
-      (do let _ ← typeArg prog a; let _ ← typeArg prog b)
+      (do
+        let _ ← (if own then checkExprAs prog false a else typeArg prog a)
+        let _ ← typeArg prog b)
     let right ← rightParamOf prog op a b
     let s ← get
     let ta ← checkExprAs prog (← byRef prog op a b) a
