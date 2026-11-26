@@ -145,6 +145,17 @@
         "arrays/compare_deep_one_element"
       ],
       "entry": "compiler-bugs/d0013.json"
+    },
+    {
+      "decision_log": "D-0014",
+      "issue": 324,
+      "title": "a wrong-length literal in the right operand of or, after a variable that holds True, runs at -O1 and above and is rejected at -O0",
+      "suite_programs": [
+        "arrays/or_unevaluated_literal_length",
+        "arrays/or_unevaluated_literal_length_nested",
+        "arrays/or_unevaluated_literal_length_call"
+      ],
+      "entry": "compiler-bugs/d0014.json"
     }
   ]
 }

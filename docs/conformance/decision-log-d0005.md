@@ -59,9 +59,14 @@ note "constraint failed: expected 1 elements in the SIMD list literal,
 found N" (`std/simd.mojo:1094` at `10c54f6f5b`), which
 `diagnostics.json` classes as `noMatchingInit`. The three programs agree
 with the model, and `known.json` no longer lists them. The model
-follows the nightly in every position (#154), and the suite holds an
+rejects them in every position (#154), and the suite holds an
 argument, `append` and an operand (`rejected/int_literal_length_*`,
-`rejected/int_literal_empty_append`).
+`rejected/int_literal_empty_append`). The nightly does not reject them
+in an operand that it never instantiates. At `-O1` and above it drops
+the right operand of `or` after a variable that holds `True`, which
+D-0014 records as a compiler bug. It also drops the neighbours that #346
+asks about, among them the operand after a literal `True or`, at every
+level.
 
 ## Upstream report
 

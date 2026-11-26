@@ -36,8 +36,11 @@ one to three `Int`s, read as `read` arguments, and needs `u` to be `Int`;
 any misfit is `noMatchingInit` (#121). Its errors come in the compiler's
 order of passes: typing errors in any argument first, then the misfits of
 `range`, then uses of uninitialized or invalidated values, then a literal
-of `Int`s of the wrong length, then a constant index out of range. The
-compiler's order is tiered more finely, which is left to #339. Anywhere
+of `Int`s of the wrong length, then a constant index out of range. Between
+a literal and a constant index into an array the compiler's order depends
+on the optimization level and is left undefined, and the model reports the
+literal first, `-O0`'s order (#331); otherwise the compiler's order is
+tiered more finely, which is left to #339. Anywhere
 else `range` is an unknown function, and a string literal outside `print`
 is `stringOutsidePrint`; the driver finds such a program outside the
 subset before the checker runs (`MojoGrimoire.Parse.Subset`, #180).
@@ -162,7 +165,8 @@ def holdsStrOrRangeList (prog : Program) : List Expr → Bool
 end
 
 /-- What reading the arguments of the standard library's `range` finds of
-the instantiation phase's errors, which report in this order (#121):
+the instantiation phase's errors, which the model reports in this order
+(#121, #331):
 `literal`, a nested literal of `Int`s of the wrong length, which fails when
 the call is instantiated; `index`, the first constant index out of range.
 `locs` holds the places that the arguments read late, each with its mark,

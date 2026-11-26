@@ -102,7 +102,7 @@ fits none of its forms (#121).
 :::readable MojoGrimoire.Check.RangeArgs MojoGrimoire.Check.RangeArgs.append (fingerprint := "18106920273850531528")
 *Definition: what reading the arguments of a range finds.* Reading the
 arguments of `range`, once they are typed, records the errors of the
-instantiation phase in the order the compiler reports them: whether a
+instantiation phase in the order the model reports them (#331): whether a
 nested literal of $`\mathsf{Int}`s of the wrong length fails when the call
 is instantiated, then the first constant index out of range. It also
 records the places each argument read without an error reads late, with
@@ -115,11 +115,13 @@ its mark. Two records join, the first's errors first.
 An argument that fits no form of `range`, no argument or more than three,
 or $`u` other than $`\mathsf{Int}` is `noMatchingInit`
 $`\mathsf{List}[u]`. Then the arguments are read, and the errors of the
-later passes come in the compiler's order: a use of an uninitialized or
-invalidated value, the places read late checked again, a literal of
-$`\mathsf{Int}`s of the wrong length, `noMatchingInit`
-$`\mathsf{List}[u]`, then a constant index out of range (#121). The
-call gives a $`\mathsf{List}[\mathsf{Int}]`.
+later passes come in the compiler's order of passes: a use of an
+uninitialized or invalidated value, the places read late checked again, a
+literal of $`\mathsf{Int}`s of the wrong length, `noMatchingInit`
+$`\mathsf{List}[u]`, then a constant index out of range (#121). Between
+the literal and a constant index into an array, the compiler's order
+depends on the optimization level and is left undefined, and the model
+reports the literal first (#331). The call gives a $`\mathsf{List}[\mathsf{Int}]`.
 Each phase finds only its own pass's errors: the uses and the reads late
 are the flow phase's, and the literal and the constant index the
 instantiation phase's.
