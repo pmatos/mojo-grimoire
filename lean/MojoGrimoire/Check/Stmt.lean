@@ -125,15 +125,16 @@ def valueOwn (prog : Program) : Expr → CheckM Unit
 where `t` is not a list or an array, fits no initializer of `t`: Mojo calls
 `t`'s initializer with the elements, which none takes (#46). A literal of
 any length but 1 where an `Int` is expected initializes it, and fits no
-initializer (`rejectIntLiteral`, #153, #154). -/
+initializer (`rejectIntLiteral`, #153, #154). In both, the elements' own
+expressions are typed first (`ownArgs`, #96 part 11). -/
 def checkInitValue (prog : Program) (t : Ty) (e : Expr) (value : CheckM Ty) : CheckM Unit := do
   if let some es := wrongIntLiteral e then
-    rejectIntElems prog (.init t) es (fun p _ => typePlace prog p) (fun a _ => checkExpr prog a)
+    typedFirst (ownArgs prog es) <| copyLast do
+      rejectIntElems prog (.init t) es (fun p _ => typePlace prog p) (fun a _ => checkExpr prog a)
     return
   if let .list .unknown es := e then
     unless t matches .list _ | .array .. do
-      checkOperands prog es
-      throw (CheckError.noMatchingInit t)
+      rejectAfter (ownArgs prog es) (CheckError.noMatchingInit t)
   typedFirst (valueOwn prog e) do
     misfitFirst e .call t fun r => if r then checkExprAs prog true e else value
 
@@ -153,7 +154,12 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
   | .decl x t init => do
     rejectHidden t
     if (← get).vars.any (·.name == x) then
-      typedFirst (init.elim (pure ()) (valueOwn prog)) (throw (CheckError.duplicate x))
+      let own := match init with
+        | some e@(.list ..) => if declarableTy prog t then checkInitValue prog t e (checkExpr prog e)
+            else valueOwn prog e
+        | some e => valueOwn prog e
+        | none => pure ()
+      typedFirst own (throw (CheckError.duplicate x))
     unless declarableTy prog t do
       if let (.unknown, some e) := (t, init) then let _ ← checkExpr prog e
       throw (CheckError.invalidType t)
@@ -164,7 +170,7 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     modify fun s => { s with vars := ⟨x, t, .owned, us, [], hs, [], []⟩ :: s.vars }
   | .refDecl x e => do
     if (← get).vars.any (·.name == x) then
-      typedFirst (ownArgs prog [e]) (throw (CheckError.duplicate x))
+      typedFirst (valueOwn prog e) (throw (CheckError.duplicate x))
     let (t, origins, m) ← refTarget prog sig.name e
     let sub ← refSubscripts prog e
     modify fun s => { s with vars := ⟨x, t, .alias origins m sub, [], [], [], [], []⟩ :: s.vars }
@@ -179,17 +185,14 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     checkIndices prog p
     unless ← throughGetter prog p do let _ ← placeTy prog p
     requireMutable p
-    let t ← if e matches .list .unknown _ || (wrongIntLiteral e).isSome then do
-        let u ← placeTy prog p
-        checkInitValue prog u e (checkExpr prog e)
-        pure u
-      else typedFirst (valueOwn prog e) do tryCatch (checkExpr prog e) fun err => do
-        unless err matches .implicitCopy _ do throw err
-        if e matches .call .. | .method .. then
+    if e matches .list .unknown _ || (wrongIntLiteral e).isSome then
+      checkInitValue prog (← placeTy prog p) e (checkExpr prog e)
+    else typedFirst (valueOwn prog e) <| copyLast do
+      let t ← tryCatch (checkExpr prog e) fun err => do
+        if err matches .implicitCopy _ && e matches .call .. | .method .. then
           expect (← placeTy prog p) (← tryCatch (checkExprAs prog true e) fun _ => throw err)
-          throw err
-        copyLast err do expect (← placeTy prog p) (← checkExpr prog e)
-    expect (← placeTy prog p) t
+        throw err
+      expect (← placeTy prog p) t
     checkConstructed prog p e
     if let .index q i := p then
       if (← placeTy prog q) == .int then

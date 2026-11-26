@@ -40,7 +40,10 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
   not follow (`decl_cmp_*`, #338). `decl_empty_*` are empty literals that the
   compiler reports with a message that has no class yet (#128), and
   `decl_i11` agrees only because the model rejects its unknown type name
-  as another error (#237).
+  as another error (#237). `decl_review_*` are the review's probes of
+  #340 that the model gets wrong for another reason: a struct's subscript
+  as a `ref` target (#198), an empty literal (#128) and a literal passed to
+  `len` (#341).
 - `corpus/`: random programs of #260's review whose class Part 4 or Part
   11 of #96 changed, each listed on its PR with the open issue of its rejection,
   named `GROUP_NAME` after their place in that corpus.

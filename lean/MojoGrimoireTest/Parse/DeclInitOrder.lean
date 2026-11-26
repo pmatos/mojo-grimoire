@@ -58,9 +58,28 @@ private def rejects (body : List String) (q : CheckError → Bool) : Bool :=
 #guard rejects ["var t = s"] (· matches .implicitCopy _)
 #guard rejects ["var xs: List[Int] = [1]", "var a = [[xs], [1]]"] (· matches .implicitCopy _)
 #guard rejects ["var xs: List[Int] = [1]", "var a = [[xs], True]"] (· matches .implicitCopy _)
+-- A literal initializer is built with its declared type before a
+-- duplicate name, but not one that fails only when instantiated.
+#guard rejects ["var xs: List[Int] = [1]", "var d = 0", "var d: List[Int] = [True]"]
+  (· matches .noMatchingInit _)
+#guard rejects ["var xs: List[Int] = [1]", "var d = 0", "var d: Int = [xs]"]
+  (· matches .noMatchingInit _)
+#guard rejects ["var d = 0", "var d: Int = [1, 2]"] (· matches .duplicate "d")
+#guard rejects ["var xs: List[Int] = [1]", "var d = 0", "ref d = [xs]"] (· matches .implicitCopy _)
+-- A literal that fits no initializer types its elements' own expressions
+-- first, and only those.
+#guard rejects ["var xs: List[Int] = [1]", "var q: Int = [xs, zz]"] (· matches .unknownVariable "zz")
+#guard rejects ["var q: Bool = [[]]"] (· matches .noMatchingInit _)
+#guard rejects ["var xs: List[Int] = [1]", "var q: Int = [[xs]]"] (· matches .noMatchingInit _)
 -- So does a `return`.
 #guard runLines ["def g(xs: List[Int]) -> Int:", "    return xs", "def main():",
     "    var xs: List[Int] = [1]", "    print(g(xs))"] matches
   some (.rejected ⟨"g", .typeMismatch ..⟩)
+
+-- A redeclared `ref` to a struct's subscript keeps the duplicate (#198).
+#guard runLines ["@fieldwise_init", "struct C(Movable):", "    var k: Int",
+    "    def __getitem__(self, i: Int) -> Int:", "        return self.k", "def main():",
+    "    var c = C(1)", "    var d = 1", "    ref d = c[0]"] ==
+  some (.rejected ⟨"main", .duplicate "d"⟩)
 
 end MojoGrimoireTest.Parse.DeclInitOrder

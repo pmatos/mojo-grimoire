@@ -200,16 +200,6 @@ phase has recorded since (`InstEvent`). -/
 def restoreKeeping (s : State) : CheckM Unit :=
   modify fun cur => { s with events := cur.events }
 
-/-- Throws `err`, an implicit copy, after any other error of `retry`,
-which checks the same again without the checks of implicit copies
-(`copyChecks`): the compiler reports a copy only once the types fit, in a
-call (#89), a declaration, an assignment and a `return` (#96 parts 9 and
-11). -/
-def copyLast {α : Type} (err : CheckError) (retry : CheckM Unit) : CheckM α := do
-  modify ({ · with copyChecks := false })
-  retry
-  throw err
-
 /-- Runs `x` in the type phase, as the compiler types what it checks, and
 then goes on in the phase it was in: what only a later phase checks, a use
 of an uninitialized value or a constant index out of range, is skipped,

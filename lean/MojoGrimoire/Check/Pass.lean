@@ -98,13 +98,12 @@ does not fit comes first. Any other value's copy, such as of a place or
 of a literal's element, comes after its misfit too (`copyLast`, #96
 part 11). -/
 def misfitFirst (e : Expr) (fit : Fit) (t : Ty) (check : Bool → CheckM Ty) :
-    CheckM Unit := do
-  expectArg fit t (← tryCatch (check false) fun err => do
-    unless err matches .implicitCopy _ do throw err
-    if e matches .call .. | .method .. then
-      expectArg fit t (← tryCatch (check true) fun _ => throw err)
-      throw err
-    copyLast err do expectArg fit t (← check false))
+    CheckM Unit :=
+  copyLast do
+    expectArg fit t (← tryCatch (check false) fun err => do
+      if err matches .implicitCopy _ && e matches .call .. | .method .. then
+        expectArg fit t (← tryCatch (check true) fun _ => throw err)
+      throw err)
 
 /-- Rejects the place `p` through the element of an `Int` as `notAList`,
 as before #127, where the model cannot yet give the compiler's result. The

@@ -228,9 +228,7 @@ def callOrder {α : Type} (typing : CheckM Unit) (arity : Option CheckError)
     (locs : List PassedLoc) (check : CheckM α) : CheckM α := do
   let r ← typedFirst typing do
     if let some err := arity then throw err
-    tryCatch check fun err => do
-      unless err matches .implicitCopy _ do throw err
-      copyLast err (discard check)
+    copyLast check
   checkExclusive locs
   pure r
 

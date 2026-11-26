@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2829907653390322303")
+:::moduleDocs (fingerprint := "6591246150198655322")
 :::
 
 :::readable MojoGrimoire.Check.Below (fingerprint := "14513104375151688470")
@@ -73,7 +73,7 @@ origin names is $`\mathsf{notAList}`, as before #127: the element has no
 memory origin, and the model passes the $`\mathsf{Int}` itself (#222).
 :::
 
-:::readable MojoGrimoire.Check.misfitFirst (fingerprint := "14437419656090704965")
+:::readable MojoGrimoire.Check.misfitFirst (fingerprint := "14946229722819727180")
 *Rule: a misfit before a copy.* Where a value of a type is expected, as
 an argument, an initial value or a returned value, a call that returns a
 reference to a value that is not implicitly copyable reports a type that

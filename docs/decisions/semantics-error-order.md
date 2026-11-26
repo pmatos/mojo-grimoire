@@ -224,8 +224,11 @@ declared already (#96 part 11, #134), probed on the pin
 exists, and so is `ref s = s.nope`. The initializer's own expression
 comes first: a literal with no type expected in full, since its elements
 give its type, `var s = [1, True]` a `typeMismatch`, and a call by
-reference. Its conversion to a declared type comes after the duplicate:
-`var s: Int = True` is the redefinition. A declared type that names no
+reference. A literal is built with the declared type before the duplicate:
+`var s: List[Int] = [True]` is `noMatchingInit`, but `var s: Int = [1, 2]`
+is the redefinition, since that literal fails only when it is
+instantiated. A value's other conversion to a declared type comes after
+the duplicate: `var s: Int = True` is the redefinition. A declared type that names no
 type comes before both, which the model classes otherwise (#237,
 `tests/sweep/order11/decl_i10`, `decl_i11`).
 
@@ -250,6 +253,12 @@ order (#133, `order/decl_lit_*`, `order/decl_empty_*`):
    `typeMismatch`, and `[[xs], [1]]` `implicitCopy`.
 3. The literal's own misfit, then the copies of its places: `[xs, [1]]`
    is `typeMismatch`.
+
+A literal that initializes a type that is not a list or an array, or an
+`Int` with a length other than 1, types only its elements' own
+expressions before its misfit: `var q: Int = [[xs]]` is `noMatchingInit`,
+and `var q: Int = [xs, zz]` `unknownVariable`. A literal passed to `len`
+is typed by `len`, which the model does not follow yet (#341).
 
 The checker types the initializer first when the duplicate name is found
 (`valueOwn`, `typedFirst`). A literal's check that fails in the type
@@ -305,5 +314,6 @@ pass now has its phase (Part 7).
 
 The comparisons not yet modelled stay on their page,
 [semantics-comparisons.md](semantics-comparisons.md), with their order
-tracked on #338. `break` and `continue` are supported since #96's flow
-parts ([semantics-parser.md](semantics-parser.md)).
+tracked on #338. `break` and `continue` stay outside the subset until
+#276 supports them after #96's flow parts
+([semantics-parser.md](semantics-parser.md)).

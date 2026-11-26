@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16994589544790569046")
+:::moduleDocs (fingerprint := "340571801449544208")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.literalElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "4289456742752641234")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.literalElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "13945761030494377396")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 

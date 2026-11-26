@@ -111,10 +111,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
           es.length es.length))
       pure t
-    typedFirst (ownArgs prog (e :: es)) <| typedFirst (literalElems prog (e :: es)) do
-      tryCatch lit fun err => do
-        unless err matches .implicitCopy _ do throw err
-        copyLast err (discard lit)
+    typedFirst (do ownArgs prog (e :: es); literalElems prog (e :: es)) (copyLast lit)
   | .list .int [e] => do expect .int (← checkExprAs prog false e); pure .int
   | .list .int es => do
     rejectIntElems prog .call es (fun p _ => typePlace prog p) (fun a _ => checkExprAs prog false a)
@@ -207,8 +204,7 @@ part 11): an empty literal, which has no type, and a literal with elements,
 in full, its own misfits and copies included. -/
 def literalElems (prog : Program) : List Expr → CheckM Unit
   | [] => pure ()
-  | .list .unknown [] :: _ => throw (CheckError.invalidType .unknown)
-  | e@(.list .unknown (_ :: _)) :: rest => do let _ ← checkExprAs prog false e; literalElems prog rest
+  | e@(.list .unknown _) :: rest => do let _ ← checkExprAs prog false e; literalElems prog rest
   | _ :: rest => literalElems prog rest
   termination_by es => (sizeOf es, 3)
 
