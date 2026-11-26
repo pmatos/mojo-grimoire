@@ -41,8 +41,8 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
   `decl_i11` agrees only because the model rejects its unknown type name
   as another error (#237). `decl_review_*` are the review's probes of
   #340 that the model gets wrong for another reason: a struct's subscript
-  as a `ref` target (#198), an empty literal (#128) and a literal passed to
-  `len` (#341).
+  as a `ref` target (#198) and an empty literal (#128). `decl_review_r33`,
+  a literal passed to `len`, has agreed since #341.
 - `order12/`: the review's probes of #342 (Part 4c of #96) that only the
   removed bridges gave the compiler's class: a comparison whose literal
   operand holds a place that cannot be copied implicitly, after another

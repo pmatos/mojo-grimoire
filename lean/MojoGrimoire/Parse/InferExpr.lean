@@ -39,9 +39,15 @@ fit is not known (#185). Where none is expected, it is an `Array[t, n]` of its `
 the type `t` of the first, as in Mojo: inference gives that type to what
 holds the literal, and leaves the literal's own type `unknown`, so that the
 checker tells a literal that initializes an expected type from one that
-takes the type of its elements (#46). What inference cannot find stays
-`unknown`, which the checker rejects as a type that may not be declared, once
-it has checked the initializer, whose own error comes first (#123).
+takes the type of its elements (#46). Passed to the built-in `len`, a
+literal with no type expected is expected to have the type `Array[t, n]`
+of its first element's type `t`, which this rule gives when that element
+is such a literal, so that its other elements are converted to `t`, as
+the compiler converts the literal to `len`'s parameter; an empty literal,
+or one whose first element is, has none (`lenLiteralTy`, #341). What
+inference cannot find stays `unknown`, which the checker rejects as a type
+that may not be declared, once it has checked the initializer, whose own
+error comes first (#123).
 `List[u](e₁, …, eₙ)` is a list of `u`; nothing is expected of its
 arguments. With one argument, `e`, Mojo takes it by `ref`, which borrows
 `p^`: inference gives it the place `transferred p` (#103). A call of
@@ -141,7 +147,9 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
       let sig := if hidden then none else (callSig prog f).toOption
       let params := sig.elim
         (if builtinRange prog f && !hidden then rangeParams args.length else []) (·.params)
-      (.call f (inferArgs prog env params args),
+      let args' := if f == "len" && !hidden && sig.isNone then inferLenArgs prog env args
+        else inferArgs prog env params args
+      (.call f args',
         if hidden then none else sig.elim (unsignedResult prog f) (some ·.result))
   | .method p m args =>
     let (p', pt) := inferPlace prog env p
@@ -243,6 +251,27 @@ def inferArg (prog : Program) (env : TyEnv) (prm : Param) : Expr → Expr
     let a' := (inferExpr prog env prm.ty a).1
     if a matches .list .. then literalArg prm a' else a'
   termination_by a => (sizeOf a, 1)
+
+/-- Infers inside the arguments `args` of the built-in `len`. One literal
+with no type expected is expected to have the type that `lenLiteralTy`
+gives it, when there is one (#341). -/
+def inferLenArgs (prog : Program) (env : TyEnv) : List Expr → List Expr
+  | [a@(.list .unknown _)] =>
+    [(inferExpr prog env ((lenLiteralTy prog env a).getD .unknown) a).1]
+  | args => (inferList prog env [] args).map (·.1)
+  termination_by args => (sizeOf args, 3)
+
+/-- The type that the compiler gives the literal `[e₁, …, eₙ]` with no type
+expected that is passed to the built-in `len`: an `Array[t, n]` of the type
+`t` of `e₁`, itself given by this rule when `e₁` is such a literal, and
+none when that type is not known, as of an empty literal (#341). -/
+def lenLiteralTy (prog : Program) (env : TyEnv) : Expr → Option Ty
+  | .list .unknown (e@(.list .unknown _) :: es) =>
+    (lenLiteralTy prog env e).map (.array · (es.length + 1))
+  | .list .unknown (e :: es) =>
+    (inferExpr prog env .unknown e).2.map (.array · (es.length + 1))
+  | _ => none
+  termination_by e => (sizeOf e, 1)
 
 /-- Infers inside each of the expressions `es`, expected to have the types
 `exps` in order, or `unknown` past their end. -/

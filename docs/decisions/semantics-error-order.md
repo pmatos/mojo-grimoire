@@ -258,7 +258,9 @@ A literal that initializes a type that is not a list or an array, or an
 `Int` with a length other than 1, types only its elements' own
 expressions before its misfit: `var q: Int = [[xs]]` is `noMatchingInit`,
 and `var q: Int = [xs, zz]` `unknownVariable`. A literal passed to `len`
-is typed by `len`, which the model does not follow yet (#341).
+is converted to the type of its first element, so `len([xs, [1]])` is
+`implicitCopy`, and its misfits are `noMatchingInit`: `len([xs, True])`
+(#341).
 
 The checker types the initializer first when the duplicate name is found
 (`valueOwn`, `typedFirst`). A literal's check that fails in the type

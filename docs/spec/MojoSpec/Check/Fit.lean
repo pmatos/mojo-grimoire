@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7551958062922610199")
+:::moduleDocs (fingerprint := "5710857592181692742")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -68,6 +68,12 @@ it as `noMatchingInit` $`t`, and a conversion for a function's parameter
 as a type mismatch.
 :::
 
+:::readable MojoGrimoire.Check.emptyFirst (fingerprint := "14995349183210217029")
+*Definition: a literal with no type.* A literal with no type expected is
+empty, or its first element is such a literal, at any depth. Passed to
+`len`, it has no type, and fits no overload (#341).
+:::
+
 :::readable MojoGrimoire.Check.iterableLiteralTy (fingerprint := "3935624038139464072")
 *Definition: the type of a literal argument of $`\mathsf{List}[u](e)`.*
 Given the type of each element of a literal with no type expected, the
@@ -113,7 +119,7 @@ are the flow phase's, and the literal and the constant index the
 instantiation phase's.
 :::
 
-:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.callResultTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "13380705890564266728")
+:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.callResultTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "7831331129291091907")
 *Rule: a literal of the wrong length where an $`\mathsf{Int}` is
 expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1, which
 `wrongIntLiteral` picks out, fits no initializer of $`\mathsf{Int}`,

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference in expressions: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18365513329678798640")
+:::moduleDocs (fingerprint := "1289561638943346750")
 :::
 
 :::readable MojoGrimoire.Parse.literalArg (fingerprint := "15594256188266583025")
@@ -25,7 +25,7 @@ it stays a temporary. It infers nothing itself, and its callers pass it
 only the form of a literal.
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "7044179582321349407")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferLenArgs MojoGrimoire.Parse.lenLiteralTy MojoGrimoire.Parse.inferList (fingerprint := "13119359778393679877")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, or $`\mathsf{Int}` for the element of
@@ -35,7 +35,14 @@ $`\mathsf{Bool}`, and a binary operator the type of its result, as above.
 A call or a method call
 has the result of its signature. A call of a struct that cannot be built
 still has the struct's type, so that the checker reports why, and `len`
-gives an $`\mathsf{Int}`. A call of `range`, when the program declares no
+gives an $`\mathsf{Int}`. Its one argument, when the program declares no
+function `len` and no variable hides it, is inferred by `inferLenArgs`: a
+literal left open is expected to have the type that `lenLiteralTy` gives
+it, $`\mathsf{Array}[t, n]` of the type $`t` of its first element, which
+this rule gives in turn when that element is a literal left open, so that
+its other elements are converted to $`t`, as the compiler converts the
+literal to `len`'s parameter (#341). An empty literal, or one whose first
+element is, has no type, and stays open. A call of `range`, when the program declares no
 function or struct `range`, expects an $`\mathsf{Int}` of each argument, by
 `rangeParams` (#121). A call of a name that a variable in scope hides
 follows no signature and has no type, so that the checker rejects it
