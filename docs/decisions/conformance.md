@@ -115,7 +115,7 @@ program's that holds its word, such as a `mut` parameter named
 `uninitialized`, would send the message to the wrong class. Every pattern
 for a message that quotes a name is therefore matched whole, with each
 name a quoted `'[^']*'`, and placed above every loose pattern; the loose
-patterns stay below for wordings the pin has not shown, and where they
+patterns below are for messages that quote no name, and where they
 need a wildcard they use `[^']*`, which cannot span a quoted name. A test
 of the `conformance-test` hook fails when a pattern with a name slot, a
 wildcard that can match a quoted name such as `'[^']*'`, `'.+'` or a bare
@@ -126,10 +126,21 @@ pins it. The dead `expected \d+ positional arguments?` pattern, which no
 message of the pin matches, is gone. The human ruled this on 2026-11-22
 (#271).
 
+The loose fallbacks that no recorded rejection reached first are gone
+too, 19 of them. The loose `recursiveStruct` pattern "attempt to resolve
+a recursive reference to declaration" stays, since 4 recorded messages,
+which quote no name, reach it. A wording that the pin has not shown
+records with no class, and a PR adds an anchored entry for it. The compiler's "invalid call to 'F': unexpected
+keyword argument 'A'" has none yet: the model does not read keyword
+arguments, so such a program is outside its subset. The human ruled this
+on 2026-11-26 (#274).
+
 Rejected: comparing the compiler's diagnostics word for word, since their
 wording changes between releases and says nothing the class does not;
 anchoring and reordering the patterns without a test; keeping the dead
-pattern; and making `record` fail when a rejection has no class.
+pattern; keeping every fallback, since a new wording would get a class
+that is wrong when the message quotes a name holding the fallback's word
+(#274); and making `record` fail when a rejection has no class.
 
 ### Optimization levels
 
