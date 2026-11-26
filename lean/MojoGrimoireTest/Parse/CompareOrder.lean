@@ -34,22 +34,23 @@ private def rejects (body : List String) (cls : CheckError → Bool) : Bool :=
   | some (.rejected ⟨"main", e⟩) => cls e
   | _ => false
 
--- Not yet: a literal that holds a place whose value is not implicitly
--- copyable, whose copy the compiler orders against the literal's
--- conversion and misfit (#338). The pin gives `typeMismatch` for the first
--- and `implicitCopy` for the rest, so only the first agrees.
+-- A literal on the left that holds a place whose value is not implicitly
+-- copyable, and that fits the right operand's type, is converted to it,
+-- and the place is copied as its elements are built (#338).
+#guard rejects ["print([y^] != rl, [y, [x]] != rl)"] (· matches .implicitCopy ..)
+#guard rejects ["print([y, [x]] != rl)"] (· matches .implicitCopy ..)
+-- One that is not converted, or does not fit, is built on its own first,
+-- and its copy comes before the comparison's misfit (#338).
 #guard rejects ["print([x] != [[1]], [[1], y] >= rl)"] (· matches .typeMismatch ..)
-#guard rejects ["print([y^] == rl, [h.y] <= al)"] (· matches .violatedConstraint ..)
-#guard rejects ["print([y^] != rl, [y, [x]] != rl)"] (· matches .typeMismatch ..)
-#guard rejects ["print(al == [[x]], [y] > al)"] (· matches .violatedConstraint ..)
-#guard rejects ["print(a == [[1], [2]], [a] == n)"] (· matches .typeMismatch ..)
-#guard rejects ["print((a == [[1], [2]]) != ([a] == n))"] (· matches .typeMismatch ..)
+#guard rejects ["print([y^] == rl, [h.y] <= al)"] (· matches .implicitCopy ..)
+#guard rejects ["print(al == [[x]], [y] > al)"] (· matches .implicitCopy ..)
+#guard rejects ["print(a == [[1], [2]], [a] == n)"] (· matches .implicitCopy ..)
+#guard rejects ["print((a == [[1], [2]]) != ([a] == n))"] (· matches .implicitCopy ..)
 #guard rejects ["print([1, [2]] == xs, False == [])"] (· matches .typeMismatch ..)
 #guard rejects ["print([1, 2] == [[1], [2]], [List[Int](), [a[-1]]] != [3, 1])"]
   (· matches .typeMismatch ..)
--- So do comparisons inside a compared literal, and inside an operand. The
--- pin gives `implicitCopy` for the first, as above.
-#guard rejects ["print([a == [[1], [2]], [a] == n] == [True, True])"] (· matches .typeMismatch ..)
+-- So do comparisons inside a compared literal, and inside an operand.
+#guard rejects ["print([a == [[1], [2]], [a] == n] == [True, True])"] (· matches .implicitCopy ..)
 #guard rejects ["print([1, 2] == [[1], [len([xs == [1]])]], [List[Int](), [a[-1]]] != [3, 1])"]
   (· matches .typeMismatch ..)
 -- Not yet: an `Int` condition, in an `if`, an `elif` and a loop, which

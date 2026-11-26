@@ -34,10 +34,10 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
   of an `Int` passed `mut` (#222), and an unknown function, which the
   compiler calls an unknown declaration.
 - `order11/`: Part 11's probes of the order inside declarations that the
-  model rejects for another reason: an unknown type name (#237), and
-  comparisons with a literal
-  operand, whose conversion to the other operand's type the model does
-  not follow (`decl_cmp_*`, #338). `decl_empty_*` are empty literals that the
+  model rejects for another reason: an unknown type name (#237).
+  `decl_cmp_c1` and `decl_cmp_c3`, comparisons with a literal operand
+  that holds a place that cannot be copied implicitly, have agreed since
+  the model ordered such a literal by its conversion (#338). `decl_empty_*` are empty literals that the
   compiler reports with a message that has no class yet (#128), and
   `decl_i11` agrees only because the model rejects its unknown type name
   as another error (#237). `decl_review_*` are the review's probes of
@@ -47,8 +47,15 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
 - `order12/`: the review's probes of #342 (Part 4c of #96) that only the
   removed bridges gave the compiler's class: a comparison whose literal
   operand holds a place that cannot be copied implicitly, after another
-  argument of the statement (#338). Each comparison alone is wrong before
-  and after #342, and #323 lists them.
+  argument of the statement (#338). Each comparison alone was wrong
+  before and after #342, and #323 lists them; all eight have agreed
+  since #338 ordered such a literal by its conversion.
+- `cmp338/`: #338's probes of a comparison whose literal operand holds
+  a place that cannot be copied implicitly: the one-statement
+  regressions of #96's stack that #338 fixes (`one_statement`,
+  `nested_array`), and the shapes it leaves, a literal converted to an
+  `Int` or a `Bool` (#165, #170) and one on the right of an array whose
+  comparison does not conform.
 - `corpus/`: random programs of #260's review whose class Part 4 or Part
   11 of #96 changed, each listed on its PR with the open issue of its rejection,
   named `GROUP_NAME` after their place in that corpus.

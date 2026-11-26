@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.Logic
+import MojoGrimoire.Check.Binary
 import MojoGrimoire.Check.Elems
 import MojoGrimoire.Check.Range
 
@@ -28,7 +28,12 @@ once its elements are typed (#341). An
 operator or a call that its operands' types reject, a method that a type
 lacks, no overload that fits or a comparison that does not fit, is
 reported before they are read, as
-`MojoGrimoire.Check.Methods` and `MojoGrimoire.Check.Compare` say.
+`MojoGrimoire.Check.Methods` and `MojoGrimoire.Check.Compare` say. A
+binary operation is checked as `MojoGrimoire.Check.Binary` says: a
+literal on the left of a comparison that holds a place whose value is
+not implicitly copyable, and that the comparison does not convert, is
+checked before the misfit, once both operands' own expressions are
+typed (`MojoGrimoire.Check.heldLeft`, #338).
 -/
 
 namespace MojoGrimoire.Check
@@ -90,23 +95,10 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .unary op a => do
     rejectMisfit (unaryMisfit prog op (← operandTy prog a)) (do let _ ← typeArg prog a)
     lift (methodUnaryTy prog op (← checkExprAs prog false a))
-  | .binary op a b => do
-    if (← get).phase == .type then
-      if ← typedSimdLeft prog op a b then
-        let _ ← typeArg prog a
-        let _ ← checkExprAs prog true b
-        return .bool
-    rejectMisfit (← operandMisfit prog op a b)
-      (do let _ ← typeArg prog a; let _ ← typeArg prog b)
-    let right ← rightParamOf prog op a b
-    let s ← get
-    let ta ← checkExprAs prog (← byRef prog op a b) a
-    let sa ← get
-    let ka ← mark
-    let tb ← match right ta with
-      | some (fit, prm) => do let _ ← checkArg prog fit (binaryMethod op) prm b; pure prm.ty
-      | none => checkExprAs prog (← byRef prog op b a true) b
-    checkedBinaryTy prog op a b ta tb ka (← mark) s sa
+  | .binary op a b =>
+    checkBinary prog op a b (typeArg prog a) (typeArg prog b) (checkExprAs prog · a)
+      (checkExprAs prog · b) (match a with | .list _ es => ownArgs prog es | _ => pure ())
+      fun fit prm => do let _ ← checkArg prog fit (binaryMethod op) prm b
   | .list .unknown [] => throw (CheckError.invalidType .unknown)
   | .list .unknown (e :: es) => do
     let lit : CheckM Ty := do

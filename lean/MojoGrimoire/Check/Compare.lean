@@ -25,10 +25,11 @@ comparison does not conform (`convertsTo`, `literalFits`, `operandFit`).
 Inference gives a literal that fits that type, and the checker checks
 one on the right against the parameter of the method (`rightParam`). One
 that does not fit is a type mismatch, found before the operands are
-read. A comparison with a literal that holds a place whose value is not
-implicitly copyable or one with `List[u]()`, keeps the checks it had
-before #166 (`keepsBefore`): the compiler builds the literal, and copies
-the place, in an order against its conversion that waits for #338. A
+read. A comparison with `List[u]()` keeps the checks it had before #166
+(`keepsBefore`), and so does one with a literal that holds a place whose
+value is not implicitly copyable, unless its fit decides its order
+(#338): one on the left that fits a right operand that is no literal is
+converted, and one on the right that does not fit is a type mismatch. A
 literal on the left that holds an inner literal of another length than
 one where an `Int` is expected is not converted: the order of SIMD's
 failure and the reads waits for #338. An element type that holds a struct
@@ -207,16 +208,23 @@ def emptyList : Expr → Bool
   | _ => false
 
 /-- Whether the comparison `op` of `a` and `b` keeps the checks it had
-before #166 (`Before`): when either operand is a literal that holds a
-place whose value is not implicitly copyable (`heldCopy`), or an empty
-list built by `List[u]()`, which is no literal that the compiler
-converts (`emptyList`). The compiler builds such a literal, and copies
-the place, in an order against its conversion and its misfit that waits
-for #338. -/
+before #166 (`Before`): when either operand is an empty list built by
+`List[u]()`, which is no literal that the compiler converts
+(`emptyList`), or a literal that holds a place whose value is not
+implicitly copyable (`heldCopy`), but for two (#338). Such a literal on
+the left that fits the type of a right operand that is no literal
+(`operandFit`) is converted, and the place is copied as its elements
+are built. One on the right that does not fit the type of a left
+operand that holds no such place is a type mismatch, before its
+elements are built. -/
 def keepsBefore (prog : Program) (op : BinOp) (a b : Expr) : CheckM Bool := do
   if !compares op then return false
   if emptyList a || emptyList b then return true
-  return (← heldCopy prog a) || (← heldCopy prog b)
+  if ← heldCopy prog a then
+    if b matches .list .. then return true
+    return (← operandFit prog op a (← operandTy prog b) true) != some (some true)
+  unless ← heldCopy prog b do return false
+  return (← operandFit prog op b (← operandTy prog a)) != some (some false)
 
 /-- Whether the operand `e` is a binary operation, under the drops that
 the elaborator adds: in an operand of struct type, a nested test of `and`
@@ -338,7 +346,8 @@ checks it had before #166, a copy. `left` holds when `other` is on the
 left. -/
 def byRef (prog : Program) (op : BinOp) (e other : Expr) (left := false) : CheckM Bool := do
   if !compares op then return false
-  if ← keepsBefore prog op e other then return ← Before.byRef prog op e other
+  if ← (if left then keepsBefore prog op other e else keepsBefore prog op e other) then
+    return ← Before.byRef prog op e other
   let t ← operandTy prog e
   if (← operandFit prog op other t left) == some none && literalTy other != t &&
       (holdsLiteral other || t matches some (.list _)) then

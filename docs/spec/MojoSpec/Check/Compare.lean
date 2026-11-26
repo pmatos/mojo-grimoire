@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2003819829620663284")
+:::moduleDocs (fingerprint := "15189163265621714980")
 :::
 
 :::readable MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "11022081997966745842")
@@ -84,7 +84,7 @@ when that gives none, the form of the whole nested test is not computed,
 which keeps the check of a chain of tests linear in its length.
 :::
 
-:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "12444868017315229753")
+:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "15323378302640116260")
 *Rule: operands of a comparison of arrays or lists.* The misfit of a
 binary operator is found from its operands' forms before they are read
 (`operandTy`).
@@ -97,9 +97,9 @@ that type (`operandFit`, `fitTy`). A literal on the right that does not
 fit, or one on the left that does not fit and has a type of its own, is
 a type mismatch, before the operands are read. A literal on the left
 that does not fit keeps its own type, and the right operand is then
-converted to it. A comparison with a literal that holds a place whose
-value is not implicitly copyable takes the checks it had before #166
-(`keepsBefore`). A literal whose fit is unknown gives no type, and is
+converted to it. A comparison that keeps the checks it had before #166
+(`keepsBefore`) takes them, also when it is asked whether its right
+operand is passed by reference. A literal whose fit is unknown gives no type, and is
 left to the checks that follow, as before #166. A $`\mathsf{Bool}` on
 the left of an empty literal with no type is a type mismatch, on this
 path and the one before #166 (`boolLiteralMisfit`). An integer literal on
@@ -112,16 +112,19 @@ unknown and which inference did not give the operand's type, beside a
 list, or an array when that literal holds a literal.
 :::
 
-:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "7518772121282594310")
+:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "14466360756799766667")
 *Rule: comparisons that keep the checks they had before #166.* A
 literal holds the places that are its elements, at any depth. A
-comparison of which either operand is a literal that holds a place whose
-value is not implicitly copyable, or is an empty list built by
+comparison of which either operand is an empty list built by
 `List[u]()`, which is no literal the compiler converts, keeps every
-check it had before #166:
-the compiler builds such a literal, and copies the place, in an order
-against the literal's conversion and the comparison's misfit that waits
-for #338. Before #166, a comparison with a literal that the compiler
+check it had before #166, and so does one of which either operand is a
+literal that holds a place whose value is not implicitly copyable, but
+where its fit to the other operand's type decides its order (#338).
+Such a literal on the left that fits the type of a right operand that is
+no literal is converted, and the place is copied as its elements are
+built. One on the right that does not fit the type of a left operand
+that holds no such place is a type mismatch, found before its elements
+are built. Before #166, a comparison with a literal that the compiler
 converts, one that holds a literal with types not known to be the same,
 or one with no type of its own beside a list, found no misfit from the
 forms of its operands, passed neither by reference, and checked only a

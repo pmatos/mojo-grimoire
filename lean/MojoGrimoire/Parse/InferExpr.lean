@@ -31,8 +31,14 @@ than `and` and `or` whose other operand is an `Int`, as Mojo reads it
 that operand's type, as the argument of its comparison method, when it
 fits it (`MojoGrimoire.Check.literalFits`): on the right, of the left
 operand, and on the left, of a right operand that is no literal and
-whose comparison conforms (#166), unless either operand is a literal that
-holds a place whose value is not implicitly copyable, or `List[u]()`.
+whose comparison conforms (#166), unless either operand is `List[u]()`,
+or a literal that holds a place whose value is not implicitly copyable
+and that the checker does not convert by its fit
+(`MojoGrimoire.Check.keepsBefore`, #338): such a literal on the left
+that fits is converted, and one on the right, beside an operand that is
+no literal, that does not fit keeps no type. Beside a literal on the
+left, whose type is an array, the right one is expected to have none
+either way.
 The right operand of `==` or `!=` whose left operand is a list is
 expected to have the list's type unless it does not fit it, also when its
 fit is not known (#185). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
@@ -202,7 +208,10 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
       (.call (methodCallee s m reflected) [a', b'], some fd.result)
     | none =>
     let before := compares op && (emptyList a || emptyList b ||
-      env.heldCopy prog a || env.heldCopy prog b)
+      env.heldCopy prog a && !(converts op tb₀ true &&
+        tb₀.any (env.literalFit prog true · (inferExpr prog env .unknown a).1 == some true)) ||
+      env.heldCopy prog b && !(converts op ta₀ &&
+        ta₀.any (env.literalFit prog false · (inferExpr prog env .unknown b).1 == some false)))
     let (a', ta) := if a matches .list .. then
         if tb₀ == some .int then inferExpr prog env .int a
         else if before then inferExpr prog env .unknown a

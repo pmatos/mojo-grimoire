@@ -93,6 +93,8 @@ compared with the compiler's diagnostics.
 
 {includeReadable "." MojoGrimoire.Check.Logic "The test of a struct operand" MojoSpec.Check.Logic (level := 2)}
 
+{includeReadable "." MojoGrimoire.Check.Binary "Binary operations" MojoSpec.Check.Binary (level := 2)}
+
 {includeReadable "." MojoGrimoire.Check.Elems "Elements of literals" MojoSpec.Check.Elems (level := 2)}
 
 {includeReadable "." MojoGrimoire.Check.Range "The arguments of range" MojoSpec.Check.Range (level := 2)}

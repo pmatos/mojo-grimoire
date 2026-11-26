@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "invalid call to 'g4': value passed to 'v' cannot be converted from 'Int' to 'H'"
+}

@@ -318,8 +318,10 @@ reports an implicit copy, it checks the value again without copies
 
 Inside a comparison, the compiler converts a literal operand to the type
 of the other operand, and that conversion decides the order of its copies
-and misfits. The model types such a literal as one with no type expected,
-which #338 tracks (`tests/sweep/order11/decl_cmp_*`).
+and misfits. The model follows it for a literal that holds a place that
+cannot be copied implicitly
+([semantics-comparisons.md](semantics-comparisons.md)); the shapes it
+leaves are #338's (`tests/sweep/cmp338/`).
 
 ## The order inside an operator
 
@@ -350,8 +352,10 @@ longer a difference
 
 ## Comparisons not yet ordered
 
-A comparison whose literal operand holds a place that cannot be copied
-implicitly, and the other comparisons not yet modelled, stay on their
+The comparisons whose literal operand holds a place that cannot be
+copied implicitly and whose order the model does not yet follow, such
+as a literal converted to an `Int` or a `Bool`, or one compared with
+`List[u]()`, and the other comparisons not yet modelled, stay on their
 page, [semantics-comparisons.md](semantics-comparisons.md), with their
 order tracked on #338. No bridge to `main`'s order remains: Part 4c of
 #96 removed the last two, for the struct tests of #191 and the
