@@ -145,7 +145,10 @@ entry of the decision log. A bug that shows only below `-O3` is named in
 and `check` refuses a `known.json` entry for a program that agrees. No other
 list excuses a program. It is recorded from the default build, and
 `record` says that it differs. Otherwise a program that differs is either a
-compiler bug, which the human rules on, or a program to change.
+compiler bug, which the human rules on, or a program to change. An order of
+two errors of the instantiation phase that differs between the levels is
+left undefined, and its programs stay unrecorded
+([semantics-error-order.md](semantics-error-order.md#when-the-optimization-level-changes-the-order)).
 
 `scripts/conformance.py levels --mojo WRAPPER` builds every program at
 `-O0`, `-O1`, `-O2` and `-O3` and with `-D ASSERT=all`, lists each program

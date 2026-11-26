@@ -142,7 +142,8 @@ The model does not follow a struct's `__bool__` that a condition calls
 
 ### When the optimization level changes the order
 
-When one body holds two errors of the instantiation phase, the compiler
+When a body holds two errors of the instantiation phase, or one and a
+call of a function that holds another, the compiler
 can report a different one first at `-O0` than at `-O3`, the default
 (#324, #331). The human ruled on 2026-11-26 that this is not a compiler
 bug: the order between two such errors is left undefined, and either
@@ -163,7 +164,7 @@ The two levels order them so, as probed on the pin:
   call.
 
 The model follows `-O3` in a body, and `-O0` in the arguments of `range`,
-where it reports the literal first. Both are acceptable. No suite program
+where it reports the literal first. No suite program
 pins such an order: `record` refuses a program whose first error differs
 at `-O0` ([conformance.md](conformance.md#optimization-levels)), and the
 six programs of #324 stay unrecorded in `tests/sweep/order7/`.
@@ -329,8 +330,8 @@ errors come before its instantiation errors, as in any expression:
 `range(xs[-1] + u)`, with `u` uninitialized, is `uninitializedUse`, and
 so is `range(g(p^, xs[-1]), p.x)`. Among the instantiation errors, at the
 default level, a constant index into an array comes before an index into
-a list. The order between a constant index and a literal of `Int`s of the
-wrong length is undefined, and the model reports the literal first
+a list. Its order beside a literal of `Int`s of the wrong length is no
+longer a difference
 ([above](#when-the-optimization-level-changes-the-order)).
 
 ## Comparisons not yet ordered

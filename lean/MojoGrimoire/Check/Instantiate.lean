@@ -19,9 +19,11 @@ model keeps among the body's own statements, with a value that an
 expression destroys destroyed after its statement (`withDropStmts`). A body is instantiated once. The
 bodies that `main` does not reach are then checked in the order of the
 declarations, as the model does not yet accept them as the compiler does
-(#96's Q2). This is the compiler's order at `-O3`, the default. Where its
-order at `-O0` differs, the order is left undefined, and the model keeps
-`-O3`'s (#324, #331).
+(#96's Q2). The order from `main` is the compiler's at `-O3`, the
+default. Where its order at `-O0` differs, the order is left undefined
+(#324, #331): the model keeps `-O3`'s in a body, and `-O0`'s in the
+arguments of `range`, where it reports a literal before a constant index
+(`MojoGrimoire.Check.Fit`).
 -/
 
 namespace MojoGrimoire.Check

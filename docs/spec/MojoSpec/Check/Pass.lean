@@ -42,9 +42,8 @@ reported as the initializer's misfit.
 of the instantiation phase, a constant index out of range
 (`CheckError.phase`), or a nested literal's failed SIMD constraint,
 `noMatchingInit` of $`\mathsf{Int}`, is recorded instead of thrown, so
-that the errors of all the arguments can be reported in the compiler's
-order of passes, and then the literal before the index, an order that the
-compiler leaves undefined (#121, #331).
+that `rangeList` can report the errors of all the arguments in its order
+(#121).
 :::
 
 :::readable MojoGrimoire.Check.Phase.rank MojoGrimoire.Check.CheckError.phase (fingerprint := "13428765439684746331")
