@@ -300,22 +300,14 @@ compiler. It comes before the literal at the default level, `-O3`, even
 when the literal comes first in the text, but after it at `-O0` (#331).
 The model reports the literal first.
 
-## Temporary bridges to `main`'s order
+## Comparisons not yet ordered
 
-Two bridges keep the results that `main` gave where a change exposed
-the compiler's order before the model could follow it. They act in every
-phase, and Part 4 of #96 removes both. A third, which made an index's
-error of a later pass wait for an assigned value's (#280), is gone: each
-pass now has its phase (Part 7).
+A comparison whose literal operand holds a place that cannot be copied
+implicitly, and the other comparisons not yet modelled, stay on their
+page, [semantics-comparisons.md](semantics-comparisons.md), with their
+order tracked on #338. No bridge to `main`'s order remains: Part 4c of
+#96 removed the last two, for the struct tests of #191 and the
+comparisons of part 2 of #166 (#281).
 
-- The struct tests of #191, by `and`, `or` and `not`:
-  [semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares).
-- The comparisons that part 2 of #166 converts, bridged statement by
-  statement to `main`'s twin (#281):
-  [semantics-comparisons.md](semantics-comparisons.md).
-
-The comparisons not yet modelled stay on their page,
-[semantics-comparisons.md](semantics-comparisons.md), with their order
-tracked on #338. `break` and `continue` stay outside the subset until
-#276 supports them after #96's flow parts
-([semantics-parser.md](semantics-parser.md)).
+`break` and `continue` stay outside the subset until #276 supports them
+after #96's flow parts ([semantics-parser.md](semantics-parser.md)).

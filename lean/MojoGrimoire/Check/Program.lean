@@ -50,25 +50,23 @@ def checkSignature (prog : Program) (fd : FunDecl) : Except CheckError Unit := d
     unless validTy prog prm.ty do throw (typeError prm.ty)
   unless fd.result == .noneType || validTy prog fd.result do throw (typeError fd.result)
 
-/-- Checks the body of the function `fd`, a member of the struct `owner`
-or a free function when `owner` is none: its parameters and result must
+/-- Checks the body of the function `fd`: its parameters and result must
 have declarable types, its origin must name parameters passed as locations,
-and the body must be accepted, checked beside the body that `main`'s
-inference gave it (`Program.twinBody`). It is checked in the phase
-`phase`, and in the flow phase up to the stage `stage`. When the body can
+and the body must be accepted. It is checked in the phase `phase`, and in
+the flow phase up to the stage `stage`. When the body can
 reach its end and the function returns a result, it gives the missing
 return, which the flow phase reports before its other errors
 (`checkFlow`); otherwise the state at the end is checked as at a
 return. -/
-def checkBody (prog : Program) (phase : Phase) (stage : Stage) (owner : Option Name)
-    (fd : FunDecl) : Except CheckError BodyResult := do
+def checkBody (prog : Program) (phase : Phase) (stage : Stage) (fd : FunDecl) :
+    Except CheckError BodyResult := do
   checkSignature prog fd
   checkOrigin fd
   let start : State :=
     { vars := fd.params.reverse.map paramState, live := true, stale := [], changes := [], phase,
       stage }
   let (missing, s) ← (do
-      checkBlock prog fd fd.body (Thunk.mk fun _ => prog.twinBody owner fd)
+      checkBlock prog fd fd.body
       if !(← get).live then return none
       if fd.result != Ty.noneType then return some (CheckError.missingReturn fd.name)
       checkExit prog
@@ -85,7 +83,7 @@ def checkConventions (fn : Name) (params : List Param) : Except CheckError Unit 
 def checkFun (prog : Program) (phase : Phase) (stage : Stage) (fd : FunDecl) :
     Except CheckError BodyResult := do
   checkConventions fd.name fd.params
-  checkBody prog phase stage none fd
+  checkBody prog phase stage fd
 
 /-- The number of operands, `self` among them, that the operator method
 `m` takes, for the operator methods that inference calls (#191): two for
@@ -110,7 +108,7 @@ def checkMethod (prog : Program) (phase : Phase) (stage : Stage) (s : Name) (fd 
   unless self.name == "self" && self.ty == .struct s do throw (.invalidSelf fd.name)
   if self.conv == .out || self.conv == .deinit then throw (.invalidSelf fd.name)
   checkConventions fd.name fd.params.tail
-  checkBody prog phase stage (some s) fd
+  checkBody prog phase stage fd
 
 /-- Checks the initializer of the struct `s`: its first parameter is
 `out self`, and it returns nothing. -/
@@ -120,7 +118,7 @@ def checkInit (prog : Program) (phase : Phase) (stage : Stage) (s : Name) (fd : 
   unless self == ⟨.out, "self", .struct s⟩ do throw (.invalidSelf fd.name)
   unless fd.result == .noneType do throw (.invalidReturn fd.name)
   checkConventions fd.name fd.params.tail
-  checkBody prog phase stage (some s) fd
+  checkBody prog phase stage fd
 
 /-- Checks a struct's own declaration, which the compiler checks with the
 free functions, in the order of the declarations: its fields and methods
@@ -140,7 +138,7 @@ def memberCheck (prog : Program) (sd : StructDecl) :
       (sd.name ++ ".__init__", fun ph st => checkInit prog ph st sd.name fd)
   | .deinit => sd.deinit.map fun body =>
       (sd.name ++ ".__deinit__", fun ph st =>
-        checkBody prog ph st (some sd.name) (deinitDecl sd.name body))
+        checkBody prog ph st (deinitDecl sd.name body))
   | .method j => sd.methods[j]?.map fun fd =>
       (sd.name ++ "." ++ fd.name, fun ph st => checkMethod prog ph st sd.name fd)
   | .field _ => none

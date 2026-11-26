@@ -48,20 +48,18 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     if copyingOf prog t == .none then throw (CheckError.notCopyable t)
     pure t
   | .call f args => do
-    let f ← mainOperator prog f args (typeArgs prog args)
     if let .place p :: rest := args then
       typeFirst prog f (typePlace prog p) (rest.attach.map fun ⟨a, _⟩ => (a, typeArg prog a))
     requireInPlace f args
     rejectCalledVar prog f (typeArgs prog args)
     match callSig prog f with
     | .ok sig =>
-      let params ← testParams f sig.params
       let fit := if (findStruct prog f).isSome then Fit.init (.struct f) else .call
-      let locs ← locationArgs prog params args
-      let ks ← callOrder (ownArgs prog args) (arityMisfit fit f params.length args.length) locs
-        (checkArgs prog fit f params args params.length args.length)
+      let locs ← locationArgs prog sig.params args
+      let ks ← callOrder (ownArgs prog args) (arityMisfit fit f sig.params.length args.length) locs
+        (checkArgs prog fit f sig.params args sig.params.length args.length)
       recheckArgs prog args ks
-      for q in ← changedArgs prog params args do changePlace prog q
+      for q in ← changedArgs prog sig.params args do changePlace prog q
       instCall prog f
       refResult prog asRef sig args
     | .error err =>
@@ -82,23 +80,23 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     pure r
   | .unary op a => do
     rejectMisfit (unaryMisfit prog op (← operandTy prog a)) (do let _ ← typeArg prog a)
-    lift (methodUnaryTy prog op (← notOperand prog a (checkExprAs prog false a)))
+    lift (methodUnaryTy prog op (← checkExprAs prog false a))
   | .binary op a b => do
     if (← get).phase == .type then
       if ← typedSimdLeft prog op a b then
         let _ ← typeArg prog a
         let _ ← checkExprAs prog true b
         return .bool
-    rejectMisfit (← operandMisfit prog op a b (mainFormTy prog))
+    rejectMisfit (← operandMisfit prog op a b)
       (do let _ ← typeArg prog a; let _ ← typeArg prog b)
     let right ← rightParamOf prog op a b
     let s ← get
-    let ta ← mainRead prog a (checkExprAs prog (← byRef prog op a b) a)
+    let ta ← checkExprAs prog (← byRef prog op a b) a
     let sa ← get
     let ka ← mark
     let tb ← match right ta with
       | some (fit, prm) => do let _ ← checkArg prog fit (binaryMethod op) prm b; pure prm.ty
-      | none => mainRead prog b (checkExprAs prog (← byRef prog op b a true) b)
+      | none => checkExprAs prog (← byRef prog op b a true) b
     checkedBinaryTy prog op a b ta tb ka (← mark) s sa
   | .list .unknown [] => throw (CheckError.invalidType .unknown)
   | .list .unknown (e :: es) => do

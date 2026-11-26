@@ -11,35 +11,14 @@ The readable blocks of the section that renders `MojoGrimoire.Check.Block`
 pins their fingerprint; the build fails when the Lean changes under it.
 -/
 
-#doc (Manual) "Blocks and the bridge to main's order: readable blocks" =>
+#doc (Manual) "Blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13039164704002413927")
+:::moduleDocs (fingerprint := "3045855249753752825")
 :::
 
-:::readable MojoGrimoire.Check.bridgedToTwin (fingerprint := "2374438237231960054")
-*Rule: the bridge to `main`'s order.* A check of a statement or a
-condition that has a twin, the one that `main`'s inference gave, is
-bridged. When the check fails, the twin is checked as `main` did, from
-the same state. When the twin fails too, its error, `main`'s, is
-reported; when it passes, the first error stands. A check with no twin
-is not bridged. The twin is inferred only once a check fails, so an
-accepted statement costs nothing more. The bridge is temporary: #96
-part 4 orders the model's errors as the compiler does.
-:::
-
-:::readable MojoGrimoire.Check.twinIf MojoGrimoire.Check.twinWhile MojoGrimoire.Check.checkCond (fingerprint := "18282562125972529006")
-*Definition: twins of conditions and blocks.* The twin of an `if` gives
-the twin of its condition and of its two blocks, and that of a loop the
-twin of its condition and of its body; a twin of another form, or none,
-gives no condition and empty blocks. A condition is checked, and needs a
-$`\mathsf{Bool}`, as one check bridged to its twin's.
-:::
-
-:::readable MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "1583541706135309903")
+:::readable MojoGrimoire.Check.checkCond MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "9178615856411283901")
 *Rule: blocks.* A statement that holds no block is checked by the rule
-of statements, bridged to its twin. Each check, the statement's and its
-twin's, and each condition's, goes through #191's bridge to `main`'s
-order for a struct test (`bridged`), as `main` checks it.
+of statements, and a condition needs a $`\mathsf{Bool}`.
 
 * `if` needs a $`\mathsf{Bool}` condition and joins its branches, each a
   scope of its own; `while` needs a $`\mathsf{Bool}` condition and a
@@ -49,11 +28,9 @@ order for a struct test (`bridged`), as `main` checks it.
   body leaves; when that adds anything, the condition and the body are
   checked once more from it. After the loop, which may have run any number
   of times, the state is that one, with $`M`, $`H`, $`T` and $`P` of the
-  second check joined in too. Each condition is bridged to its twin, and
-  each block is checked beside its twin.
+  second check joined in too.
 
-A block checks its statements in order, each beside the statement at the
-same position in its twin, and the changes recorded for operands start
-afresh with each statement. What the instantiation phase records in a
+A block checks its statements in order, and the changes recorded for
+operands start afresh with each statement. What the instantiation phase records in a
 branch or a loop's body is kept after it, in the order of the text.
 :::

@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Reading and transferring: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6579420019833356682")
+:::moduleDocs (fingerprint := "13629125457182640210")
 :::
 
-:::readable MojoGrimoire.Check.requireImplicitCopy MojoGrimoire.Check.copyLast MojoGrimoire.Check.copyPlace MojoGrimoire.Check.noOwnOrigin MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "5962950334124115438")
+:::readable MojoGrimoire.Check.requireImplicitCopy MojoGrimoire.Check.copyLast MojoGrimoire.Check.copyPlace MojoGrimoire.Check.noOwnOrigin MojoGrimoire.Check.requireTransferable MojoGrimoire.Check.transferPlace (fingerprint := "5399470524900047094")
 *Rule: reading and moving a place.* Using a place $`p` as a value copies it
 implicitly: $`p` must be initialized, and its type implicitly copyable,
 while copies are checked (`copyChecks`). A check that reports an implicit

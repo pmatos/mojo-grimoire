@@ -14,19 +14,17 @@ when the Lean changes under it.
 
 #doc (Manual) "Instantiation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18421714691409238919")
+:::moduleDocs (fingerprint := "8218670733466028970")
 :::
 
-:::readable MojoGrimoire.Check.placeDrops MojoGrimoire.Check.exprDrops MojoGrimoire.Check.exprsDrops MojoGrimoire.Check.stmtDrops MojoGrimoire.Check.withDropStmt MojoGrimoire.Check.withDropStmts MojoGrimoire.Check.alignStmt MojoGrimoire.Check.alignTwin MojoGrimoire.Check.dropsProgram MojoGrimoire.Check.synthesizedDestructors (fingerprint := "3038197563290071209")
+:::readable MojoGrimoire.Check.placeDrops MojoGrimoire.Check.exprDrops MojoGrimoire.Check.exprsDrops MojoGrimoire.Check.stmtDrops MojoGrimoire.Check.withDropStmt MojoGrimoire.Check.withDropStmts MojoGrimoire.Check.dropsProgram MojoGrimoire.Check.synthesizedDestructors (fingerprint := "4769810320813713944")
 *Definition: where values are destroyed.* The instantiation phase checks
 each body as written, with the `drop` statements that elaboration places
 after the last use of each value kept among its statements, and every
 other change of elaboration erased. A value that an expression destroys
 is destroyed by a `drop` statement after the statement, or, in a
-condition, at the start of each block it leads to and after a loop. The
-twin of each body, the body that `main`'s inference gave it, gets the
-same `drop` statements at the same places, so that each statement is
-still checked beside its own twin. A struct that declares no
+condition, at the start of each block it leads to and after a loop. A
+struct that declares no
 `__deinit__` has the destructor that the compiler synthesizes, which
 destroys its fields, the last first.
 :::

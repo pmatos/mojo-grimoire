@@ -35,12 +35,7 @@ whose comparison conforms (#166), unless either operand is a literal that
 holds a place whose value is not implicitly copyable, or `List[u]()`.
 The right operand of `==` or `!=` whose left operand is a list is
 expected to have the list's type unless it does not fit it, also when its
-fit is not known (#185). In a program in `main`'s mode
-(`Program.mainMode`), every comparison keeps the expectations it had
-before #166, as in `main`: inference gives a program also the bodies it
-gives in that mode, each with the struct it belongs to (`Program.twin`),
-for the checker's bridge to `main`'s order
-(`MojoGrimoire.Check.bridgedToTwin`). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
+fit is not known (#185). Where none is expected, it is an `Array[t, n]` of its `n` elements, with
 the type `t` of the first, as in Mojo: inference gives that type to what
 holds the literal, and leaves the literal's own type `unknown`, so that the
 checker tells a literal that initializes an expected type from one that
@@ -185,7 +180,7 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
       let m := if reflected then reflectedMethod op else binaryMethod op
       (.call (methodCallee s m reflected) [a', b'], some fd.result)
     | none =>
-    let before := compares op && (prog.mainMode || emptyList a || emptyList b ||
+    let before := compares op && (emptyList a || emptyList b ||
       env.heldCopy prog a || env.heldCopy prog b)
     let (a', ta) := if a matches .list .. then
         if tb₀ == some .int then inferExpr prog env .int a

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8158416631383704308")
+:::moduleDocs (fingerprint := "16225777235906923324")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -45,7 +45,7 @@ does. $`\mathsf{List}[u](e)` builds its result in place, and passes $`e`
 by `ref` (#103).
 :::
 
-:::readable MojoGrimoire.Check.valueOwn MojoGrimoire.Check.checkInitValue (fingerprint := "14940655443401413922")
+:::readable MojoGrimoire.Check.argOwn MojoGrimoire.Check.valueOwn MojoGrimoire.Check.checkInitValue (fingerprint := "12117695827101225511")
 *Rule: initializing values.* A value that initializes a declared variable,
 a place assigned to, or a function's result must have its type. A literal
 $`[e^*]_{?}`, which has no list or array expected, where that
@@ -56,10 +56,10 @@ Mojo calls the type's initializer with the elements and the keyword
 reference to a value that is not implicitly copyable reports a type that
 does not fit before its copy (`misfitFirst`), and so does any other value
 (#96 part 11); when that misfit is found, the value's own expression is
-typed first (`valueOwn`), its copies included, as for an argument: a
-literal with no type expected in full, a call by reference, and any
-other value as an argument's own expression, but a place through a
-struct's getter (#198). A literal
+typed first (`valueOwn`), its copies included: a literal with no type
+expected in full, and any other value as an argument's (`argOwn`), a
+call by reference, and any other argument as its own expression, but a
+place through a struct's getter (#198). A literal
 $`[e^*]_{\mathsf{Int}}` of any length but 1 initializes an
 $`\mathsf{Int}`, and is rejected by `rejectIntLiteral` as an initializer
 of the type reports it (#153, #154). An assignment of either literal
@@ -74,7 +74,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "15544813112386835615")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "17749936842822593478")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 
@@ -138,7 +138,9 @@ an expression, so a place is copied implicitly.
   checked what a setter call needs;
 * `print`, unless a variable in scope named `print` hides it, which
   `rejectCalledVar` rejects once the arguments are typed (#176), checks
-  its arguments as above, then that its place arguments, and what its
+  its arguments as above, each argument's own expression typed before an
+  argument that it cannot write is reported (`argOwn`, as a call's
+  arguments before its misfit, #89), then that its place arguments, and what its
   literal arguments read late, are still initialized and not invalidated;
 * `return` needs a value of the result type exactly when the result type
   is not $`\mathsf{None}`, checks the state at a return, and makes what

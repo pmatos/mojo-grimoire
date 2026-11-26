@@ -107,7 +107,8 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
   (.typeMismatch .bool (.list .int))
 #guard rejects ["var xs: List[Int] = [1]", "var b = True", "print(b < xs)"]
   (.typeMismatch .bool (.list .int))
-#guard rejects ["var xs: List[Int] = [1]", "print(xs == [True])"] (.typeMismatch .int .bool)
+#guard rejects ["var xs: List[Int] = [1]", "print(xs == [True])"]
+  (.typeMismatch (.list .int) (.array .bool 1))
 #guard rejects ["var xs: List[Int] = [1]", "print(1 == xs)"] (.noMatchingMethod "__eq__")
 #guard rejects ["var xs: List[Int]", "print(xs == [1])"] (.uninitializedUse (.var "xs"))
 -- An inner literal where an `Int` is expected fits no initializer of `Int`
@@ -122,7 +123,8 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 -- phase's, before the use of the list (#96), as the pin says. An inner
 -- literal that initializes a `Bool` is no type mismatch for the compiler
 -- but `noMatchingInit` (#165).
-#guard rejects ["var xs: List[Int]", "print(xs == [True])"] (.typeMismatch .int .bool)
+#guard rejects ["var xs: List[Int]", "print(xs == [True])"]
+  (.typeMismatch (.list .int) (.array .bool 1))
 #guard runMain ["var bs: List[Bool] = [True]", "print(bs == [[True]])"] matches
   some (.rejected ⟨"main", .typeMismatch ..⟩)
 

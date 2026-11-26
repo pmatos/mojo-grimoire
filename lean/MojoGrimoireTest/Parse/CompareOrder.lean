@@ -2,17 +2,12 @@ import MojoGrimoire.Parse.Infer
 import MojoGrimoire.Interp.Run
 
 /-!
-Tests of the bridge to `main`'s order within a statement
-(`MojoGrimoire.Check.bridgedToTwin`, #166): a statement that `main` rejected
-with the compiler's class, by the error of a comparison with a literal
-that part 2 of #166 now converts, keeps that class while the model
-orders the statement's other errors otherwise than the compiler (#96,
-#170). When `main`'s check of the statement passes, the statement's own
-error stands. Each verdict is the pinned compiler's for the program, probed on
+Tests of the order of comparisons with a literal that part 2 of #166
+converts, beside another error of the same statement (#260, #281). Each verdict is the pinned compiler's for the program, probed on
 the nightly 1.3.0.dev2026111905, but where a comment says otherwise.
 -/
 
-namespace MojoGrimoireTest.Parse.CompareBridge
+namespace MojoGrimoireTest.Parse.CompareOrder
 
 open MojoGrimoire.Core MojoGrimoire.Check MojoGrimoire.Parse MojoGrimoire.Interp
 
@@ -39,36 +34,37 @@ private def rejects (body : List String) (cls : CheckError → Bool) : Bool :=
   | some (.rejected ⟨"main", e⟩) => cls e
   | _ => false
 
--- `main` agreed with the compiler, by the error of the comparison that
--- #166 now converts; the model reports the other comparison's error in
--- another order than the compiler (#96), so `main`'s class stays.
+-- Not yet: a literal that holds a place whose value is not implicitly
+-- copyable, whose copy the compiler orders against the literal's
+-- conversion and misfit (#338). The pin gives `typeMismatch` for the first
+-- and `implicitCopy` for the rest, so only the first agrees.
 #guard rejects ["print([x] != [[1]], [[1], y] >= rl)"] (· matches .typeMismatch ..)
-#guard rejects ["print([y^] == rl, [h.y] <= al)"] (· matches .implicitCopy _)
-#guard rejects ["print([y^] != rl, [y, [x]] != rl)"] (· matches .implicitCopy _)
-#guard rejects ["print(al == [[x]], [y] > al)"] (· matches .implicitCopy _)
--- The second comparison alone is another class on both models than on
--- the compiler, which gives the class `main` gave for the first.
-#guard rejects ["print(a == [[1], [2]], [a] == n)"] (· matches .implicitCopy _)
-#guard rejects ["print((a == [[1], [2]]) != ([a] == n))"] (· matches .implicitCopy _)
+#guard rejects ["print([y^] == rl, [h.y] <= al)"] (· matches .violatedConstraint ..)
+#guard rejects ["print([y^] != rl, [y, [x]] != rl)"] (· matches .typeMismatch ..)
+#guard rejects ["print(al == [[x]], [y] > al)"] (· matches .violatedConstraint ..)
+#guard rejects ["print(a == [[1], [2]], [a] == n)"] (· matches .typeMismatch ..)
+#guard rejects ["print((a == [[1], [2]]) != ([a] == n))"] (· matches .typeMismatch ..)
 #guard rejects ["print([1, [2]] == xs, False == [])"] (· matches .typeMismatch ..)
 #guard rejects ["print([1, 2] == [[1], [2]], [List[Int](), [a[-1]]] != [3, 1])"]
   (· matches .typeMismatch ..)
--- So do comparisons inside a compared literal, and inside an operand.
-#guard rejects ["print([a == [[1], [2]], [a] == n] == [True, True])"] (· matches .implicitCopy _)
+-- So do comparisons inside a compared literal, and inside an operand. The
+-- pin gives `implicitCopy` for the first, as above.
+#guard rejects ["print([a == [[1], [2]], [a] == n] == [True, True])"] (· matches .typeMismatch ..)
 #guard rejects ["print([1, 2] == [[1], [len([xs == [1]])]], [List[Int](), [a[-1]]] != [3, 1])"]
   (· matches .typeMismatch ..)
--- A condition is bridged with the test that it is a `Bool`, in an `if`,
--- an `elif` and a loop. The compiler runs these; `main` gave
--- `implicitCopy`, which the bridge keeps until #96 part 4.
-#guard rejects ["if len([a == [[1], [2]]]):", "    print(1)"] (· matches .implicitCopy _)
+-- Not yet: an `Int` condition, in an `if`, an `elif` and a loop, which
+-- the compiler runs and the model rejects (#195).
+#guard rejects ["if len([a == [[1], [2]]]):", "    print(1)"] (· matches .typeMismatch ..)
 #guard rejects ["if False:", "    print(0)", "elif len([a == [[1], [2]]]):", "    print(1)"]
-  (· matches .implicitCopy _)
-#guard rejects ["while len([a == [[1], [2]]]):", "    return"] (· matches .implicitCopy _)
--- With another error, `main`'s is reported, here the compiler's (#170).
+  (· matches .typeMismatch ..)
+#guard rejects ["while len([a == [[1], [2]]]):", "    return"] (· matches .typeMismatch ..)
+-- The type phase reports a type error before the wrong-length literal,
+-- which the compiler finds when it instantiates the call (#170); alone,
+-- the literal is `noMatchingInit`, as the pin says.
 #guard rejects ["print([1] < [[1, 2]], x - [True])"] (· matches .typeMismatch ..)
--- `main`'s class stays where `main` was wrong too: the compiler reports
--- the missing method first (`missingMethod`), an order that waits for #96.
-#guard rejects ["print([y^] != rl, rl < rl)"] (· matches .implicitCopy _)
+#guard rejects ["print([1] < [[1, 2]], 1)"] (· matches .noMatchingInit ..)
+-- The missing method comes first, as the pin says.
+#guard rejects ["print([y^] != rl, rl < rl)"] (· matches .missingMethod ..)
 -- A statement with no error runs as part 2 of #166 has it.
 #guard runMain ["print(al == [[x]], [[x]] != al)"] == some (.finished ["True False"])
 
@@ -83,15 +79,15 @@ private def rejectsIn (src : String) (where_ : String) (cls : CheckError → Boo
   | .error _ => false
 
 /-- A method `S.m` and a free function `m(self: S)`, with the same name
-and parameters: each is checked beside its own twin. -/
+and parameters: each is checked on its own. -/
 private def shadow : String :=
   "\n".intercalate ["@fieldwise_init", "struct S(Movable):", "    var a: Array[Int, 2]",
     "    def m(self):", "        var z = 5", "        print([[1]] == [1], z)",
     "def m(self: S):", "    var w = 5", "    var z = w", "    print(z)",
     "def main():", "    var s = S([1, 2])", "    s.m()", "    m(s)"]
 
--- The method's error is `main`'s, and the compiler's, `typeMismatch`, not
--- one from the free function's body.
+-- The method's error is the compiler's, `typeMismatch`, not one from the
+-- free function's body.
 #guard rejectsIn shadow "S.m" (· matches .typeMismatch ..)
 
 /-- A struct test beside a comparison that part 2 converts, in one test:
@@ -110,4 +106,4 @@ private def structTest : String :=
   | .ok prog => run prog 100000 == .finished ["bool 1", "True", "True", "bool 0", "yes"]
   | .error _ => false)
 
-end MojoGrimoireTest.Parse.CompareBridge
+end MojoGrimoireTest.Parse.CompareOrder

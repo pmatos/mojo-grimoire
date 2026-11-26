@@ -33,9 +33,8 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
   of an `Int` passed `mut` (#222), and an unknown function, which the
   compiler calls an unknown declaration.
 - `order11/`: Part 11's probes of the order inside declarations that the
-  model rejects for another reason: an unknown type name (#237), and a
-  comparison of an array of lists with a literal, which the bridge's
-  replay reads as an implicit copy (#337), and comparisons with a literal
+  model rejects for another reason: an unknown type name (#237), and
+  comparisons with a literal
   operand, whose conversion to the other operand's type the model does
   not follow (`decl_cmp_*`, #338). `decl_empty_*` are empty literals that the
   compiler reports with a message that has no class yet (#128), and
@@ -44,6 +43,11 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
   #340 that the model gets wrong for another reason: a struct's subscript
   as a `ref` target (#198), an empty literal (#128) and a literal passed to
   `len` (#341).
+- `order12/`: the review's probes of #342 (Part 4c of #96) that only the
+  removed bridges gave the compiler's class: a comparison whose literal
+  operand holds a place that cannot be copied implicitly, after another
+  argument of the statement (#338). Each comparison alone is wrong before
+  and after #342, and #323 lists them.
 - `corpus/`: random programs of #260's review whose class Part 4 or Part
   11 of #96 changed, each listed on its PR with the open issue of its rejection,
   named `GROUP_NAME` after their place in that corpus.

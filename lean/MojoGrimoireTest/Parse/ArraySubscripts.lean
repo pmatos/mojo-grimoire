@@ -205,15 +205,9 @@ private def method (conv : String) : List String :=
 #guard prints ["ref r = v[0][0]", "r = v[0][0] + 1", "print(v[0])"] ["[2]"]
 
 -- A comparison with a literal that part 2 of #166 converts is rejected
--- too, but `main` rejected it with `implicitCopy`, which the bridge to
--- `main`'s order keeps until #96 part 4 (#281), and `typeMismatch` for
--- the copy, which `main` compared, unconverted, with its own literal. The
--- compiler gives `invalidatedReference` for both.
-#guard match runBody ["print([v[0][0]] == v[0])"] with
-  | some (.rejected ⟨"main", .implicitCopy _⟩) => true
-  | _ => false
-#guard match runBody ["print([v[0][0]] == v[0].copy())"] with
-  | some (.rejected ⟨"main", .typeMismatch ..⟩) => true
-  | _ => false
+-- too: the subscript on the right invalidates the element that the
+-- literal reads late, as the pin says.
+#guard stale ["print([v[0][0]] == v[0])"]
+#guard stale ["print([v[0][0]] == v[0].copy())"]
 
 end MojoGrimoireTest.Parse.ArraySubscripts

@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "notPrintable",
+  "diagnostic": "invalid call to 'print': an element of 'values' with type 'P' does not conform to trait 'Writable'; either prove the conformance with 'conforms_to', or add conformance"
+}
