@@ -124,11 +124,21 @@ inductive Phase where
   | flow
   deriving BEq
 
+/-- The stages of the flow phase in a function, in the order in which the
+compiler's pass manager reports their errors (#96 part 5): the uses of
+values and what the function leaves at its returns, in the order of the
+body, and then the values that may not end (#159). The checks of uses run
+in both stages, and those of ends only in the last. -/
+inductive Stage where
+  | uses
+  | ends
+  deriving BEq
+
 /-- The checker's state: the variables in scope, innermost first, whether
 the current point can be reached, the references bound with `ref` that are
 invalidated, those that only a subscript of an array invalidated
 (`interior`), and the places changed as a whole so far in the current
-statement, in order, and the phase. After a
+statement, in order, and the phase and the stage of the flow phase. After a
 `return`, the current point cannot be reached. `mainTests` is set only
 while a statement is checked again to replay `main`'s order, in which a
 struct test is rejected, and `ownChecks` is cleared only while it is
@@ -144,19 +154,29 @@ structure State where
   mainTests : Bool := false
   ownChecks : Bool := true
   phase : Phase := .flow
+  stage : Stage := .ends
   deriving BEq
 
 /-- The monad of the checker: it reads and updates the state, and may reject
 the program. -/
 abbrev CheckM := StateT State (Except CheckError)
 
-/-- Runs `check`, a check of the flow phase, only in that phase: it is
-skipped in the type phase. -/
-def flowCheck (check : CheckM Unit) : CheckM Unit := do
-  if (← get).phase == .flow then check
+/-- Runs `check`, a check of the stage `k` of the flow phase, only in that
+phase, from that stage on: it is skipped in the type phase and in the
+stages before `k`. -/
+def flowCheckAt (k : Stage) (check : CheckM Unit) : CheckM Unit := do
+  let s ← get
+  if s.phase == .flow && (k == .uses || s.stage == .ends) then check
 
-/-- Rejects with `err`, an error of the flow phase, only in that phase. -/
-def flowThrow (err : CheckError) : CheckM Unit := flowCheck (throw err)
+/-- Runs `check`, a check of a use in the flow phase (`flowCheckAt`). -/
+def flowCheck (check : CheckM Unit) : CheckM Unit := flowCheckAt .uses check
+
+/-- Rejects with `err`, an error of the stage `k` of the flow phase
+(`flowCheckAt`). -/
+def flowThrowAt (k : Stage) (err : CheckError) : CheckM Unit := flowCheckAt k (throw err)
+
+/-- Rejects with `err`, the error of a use in the flow phase. -/
+def flowThrow (err : CheckError) : CheckM Unit := flowThrowAt .uses err
 
 /-- The variable a place starts from, and the path from it to the place.
 The elements of a list or an array are not parts that the checker follows:

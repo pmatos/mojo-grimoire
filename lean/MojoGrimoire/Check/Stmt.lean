@@ -188,7 +188,7 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let ts := (if (above path v.touched).isEmpty then [] else [[]]) ++ atOrBelow path v.touched
     if cannotEnd prog (partTy prog v.ty path) (partsWithin path v.uninit) (atOrBelow path v.moved)
         (partsWithin path v.held) ts (atOrBelow path v.pieces) 0 then
-      flowThrow (CheckError.partiallyDestroyed x)
+      flowThrowAt .ends (CheckError.partiallyDestroyed x)
     let uninit := initPart prog v.uninit v.ty path
     let outside (us : List Path) := us.filter (!path.isPrefixOf ·)
     let pieces := union (outside v.pieces) ((above path v.uninit).flatMap (piecesTo · path))

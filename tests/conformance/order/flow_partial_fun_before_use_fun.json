@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "partiallyDestroyed",
+  "diagnostic": "field 't.a' destroyed out of the middle of a value, preventing the overall value from being destroyed"
+}

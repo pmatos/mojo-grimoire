@@ -38,18 +38,19 @@ disagrees with the probes.
 
 ## The checker's phases
 
-`MojoGrimoire.Check.checkProgram` checks the whole program twice, in the
-same order, first in the type phase and then in the flow phase, and
-reports the first error of the first phase that finds one (#96 part 4).
-Both phases take the same path through each body, with the phase in the
-checker's state. The type phase skips the checks of the later tiers, each
+`MojoGrimoire.Check.checkProgram` checks the whole program twice, first in
+the type phase and then in the flow phase, and reports the first error of
+the first phase that finds one (#96 part 4). Both phases take the same
+path through each body, with the phase in the checker's state; the flow
+phase visits the bodies in its own order, below. The type phase skips the checks of the later tiers, each
 at the place where it rejects (`flowCheck`):
 
 - the flow checks: a use of an uninitialized value or of a part moved out,
   a reference that a change invalidated, a part destroyed while it is
   built from its fields, what a function leaves at a `return` or its
-  end, what a loop's body leaves for the next iteration, and a missing
-  return;
+  end, and what a loop's body leaves for the next iteration. The type
+  phase finds where a body can reach its end without returning its
+  result, and the flow phase reports that missing return first;
 - the instantiation checks, which stay in the flow phase until Part 7: a
   literal of `Int`s of the wrong length, which then gives the type that
   its place expects, and a constant index that is negative or beyond an
@@ -80,11 +81,38 @@ errors that it orders wrongly inside the tier. Each such program that
 Part 4 changed is listed on its PR with the open issue of its rejection,
 as [process.md](process.md#one-issue-several-prs) allows.
 
+## The order of the flow phase
+
+The flow phase follows the order of the compiler's pass manager (#96
+part 5, `checkFlow`), probed on the pin:
+
+1. A missing return, anywhere in the program, in the order of the
+   declarations, comes before every other flow error. The type phase finds
+   it as it checks the body, and the flow phase reports it.
+2. Then each function in the order of the declarations in the source, the
+   members of a struct interleaved with the free functions, and in a
+   struct its members in their order: a function's errors all come before
+   the next function's.
+3. Inside a function, its uses of values and what it leaves at a
+   `return` or its end come in the order of the body, and a value that
+   may not end, `partiallyDestroyed`, comes after them all (#159). The
+   model checks a body once through every stage (`Stage`), and, only
+   when that finds a value that may not end, once more without it.
+
+The plan of #96 put the errors at a return after every use. The pin
+reports an exit error at an early `return` before a use after it
+(`order/flow_use_after_exit`), so the two share a stage. The suite's
+`order/flow_*` and `order/missing_return_*` programs hold the pairs of
+each rule.
+
+A missing `main` comes after the flow phase. The instantiation errors are
+still found in the flow phase, as uses, until Part 7.
+
 ## Where the model differs today
 
-The checker's phases follow the compiler's tiers, but the order inside each
-tier is still the model's program order, and the instantiation errors are
-still found in the flow phase. So it differs from the compiler in these
+The checker's phases follow the compiler's tiers, and the flow phase its
+order, but the order inside the type tier is still the model's program
+order, and the instantiation errors are still found in the flow phase. So it differs from the compiler in these
 cases, which #96's later parts fix.
 
 ### Calls and initializers

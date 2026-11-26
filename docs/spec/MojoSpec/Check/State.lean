@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5051784910334517785")
+:::moduleDocs (fingerprint := "10061458343537633232")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "8079104089029179561")
@@ -58,7 +58,7 @@ element of an $`\mathsf{Int}` is a step of its own, since it is no
 location (#127).
 :::
 
-:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.Phase MojoGrimoire.Check.State MojoGrimoire.Check.CheckM MojoGrimoire.Check.flowCheck MojoGrimoire.Check.flowThrow (fingerprint := "9167229857608903665")
+:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.Phase MojoGrimoire.Check.State MojoGrimoire.Check.CheckM MojoGrimoire.Check.Stage MojoGrimoire.Check.flowCheckAt MojoGrimoire.Check.flowCheck MojoGrimoire.Check.flowThrowAt MojoGrimoire.Check.flowThrow (fingerprint := "13382244649116310591")
 *Definition: the checker's state.* A path $`\pi = f_1 \dots f_n` names a
 part of a variable: the empty path $`\epsilon` is the variable itself, and
 $`f_1 \dots f_n` its field $`f_1.\dots.f_n`. For each variable in scope,
@@ -80,7 +80,11 @@ order, makes a struct test rejected as `main` rejected it
 that replay runs without them, keeps the checks of a struct test
 itself. The state holds the phase too, type or flow (`Phase`): the
 type phase skips the checks of the flow phase (`flowCheck`, and
-`flowThrow` for one that rejects). The checker
+`flowThrow` for one that rejects). The flow phase checks a function up to a
+stage (`Stage`), in the order in which the compiler reports them: the
+uses and what the function leaves at a return, then the values that may
+not end. A check of uses runs in both stages, one of ends only in the
+last (`flowCheckAt`). The checker
 runs in a monad that reads and updates this state and may reject the
 program.
 :::
@@ -138,7 +142,7 @@ uninitialized, assigning $`\rho` builds from their fields the parts from
 $`\pi` down to the part just above $`\rho`.
 :::
 
-:::readable MojoGrimoire.Check.findVar MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "15228803486342888156")
+:::readable MojoGrimoire.Check.findVar MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "5750347898303185387")
 *Definition: variables in scope.* A name refers to the innermost variable in
 scope with that name, if there is one, and updating a variable replaces
 the innermost variable with its name. An unknown name is rejected.
