@@ -11,7 +11,6 @@ that decides, and the test of the left one is no call of its own: it is
 checked here as that call would be, its operand passed to `self` as an
 argument (`MojoGrimoire.Check.checkArg`), without being checked again
 (`passLeft`).
-
 -/
 
 namespace MojoGrimoire.Check

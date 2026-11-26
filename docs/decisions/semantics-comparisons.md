@@ -102,8 +102,8 @@ is `invalidatedReference`: the subscript `w[0]` invalidates the element
 that the literal reads late (#282,
 [semantics-references.md](semantics-references.md#references)), as the
 compiler says. A comparison with a literal that holds a place whose value
-is not implicitly copyable keeps `main`'s checks, in an order that waits
-for #96 part 9 (comment 14 on #96).
+is not implicitly copyable keeps the checks it had before #166, in an
+order that #338 tracks.
 
 Not yet modelled. Each stays rejected, with a class that is still not
 the compiler's; where #185 changed the class, the bullet says so:
@@ -126,13 +126,6 @@ the compiler's; where #185 changed the class, the bullet says so:
   checks it had before #166: the right operand is copied, so a named one
   is `implicitCopy`, and an uninitialized read is `uninitializedUse`, as
   the compiler says.
-- A literal on the right that holds an inner literal of another length
-  where an `Int` is expected, beside an uninitialized read of the
-  statement: `a == [[1, 2], ux]` with `ux` an uninitialized `Int`. The
-  compiler fails SIMD's constraint (`noMatchingInit`) as it instantiates,
-  after every other pass, and reports the uninitialized read first. The
-  model rejects the literal in the flow phase, in the order of the
-  statement, so it gives `noMatchingInit` until Part 7 of #96 (#170).
 - A transfer in a loop's condition, `while a^ < [1, 3] and t:`, which the
   compiler borrows and the model moves: the second check of the condition
   is stuck at run time (#84). `while ab^ < [True, True] and t:`, with

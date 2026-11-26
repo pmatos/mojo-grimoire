@@ -107,7 +107,7 @@ compared with the compiler's diagnostics.
 
 {includeReadable "." MojoGrimoire.Check.Stmt "Statements" MojoSpec.Check.Stmt (level := 2)}
 
-{includeReadable "." MojoGrimoire.Check.Block "Blocks and the bridge to main's order" MojoSpec.Check.Block (level := 2)}
+{includeReadable "." MojoGrimoire.Check.Block "Blocks" MojoSpec.Check.Block (level := 2)}
 
 {includeReadable "." MojoGrimoire.Check.Program "Programs" MojoSpec.Check.Program (level := 2)}
 

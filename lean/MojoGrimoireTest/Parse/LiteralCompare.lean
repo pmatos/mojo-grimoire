@@ -85,9 +85,13 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
   (.typeMismatch (.array (.array .int 1) 1) (.array (.list .int) 1))
 #guard rejects ["var v: Array[List[Int], 1] = [[1]]", "print(v < [[1]])"]
   (.violatedConstraint (.array (.list .int) 1) "__lt__")
+-- A wrong-length inner literal on the right beside an uninitialized read:
+-- the compiler fails SIMD's constraint as it instantiates, after the read.
+#guard rejects ["var a = [1, 2]", "var ux: Int", "print(a == [[1, 2], ux])"]
+  (.uninitializedUse (.var "ux"))
 -- Not yet: a literal on the left that holds an inner literal of another
 -- length where an `Int` is expected is not converted, since the order of
--- SIMD's failure and the reads waits for #96. It keeps the checks it had
+-- SIMD's failure and the reads is #338's. It keeps the checks it had
 -- before #166: the right operand is copied, and the compiler's
 -- `noMatchingInit` is `implicitCopy`, or the read of an uninitialized
 -- operand, as the compiler says, `uninitializedUse`.

@@ -81,9 +81,7 @@ phase records, the latest first, the calls of a body and the errors that
 fail as a call does (`InstEvent`, `instRecord`), which a state restored
 to an earlier one keeps (`restoreKeeping`). What the compiler types
 before it reads is checked in the type phase, whatever the phase
-(`inTypePhase`), even under a check with every check on, but in a
-replay of `main`'s order in the instantiation phase, which #191's bridge
-needs until #323 is ruled. Another flag leaves out the checks of
+(`inTypePhase`), even under a check with every check on. Another flag leaves out the checks of
 implicit copies while a call's arguments are matched again before their
 copies (`copyChecks`). The flow phase checks a function up to a
 stage (`Stage`), in the order in which the compiler reports them: the

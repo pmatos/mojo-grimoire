@@ -298,20 +298,14 @@ so is `range(g(p^, xs[-1]), p.x)`. Among the instantiation errors, a
 constant index into an array comes before the literal and before an index
 into a list on the compiler, and the model reports the literal first.
 
-## Temporary bridges to `main`'s order
+## Comparisons not yet ordered
 
-Part 4c of #96 removed the last two bridges that kept the results that
-`main` gave where a change exposed the compiler's order before the model
-could follow it: the struct tests of #191, by `and`, `or` and `not`
-([semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares)),
-and the comparisons that part 2 of #166 converts, bridged statement by
-statement to `main`'s twin (#281). A third, which made an index's error of
-a later pass wait for an assigned value's (#280), went with Part 7. Without
-them, a comparison whose literal operand holds a place that cannot be
-copied implicitly gives the model's own order, which #338 tracks.
+A comparison whose literal operand holds a place that cannot be copied
+implicitly, and the other comparisons not yet modelled, stay on their
+page, [semantics-comparisons.md](semantics-comparisons.md), with their
+order tracked on #338. No bridge to `main`'s order remains: Part 4c of
+#96 removed the last two, for the struct tests of #191 and the
+comparisons of part 2 of #166 (#281).
 
-The comparisons not yet modelled stay on their page,
-[semantics-comparisons.md](semantics-comparisons.md), with their order
-tracked on #338. `break` and `continue` stay outside the subset until
-#276 supports them after #96's flow parts
-([semantics-parser.md](semantics-parser.md)).
+`break` and `continue` stay outside the subset until #276 supports them
+after #96's flow parts ([semantics-parser.md](semantics-parser.md)).

@@ -54,13 +54,12 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     rejectCalledVar prog f (typeArgs prog args)
     match callSig prog f with
     | .ok sig =>
-      let params := sig.params
       let fit := if (findStruct prog f).isSome then Fit.init (.struct f) else .call
-      let locs ← locationArgs prog params args
-      let ks ← callOrder (ownArgs prog args) (arityMisfit fit f params.length args.length) locs
-        (checkArgs prog fit f params args params.length args.length)
+      let locs ← locationArgs prog sig.params args
+      let ks ← callOrder (ownArgs prog args) (arityMisfit fit f sig.params.length args.length) locs
+        (checkArgs prog fit f sig.params args sig.params.length args.length)
       recheckArgs prog args ks
-      for q in ← changedArgs prog params args do changePlace prog q
+      for q in ← changedArgs prog sig.params args do changePlace prog q
       instCall prog f
       refResult prog asRef sig args
     | .error err =>

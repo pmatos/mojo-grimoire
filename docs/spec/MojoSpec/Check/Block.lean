@@ -11,7 +11,7 @@ The readable blocks of the section that renders `MojoGrimoire.Check.Block`
 pins their fingerprint; the build fails when the Lean changes under it.
 -/
 
-#doc (Manual) "Blocks and the bridge to main's order: readable blocks" =>
+#doc (Manual) "Blocks: readable blocks" =>
 
 :::moduleDocs (fingerprint := "3045855249753752825")
 :::

@@ -121,8 +121,7 @@ value is not implicitly copyable, or is an empty list built by
 check it had before #166:
 the compiler builds such a literal, and copies the place, in an order
 against the literal's conversion and the comparison's misfit that waits
-for #338. In a program checked as `main` did, every comparison keeps
-them. Before #166, a comparison with a literal that the compiler
+for #338. Before #166, a comparison with a literal that the compiler
 converts, one that holds a literal with types not known to be the same,
 or one with no type of its own beside a list, found no misfit from the
 forms of its operands, passed neither by reference, and checked only a

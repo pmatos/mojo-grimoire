@@ -83,9 +83,10 @@ is: `t < u` may give an `Int`.
   statement with none gives its flow error: `b = (x^ or y) and x.f` with
   `b` a `Bool` is `uninitializedUse`, `print(y or x, k)` is
   `notPrintable`, and `(y or S(xs[1 - 2], True)) + y` is `negativeIndex`,
-  as the compiler reports them. A call's arguments, and `print`'s, are
-  typed before a misfit or an argument that cannot be printed (#89, #96
-  parts 9 and 4c): `f2(not m, m or m2)`, with `m` `Movable`, is
+  as the compiler reports them. The own expressions of a call's
+  arguments, and of `print`'s, are typed before a misfit or an argument
+  that cannot be printed, but a literal argument is not built before it
+  (#89, #96 parts 9 and 4c): `f2(not m, m or m2)`, with `m` `Movable`, is
   `implicitCopy`, and `print(y or w, bi(w))`, with `T` not `Writable`,
   is `bi(w)`'s misfit, as the compiler reports them.
 - The value that an assignment to a whole variable that the function

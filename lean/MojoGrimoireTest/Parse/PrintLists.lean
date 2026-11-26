@@ -82,6 +82,14 @@ private def withToken (body : List String) : List String :=
   (.notPrintable (.list (.struct "Token")))
 #guard rejects (withToken ["var t = Token(1)", "print(t)"]) (.notPrintable (.struct "Token"))
 
+-- The own expressions of `print`'s arguments come before an argument that
+-- it cannot write, but a literal argument is not built before it, as the
+-- pin orders them (#96 part 4c).
+#guard rejects (withToken ["var t = Token(1)", "var u = Token(2)", "print(t, [u])"])
+  (.notPrintable (.struct "Token"))
+#guard rejects (withToken ["var t = Token(1)", "print(t, [1, True])"]) (.notPrintable (.struct "Token"))
+#guard rejects (withToken ["var t = Token(1)", "print(t, [])"]) (.notPrintable (.struct "Token"))
+#guard rejects (withToken ["var t = Token(1)", "print(t, [nope])"]) (.unknownVariable "nope")
 -- A moved list cannot be printed.
 #guard rejects (inMain ["var xs: List[Int] = [1]", "var ys = xs^", "print(xs)"])
   (.uninitializedUse (.var "xs"))

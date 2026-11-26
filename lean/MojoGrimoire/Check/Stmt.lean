@@ -107,18 +107,23 @@ def checkConstructed (prog : Program) (p : Place) (e : Expr) : CheckM Unit := do
       for t in resolvePlace vars p do
         if invalidates ms (← shapeOf prog t) then throw (CheckError.argumentExclusivity q)
 
-/-- Types the own expression of the value `e`, which the compiler types
-before it converts `e` to the type expected (#96 part 11): a literal with
-no type expected in full, since its own elements give its type; a call by
-reference, as `misfitFirst` checks it before the copy of what it returns;
-and any other value as an argument's own expression (`ownArgs`), but a
-place through a struct's getter, which the model types only as a call
-(`throughGetter`, #198). -/
-def valueOwn (prog : Program) : Expr → CheckM Unit
-  | e@(.list .unknown _) => do let _ ← checkExpr prog e
+/-- Types the own expression of the argument `e`, which the compiler types
+before it checks the call's misfit (#89): a call by reference, as
+`misfitFirst` checks it before the copy of what it returns, and any other
+argument as its own expression (`ownArgs`), but a place through a struct's
+getter, which the model types only as a call (`throughGetter`, #198). -/
+def argOwn (prog : Program) : Expr → CheckM Unit
   | e@(.call ..) | e@(.method ..) => do let _ ← checkExprAs prog true e
   | .place p => do unless ← throughGetter prog p do ownArgs prog [.place p]
   | e => ownArgs prog [e]
+
+/-- Types the own expression of the value `e`, which the compiler types
+before it converts `e` to the type expected (#96 part 11): a literal with
+no type expected in full, since its own elements give its type, and any
+other value as an argument (`argOwn`). -/
+def valueOwn (prog : Program) : Expr → CheckM Unit
+  | e@(.list .unknown _) => do let _ ← checkExpr prog e
+  | e => argOwn prog e
 
 /-- Checks the value `e` that initializes a value of the type `t`, given
 `value`, which checks it and gives its type. A literal with no type expected,
@@ -223,7 +228,7 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let _ ← checkExpr prog e
   | .print args => do
     rejectCalledVar prog "print" (typeArgs prog args)
-    let ks ← typedFirst (args.forM (valueOwn prog))
+    let ks ← typedFirst (args.forM (argOwn prog))
       (args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark)
     recheckPlaces prog args ks
     recheckLiterals prog args ks

@@ -2,14 +2,12 @@ import MojoGrimoire.Parse.Infer
 import MojoGrimoire.Interp.Run
 
 /-!
-Tests of statements that #260's bridge to `main`'s order kept at
-`main`'s class, until part 4 of #96 removed it: comparisons with a
-literal that part 2 of #166 converts, beside another error of the same
-statement. Each verdict is the pinned compiler's for the program, probed on
+Tests of the order of comparisons with a literal that part 2 of #166
+converts, beside another error of the same statement (#260, #281). Each verdict is the pinned compiler's for the program, probed on
 the nightly 1.3.0.dev2026111905, but where a comment says otherwise.
 -/
 
-namespace MojoGrimoireTest.Parse.CompareBridge
+namespace MojoGrimoireTest.Parse.CompareOrder
 
 open MojoGrimoire.Core MojoGrimoire.Check MojoGrimoire.Parse MojoGrimoire.Interp
 
@@ -88,8 +86,8 @@ private def shadow : String :=
     "def m(self: S):", "    var w = 5", "    var z = w", "    print(z)",
     "def main():", "    var s = S([1, 2])", "    s.m()", "    m(s)"]
 
--- The method's error is `main`'s, and the compiler's, `typeMismatch`, not
--- one from the free function's body.
+-- The method's error is the compiler's, `typeMismatch`, not one from the
+-- free function's body.
 #guard rejectsIn shadow "S.m" (· matches .typeMismatch ..)
 
 /-- A struct test beside a comparison that part 2 converts, in one test:
@@ -108,4 +106,4 @@ private def structTest : String :=
   | .ok prog => run prog 100000 == .finished ["bool 1", "True", "True", "bool 0", "yes"]
   | .error _ => false)
 
-end MojoGrimoireTest.Parse.CompareBridge
+end MojoGrimoireTest.Parse.CompareOrder
