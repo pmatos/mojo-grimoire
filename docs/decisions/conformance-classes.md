@@ -6,8 +6,8 @@ patterns of `tests/conformance/diagnostics.json`. Every pattern for a
 message that quotes a name of the program's is matched whole and comes
 before every loose pattern ([conformance.md](conformance.md#the-suite), #271).
 A message that no pattern matches records with no class until a PR adds
-an anchored entry for it, since the loose fallbacks that no recorded
-rejection reached are gone (#274).
+an anchored entry for it; 19 loose fallbacks that no recorded rejection
+reached are gone (#274).
 
 ## Unknown fields and methods
 
