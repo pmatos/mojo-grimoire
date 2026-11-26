@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": null,
+  "diagnostic": "'main()' does not return a value; remove the return type"
+}

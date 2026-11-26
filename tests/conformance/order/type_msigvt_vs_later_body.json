@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "valueAsType",
+  "diagnostic": "cannot use a dynamic value in type specification"
+}

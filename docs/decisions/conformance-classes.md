@@ -202,21 +202,10 @@ variable stays `missingMethod`. The human ruled this on 2026-11-20 (#193).
 
 The model reports the error in program order: after an earlier error in
 the body, and before the declaration's initializer, its reuse of a name
-and the arguments of `List[T](...)`, as the compiler does. In a struct's
-initializer, destructor or method, it reports it after the functions'
-bodies and `main`'s signature, just before that struct's copyability
-check, or just after it when the struct declares its own `__init__` and
-the type is in its destructor or a method: the compiler checks the copy
-initializer right after `__init__`, which the model takes to come first,
-as it keeps no order between `__init__` and the methods. Among the
-methods, the first error in declaration order comes first, as in the
-compiler; one in `__init__` or the destructor is reported only when no
-method has another error, for the same reason. It does
-not check the methods of the structs after it, since the compiler checks
-those bodies after the functions'. Two cases of the order of errors
-differ, as
-[semantics-error-order.md](semantics-error-order.md#types-that-a-variable-hides)
-says. The compiler also resolves a function's or a method's
+and the arguments of `List[T](...)`, as the compiler does. Among the
+declarations, it takes its place in the type phase's order
+([semantics-error-order.md](semantics-error-order.md#the-order-of-the-type-phase)).
+The compiler also resolves a function's or a method's
 signature where a body first refers to it, and a struct's `__init__`
 signature with the struct, in declaration order, where the model checks a
 signature with its body (#231). And
@@ -268,9 +257,8 @@ matched whole, to `uncopyableField`. The human ruled this on 2026-11-20
 (#164). A hand-written copy initializer, `__init__(out self, *, copy:
 Self)`, which the compiler accepts, is not yet parsed (#184).
 
-Where this error comes among the compiler's, and the three cases where
-the model differs, are in
-[semantics-error-order.md](semantics-error-order.md#copyable-structs-whose-fields-cannot-be-copied).
+Where this error comes among the compiler's is in
+[semantics-error-order.md](semantics-error-order.md#the-order-of-the-type-phase).
 
 Rejected: an existing class, `notCopyable` or `implicitCopy`, which would
 merge an error at a struct's declaration with an error at a copy.
