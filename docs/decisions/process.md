@@ -135,6 +135,17 @@ human ruled this on 2026-11-22 (#96, Q10).
 Rejected: holding each part until those issues are fixed, and excluding the
 constructs.
 
+The exception also covers a program whose new first error is one of the
+type tier that the model gets wrong alone, by its order inside the tier or
+by its class, where the compiler rejects that construct too, and a program
+that agreed only through a temporary bridge to `main`'s order that a part
+removes. The PR body lists each such program with its open issue, and the
+probe sweep records it. The human ruled this on 2026-11-26 (#323), after
+#96's parts showed that the tiers could not land otherwise.
+
+Rejected: holding Part 4 until those issues are fixed, and counting only the
+suite and the probe sweep as the gate.
+
 A second exception holds for any PR, for a program of several statements
 that agreed on `main` only by coincidence: `main` rejected one statement
 wrongly, with the class that the compiler gives for another. A PR that fixes
