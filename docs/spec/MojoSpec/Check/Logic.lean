@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2694347187595963349")
+:::moduleDocs (fingerprint := "16927417284965130498")
 :::
 
 :::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.checkedBinaryTy (fingerprint := "14619223166697949421")
@@ -68,12 +68,17 @@ compiler types it, as off the left (`literalFits`), the type phase types
 the left literal and checks the right operand, read by reference (#96).
 :::
 
-:::readable MojoGrimoire.Check.ownLeft (fingerprint := "1276094026207736391")
-*Rule: a literal on the left built on its own.* A literal on the left of
-a comparison that holds a place whose value is not implicitly copyable
-(`heldCopy`) is built on its own, and checked in full, before the
-comparison's misfit is reported, when the right operand is a literal
-too, but `List[u]()`, or has a known type that the literal is not
-converted to or does not fit (`operandFit`). The compiler reports the
-literal's own errors, its copies among them, first (#338).
+:::readable MojoGrimoire.Check.heldLeft (fingerprint := "3073084181485946144")
+*Rule: how a literal on the left is built.* A literal on the left of a
+comparison that holds a place whose value is not implicitly copyable
+(`heldCopy`) is converted to the type of a right operand that is no
+literal when it fits it (`operandFit`), and is built on its own, and
+checked in full before the comparison's misfit, when the right operand
+is a literal too, but `List[u]()`, or has a known type that the literal
+is not converted to or does not fit. Either way the compiler first
+types both operands' own expressions, then builds the literal, so its
+copies come after an error in the right operand and before the
+comparison's misfit (#338). A fit that is not known, and a right
+operand whose type is not known, leave the comparison to the checks it
+had before #166.
 :::

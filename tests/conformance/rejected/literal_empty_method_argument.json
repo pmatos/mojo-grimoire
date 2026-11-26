@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "invalid call to 'm': value passed to 'x' cannot be converted from list literal to 'S'"
+}

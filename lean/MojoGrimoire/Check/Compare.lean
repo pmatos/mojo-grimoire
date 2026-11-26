@@ -220,13 +220,11 @@ elements are built. -/
 def keepsBefore (prog : Program) (op : BinOp) (a b : Expr) : CheckM Bool := do
   if !compares op then return false
   if emptyList a || emptyList b then return true
-  if a matches .list .. && !(b matches .list ..) &&
-      (← operandFit prog op a (← operandTy prog b) true) == some (some true) then
-    return false
-  if b matches .list .. && !(← heldCopy prog a) &&
-      (← operandFit prog op b (← operandTy prog a)) == some (some false) then
-    return false
-  return (← heldCopy prog a) || (← heldCopy prog b)
+  if ← heldCopy prog a then
+    if b matches .list .. then return true
+    return (← operandFit prog op a (← operandTy prog b) true) != some (some true)
+  unless ← heldCopy prog b do return false
+  return (← operandFit prog op b (← operandTy prog a)) != some (some false)
 
 /-- Whether the operand `e` is a binary operation, under the drops that
 the elaborator adds: in an operand of struct type, a nested test of `and`

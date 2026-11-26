@@ -35,15 +35,15 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
   compiler calls an unknown declaration.
 - `order11/`: Part 11's probes of the order inside declarations that the
   model rejects for another reason: an unknown type name (#237), and
-  comparisons with a literal
-  operand, whose conversion to the other operand's type the model does
-  not follow (`decl_cmp_*`, #338). `decl_empty_*` are empty literals that the
+  comparisons with a literal operand that holds a place that cannot be
+  copied implicitly (`decl_cmp_*`), which the model orders by the literal's
+  conversion (#338). `decl_empty_*` are empty literals that the
   compiler reports with a message that has no class yet (#128), and
   `decl_i11` agrees only because the model rejects its unknown type name
   as another error (#237). `decl_review_*` are the review's probes of
   #340 that the model gets wrong for another reason: a struct's subscript
-  as a `ref` target (#198), an empty literal (#128) and a literal passed to
-  `len` (#341).
+  as a `ref` target (#198) and an empty literal (#128). `decl_review_r33`,
+  a literal passed to `len`, has agreed since #341.
 - `order12/`: the review's probes of #342 (Part 4c of #96) that only the
   removed bridges gave the compiler's class: a comparison whose literal
   operand holds a place that cannot be copied implicitly, after another

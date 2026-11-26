@@ -111,7 +111,8 @@ converted, and its copy comes as its elements are built:
 `implicitCopy`, as the compiler says. One that is not converted, or does
 not fit, or that is compared with another literal, is built on its own
 first, so that `[y] > al` and `[y] == t` are `implicitCopy` before the
-misfit (`ownLeft`). On the right, beside a left operand that holds no
+misfit (`heldLeft`). Either way the operands' own expressions are typed
+first, so that `[y] == -t` is `missingMethod`. On the right, beside a left operand that holds no
 such place, one that does not fit is a type mismatch before its
 elements are built: `rl == [y, [t]]` and `[[1]] >= [y]` are
 `typeMismatch`.

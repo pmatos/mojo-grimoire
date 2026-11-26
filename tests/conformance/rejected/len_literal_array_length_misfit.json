@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "noMatchingInit",
+  "diagnostic": "no matching function in call to 'len'"
+}

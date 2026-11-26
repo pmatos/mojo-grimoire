@@ -19,14 +19,17 @@ changes, are checked as `MojoGrimoire.Check.Change` says. An argument that
 does not fit is reported as `MojoGrimoire.Check.Fit` says, which also gives
 the rules of literals, of `List[u](…)` and of its `range` argument; the
 elements of some literals are checked as `MojoGrimoire.Check.Elems` says,
-and the arguments of `range` as `MojoGrimoire.Check.Range` says. An
+and the arguments of `range` as `MojoGrimoire.Check.Range` says. A
+literal passed to `len` has the type that inference gives it
+(`MojoGrimoire.Parse.inferLenLiteral`), the array it initializes, so a misfit
+inside it is `noMatchingInit`, reported before its copies (`lenLiteral`);
+one with no type, empty or whose first element is, is `noMatchingInit`
+once its elements are typed (#341). An
 operator or a call that its operands' types reject, a method that a type
 lacks, no overload that fits or a comparison that does not fit, is
 reported before they are read, as
-`MojoGrimoire.Check.Methods` and `MojoGrimoire.Check.Compare` say; a
-literal on the left of a comparison that holds a place whose value is
-not implicitly copyable, and that the comparison does not convert, is
-checked before (`MojoGrimoire.Check.ownLeft`, #338).
+`MojoGrimoire.Check.Methods` and `MojoGrimoire.Check.Compare` say,
+and `MojoGrimoire.Check.heldLeft` for some literals (#338).
 -/
 
 namespace MojoGrimoire.Check
@@ -69,6 +72,10 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       match f, args, err with
       | "len", [e], .unknownFunction _ => lenCall prog args (typeArgs prog args) (match e with
         | .place p => do checkIndices prog p; readPlace prog p
+        | e@(.list t es) =>
+          if emptyFirst e then rejectAfter (typeArgs prog es) (.noMatchingInit .unknown)
+          else if t matches .array .. then lenLiteral prog es
+          else checkExprAs prog false e
         | e => do checkExprAs prog (← locOf prog e).isSome e)
       | "len", _, .unknownFunction _ => lenCall prog args (typeArgs prog args) (pure .unknown)
       | _, _, .missingMethod .. => rejectAfter (typeArgs prog args) err
@@ -90,11 +97,14 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         let _ ← typeArg prog a
         let _ ← checkExprAs prog true b
         return .bool
-    let own ← ownLeft prog op a b
+    let held ← heldLeft prog op a b
+    let typing : CheckM Unit := match a, held with
+      | .list _ es, some _ => do ownArgs prog es; let _ ← typeArg prog b
+      | _, _ => pure ()
+    typedFirst typing do
     rejectMisfit (← operandMisfit prog op a b)
-      (do
-        let _ ← (if own then checkExprAs prog false a else typeArg prog a)
-        let _ ← typeArg prog b)
+      (do let _ ← (if held == some false then checkExprAs prog false a else typeArg prog a)
+          let _ ← typeArg prog b)
     let right ← rightParamOf prog op a b
     let s ← get
     let ta ← checkExprAs prog (← byRef prog op a b) a
@@ -212,6 +222,31 @@ def literalElems (prog : Program) : List Expr → CheckM Unit
   | _ :: rest => literalElems prog rest
   termination_by es => (sizeOf es, 3)
 
+/-- Checks the elements `es` of a literal passed to `len`, typed by
+inference (#341), as the compiler converts it: the first is built on its
+own, by this rule when it is such a literal (`lenFirst`), and the others
+are converted to its type, a misfit `noMatchingInit`, as a literal with
+no type expected builds them, its copies after its misfits. -/
+def lenLiteral (prog : Program) : List Expr → CheckM Ty
+  | [] => throw (CheckError.noMatchingInit .unknown)
+  | e :: es => typedFirst (ownArgs prog (e :: es)) <| copyLast do
+    let u ← lenFirst prog e
+    let t := Ty.array u (es.length + 1)
+    unless declarableTy prog u do throw (CheckError.invalidType t)
+    let k ← mark
+    recheckLocs prog ((← firstElemLocs prog e, k) ::
+      (← checkArgs prog (.init t) "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
+        es.length es.length))
+    pure t
+  termination_by es => (sizeOf es, 3)
+
+/-- The type of the first element `e` of a literal passed to `len`
+(`lenLiteral`). -/
+def lenFirst (prog : Program) : Expr → CheckM Ty
+  | .list (.array ..) es => lenLiteral prog es
+  | e => checkExprAs prog false e
+  termination_by e => (sizeOf e, 4)
+
 /-- Checks each of the arguments `args` of `List[u](…)` on its own: a place
 is located, and any other expression checked, before the call is rejected. -/
 def checkOperands (prog : Program) : List Expr → CheckM Unit
@@ -327,7 +362,9 @@ def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
 /-- Checks the argument `e` of a call of `callee` of fit `fit`, passed to
 the parameter `prm`, as `checkArgs` says, and gives the places it is read
 from once every argument is evaluated, with how many changes were
-recorded once it was checked. A string literal fits no overload. -/
+recorded once it was checked. A string literal fits no overload, and a
+literal with no type that is or holds an empty literal fits no parameter
+but a list or an array, once its elements are typed (#341). -/
 def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
     Expr → CheckM (List Place × Nat)
   | .place p => do
@@ -340,6 +377,9 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
     let t' ← if t == .int && es.length != 1 then do
         rejectIntElems prog fit es (fun p _ => typePlace prog p) (fun a _ => checkExprAs prog false a)
         pure prm.ty
+      else if t == .unknown && holdsEmpty (.list t es)
+          && !(prm.ty matches .list _ | .array ..) then
+        rejectAfter (typeArgs prog es) (fit.misfit (CheckError.typeMismatch prm.ty t))
       else if !(t matches .list _ | .array ..) || fit matches .init _ then
         checkExprAs prog false (.list t es)
       else do

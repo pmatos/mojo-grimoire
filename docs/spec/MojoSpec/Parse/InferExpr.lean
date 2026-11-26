@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference in expressions: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7012204585864949497")
+:::moduleDocs (fingerprint := "12423167490377361527")
 :::
 
 :::readable MojoGrimoire.Parse.literalArg (fingerprint := "15594256188266583025")
@@ -25,7 +25,17 @@ it stays a temporary. It infers nothing itself, and its callers pass it
 only the form of a literal.
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "3809979605763754742")
+:::readable MojoGrimoire.Parse.lenConverted (fingerprint := "10627972790977335799")
+*Definition: a literal converted for `len`.* Given the form and the type
+of the first element of a literal passed to `len`, and a way to infer
+its other elements given the types expected of them, the literal is
+$`\mathsf{Array}[t, n]` of the first element's type $`t`, with $`t`
+expected of each other element (#341). When the first element has no
+type, as an empty literal, the literal stays open and nothing is
+expected of the others.
+:::
+
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferLenArgs MojoGrimoire.Parse.inferLenLiteral MojoGrimoire.Parse.inferList (fingerprint := "6759927460180264944")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, or $`\mathsf{Int}` for the element of
@@ -35,7 +45,14 @@ $`\mathsf{Bool}`, and a binary operator the type of its result, as above.
 A call or a method call
 has the result of its signature. A call of a struct that cannot be built
 still has the struct's type, so that the checker reports why, and `len`
-gives an $`\mathsf{Int}`. A call of `range`, when the program declares no
+gives an $`\mathsf{Int}`. Its one argument, when the program declares no
+function or struct `len` and no variable hides it, is inferred by `inferLenArgs`: a
+literal left open is converted as the compiler converts it to `len`'s
+parameter, by `inferLenLiteral` (#341). Its first element is inferred
+once, by this rule in turn when it is a literal left open, and the
+literal is $`\mathsf{Array}[t, n]` of that element's type $`t`, which
+each other element is expected to have (`lenConverted`). An empty
+literal, or one whose first element is, has no type, and stays open. A call of `range`, when the program declares no
 function or struct `range`, expects an $`\mathsf{Int}` of each argument, by
 `rangeParams` (#121). A call of a name that a variable in scope hides
 follows no signature and has no type, so that the checker rejects it

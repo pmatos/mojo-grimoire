@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11855150988860152912")
+:::moduleDocs (fingerprint := "3203688472844651811")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.literalElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "15383981885537243716")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.literalElems MojoGrimoire.Check.lenLiteral MojoGrimoire.Check.lenFirst MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "12396150525370774211")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -62,7 +62,9 @@ type:
   types. A literal on the left of a comparison that holds a place whose
   value is not implicitly copyable, and that the comparison does not
   convert, is checked in full instead, so that its own errors, its
-  copies among them, come before the misfit (`ownLeft`, #338). The
+  copies among them, come before the misfit; such a literal, converted
+  or not, is built once both operands' own expressions are typed
+  (`heldLeft`, `typedFirst`, #338). The
   right operand of an operator whose left operand is an integer literal
   expression (`intLiteral`), but `and` and `or`, is passed as to a `read`
   $`\mathsf{Int}` parameter of a method with several overloads: one that
@@ -160,7 +162,15 @@ type:
   operand, is read, not copied. A $`\mathsf{Bool}`, `None` or a struct,
   or another number of arguments, fits no overload of `len`:
   `noMatchingInit`, found by `lenCall` before any argument is read
-  (#190);
+  (#190). A literal argument has the type that inference gives it
+  (`inferLenLiteral`, #341), the array it initializes, so a misfit inside it
+  is `noMatchingInit`, reported after its elements' own errors and before
+  its copies (`copyLast`). It is checked by `lenLiteral` as a literal with
+  no type expected is: its first element on its own, by this rule when it
+  is such a literal (`lenFirst`), and the others converted to that
+  element's type. One with no type, empty or whose first element
+  is, at any depth (`emptyFirst`), is `noMatchingInit` once its elements
+  are typed;
 * $`\mathsf{drops}(e; p^*; q^*)`, which only elaboration inserts, after
   checking, has the type of $`e`.
 
@@ -205,7 +215,10 @@ with `ref`, passed by reference, or read by `len` or `print`.
 
 The arguments of a call are checked in order against the parameters, each
 by `checkArg`, after the exclusivity rule; a string literal fits no
-overload. A place is passed by `passPlace`; a call that returns a
+overload, and a literal with no type that is or holds an empty literal
+(`holdsEmpty`) fits no parameter but a list or an array: once its
+elements are typed, the call's fit reports a type mismatch (#341). A place is
+passed by `passPlace`; a call that returns a
 reference and is a located operand, passed to a `read`, `mut` or `ref`
 parameter, as a location, which must be mutable for `mut`, or the call is
 $`\mathsf{immutablePlace}`, named by its first origin; and any other

@@ -303,7 +303,10 @@ A literal that initializes a type that is not a list or an array, or an
 `Int` with a length other than 1, types only its elements' own
 expressions before its misfit: `var q: Int = [[xs]]` is `noMatchingInit`,
 and `var q: Int = [xs, zz]` `unknownVariable`. A literal passed to `len`
-is typed by `len`, which the model does not follow yet (#341).
+is an array of its first element's type, to which its other elements
+are converted, so `len([xs, [1]])` is
+`implicitCopy`, and its misfits are `noMatchingInit`: `len([xs, True])`
+(#341).
 
 The checker types the initializer first when the duplicate name is found
 (`valueOwn`, `typedFirst`). A literal's check that fails in the type
@@ -315,8 +318,10 @@ reports an implicit copy, it checks the value again without copies
 
 Inside a comparison, the compiler converts a literal operand to the type
 of the other operand, and that conversion decides the order of its copies
-and misfits. The model types such a literal as one with no type expected,
-which #338 tracks (`tests/sweep/order11/decl_cmp_*`).
+and misfits. The model follows it for a literal that holds a place that
+cannot be copied implicitly
+([semantics-comparisons.md](semantics-comparisons.md)); the shapes it
+leaves are #338's (`tests/sweep/cmp338/`).
 
 ## The order inside an operator
 

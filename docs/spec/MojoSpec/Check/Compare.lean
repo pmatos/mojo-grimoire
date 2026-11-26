@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3112363248852998698")
+:::moduleDocs (fingerprint := "15189163265621714980")
 :::
 
 :::readable MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "11022081997966745842")
@@ -112,7 +112,7 @@ unknown and which inference did not give the operand's type, beside a
 list, or an array when that literal holds a literal.
 :::
 
-:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "8312975408917964869")
+:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "14466360756799766667")
 *Rule: comparisons that keep the checks they had before #166.* A
 literal holds the places that are its elements, at any depth. A
 comparison of which either operand is an empty list built by
