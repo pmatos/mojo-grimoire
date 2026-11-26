@@ -44,7 +44,7 @@ literal with no type expected is expected to have the type `Array[t, n]`
 of its first element's type `t`, which this rule gives when that element
 is such a literal, so that its other elements are converted to `t`, as
 the compiler converts the literal to `len`'s parameter; an empty literal,
-or one whose first element is, has none (`lenLiteralTy`, #341). What
+or one whose first element is, has none (`inferLenLiteral`, #341). What
 inference cannot find stays `unknown`, which the checker rejects as a type
 that may not be declared, once it has checked the initializer, whose own
 error comes first (#123).
@@ -104,6 +104,19 @@ stays a temporary. Callers pass only the form of a literal. -/
 def literalArg (prm : Param) (a' : Expr) : Expr :=
   if (prm.conv == .mutable || prm.conv == .ref) && !(a' matches .list ..) then .list .int [a']
   else a'
+
+/-- The literal passed to `len` whose first element inference gave the form
+and the type `first`, and whose `n` other elements `rest` infers, given
+the types expected of them: an `Array[t, n + 1]` of the first's type `t`,
+each other element expected to have `t`; with no such type, as of an
+empty literal, it stays open, and nothing is expected of them (#341). -/
+def lenConverted (first : Expr × Option Ty) (n : Nat)
+    (rest : List Ty → List (Expr × Option Ty)) : Expr × Option Ty :=
+  match first with
+  | (e, some t) =>
+    let u := Ty.array t (n + 1)
+    (.list u (e :: (rest (List.replicate n t)).map (·.1)), some u)
+  | (e, none) => (.list .unknown (e :: (rest []).map (·.1)), none)
 
 mutual
 /-- Infers inside the place `p`, and gives its type, if it has one. -/
@@ -252,25 +265,24 @@ def inferArg (prog : Program) (env : TyEnv) (prm : Param) : Expr → Expr
     if a matches .list .. then literalArg prm a' else a'
   termination_by a => (sizeOf a, 1)
 
-/-- Infers inside the arguments `args` of the built-in `len`. One literal
-with no type expected is expected to have the type that `lenLiteralTy`
-gives it, when there is one (#341). -/
+/-- Infers inside the arguments `args` of the built-in `len`: one literal
+with no type expected is converted as `inferLenLiteral` says (#341). -/
 def inferLenArgs (prog : Program) (env : TyEnv) : List Expr → List Expr
-  | [a@(.list .unknown _)] =>
-    [(inferExpr prog env ((lenLiteralTy prog env a).getD .unknown) a).1]
-  | args => (inferList prog env [] args).map (·.1)
-  termination_by args => (sizeOf args, 3)
+  | [a] => [(inferLenLiteral prog env a).1]
+  | args => inferArgs prog env [] args
+  termination_by args => (sizeOf args, 4)
 
-/-- The type that the compiler gives the literal `[e₁, …, eₙ]` with no type
-expected that is passed to the built-in `len`: an `Array[t, n]` of the type
-`t` of `e₁`, itself given by this rule when `e₁` is such a literal, and
-none when that type is not known, as of an empty literal (#341). -/
-def lenLiteralTy (prog : Program) (env : TyEnv) : Expr → Option Ty
-  | .list .unknown (e@(.list .unknown _) :: es) =>
-    (lenLiteralTy prog env e).map (.array · (es.length + 1))
+/-- Infers inside the literal `[e₁, …, eₙ]` with no type expected that is
+passed to the built-in `len`, and gives its type, as the compiler converts
+it to `len`'s parameter (#341): `e₁` is inferred once, by this rule when it
+is such a literal, and the others are expected to have its type
+(`lenConverted`). Any other argument is inferred with no type expected. -/
+def inferLenLiteral (prog : Program) (env : TyEnv) : Expr → Expr × Option Ty
+  | .list .unknown (e@(.list .unknown (_ :: _)) :: es) =>
+    lenConverted (inferLenLiteral prog env e) es.length (inferList prog env · es)
   | .list .unknown (e :: es) =>
-    (inferExpr prog env .unknown e).2.map (.array · (es.length + 1))
-  | _ => none
+    lenConverted (inferExpr prog env .unknown e) es.length (inferList prog env · es)
+  | a => inferExpr prog env .unknown a
   termination_by e => (sizeOf e, 1)
 
 /-- Infers inside each of the expressions `es`, expected to have the types

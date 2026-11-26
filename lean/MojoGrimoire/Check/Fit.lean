@@ -14,8 +14,8 @@ from a source that is not a list or an array of `u` that can be copied,
 or from `range(…)` with arguments that fit no form of `range` (#121). A
 literal passed to a function or a method is converted to its parameter's
 type, and the compiler reports one that does not fit, also inside it, as a
-type mismatch; an empty literal with no type fits no type but a list or an
-array (#341). A literal with no expected type takes the type of its
+type mismatch; a literal with no type that is or holds an empty literal
+fits no type but a list or an array (#341). A literal with no expected type takes the type of its
 elements, and an element that differs from the first is a type mismatch
 too. A literal of type `Int`, which inference keeps only for `[e]` of one
 `Int` element made of literals and operators, or passed `mut` or `ref`,
@@ -117,6 +117,13 @@ element is such a literal: passed to `len`, it has no type (#341). -/
 def emptyFirst : Expr → Bool
   | .list .unknown [] => true
   | .list .unknown (e :: _) => emptyFirst e
+  | _ => false
+
+/-- Whether the literal `e` is empty, or holds an empty literal at any
+depth of its literals: it has no type of its own (#341). -/
+def holdsEmpty : Expr → Bool
+  | .list _ [] => true
+  | .list _ es => es.attach.any fun ⟨e, _⟩ => holdsEmpty e
   | _ => false
 
 /-- The type of a literal `[e₁, …, eₙ]` with no type expected that is the

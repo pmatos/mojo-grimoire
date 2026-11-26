@@ -258,7 +258,8 @@ A literal that initializes a type that is not a list or an array, or an
 `Int` with a length other than 1, types only its elements' own
 expressions before its misfit: `var q: Int = [[xs]]` is `noMatchingInit`,
 and `var q: Int = [xs, zz]` `unknownVariable`. A literal passed to `len`
-is converted to the type of its first element, so `len([xs, [1]])` is
+is an array of its first element's type, to which its other elements
+are converted, so `len([xs, [1]])` is
 `implicitCopy`, and its misfits are `noMatchingInit`: `len([xs, True])`
 (#341).
 

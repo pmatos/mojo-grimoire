@@ -21,7 +21,7 @@ the rules of literals, of `List[u](…)` and of its `range` argument; the
 elements of some literals are checked as `MojoGrimoire.Check.Elems` says,
 and the arguments of `range` as `MojoGrimoire.Check.Range` says. A
 literal passed to `len` has the type that inference gives it
-(`MojoGrimoire.Parse.lenLiteralTy`), the array it initializes, so a misfit
+(`MojoGrimoire.Parse.inferLenLiteral`), the array it initializes, so a misfit
 inside it is `noMatchingInit`, reported before its copies (`copyLast`);
 one with no type, empty or whose first element is, is `noMatchingInit`
 once its elements are typed (#341). An
@@ -71,11 +71,10 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       match f, args, err with
       | "len", [e], .unknownFunction _ => lenCall prog args (typeArgs prog args) (match e with
         | .place p => do checkIndices prog p; readPlace prog p
-        | .list .unknown es =>
-          if emptyFirst (.list .unknown es) then
-            rejectAfter (typeArgs prog es) (.noMatchingInit .unknown)
-          else checkExprAs prog false (.list .unknown es)
-        | e@(.list ..) => copyLast (checkExprAs prog false e)
+        | e@(.list t es) =>
+          if emptyFirst e then rejectAfter (typeArgs prog es) (.noMatchingInit .unknown)
+          else if t == .unknown then checkExprAs prog false e
+          else copyLast (checkExprAs prog false e)
         | e => do checkExprAs prog (← locOf prog e).isSome e)
       | "len", _, .unknownFunction _ => lenCall prog args (typeArgs prog args) (pure .unknown)
       | _, _, .missingMethod .. => rejectAfter (typeArgs prog args) err
@@ -331,9 +330,9 @@ def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
 /-- Checks the argument `e` of a call of `callee` of fit `fit`, passed to
 the parameter `prm`, as `checkArgs` says, and gives the places it is read
 from once every argument is evaluated, with how many changes were
-recorded once it was checked. A string literal fits no overload, and an
-empty literal with no type fits no parameter but a list or an array
-(#341). -/
+recorded once it was checked. A string literal fits no overload, and a
+literal with no type that is or holds an empty literal fits no parameter
+but a list or an array, once its elements are typed (#341). -/
 def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
     Expr → CheckM (List Place × Nat)
   | .place p => do
@@ -346,8 +345,9 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
     let t' ← if t == .int && es.length != 1 then do
         rejectIntElems prog fit es (fun p _ => typePlace prog p) (fun a _ => checkExprAs prog false a)
         pure prm.ty
-      else if t == .unknown && es.isEmpty && !(prm.ty matches .list _ | .array ..) then
-        throw (fit.misfit (CheckError.typeMismatch prm.ty t))
+      else if t == .unknown && holdsEmpty (.list t es)
+          && !(prm.ty matches .list _ | .array ..) then
+        rejectAfter (typeArgs prog es) (fit.misfit (CheckError.typeMismatch prm.ty t))
       else if !(t matches .list _ | .array ..) || fit matches .init _ then
         checkExprAs prog false (.list t es)
       else do

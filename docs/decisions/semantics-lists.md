@@ -141,8 +141,9 @@ here (#27).
   function's result, a parameter, and the element type of an enclosing
   literal or of the list that `append` adds to, and by a list on the left
   of `==` or `!=`. A literal with no type expected and no elements,
-  `var xs = []`, is rejected, and one where neither is expected does not
-  fit: `typeMismatch` for a parameter, `noMatchingInit` for an
+  `var xs = []`, is rejected. One with no type expected that is or holds
+  an empty literal, passed where no list, array or `Int` is expected,
+  does not fit: `typeMismatch` for a parameter, `noMatchingInit` for an
   initializer (#341).
 - An array has no methods; two arrays compare
   ([semantics-comparisons.md](semantics-comparisons.md#comparisons-of-arrays-and-lists)).
@@ -297,6 +298,7 @@ and write its one element. The human ruled on 2026-11-20 that indexing an
   an error of typing in an argument and before any read. A string literal
   is outside the subset (#180). A `Sized` struct is still
   `noMatchingInit`, though the compiler accepts it (#230). A literal
-  passed to `len` has the type of its first element, to which the others
-  are converted; a misfit, also inside one, is `noMatchingInit` before
-  its copies, and an empty first element fits none (#341).
+  passed to `len` is an `Array[T, n]` of its first element's type `T`,
+  to which the others are converted; a misfit, also inside one, is
+  `noMatchingInit` before its copies, and an empty first element fits
+  none (#341).

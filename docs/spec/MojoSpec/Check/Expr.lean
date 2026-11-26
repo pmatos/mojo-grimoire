@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1318201267516647098")
+:::moduleDocs (fingerprint := "11372478068286913913")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.literalElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "11853074222557264746")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.literalElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "6548983108505050057")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -158,7 +158,7 @@ type:
   or another number of arguments, fits no overload of `len`:
   `noMatchingInit`, found by `lenCall` before any argument is read
   (#190). A literal argument has the type that inference gives it
-  (`lenLiteralTy`, #341), the array it initializes, so a misfit inside it
+  (`inferLenLiteral`, #341), the array it initializes, so a misfit inside it
   is `noMatchingInit`, reported after its elements' own errors and before
   its copies (`copyLast`); one with no type, empty or whose first element
   is, at any depth (`emptyFirst`), is `noMatchingInit` once its elements
@@ -207,8 +207,9 @@ with `ref`, passed by reference, or read by `len` or `print`.
 
 The arguments of a call are checked in order against the parameters, each
 by `checkArg`, after the exclusivity rule; a string literal fits no
-overload, and an empty literal with no type fits no parameter but a list
-or an array: the call's fit reports a type mismatch (#341). A place is
+overload, and a literal with no type that is or holds an empty literal
+(`holdsEmpty`) fits no parameter but a list or an array: once its
+elements are typed, the call's fit reports a type mismatch (#341). A place is
 passed by `passPlace`; a call that returns a
 reference and is a located operand, passed to a `read`, `mut` or `ref`
 parameter, as a location, which must be mutable for `mut`, or the call is

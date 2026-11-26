@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5710857592181692742")
+:::moduleDocs (fingerprint := "13662291392390792621")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -72,6 +72,12 @@ as a type mismatch.
 *Definition: a literal with no type.* A literal with no type expected is
 empty, or its first element is such a literal, at any depth. Passed to
 `len`, it has no type, and fits no overload (#341).
+:::
+
+:::readable MojoGrimoire.Check.holdsEmpty (fingerprint := "1620323159748488936")
+*Definition: a literal that holds an empty one.* A literal is empty, or
+one of its elements is a literal that holds an empty one, at any depth.
+With no type expected, it has no type of its own (#341).
 :::
 
 :::readable MojoGrimoire.Check.iterableLiteralTy (fingerprint := "3935624038139464072")
