@@ -188,10 +188,10 @@ private def rangeOf (args : String) : String := s!"print(List[Int](range({args})
 #guard rejectsWith (rangeOf "h(p) + 0, b") (.implicitCopy (.struct "P"))
 #guard rejectsWith (rangeOf "1, [h(p) + 0, 1], u") (.implicitCopy (.struct "P"))
 
--- Limits of the compiler's tiered order, left to #339, which pin the model.
--- At `-O3` a constant index into an array comes before the literal, and
--- before an index into a list; the model reports it as any index. Its
--- order beside the literal depends on the level and is undefined (#331).
+-- The order of a literal and a constant index into an array, which the
+-- compiler's levels disagree on and #331 rules undefined: the model reports
+-- the literal first, `-O0`'s order, and this pins it. At `-O3` the index
+-- comes first. An array index beside an index into a list is left to #339.
 #guard rejectsWith "var a: Array[Int, 2] = [1, 2]\n    print(List[Int](range([1, 2], a[2])))"
   (.noMatchingInit (.list .int))
 -- A nested `List[Int](range(…))` of a literal of `Int`s fails only when

@@ -163,9 +163,9 @@ The two levels order them so, as probed on the pin:
 - At both levels, a negative constant index of a `List` is ordered as a
   call.
 
-The model follows `-O3` in a body, and `-O0` in the arguments of `range`,
-where it reports the literal first. No suite program
-pins such an order: `record` refuses a program whose first error differs
+The model follows `-O3` in a body, and `-O0`'s order between a literal and
+a constant index into an array in the arguments of `range`, where it
+reports the literal first. No suite program pins such an order: `record` refuses a program whose first error differs
 at `-O0` ([conformance.md](conformance.md#optimization-levels)), and the
 six programs of #324 stay unrecorded in `tests/sweep/order7/`.
 
