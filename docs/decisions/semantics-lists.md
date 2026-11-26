@@ -203,8 +203,11 @@ here (#27).
   `and` and `or`, `x or [True]`, the compiler reports that the array has
   no `__add__` or `__bool__`, `missingMethod` (#176).
 - A literal of any length but 1 where an `Int` is expected fits no
-  initializer of `Int` either, and the model rejects it in every position,
-  as the pinned nightly does (#153, #154). Inference types it `Int`, and
+  initializer of `Int` either, and the model rejects it in every position
+  (#153, #154). So does the pinned nightly, but for operands that it never
+  instantiates: the right operand of `or` after a variable that holds
+  `True`, dropped at `-O1` and above, a compiler bug (D-0014), and the
+  neighbours that #346 asks about. Inference types it `Int`, and
   each of its elements, as SIMD's initializer takes them. The checker
   types each element without reading it, as the compiler does, and the
   first that is no `Int`, nor such a literal of `Int`s, is a misfit,
