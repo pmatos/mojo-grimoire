@@ -13,15 +13,21 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3684303259524573936")
+:::moduleDocs (fingerprint := "15977220248322637794")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "7003726699342177640")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "7828538071053898294")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
 * a literal has its type, but a string literal is rejected outside
   `print`;
+* the indices of a place are checked (`indicesOf`) as the compiler types
+  the place, from its variable outward: when that fails with an error of
+  the type phase, the place is typed in that order first (`typePlace`),
+  so that an unknown variable or field, or a type that cannot be indexed,
+  comes before an index's error (`checkIndices`, #142, #227); a place
+  through a struct's getter keeps the index's error (`throughGetter`);
 * $`p` is copied implicitly, or read by reference where its location is
   used (`usePlace`), $`p\,\hat{}` transferred, and
   $`p.\mathsf{copy}()` needs an initialized place of a copyable type,

@@ -194,6 +194,26 @@ def rejectAfter {α : Type} (typing : CheckM Unit) (err : CheckError) : CheckM �
   inTypePhase typing
   throw err
 
+/-- Runs `check`, and when it fails with an error of the type phase, runs
+`typing` first, in the type phase, so that an error it finds comes first
+(`rejectAfter`). An error of a later phase comes only once the type
+phase has passed what `typing` types. -/
+def typedFirst {α : Type} (typing : CheckM Unit) (check : CheckM α) : CheckM α :=
+  tryCatch check fun err => if err.phase == .type then rejectAfter typing err else throw err
+
+/-- Whether the place `p` goes through a subscript of a struct that
+declares `__getitem__` or `__setitem__`, which the model types only
+through the call that inference makes of it (#198): such a place has no
+type here, and is left to the checks that report its error, as
+`rejectSetterOnly` leaves it. -/
+def throughGetter (prog : Program) : Place → CheckM Bool
+  | .var _ => pure false
+  | .field p _ | .transferred p => throughGetter prog p
+  | .index p _ => do
+    let t ← tryCatch (placeTy prog p) fun _ => pure .unknown
+    if hasMethod prog t "__getitem__" || hasMethod prog t "__setitem__" then pure true
+    else throughGetter prog p
+
 /-- Checks the arguments of a call by `check`, in the compiler's order
 (#89, #96 part 9). When `check` fails with an error of the type phase,
 the arguments' own expressions are typed first, by `typing`, and an
@@ -207,13 +227,13 @@ locations `locs` that the arguments pass, found before they were
 checked, must not alias a mutable one (`checkExclusive`). -/
 def callOrder {α : Type} (typing : CheckM Unit) (arity : Option CheckError)
     (locs : List PassedLoc) (check : CheckM α) : CheckM α := do
-  let r ← tryCatch (do
+  let r ← typedFirst typing do
     if let some err := arity then throw err
     tryCatch check fun err => do
       unless err matches .implicitCopy _ do throw err
       modify ({ · with copyChecks := false })
       let _ ← check
-      throw err) fun err => if err.phase == .type then rejectAfter typing err else throw err
+      throw err
   checkExclusive locs
   pure r
 

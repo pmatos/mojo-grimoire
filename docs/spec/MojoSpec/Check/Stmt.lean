@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10904454945596853249")
+:::moduleDocs (fingerprint := "11624687533809058665")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -69,7 +69,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "2345841074763899796")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "6895843092306632460")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 
@@ -89,8 +89,11 @@ an expression, so a place is copied implicitly.
   on a subscript of a struct that has a getter and no setter it
   is checked through the getter (`assignGetter`, #191); else it checks
   the indices of $`p` first, as the compiler does, so that $`e` sees
-  what they move out or change. It then needs a place the function may
-  change (#174) and checks $`e`. When $`e` is a call or a method call
+  what they move out or change. It then types $`p` in full, its fields
+  and its subscripts, before $`e`, as the compiler does (#227, #96 part
+  10), unless $`p` goes through a struct's getter (`throughGetter`). It
+  then needs a place the function may change (#174), and checks $`e`.
+  When $`e` is a call or a method call
   that would be copied implicitly, its type, read by reference, must first
   fit $`p`, or the assignment is a type mismatch, as the compiler reports
   it before the copy. It then needs $`p` of $`e`'s type, and that $`e`
