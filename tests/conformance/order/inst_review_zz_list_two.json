@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "constantIndexOutOfBounds",
+  "diagnostic": "function instantiation failed: constraint failed: index is out of bounds"
+}

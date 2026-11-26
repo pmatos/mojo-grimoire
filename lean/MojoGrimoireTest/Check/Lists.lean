@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.Program
+import MojoGrimoire.Check.Instantiate
 import MojoGrimoire.Elab.Elaborate
 
 /-!

@@ -24,6 +24,7 @@ import MojoGrimoire.Check.Exit
 import MojoGrimoire.Check.Stmt
 import MojoGrimoire.Check.Block
 import MojoGrimoire.Check.Program
+import MojoGrimoire.Check.Instantiate
 import MojoGrimoire.Elab.Live
 import MojoGrimoire.Elab.Origins
 import MojoGrimoire.Elab.Late

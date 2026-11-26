@@ -175,12 +175,14 @@ private def mainMismatch (body : List String) : Bool :=
 #guard mainMismatch ["var b = False", "b = (x^ or S(3, True)) and x.f"]
 #guard mainMismatch ["var c = x^", "var z = -(y or x)"]
 -- Where an operator fits no `Bool`, `main` typed its operands, leaving out
--- a later-pass error, and then rejected the misfit (`mainOperator`); the
--- pin's `negativeIndex` comes from its passes' order (#96).
+-- a later-pass error, and then rejected the misfit (`mainOperator`) in the
+-- flow phase; the instantiation phase comes after it, so the pin's
+-- `negativeIndex`, of the list's `__getitem__`, is the first error (#96
+-- part 7).
 #guard bridge ["var z = (y or S(xs[1 - 2], True)) + y"]
-  matches some (.rejected ⟨"main", .missingMethod ..⟩)
+  matches some (.rejected ⟨"main", .negativeIndex _⟩)
 #guard bridge ["var z = -(y or S(xs[1 - 2], True))"]
-  matches some (.rejected ⟨"main", .missingMethod ..⟩)
+  matches some (.rejected ⟨"main", .negativeIndex _⟩)
 -- A test that a reflected method takes: `main` typed it as a `Bool`, so
 -- `y > (x or y)` was `y.__gt__`, which `S` lacks.
 #guard mainMismatch ["var c = x^", "var z: Int = y > (x or y)"]

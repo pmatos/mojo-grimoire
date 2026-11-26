@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5611061326494288015")
+:::moduleDocs (fingerprint := "16151174714825471836")
 :::
 
 :::readable MojoGrimoire.Check.Below (fingerprint := "14513104375151688470")
@@ -46,18 +46,21 @@ instead of thrown, so that the errors of all the arguments can be reported
 in the compiler's order of passes (#121).
 :::
 
-:::readable MojoGrimoire.Check.CheckError.pass MojoGrimoire.Check.typedFirst (fingerprint := "2057998350370531524")
-*Definition: the order of passes.* The compiler reports an error in one
-of its passes, in this order: typing; a use of an uninitialized or
-invalidated value; a nested literal's failed SIMD constraint,
-$`\mathsf{noMatchingInit}` of $`\mathsf{Int}`; a constant index out of
-range (#121). Of two parts of a statement checked in order, an error of
-the first from a later pass than typing waits until the second is checked
-from the state before the first. An error of the second from an earlier
-pass then comes first, since the compiler runs each pass over the whole
-statement; else the first part's error stands (#280). Between the last
-two passes, the order is the compiler's at `-O0`. This is a temporary
-bridge until the checker runs each pass over the whole program (#96).
+:::readable MojoGrimoire.Check.Phase.rank MojoGrimoire.Check.CheckError.phase (fingerprint := "11439117272577371433")
+*Definition: the phase of a later error.* The phases come in the order
+type, flow, instantiation. A constant index's error is the
+instantiation phase's, and a use of an uninitialized or invalidated
+value the flow phase's.
+:::
+
+:::readable MojoGrimoire.Check.calleeBody MojoGrimoire.Check.instCall MojoGrimoire.Check.destructorOf MojoGrimoire.Check.dropCall (fingerprint := "16717970515991501688")
+*Definition: calls that instantiate.* A call of $`f` instantiates the
+function $`f`, the `__init__` that the struct $`f` declares, or the method
+that $`f` names. Destroying a value of a struct calls the `__deinit__`
+that it declares, or else the destructor that the compiler synthesizes,
+`__del__`; destroying a list or an array calls its elements'. The instantiation phase records each call
+(`InstEvent`), and the order of the bodies follows them
+(`MojoGrimoire.Check.checkInst`).
 :::
 
 :::readable MojoGrimoire.Check.refResult (fingerprint := "5596166513625506680")
@@ -78,7 +81,7 @@ type fits. The call is then checked again by reference, from the state
 before it, for its type.
 :::
 
-:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "9491173339678839367")
+:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "2744492610540036590")
 *Rule: the element of an $`\mathsf{Int}` where the model cannot follow
 the compiler.* A place through the element of an $`\mathsf{Int}` is
 rejected there as $`\mathsf{notAList}`, as before #127, once its indices
@@ -86,8 +89,8 @@ are checked, a constant index out of the $`\mathsf{Int}`'s range being
 $`\mathsf{notAList}` too. So it is when passed to a `mut` or `ref`
 parameter: the compiler passes a temporary, written back after a `mut`
 call, which the model does not model yet (#222). Its indices are checked
-as the flow phase checks them; in the type phase, an index's error of a
-later pass is left to the flow phase, which reports it as before. An index is plain when
+with every check on; an index's error of a later pass is left to the
+phase that reports it, unless an outer check has every check on. An index is plain when
 it is an integer constant or a variable, which evaluating twice cannot
 change.
 :::

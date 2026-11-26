@@ -1,0 +1,4 @@
+def main():
+    var y: Int = [1, 2]
+    var z: Int
+    print(z)

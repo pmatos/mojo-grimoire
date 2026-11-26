@@ -10,9 +10,7 @@ place the function may change, and `var` copies it implicitly
 (`MojoGrimoire.Check.Transfer`). A misfit is reported as the call's fit
 says (`MojoGrimoire.Check.Fit`). An error of a later pass than typing, in
 an argument of `range`, may be recorded instead of thrown (`lateErrors`),
-so that the passes report in the compiler's order (#121), and an index's
-such error waits for the type errors of an assigned value (`typedFirst`,
-#280). What a call types before it reads its first argument is in
+so that the passes report in the compiler's order (#121). What a call types before it reads its first argument is in
 `typeFirst`. A module outside the mutual block of the checker of
 expressions is given the checks of the expressions inside the ones it
 checks as `Below` says.
@@ -56,30 +54,6 @@ def lateErrors (x : CheckM RangeArgs) : CheckM RangeArgs :=
   tryCatch x fun err =>
     if err.late || err == .noMatchingInit .int then pure (RangeArgs.ofLate err) else throw err
 
-/-- The compiler's pass that reports the error `e`, in order: typing; a
-use of an uninitialized or invalidated value; a nested literal's failed
-SIMD constraint, `noMatchingInit` of `Int`; a constant index out of
-range (#121, #280). Between the last two, the compiler's order at `-O0`
-is kept: at `-O3` it reports a constant index into an array before a
-literal found after it. -/
-def CheckError.pass (e : CheckError) : Nat :=
-  if e matches .negativeIndex _ | .constantIndexOutOfBounds _ then 3
-  else if e == .noMatchingInit .int then 2
-  else if e.late then 1 else 0
-
-/-- Runs `first`, then `next`, and gives `next`'s result. When `first`
-throws an error of a later pass than typing (`CheckError.pass`), `next`
-is still checked, from the state before `first`: an error of its own
-from an earlier pass stands, as the compiler runs each pass over both, and
-else `first`'s error does (#280). A temporary bridge until the checker
-runs the compiler's passes over the whole program (#96). -/
-def typedFirst {α : Type} (first : CheckM Unit) (next : CheckM α) : CheckM α := do
-  tryCatch first fun e => do
-    if e.pass == 0 then throw e
-    tryCatch (discard next) fun e' => throw (if e'.pass < e.pass then e' else e)
-    throw e
-  next
-
 /-- The type of a call of signature `sig`, with the arguments `args`. A
 call that returns a reference, used as a value, copies the value it points
 to implicitly, unless `asRef` holds. An argument through the element of an
@@ -112,21 +86,63 @@ def misfitFirst (e : Expr) (fit : Fit) (t : Ty) (check : Bool → CheckM Ty) :
       expectArg fit t (← tryCatch (check true) fun _ => throw err)
     throw err)
 
+/-- The position of the phase `ph` in the order of phases. -/
+def Phase.rank : Phase → Nat
+  | .type => 0
+  | .flow => 1
+  | .inst => 2
+
+/-- The phase that reports the error `e` of a later pass than typing
+(`CheckError.late`): a constant index's is instantiation's, and a use's
+the flow phase's. -/
+def CheckError.phase (e : CheckError) : Phase :=
+  if e matches .negativeIndex _ | .constantIndexOutOfBounds _ then .inst else .flow
+
 /-- Rejects the place `p` through the element of an `Int` as `notAList`,
 as before #127, where the model cannot yet give the compiler's result. The
-indices are checked first by `check`, as the flow phase checks them, as
-before, but for a constant out of an `Int`'s range, which comes after. In
-the type phase, an index's error of a later pass (`CheckError.late`) is
-left to the flow phase, which reports it as before. -/
+indices are checked first by `check`, with every check on (`allChecks`),
+as before, but for a constant out of an `Int`'s range, which comes after.
+An index's error of a later pass (`CheckError.late`) is left to the
+phase that reports it, unless an outer check has every check on. -/
 def rejectIntElem (prog : Program) (p : Place) (check : CheckM Unit) : CheckM Unit := do
   unless ← intIndexed prog p do return
-  let phase := (← get).phase
-  let later ← tryCatch (do modify ({ · with phase := .flow }); check; pure false) fun e => do
+  let s0 ← get
+  let later ← tryCatch (do modify ({ · with allChecks := true }); check; pure false) fun e => do
     if let .constantIndexOutOfBounds (.index q _) := e then
       if (← placeTy prog q) == .int then throw (CheckError.notAList .int)
-    if phase == .type && e.late then pure true else throw e
-  modify ({ · with phase })
+    if e.late && !s0.allChecks && s0.phase.rank < e.phase.rank then pure true else throw e
+  modify ({ · with allChecks := s0.allChecks })
   unless later do throw (CheckError.notAList .int)
+
+/-- The body that a call of `f` instantiates, if it has one: the function
+`f`, the `__init__` that the struct `f` declares, or the method that
+`f` names (`methodCallee`). -/
+def calleeBody (prog : Program) (f : Name) : Option Name :=
+  if (findFun prog f).isSome then some f
+  else if let some sd := findStruct prog f then sd.init.map fun _ => methodCallee f "__init__"
+  else (calleeMethod f).map fun (s, m, _) => methodCallee s m
+
+/-- Records the call of the body `f` instantiates (`calleeBody`), in the
+instantiation phase. -/
+def instCall (prog : Program) (f : Name) : CheckM Unit := do
+  unless (← get).phase == .inst do return
+  if let some b := calleeBody prog f then instRecord (.call b)
+
+/-- The destructor that destroying a value of type `t` calls: the
+`__deinit__` that its struct declares, or else the one that the compiler
+synthesizes, `__del__`, which destroys its fields; for a list or an array,
+its elements'. -/
+def destructorOf (prog : Program) : Ty → Option Name
+  | .struct s => some (methodCallee s
+      (if ((findStruct prog s).bind (·.deinit)).isSome then "__deinit__" else "__del__"))
+  | .list u | .array u _ => destructorOf prog u
+  | _ => none
+
+/-- Records the call of the destructor that destroying the value in `p`
+makes (`destructorOf`), in the instantiation phase. -/
+def dropCall (prog : Program) (p : Place) : CheckM Unit := do
+  unless (← get).phase == .inst do return
+  if let some d := destructorOf prog (← placeTy prog p) then instRecord (.call d)
 
 /-- Rejects the place `p` through the element of an `Int` passed to a
 `mut` or `ref` parameter (`rejectIntElem`): the compiler passes it as a

@@ -82,9 +82,9 @@ def checkStmt (prog : Program) (sig : FunDecl) (s : Stmt) (m : Thunk (Option Stm
     let s0 ← get
     checkScope prog sig thenBlock (tw.map (·.2.1))
     let s1 ← get
-    set s0
+    restoreKeeping s0
     checkScope prog sig elseBlock (tw.map (·.2.2))
-    set (joinStates s1 (← get))
+    restoreKeeping (joinStates s1 (← get))
   | .whileLoop c body => do
     let tw := m.map twinWhile
     checkCond prog c (tw.map (·.1))
@@ -102,6 +102,7 @@ def checkStmt (prog : Program) (sig : FunDecl) (s : Stmt) (m : Thunk (Option Stm
       let s2 ← get
       set (if s2.live then { head with vars := List.zipWith joinMay head.vars s2.vars } else head)
     else set head
+    modify fun s => { s with events := s1.events }
   | s => bridgedToTwin (bridged (checkSimple prog sig s))
       (m.map (·.map fun t => bridged (checkSimple prog.asMain sig t)))
 

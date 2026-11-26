@@ -31,6 +31,11 @@ def paramState (prm : Param) : VarState :=
   | .out => ⟨prm.name, prm.ty, .constructing, [[]], [], [], [], []⟩
   | .deinit => ⟨prm.name, prm.ty, .dying, [], [], [[]], [], []⟩
 
+/-- What checking a body gives: its missing return, if it can reach its end
+where it must return a result, and what the instantiation phase records
+in it (`InstEvent`). -/
+abbrev BodyResult := Option CheckError × List InstEvent
+
 /-- Rejects a list of names that holds a name twice. -/
 def checkDistinct : List Name → Except CheckError Unit
   | [] => pure ()
@@ -56,19 +61,19 @@ return, which the flow phase reports before its other errors
 (`checkFlow`); otherwise the state at the end is checked as at a
 return. -/
 def checkBody (prog : Program) (phase : Phase) (stage : Stage) (owner : Option Name)
-    (fd : FunDecl) : Except CheckError (Option CheckError) := do
+    (fd : FunDecl) : Except CheckError BodyResult := do
   checkSignature prog fd
   checkOrigin fd
   let start : State :=
     { vars := fd.params.reverse.map paramState, live := true, stale := [], changes := [], phase,
       stage }
-  let (missing, _) ← (do
+  let (missing, s) ← (do
       checkBlock prog fd fd.body (Thunk.mk fun _ => prog.twinBody owner fd)
       if !(← get).live then return none
       if fd.result != Ty.noneType then return some (CheckError.missingReturn fd.name)
       checkExit prog
       return none).run start
-  pure missing
+  pure (missing, s.events)
 
 /-- Rejects a parameter list in which a parameter has the convention `out` or
 `deinit`, which only the `self` of `__init__` and `__deinit__` may have. -/
@@ -78,7 +83,7 @@ def checkConventions (fn : Name) (params : List Param) : Except CheckError Unit 
 
 /-- Checks a function. -/
 def checkFun (prog : Program) (phase : Phase) (stage : Stage) (fd : FunDecl) :
-    Except CheckError (Option CheckError) := do
+    Except CheckError BodyResult := do
   checkConventions fd.name fd.params
   checkBody prog phase stage none fd
 
@@ -98,7 +103,7 @@ operands as its operator, which the compiler checks when it parses the
 declaration (`operatorArity`); its first parameter is `self`, of the
 struct's type, with the convention `read`, `mut`, `var` or `ref`. -/
 def checkMethod (prog : Program) (phase : Phase) (stage : Stage) (s : Name) (fd : FunDecl) :
-    Except CheckError (Option CheckError) := do
+    Except CheckError BodyResult := do
   if let some n := operatorArity fd.name then
     unless fd.params.length == n do throw (.arityMismatch fd.name n fd.params.length)
   let some self := fd.params.head? | throw (.invalidSelf fd.name)
@@ -110,7 +115,7 @@ def checkMethod (prog : Program) (phase : Phase) (stage : Stage) (s : Name) (fd 
 /-- Checks the initializer of the struct `s`: its first parameter is
 `out self`, and it returns nothing. -/
 def checkInit (prog : Program) (phase : Phase) (stage : Stage) (s : Name) (fd : FunDecl) :
-    Except CheckError (Option CheckError) := do
+    Except CheckError BodyResult := do
   let some self := fd.params.head? | throw (.invalidSelf fd.name)
   unless self == ⟨.out, "self", .struct s⟩ do throw (.invalidSelf fd.name)
   unless fd.result == .noneType do throw (.invalidReturn fd.name)
@@ -130,7 +135,7 @@ and its check in a phase, up to a stage: its initializer, its destructor,
 checked with the single parameter `deinit self`, or a method; none for a
 field. -/
 def memberCheck (prog : Program) (sd : StructDecl) :
-    Member → Option (Name × (Phase → Stage → Except CheckError (Option CheckError)))
+    Member → Option (Name × (Phase → Stage → Except CheckError BodyResult))
   | .init => sd.init.map fun fd =>
       (sd.name ++ ".__init__", fun ph st => checkInit prog ph st sd.name fd)
   | .deinit => sd.deinit.map fun body =>
@@ -159,9 +164,9 @@ def checkCopying (prog : Program) (sd : StructDecl) (cycles : Bool := false) :
 
 /-- The result of the type phase's check of the body at `w`: its error,
 located there, or its missing return, if any. -/
-def located (w : Name) : Except CheckError (Option CheckError) → Except Rejection (List Rejection)
+def located (w : Name) : Except CheckError BodyResult → Except Rejection (List Rejection)
   | .error e => throw ⟨w, e⟩
-  | .ok r => pure (r.map (⟨w, ·⟩)).toList
+  | .ok (r, _) => pure (r.map (⟨w, ·⟩)).toList
 
 /-- Checks the struct `sd` in the type phase, as the compiler does once it
 has checked the free functions, and gives its missing returns: its members
@@ -224,13 +229,13 @@ def checkTypes (prog : Program) : Except Rejection (List Rejection) := do
 /-- The bodies of the program `prog` in the order of its declarations in
 the source, the free functions and the members of the structs
 interleaved, as the compiler's pass manager visits them, each with where
-it is and its check in the flow phase, up to a stage. -/
-def flowBodies (prog : Program) :
-    List (Name × (Stage → Except CheckError (Option CheckError))) :=
+it is and its check in the phase `ph`, up to a stage. -/
+def declBodies (prog : Program) (ph : Phase) :
+    List (Name × (Stage → Except CheckError BodyResult)) :=
   prog.declOrder.flatMap fun
-    | .func i => (prog.funs[i]?.map fun fd => (fd.name, fun st => checkFun prog .flow st fd)).toList
+    | .func i => (prog.funs[i]?.map fun fd => (fd.name, fun st => checkFun prog ph st fd)).toList
     | .struct i ms => match prog.structs[i]? with
-      | some sd => ms.filterMap fun m => (memberCheck prog sd m).map fun (w, c) => (w, c .flow)
+      | some sd => ms.filterMap fun m => (memberCheck prog sd m).map fun (w, c) => (w, c ph)
       | none => []
 
 /-- Checks a program in the flow phase, on a program that the type phase
@@ -238,14 +243,14 @@ accepts with the missing returns `missing`, in the order of the
 compiler's pass manager (#96 part 5): first the missing return of the
 first body in the order of the declarations that has one; then each body
 in that order, the free functions and the members of the structs
-interleaved (`flowBodies`). In a body, a use and what the body leaves at
+interleaved (`declBodies`). In a body, a use and what the body leaves at
 a return come in the order of the body, before a value that may not end
 (`Stage`, #159): a body is checked through every stage, and when that
 finds a value that may not end, again up to the stage of uses, whose
 error comes first. A missing `main` comes after every error of the flow
 phase. -/
 def checkFlow (prog : Program) (missing : List Rejection) : Except Rejection Unit := do
-  let bodies := flowBodies prog
+  let bodies := declBodies prog .flow
   for (w, _) in bodies do
     if let some r := missing.find? (·.decl == w) then throw r
   for (w, check) in bodies do
@@ -254,11 +259,5 @@ def checkFlow (prog : Program) (missing : List Rejection) : Except Rejection Uni
         let _ ← (check .uses).mapError (⟨w, ·⟩)
       throw ⟨w, e⟩
   if (findFun prog "main").isNone then throw ⟨"", .noMain⟩
-
-/-- Checks a program: it is accepted, or rejected with the first error of
-the type phase, or else of the flow phase, which the compiler reports in
-that order of tiers (`Phase`, ADR-2026-11-21-1941). -/
-def checkProgram (prog : Program) : Except Rejection Unit := do
-  checkFlow prog (← checkTypes prog)
 
 end MojoGrimoire.Check

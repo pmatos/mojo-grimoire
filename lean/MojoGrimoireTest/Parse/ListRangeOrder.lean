@@ -168,9 +168,9 @@ private def rangeOf (args : String) : String := s!"print(List[Int](range({args})
 -- one does not hide that a later argument invalidates the one before it.
 #guard rejectsWith (rangeOf "[xs[0], xs[-1]], xs.pop()")
   (.invalidatedReference (.index (.var "xs") (.int 0)))
--- A limit: inside an operation the model checks in program order (#96),
--- where the compiler reports `u` uninitialized first. This pins the model.
-#guard rejectsWith (rangeOf "xs[-1] + u") (.negativeIndex (.index (.var "xs") (.int (-1))))
+-- Inside an operation, the use of `u` uninitialized comes before the
+-- index, which instantiation reports (#96 part 7).
+#guard rejectsWith (rangeOf "xs[-1] + u") (.uninitializedUse (.var "u"))
 
 -- A literal of `Int`s of the wrong length nested in an argument fails only
 -- when the call is instantiated, after a use of an uninitialized value.
@@ -193,9 +193,9 @@ private def rangeOf (args : String) : String := s!"print(List[Int](range({args})
 -- and before an index into a list; the model reports it as any index.
 #guard rejectsWith "var a: Array[Int, 2] = [1, 2]\n    print(List[Int](range([1, 2], a[2])))"
   (.noMatchingInit (.list .int))
--- A nested `List[Int](range(…))` of a literal of `Int`s fails at once in the
--- model, where the compiler fails it only when it instantiates the call.
-#guard rejectsWith (rangeOf "len(List[Int](range([1, 2]))), u") (.noMatchingInit (.list .int))
+-- A nested `List[Int](range(…))` of a literal of `Int`s fails only when
+-- the call is instantiated, after the use of `u` (#96 part 7).
+#guard rejectsWith (rangeOf "len(List[Int](range([1, 2]))), u") (.uninitializedUse (.var "u"))
 -- An argument that holds a string literal or a call of `range`, at any
 -- depth, is outside the subset (#180), whatever error the compiler reports
 -- first: a string outside `print`, and `range` outside `List[T](…)` by the

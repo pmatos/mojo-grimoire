@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14499748891715966077")
+:::moduleDocs (fingerprint := "15551653169444375752")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17933977108324489146")
@@ -32,7 +32,7 @@ repeats. Only the `self` of `__init__` may be `out`, and only the
 `self` of `__deinit__` `deinit`.
 :::
 
-:::readable MojoGrimoire.Check.checkSignature MojoGrimoire.Check.checkBody (fingerprint := "14782130954077366758")
+:::readable MojoGrimoire.Check.BodyResult MojoGrimoire.Check.checkSignature MojoGrimoire.Check.checkBody (fingerprint := "17538331805963298953")
 *Rule: function bodies.* The signature: the parameters have distinct names
 and declarable types, and the result type is declarable or $`\mathsf{None}`; a type in
 which a variable hides a name is `valueAsType`, in that order. An origin
@@ -46,10 +46,11 @@ as at a return.
 The body is checked in the phase it is given, and in the flow phase up
 to the stage it is given. A body that can reach its end where it must
 return a result gives its missing return instead of the check at a
-return; the flow phase reports it first.
+return; the flow phase reports it first. The body also gives what the
+instantiation phase records in it (`InstEvent`).
 :::
 
-:::readable MojoGrimoire.Check.operatorArity MojoGrimoire.Check.checkFun MojoGrimoire.Check.checkMethod MojoGrimoire.Check.checkInit (fingerprint := "3449962383786144700")
+:::readable MojoGrimoire.Check.operatorArity MojoGrimoire.Check.checkFun MojoGrimoire.Check.checkMethod MojoGrimoire.Check.checkInit (fingerprint := "12561576389783827859")
 *Rule: functions, methods and initializers.* A function's body is checked.
 A method of the struct $`S` has a first parameter `self` of type $`S`,
 `read`, `mut`, `var` or `ref`. An operator method that inference calls
@@ -62,7 +63,7 @@ compiler checks when it parses the declaration; otherwise
 Each is checked in the phase it is given.
 :::
 
-:::readable MojoGrimoire.Check.checkFields MojoGrimoire.Check.memberCheck MojoGrimoire.Check.checkStruct (fingerprint := "2952784925269277288")
+:::readable MojoGrimoire.Check.checkFields MojoGrimoire.Check.memberCheck MojoGrimoire.Check.checkStruct (fingerprint := "1313128991434036883")
 *Rule: structs.* A struct's own declaration is checked with the free
 functions, in the order of the declarations: its fields and methods have
 distinct names, and its fields declarable types. Its members are checked
@@ -77,7 +78,7 @@ last member, and then the copyability of a struct that declares no
 `__init__` (#164).
 :::
 
-:::readable MojoGrimoire.Check.checkCopying MojoGrimoire.Check.located (fingerprint := "100814247704472181")
+:::readable MojoGrimoire.Check.checkCopying MojoGrimoire.Check.located (fingerprint := "4026125360921521139")
 *Rule: copyable structs.* A struct that declares `Copyable` gets a copy
 initializer synthesized from its fields, so each field's type must be
 copyable; one that declares `ImplicitlyCopyable` needs each field's type
@@ -90,11 +91,12 @@ is the error at its place too. The type phase locates the error of each
 body there, or gives its missing return (`located`).
 :::
 
-:::readable MojoGrimoire.Check.checkTypes MojoGrimoire.Check.flowBodies MojoGrimoire.Check.checkFlow MojoGrimoire.Check.checkProgram (fingerprint := "16610930446755424189")
-*Rule: programs.* A program is checked twice, first in the type phase and
-then in the flow phase, and is rejected with the first error of the first
-phase that finds one: the compiler reports its errors in tiers, its type
-errors before its later passes' (ADR-2026-11-21-1941).
+:::readable MojoGrimoire.Check.checkTypes MojoGrimoire.Check.declBodies MojoGrimoire.Check.checkFlow (fingerprint := "10044932711426079901")
+*Rule: programs.* A program is checked in three phases, the type phase,
+the flow phase and the instantiation phase
+(`MojoGrimoire.Check.checkProgram`), and is rejected with the first error
+of the first phase that finds one: the compiler reports its errors in
+tiers (ADR-2026-11-21-1941).
 
 The type phase follows the compiler's first pass (#96 part 6). First, no
 struct has the name of another struct or of a function. Then, in the
@@ -110,7 +112,7 @@ phase.
 The flow phase follows the compiler's pass manager (#96 part 5). First,
 the first missing return in the order of the declarations is rejected.
 Then each body is checked in the order of the declarations, the members
-of the structs interleaved with the free functions (`flowBodies`), up to
+of the structs interleaved with the free functions (`declBodies`), up to
 every stage. When that finds a value that may not end, it is checked again
 up to the stage of uses, whose error comes first: so a value that may not
 end comes after the body's uses and what it leaves at a return (#159).

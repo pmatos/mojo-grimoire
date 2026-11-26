@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10061458343537633232")
+:::moduleDocs (fingerprint := "1524451218473075643")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "8079104089029179561")
@@ -58,7 +58,7 @@ element of an $`\mathsf{Int}` is a step of its own, since it is no
 location (#127).
 :::
 
-:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.Phase MojoGrimoire.Check.State MojoGrimoire.Check.CheckM MojoGrimoire.Check.Stage MojoGrimoire.Check.flowCheckAt MojoGrimoire.Check.flowCheck MojoGrimoire.Check.flowThrowAt MojoGrimoire.Check.flowThrow (fingerprint := "13382244649116310591")
+:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.Phase MojoGrimoire.Check.State MojoGrimoire.Check.CheckM MojoGrimoire.Check.Stage MojoGrimoire.Check.flowCheckAt MojoGrimoire.Check.flowCheck MojoGrimoire.Check.flowThrowAt MojoGrimoire.Check.flowThrow MojoGrimoire.Check.InstEvent MojoGrimoire.Check.restoreKeeping MojoGrimoire.Check.instCheck MojoGrimoire.Check.instThrow MojoGrimoire.Check.instRecord (fingerprint := "11094128268473630389")
 *Definition: the checker's state.* A path $`\pi = f_1 \dots f_n` names a
 part of a variable: the empty path $`\epsilon` is the variable itself, and
 $`f_1 \dots f_n` its field $`f_1.\dots.f_n`. For each variable in scope,
@@ -78,9 +78,13 @@ flag, unset but while a statement is checked again to replay `main`'s
 order, makes a struct test rejected as `main` rejected it
 (`MojoGrimoire.Check.bridged`, until #96 part 4); another, set but while
 that replay runs without them, keeps the checks of a struct test
-itself. The state holds the phase too, type or flow (`Phase`): the
-type phase skips the checks of the flow phase (`flowCheck`, and
-`flowThrow` for one that rejects). The flow phase checks a function up to a
+itself. The state holds the phase too, type, flow or instantiation
+(`Phase`): each phase skips the checks of the others (`flowCheck` and
+`instCheck`, and `flowThrow` and `instThrow` for one that rejects),
+but where a flag turns every check on (`allChecks`). The instantiation
+phase records, the latest first, the calls of a body and the errors that
+fail as a call does (`InstEvent`, `instRecord`), which a state restored
+to an earlier one keeps (`restoreKeeping`). The flow phase checks a function up to a
 stage (`Stage`), in the order in which the compiler reports them: the
 uses and what the function leaves at a return, then the values that may
 not end. A check of uses runs in both stages, one of ends only in the
@@ -142,7 +146,7 @@ uninitialized, assigning $`\rho` builds from their fields the parts from
 $`\pi` down to the part just above $`\rho`.
 :::
 
-:::readable MojoGrimoire.Check.findVar MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "5750347898303185387")
+:::readable MojoGrimoire.Check.findVar MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "190070996468605174")
 *Definition: variables in scope.* A name refers to the innermost variable in
 scope with that name, if there is one, and updating a variable replaces
 the innermost variable with its name. An unknown name is rejected.

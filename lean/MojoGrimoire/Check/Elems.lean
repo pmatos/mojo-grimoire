@@ -73,7 +73,7 @@ def readIntElems (prog : Program) {r : List Expr} (check : Below Expr Ty r) :
 /-- Rejects a literal `es` of `Int`s of any length but 1 as a call of fit
 `fit` reports it (`rejectIntLiteral`): `intMisfit` types its elements and
 `readIntElems` reads them, given the checks `typePlace` and `check`. It
-rejects only in the flow phase. -/
+rejects only in the instantiation phase. -/
 def rejectIntElems (prog : Program) (fit : Fit) (es : List Expr)
     (typePlace : Below Place Unit es) (check : Below Expr Ty es) : CheckM Unit :=
   rejectIntLiteral prog fit (intMisfit prog typePlace check es (Nat.le_refl _))

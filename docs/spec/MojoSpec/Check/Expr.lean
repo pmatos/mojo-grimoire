@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5485501305523812425")
+:::moduleDocs (fingerprint := "15675642059807520211")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "15249100416375932645")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "18263706456108760107")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -151,6 +151,11 @@ type:
 * $`\mathsf{drops}(e; p^*; q^*)`, which only elaboration inserts, after
   checking, has the type of $`e`.
 
+In the instantiation phase, each call of a function, an initializer or a
+method that the program declares is recorded once its arguments are
+checked (`instCall`), for the order of the bodies that the compiler
+instantiates.
+
 The place operands of a call, a method call, a binary operator other
 than `and` and `or`, a list literal and `print`, and the origins of an
 operand among them that is a call that returns a reference and is a
@@ -214,7 +219,9 @@ $`[e]_{\mathsf{Int}}` passed `mut` or `ref`, a value read as the operand
 $`e` would be (#103).
 Checking the arguments gives the mark of each.
 A constant index that is negative or past the last element is a check
-of the flow phase until #96 part 7, which the type phase skips. In the
+of the instantiation phase, which the other phases skip: into an array
+or an `Int`, an error of the body, and into a list, an error that fails
+as a call does (`InstEvent`). In the
 type phase, a comparison whose left literal holds an inner literal of
 another length where an $`\mathsf{Int}` is expected, and fits the other
 operand, types the literal and checks the other operand, read by

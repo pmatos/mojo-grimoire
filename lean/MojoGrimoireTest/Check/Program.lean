@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.Program
+import MojoGrimoire.Check.Instantiate
 
 /-!
 Tests of the static checker: small programs, each accepted or rejected with

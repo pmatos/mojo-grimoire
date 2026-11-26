@@ -51,9 +51,9 @@ only such a subscript invalidated apart, and the
 changes made so far in the current statement, so that an operand located
 before a later operand changes its list is found too.
 
-The checker checks a program in two phases, which report the compiler's
-tiers of errors (`Phase`): the type phase skips the checks of the flow
-phase, uses of what is uninitialized and of invalidated references among
+The checker checks a program in three phases, which report the compiler's
+tiers of errors (`Phase`): the type phase skips the checks of the later
+phases, uses of what is uninitialized and of invalidated references among
 them, so that in it every variable is whole.
 -/
 
@@ -115,13 +115,23 @@ abbrev Shape := Name × List ShapeStep
 
 /-- The phases of the checker, which report the compiler's tiers of errors
 (`MojoGrimoire.Check.checkProgram`): `type`, the errors that the
-compiler reports while it parses, and then `flow`, those of its pass
-manager and, until #96 part 7, of instantiation. The type phase skips the
-checks of the flow phase, so that in it every variable is whole and no
-reference is invalidated. -/
+compiler reports while it parses, `flow`, those of its pass manager, and
+`inst`, those of its instantiation of functions (#96 part 7). Each phase
+skips the checks of the others, so that in the type phase every variable
+is whole and no reference is invalidated. -/
 inductive Phase where
   | type
   | flow
+  | inst
+  deriving BEq
+
+/-- What the instantiation phase records in a body, in order, for the
+order of its callees (`MojoGrimoire.Check.checkInst`): a call of the
+body `callee`, or an error that fails as a call does, a negative constant
+index of a list (#96 part 7). -/
+inductive InstEvent where
+  | call (callee : Name)
+  | fail (err : CheckError)
   deriving BEq
 
 /-- The stages of the flow phase in a function, in the order in which the
@@ -138,7 +148,9 @@ inductive Stage where
 the current point can be reached, the references bound with `ref` that are
 invalidated, those that only a subscript of an array invalidated
 (`interior`), and the places changed as a whole so far in the current
-statement, in order, and the phase and the stage of the flow phase. After a
+statement, in order, the phase and the stage of the flow phase, whether
+every check runs, whatever the phase (`allChecks`), and what the
+instantiation phase records (`InstEvent`). After a
 `return`, the current point cannot be reached. `mainTests` is set only
 while a statement is checked again to replay `main`'s order, in which a
 struct test is rejected, and `ownChecks` is cleared only while it is
@@ -155,6 +167,8 @@ structure State where
   ownChecks : Bool := true
   phase : Phase := .flow
   stage : Stage := .ends
+  allChecks : Bool := false
+  events : List InstEvent := []
   deriving BEq
 
 /-- The monad of the checker: it reads and updates the state, and may reject
@@ -166,7 +180,7 @@ phase, from that stage on: it is skipped in the type phase and in the
 stages before `k`. -/
 def flowCheckAt (k : Stage) (check : CheckM Unit) : CheckM Unit := do
   let s ← get
-  if s.phase == .flow && (k == .uses || s.stage == .ends) then check
+  if (s.phase == .flow || s.allChecks) && (k == .uses || s.stage == .ends) then check
 
 /-- Runs `check`, a check of a use in the flow phase (`flowCheckAt`). -/
 def flowCheck (check : CheckM Unit) : CheckM Unit := flowCheckAt .uses check
@@ -177,6 +191,28 @@ def flowThrowAt (k : Stage) (err : CheckError) : CheckM Unit := flowCheckAt k (t
 
 /-- Rejects with `err`, the error of a use in the flow phase. -/
 def flowThrow (err : CheckError) : CheckM Unit := flowThrowAt .uses err
+
+/-- Sets the state `s`, an earlier one, but keeps what the instantiation
+phase has recorded since (`InstEvent`). -/
+def restoreKeeping (s : State) : CheckM Unit :=
+  modify fun cur => { s with events := cur.events }
+
+/-- Runs `check`, a check of the instantiation phase, only in that phase. -/
+def instCheck (check : CheckM Unit) : CheckM Unit := do
+  let s ← get
+  if s.phase == .inst || s.allChecks then check
+
+/-- Rejects with `err`, an error of the instantiation phase in the body
+being checked, which comes before its calls. -/
+def instThrow (err : CheckError) : CheckM Unit := instCheck (throw err)
+
+/-- Records the event `e` in the instantiation phase, the latest first;
+with every check on, an error that fails as a call is thrown at once. -/
+def instRecord (e : InstEvent) : CheckM Unit := do
+  let s ← get
+  if s.allChecks then
+    if let .fail err := e then throw err
+  else if s.phase == .inst then set { s with events := e :: s.events }
 
 /-- The variable a place starts from, and the path from it to the place.
 The elements of a list or an array are not parts that the checker follows:

@@ -184,7 +184,7 @@ def rangeList (prog : Program) (u : Ty) (n : Nat) (typing : CheckM (Bool × Bool
   let r ← reading
   if let some err := r.owned then throw err
   recheckLocs prog r.locs
-  flowCheck do
+  instCheck do
     if literal || r.literal then throw (CheckError.noMatchingInit (.list u))
     if let some err := r.index then throw err
   pure (.list .int)
@@ -235,7 +235,7 @@ def rejectIntLiteral (prog : Program) (fit : Fit) (misfit : CheckM (Option Ty))
   if let some u ← misfit then throw (fit.misfit (CheckError.typeMismatch .int u))
   set s
   recheckLocs prog (← reads)
-  flowThrow (if fit matches .overload _ then CheckError.noMatchingInit .int
+  instThrow (if fit matches .overload _ then CheckError.noMatchingInit .int
     else fit.misfit (CheckError.noMatchingInit .int))
 
 end MojoGrimoire.Check
