@@ -140,6 +140,16 @@ an index stands beside another error of the body (#324). The model keeps
 the order at `-O3`, and the suite holds no such program. The model does
 not follow a struct's `__bool__` that a condition calls (#195).
 
+An error of this phase in an operand that is never evaluated is still
+reported. At `-O1` and above the pin drops the right operand of `or`
+when a variable that holds `True` is on its left, and with it a literal
+of `Int`s of the wrong length inside it, which only `-O0` rejects. The human ruled this a
+compiler bug on 2026-11-26 (#324,
+[D-0014](../conformance/decision-log.md)): the fixed compiler rejects
+it at every level, and so does the model (`noMatchingInit`). The same
+difference under `and` and in an `if` branch, and a literal `True` on the
+left of `or`, which the pin runs at every level, wait on #346.
+
 ## The order of the type phase
 
 The type phase follows the order of the compiler's first pass (#96 part

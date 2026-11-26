@@ -3,6 +3,9 @@
   "known": {
     "arrays/compare_beside_printing_deinit": "D-0010",
     "arrays/compare_deep_one_element": "D-0013",
+    "arrays/or_unevaluated_literal_length": "D-0014",
+    "arrays/or_unevaluated_literal_length_call": "D-0014",
+    "arrays/or_unevaluated_literal_length_nested": "D-0014",
     "basics/int_index_computed_out_of_bounds": "D-0009",
     "basics/int_index_constant_out_of_bounds": "D-0009",
     "basics/int_index_negative": "D-0009",

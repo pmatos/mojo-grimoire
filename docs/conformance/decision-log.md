@@ -328,3 +328,21 @@ Each move of the Mojo pin gets an entry below.
   one, as `-O0`, `-O1` and `-O2` do
   ([evidence](decision-log-d0013.md#evidence)).
 - Upstream report: not filed; a draft on #257 awaits the human.
+
+### D-0014: a wrong-length literal under a short-circuited `or` runs at -O1 and above (provisional)
+
+- Date: 2026-11-26
+- Mojo release and commit: nightly 1.3.0.dev2026111905 (D-0007)
+- Programs: three in `tests/conformance/arrays/`, `or_unevaluated_*`,
+  and ten corpus programs, listed on [the detail page](decision-log-d0014.md#programs).
+- Compiler: `var t = True; print(t or ([1] != [[1, 2, 3]]))` runs and
+  prints `True` at `-O1`, `-O2` and `-O3`, the default; `-O0` rejects it
+  with "expected 1 elements in the SIMD list literal, found 3"
+  ([detail](decision-log-d0014.md#compiler)).
+- Model: rejects it (`noMatchingInit`).
+- Classification: compiler bug, ruled by the human on 2026-11-26 (#324),
+  provisional.
+- Decision and rationale: the fixed compiler rejects it at every level,
+  as `-O0` does and as every level rejects the comparison alone
+  ([evidence](decision-log-d0014.md#evidence)). The model did so already.
+- Upstream report: not filed; a draft on #324 awaits the human.
