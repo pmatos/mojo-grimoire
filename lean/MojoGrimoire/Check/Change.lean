@@ -104,7 +104,7 @@ def requireUnchanged (prog : Program) (p : Place) (k : Nat) : CheckM Unit := do
   unless later.isEmpty do
     for q in resolvePlace s.vars p do
       let o ← shapeOf prog q
-      if later.any (invalidates · o) then throw (CheckError.invalidatedReference p)
+      if later.any (invalidates · o) then flowThrow (CheckError.invalidatedReference p)
 
 /-- The subscript `p[i]`, once its index `i` is evaluated: rejects `p`,
 located once `k` changes were recorded, when the index invalidated it

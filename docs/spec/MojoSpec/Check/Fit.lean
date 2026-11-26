@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5482425092253488639")
+:::moduleDocs (fingerprint := "4126304478045253151")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -99,7 +99,7 @@ error of a later pass than typing is a constant index out of range,
 a nested literal's failed constraint, or else a use of a value.
 :::
 
-:::readable MojoGrimoire.Check.rangeList (fingerprint := "5393411661139869736")
+:::readable MojoGrimoire.Check.rangeList (fingerprint := "9415688692766148126")
 *Rule: $`\mathsf{List}[u](\mathsf{range}(e^*))`.* The arguments of
 `range` are typed first, and the state that typing leaves is dropped.
 An argument that fits no form of `range`, no argument or more than three,
@@ -110,9 +110,11 @@ invalidated value, the places read late checked again, a literal of
 $`\mathsf{Int}`s of the wrong length, `noMatchingInit`
 $`\mathsf{List}[u]`, then a constant index out of range (#121). The
 call gives a $`\mathsf{List}[\mathsf{Int}]`.
+The type phase finds none of the later passes' errors: it skips the uses
+and the reads late, the literal and the constant index.
 :::
 
-:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "8570361556828838799")
+:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.State.typing MojoGrimoire.Check.lateElemTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "2483683588594454497")
 *Rule: a literal of the wrong length where an $`\mathsf{Int}` is
 expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1, which
 `wrongIntLiteral` picks out, fits no initializer of $`\mathsf{Int}`,
@@ -134,6 +136,7 @@ once each is read, and the compiler then fails SIMD's constraint of one
 element: `noMatchingInit` $`\mathsf{Int}`, or $`t` for an initializer of
 $`t`; a method or an operator with several overloads keeps
 `noMatchingInit` $`\mathsf{Int}`, since the literal fits the overload
-that takes an $`\mathsf{Int}` and fails once it is chosen (#169). It
-never returns.
+that takes an $`\mathsf{Int}` and fails once it is chosen (#169). In the
+flow phase it never returns. The type phase skips that failure of
+instantiation: there the literal passes once its elements are read.
 :::

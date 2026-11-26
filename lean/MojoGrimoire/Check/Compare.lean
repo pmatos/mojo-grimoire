@@ -116,7 +116,8 @@ does not give is not known: both are `none`. So is, when `left` holds,
 an inner literal of another length than one where an `Int` is expected:
 the order of the compiler's failure of SIMD's constraint and of the reads
 waits for #96, and a literal on the left that holds one keeps the checks
-it had before #166. -/
+it had before #166. Off the left, it fits as the compiler types it, since
+that failure is instantiation's (`typedSimdLeft`). -/
 def literalFits {m : Type → Type} [Monad m] (leafTy : Expr → m (Option Ty)) (left : Bool)
     (t : Ty) : Expr → m (Option Bool)
   | .list .unknown es => match t with

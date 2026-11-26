@@ -17,6 +17,13 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
 - `siblings/`: two errors in two arguments of one call.
 - `singles/`: each class of the matrix alone.
 - `p96/`: the probes of #96's plan, named as in its section 1.
+- `samecall/`, `samecall2/`, `icprobe/`, `icprobe2/`, `instprobe/`,
+  `instprobe2/`, `mrprobe/`, `dlprobe/` and `extras/`: the ruling's
+  probes of two errors in one call, of implicit copies, of instantiation
+  errors, of missing returns and of declarations.
+- `corpus/`: random programs of #260's review whose class Part 4 of #96
+  changed, each listed on its PR with the open issue of its rejection,
+  named `GROUP_NAME` after their place in that corpus.
 
 A program that the compiler's result differs on at `-O0` is not recorded,
 as in the suite, and the sweep lists it as unrecorded.

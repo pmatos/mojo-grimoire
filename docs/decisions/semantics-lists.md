@@ -227,8 +227,9 @@ here (#27).
   length, a compiler bug by a provisional ruling (#122,
   [D-0005](../conformance/decision-log.md)), which the nightly fixes. The
   nightly reports the failed constraint after every other error of the
-  program, even one in a later function, where the model rejects at the
-  literal (#170). Passed `mut`, any literal is a temporary, `notAPlace`
+  program, even one in a later function. The model reports it after every
+  type error, and among the flow errors in program order until #96 part 7
+  (#170). Passed `mut`, any literal is a temporary, `notAPlace`
   (#81).
 - A constant index into an array of `N` elements is rejected when it is `N`
   or more (`constantIndexOutOfBounds`); one known only at run time fails

@@ -70,6 +70,8 @@ and no element that does not fit. On the left, so is the fit of an
 inner literal of another length than one where an $`\mathsf{Int}` is
 expected: the order of SIMD's failure and the reads waits for #96, and
 such a literal keeps the checks it had before #166.
+Off the left, such an inner literal fits as the compiler types it, which
+the type phase uses (`typedSimdLeft`).
 :::
 
 :::readable MojoGrimoire.Check.nestedTest MojoGrimoire.Check.lackingTy (fingerprint := "7903400112366600565")

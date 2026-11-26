@@ -79,6 +79,11 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     rejectMisfit (unaryMisfit prog op (← operandTy prog a)) (do let _ ← typeArg prog a)
     lift (methodUnaryTy prog op (← notOperand prog a (checkExprAs prog false a)))
   | .binary op a b => do
+    if (← get).phase == .type then
+      if ← typedSimdLeft prog op a b then
+        let _ ← typeArg prog a
+        let _ ← checkExprAs prog true b
+        return .bool
     rejectMisfit (← operandMisfit prog op a b (mainFormTy prog))
       (do let _ ← typeArg prog a; let _ ← typeArg prog b)
     let right ← rightParamOf prog op a b
@@ -101,8 +106,9 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
         es.length es.length))
     pure t
   | .list .int [e] => do expect .int (← checkExprAs prog false e); pure .int
-  | .list .int es =>
+  | .list .int es => do
     rejectIntElems prog .call es (fun p _ => typePlace prog p) (fun a _ => checkExprAs prog false a)
+    pure .int
   | .list t es => do
     let u ← literalElem prog (.init t) t es.length
     recheckLocs prog (← checkArgs prog (.init t) (typeName t)
@@ -203,9 +209,9 @@ def checkIndices (prog : Program) : Place → CheckM Unit
     checkIndex prog (← operandTy prog (.place p)) i
     subscript prog p k
     if let some k := constInt i then
-      if k < 0 then throw (CheckError.negativeIndex (.index p i))
+      if k < 0 then flowThrow (CheckError.negativeIndex (.index p i))
       if let some n := fixedLength (← placeTy prog p) then
-        if n ≤ k then throw (CheckError.constantIndexOutOfBounds (.index p i))
+        if n ≤ k then flowThrow (CheckError.constantIndexOutOfBounds (.index p i))
   | .transferred p => do
     requireOwnOrigin prog p
     checkIndices prog p
@@ -284,8 +290,9 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
     pure ([p], ← mark)
   | .list t es => do
     passValue fit callee prm.conv
-    let t' ← if t == .int && es.length != 1 then
+    let t' ← if t == .int && es.length != 1 then do
         rejectIntElems prog fit es (fun p _ => typePlace prog p) (fun a _ => checkExprAs prog false a)
+        pure prm.ty
       else if !(t matches .list _ | .array ..) || fit matches .init _ then
         checkExprAs prog false (.list t es)
       else do

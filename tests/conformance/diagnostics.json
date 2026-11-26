@@ -98,6 +98,10 @@
       "class": "unknownVariable"
     },
     {
+      "pattern": "^use of unknown declaration '[^']*'; did you mean '[^']*'\\?$",
+      "class": "unknownVariable"
+    },
+    {
       "pattern": "^'[^']*' value has no attribute 'copy'$",
       "class": "notCopyable"
     },

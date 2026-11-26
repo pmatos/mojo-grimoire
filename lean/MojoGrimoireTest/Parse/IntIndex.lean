@@ -131,10 +131,13 @@ private def kAt (i : Int) : Place := .index (.var "k") (.int i)
 #guard rejects ["print(sr(k[0]))"] (.notAList .int)
 #guard rejects ["ref r = sr(k[0])", "k = 9", "print(r)"] (.notAList .int)
 -- Its index is checked first, as before, but for a constant out of the
--- `Int`'s range.
+-- `Int`'s range. An index's error of a later pass is left to the flow
+-- phase, as the compiler reports it after the types (#96).
 #guard rejects ["inc(k[1])"] (.notAList .int)
 #guard rejects ["inc(k[0][1])"] (.notAList .int)
 #guard rejects ["inc(k[-1])"] (.negativeIndex (kAt (-1)))
+#guard rejects ["var a = [1, 2]", "inc(a[5][0])"] (.constantIndexOutOfBounds (.index (.var "a") (.int 5)))
+#guard rejects ["var a = [1, 2]", "inc(a[5][0])", "var b: Bool = 1"] (.typeMismatch .bool .int)
 #guard rejects ["inc(k[zz])"] (.unknownVariable "zz")
 
 -- `p op= e` is read as `p = p op e`, which evaluates the indices of `p`

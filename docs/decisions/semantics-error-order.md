@@ -30,17 +30,62 @@ The human ruled on 2026-11-20 that the checker follows this order, by
 checking a type phase, then a flow phase, then an instantiation phase over
 the whole program (#96, option (A)), and on 2026-11-22 that each tier
 keeps the compiler's own order inside it, as the probes show. The plan of
-#96 lands it in parts.
+#96 lands it in parts (ADR-2026-11-21-1941).
 
 Rejected: a local fix per construct (option (B)), since each needs another
 deferral such as `lateElemTy`; and text order inside each tier, which
 disagrees with the probes.
 
+## The checker's phases
+
+`MojoGrimoire.Check.checkProgram` checks the whole program twice, in the
+same order, first in the type phase and then in the flow phase, and
+reports the first error of the first phase that finds one (#96 part 4).
+Both phases take the same path through each body, with the phase in the
+checker's state. The type phase skips the checks of the later tiers, each
+at the place where it rejects (`flowCheck`):
+
+- the flow checks: a use of an uninitialized value or of a part moved out,
+  a reference that a change invalidated, a part destroyed while it is
+  built from its fields, what a function leaves at a `return` or its
+  end, what a loop's body leaves for the next iteration, and a missing
+  return;
+- the instantiation checks, which stay in the flow phase until Part 7: a
+  literal of `Int`s of the wrong length, which then gives the type that
+  its place expects, and a constant index that is negative or beyond an
+  array's or an `Int`'s last element;
+- a missing `main`, which comes after the flow phase. `main`'s
+  signature and the fields of copyable structs are checked in the type
+  phase.
+
+So in the type phase every variable is whole and no reference is
+invalidated. A program that the model accepts takes the same path in both
+phases as before, since the skipped checks find nothing in it.
+
+A comparison whose left operand is a literal that holds an inner literal
+of another length where an `Int` is expected keeps the checks it had
+before #166 ([semantics-comparisons.md](semantics-comparisons.md)), and
+those find errors that the compiler does not report. When that literal
+fits the other operand, no literal, as the compiler types it, the type
+phase checks only the operands' own expressions (`typedSimdLeft`).
+
+The suite's area `order/` holds the pairs of the ruling's matrix across
+two tiers that the model parses (`order/pairs/`, `order/pairs2/`), the
+other probes that the phases fixed, and one program for each difference
+below that Part 4 removed, recorded from the pin.
+
+Reporting type errors first also reports, before a flow or an
+instantiation error, the model's own wrong type-tier rejections and the
+errors that it orders wrongly inside the tier. Each such program that
+Part 4 changed is listed on its PR with the open issue of its rejection,
+as [process.md](process.md#one-issue-several-prs) allows.
+
 ## Where the model differs today
 
-The checker checks each function in one pass, in program order, and
-reports the first error it meets. So it differs from the compiler in these
-cases, which #96's parts fix.
+The checker's phases follow the compiler's tiers, but the order inside each
+tier is still the model's program order, and the instantiation errors are
+still found in the flow phase. So it differs from the compiler in these
+cases, which #96's later parts fix.
 
 ### Calls and initializers
 
@@ -48,36 +93,19 @@ cases, which #96's parts fix.
   so an error in a later argument, `P(True, nope)`, comes first there,
   where the model reports the misfit, as it does for an ordinary call
   (#89).
-- The compiler reports ownership errors only after every type error, so
-  `P(b)` with `b` an uninitialized `Bool` is `noMatchingInit` there,
-  where the model, which checks in program order, reports
-  `uninitializedUse` (#96).
 - The model finds a missing method from the operands' types before it
   reads them, once it has typed them, so that an error inside an operand
   comes first (`s + nope` is `unknownVariable`) and an uninitialized
   operand after (`var s: S; s + 1` is `missingMethod`); a struct, list
-  or array operand is never copied first. It finds a misfit of an overload
-  set as an ordinary call finds a misfit, once the argument is read, so
-  `var b: Bool; xs[b]` is `uninitializedUse` in the model and
-  `noMatchingMethod` in the compiler (#96).
-- An uninitialized receiver comes before an argument's type error in the
-  model (#96).
-
-### Transfers of an element
-
-The compiler rejects the transfer of an element once it has typed the
-place, and the model does the same (#119,
-[semantics.md](semantics.md#the-static-checker)). Its index check stops
-at the first error of a later pass and leaves it out, so any error that
-follows one in the same index, such as an unknown name, a type error or an
-implicit copy, is not reported either (#96).
+  or array operand is never copied first.
 
 ### The arguments of `range`
 
 The compiler's order is tiered more finely than the passes that
 [semantics-lists.md](semantics-lists.md#lists) gives for the arguments of
-`range` in `List[u](range(…))`, and the rest is left to #96. Inside an
-operation, the model checks in program order, as in any expression:
+`range` in `List[u](range(…))`, and the rest is left to #96. Its flow and
+instantiation errors are found in the flow phase, in program order, as
+in any expression:
 `range(xs[-1] + u)`, with `u` uninitialized, is `negativeIndex`. An
 argument whose check stops at a later pass's error does not record what it
 moved, so `range(g(p^, xs[-1]), p.x)` is `negativeIndex` where the
@@ -92,11 +120,9 @@ another argument.
 
 Where a hidden type comes among a program's errors is in
 [conformance-classes.md](conformance-classes.md#types-that-a-variable-hides).
-Two cases differ (#96). A later pass's error before it, such as a use of
-an uninitialized value, comes first in the model. A hidden type in a
-function comes after an error in a struct's method in the model, which
-checks structs first, and one in a struct's method comes after a later
-struct's `recursiveStruct` there.
+A hidden type in a function comes after an error in a struct's method in
+the model, which checks structs first, and one in a struct's method comes
+after a later struct's `recursiveStruct` there (#96).
 
 ### Copyable structs whose fields cannot be copied
 
@@ -108,18 +134,16 @@ a missing `main` come after. The model checks every struct, then every
 function and `main`'s signature, then the fields of the structs that
 declare `Copyable` or `ImplicitlyCopyable`
 ([conformance-classes.md](conformance-classes.md#copyable-structs-whose-fields-cannot-be-copied)),
-then that `main` exists. Three cases differ, as on `main` (#164). A later
-pass's error in a body comes first in the model (`uninitializedUse`,
-`missingReturn`). So does a first-pass error in a method of a struct
-declared after the bad one. And "attempt to resolve a recursive reference
+then that `main` exists. Two cases differ (#164). A first-pass error in a
+method of a struct declared after the bad one comes first in the model. And "attempt to resolve a recursive reference
 to declaration" is ordered with this error by declaration, where the
 model reports `recursiveStruct` first.
 
 ## Temporary bridges to `main`'s order
 
 Three bridges keep the results that `main` gave where a change exposed
-the compiler's order before the model could follow it. Part 4 of #96
-removes all three.
+the compiler's order before the model could follow it. They act in both
+phases, and Part 4 of #96 removes all three.
 
 - The struct tests of #191, by `and`, `or` and `not`:
   [semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares).

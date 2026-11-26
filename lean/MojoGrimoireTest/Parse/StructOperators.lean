@@ -223,13 +223,14 @@ private def withU (body : List String) : Option Outcome :=
   matches some (.rejected ⟨"main", .typeMismatch ..⟩)
 #guard bridge ["var c = x^", "var w = (x.f and y.f) or y"] ==
   some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "f")⟩)
--- Without a test of a struct, nothing changes from `main`: the pin's
--- `noMatchingMethod` for `1 + b` comes from its passes' order (#96), and a
--- value of `Int`s under `or` is typed with a known gap (#187).
+-- Without a test of a struct: the type phase reports the pin's
+-- `noMatchingMethod` for `1 + b` before the use of `b` (#96). A value of
+-- `Int`s under `or` is typed with a known gap (#187): its `typeMismatch`,
+-- now found first, stands where the pin reports the use of `k`.
 #guard runLines (withT [] ["var b: Bool", "print(1 + b)"]) ==
-  some (.rejected ⟨"main", .uninitializedUse (.var "b")⟩)
-#guard runLines (withT [] ["var j = 0", "var k: Int", "print(j or k)"]) ==
-  some (.rejected ⟨"main", .uninitializedUse (.var "k")⟩)
+  some (.rejected ⟨"main", .noMatchingMethod "__add__"⟩)
+#guard runLines (withT [] ["var j = 0", "var k: Int", "print(j or k)"]) matches
+  some (.rejected ⟨"main", .typeMismatch ..⟩)
 
 -- Subscripts: the getter is called late only when the struct declares a
 -- setter too.
