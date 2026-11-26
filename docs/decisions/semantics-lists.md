@@ -204,7 +204,8 @@ here (#27).
   no `__add__` or `__bool__`, `missingMethod` (#176).
 - A literal of any length but 1 where an `Int` is expected fits no
   initializer of `Int` either, and the model rejects it in every position,
-  as the pinned nightly does (#153, #154). Inference types it `Int`, and
+  as the pinned nightly does (#153, #154), but for an operand of `or`
+  that the pin drops at `-O1` and above, a compiler bug (D-0014). Inference types it `Int`, and
   each of its elements, as SIMD's initializer takes them. The checker
   types each element without reading it, as the compiler does, and the
   first that is no `Int`, nor such a literal of `Int`s, is a misfit,

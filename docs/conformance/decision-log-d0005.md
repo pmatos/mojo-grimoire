@@ -61,7 +61,8 @@ found N" (`std/simd.mojo:1094` at `10c54f6f5b`), which
 with the model, and `known.json` no longer lists them. The model
 follows the nightly in every position (#154), and the suite holds an
 argument, `append` and an operand (`rejected/int_literal_length_*`,
-`rejected/int_literal_empty_append`).
+`rejected/int_literal_empty_append`). At `-O1` and above the nightly
+drops such a literal under a short-circuited `or`, which D-0014 records.
 
 ## Upstream report
 

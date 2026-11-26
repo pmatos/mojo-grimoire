@@ -58,10 +58,10 @@ So the optimizer drops the right operand of `or`, once it knows that the
 left one is `True`, before the operand's literal is instantiated, and
 with it the error. Only an `-O0` build instantiates it.
 
-Neighbours that the ruling does not name, asked on #346: a `False` left
-operand of `and`, and a dead branch of an `if`, show the same level
-difference; a literal `True` on the left of `or` runs at every level,
-`-O0` included.
+Neighbours that the ruling does not name, asked on #346: a variable
+that holds `False` on the left of `and`, and a dead branch of an `if`,
+show the same level difference; a literal `True` on the left of `or`,
+or `False` on the left of `and`, runs at every level, `-O0` included.
 
 ## Evidence
 
