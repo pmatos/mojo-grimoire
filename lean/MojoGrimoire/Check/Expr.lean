@@ -57,8 +57,10 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     | .ok sig =>
       let params ← testParams f sig.params
       let fit := if (findStruct prog f).isSome then Fit.init (.struct f) else .call
-      checkExclusive (← locationArgs prog params args)
-      recheckArgs prog args (← checkArgs prog fit f params args params.length args.length)
+      let locs ← locationArgs prog params args
+      let ks ← callOrder (ownArgs prog args) (arityMisfit fit f params.length args.length) locs
+        (checkArgs prog fit f params args params.length args.length)
+      recheckArgs prog args ks
       for q in ← changedArgs prog params args do changePlace prog q
       instCall prog f
       refResult prog asRef sig args
@@ -74,7 +76,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     checkIndices prog p
     let t ← placeTy prog p
     let sig ← lift (methodSig prog t m args.length)
-    let r ← methodCall prog asRef p t m args sig (typeArgs prog args) fun fit =>
+    let r ← methodCall prog asRef p t m args sig (ownArgs prog args) fun fit =>
       checkArgs prog fit m sig.params args sig.params.length args.length
     if let .struct s := t then instCall prog (methodCallee s m)
     pure r
@@ -181,6 +183,16 @@ def typeArg (prog : Program) (e : Expr) : CheckM Ty :=
 def typeArgs (prog : Program) : List Expr → CheckM Unit
   | [] => pure ()
   | e :: es => do let _ ← typeArg prog e; typeArgs prog es
+  termination_by es => (sizeOf es, 2)
+
+/-- Types the own expressions of the arguments `es` of a call, as the
+compiler does before it matches them with the parameters (#89): a literal
+by its elements, since converting it to its parameter's type is part of
+the match, and any other argument by `typeArg`. -/
+def ownArgs (prog : Program) : List Expr → CheckM Unit
+  | [] => pure ()
+  | .list _ es :: rest => do ownArgs prog es; ownArgs prog rest
+  | e :: rest => do let _ ← typeArg prog e; ownArgs prog rest
   termination_by es => (sizeOf es, 2)
 
 /-- Checks each of the arguments `args` of `List[u](…)` on its own: a place

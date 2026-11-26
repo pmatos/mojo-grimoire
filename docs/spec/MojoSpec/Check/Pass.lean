@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6275181158285604554")
+:::moduleDocs (fingerprint := "15343936722402573044")
 :::
 
 :::readable MojoGrimoire.Check.Below (fingerprint := "14513104375151688470")
@@ -63,10 +63,11 @@ that it declares, or else the destructor that the compiler synthesizes,
 (`MojoGrimoire.Check.checkInst`).
 :::
 
-:::readable MojoGrimoire.Check.refResult (fingerprint := "5596166513625506680")
+:::readable MojoGrimoire.Check.refResult (fingerprint := "3574657827208784643")
 *Definition: the result of a call.* A call or a method call that returns a
 reference, used as a value, gives the value it points to, which must be
-implicitly copyable, unless it is used as a reference. An argument
+implicitly copyable, unless it is used as a reference, while copies are
+checked (`copyChecks`). An argument
 through the element of an $`\mathsf{Int}` passed to a parameter that the
 origin names is $`\mathsf{notAList}`, as before #127: the element has no
 memory origin, and the model passes the $`\mathsf{Int}` itself (#222).
@@ -81,7 +82,7 @@ type fits. The call is then checked again by reference, from the state
 before it, for its type.
 :::
 
-:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "5871374276355807643")
+:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "16473468542489160666")
 *Rule: the element of an $`\mathsf{Int}` where the model cannot follow
 the compiler.* A place through the element of an $`\mathsf{Int}` is
 rejected there as $`\mathsf{notAList}`, as before #127, once its indices

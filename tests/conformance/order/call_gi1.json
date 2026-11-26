@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "typeMismatch",
+  "diagnostic": "invalid call to 'g': value passed to 'xs' cannot be converted from list literal to 'Array[Int, Int(2)]'"
+}

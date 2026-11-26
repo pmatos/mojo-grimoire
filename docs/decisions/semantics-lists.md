@@ -277,8 +277,9 @@ and write its one element. The human ruled on 2026-11-20 that indexing an
   depth, to a `mut` or `ref` parameter keeps the result it had before
   #127, so that no rejection turns into a wrong run: `notAList`, checked
   after the indices as before, a constant out of the `Int`'s range
-  included, or an earlier error such as `argumentExclusivity` when
-  another argument aliases `k`. So is `k[0]` passed to a `read` parameter
+  included, also when another argument aliases `k`, since exclusivity is
+  checked once the arguments are (#96 part 9), or an earlier error of the
+  call. So is `k[0]` passed to a `read` parameter
   that the callee's origin names, a signature the compiler rejects. Passed
   `read` or owned otherwise, `k[0]` is copied, as the ruling allows.
 - `p op= e` is read as `p = p op e`, which evaluates the indices of `p`

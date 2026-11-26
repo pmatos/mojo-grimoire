@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "immutablePlace",
+  "diagnostic": "invalid call to 'gv': value passed to mutable argument 'c' must be mutable"
+}

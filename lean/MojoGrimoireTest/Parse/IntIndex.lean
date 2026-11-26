@@ -110,12 +110,12 @@ private def kAt (i : Int) : Place := .index (.var "k") (.int i)
 
 -- Passed `mut` or `ref`, the compiler passes a temporary, written back
 -- after a `mut` call, which the model does not model yet (#222). Each
--- shape keeps its result from before #127: `notAList`, or, when another
--- argument aliases `k`, `argumentExclusivity`.
+-- shape is `notAList`, as before #127, also when another argument
+-- aliases `k`: exclusivity is checked once the arguments are (#96 part 9).
 #guard rejects ["inc(k[0])"] (.notAList .int)
 #guard rejects ["one(k[0], k)"] (.notAList .int)
-#guard rejects ["two(k[0], k)"] (.argumentExclusivity (kAt 0))
-#guard rejects ["mf(k, k[0])"] (.argumentExclusivity (.var "k"))
+#guard rejects ["two(k[0], k)"] (.notAList .int)
+#guard rejects ["mf(k, k[0])"] (.notAList .int)
 #guard rejects ["print(same(k[0]))"] (.notAList .int)
 #guard rejects ["ref r = same(k[0])", "k = 9", "print(r)"] (.notAList .int)
 #guard rejects ["var s = S(2)", "s.put(k[0])"] (.notAList .int)

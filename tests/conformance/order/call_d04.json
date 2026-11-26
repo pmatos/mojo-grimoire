@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "arityMismatch",
+  "diagnostic": "invalid call to 'mm': unexpected argument"
+}

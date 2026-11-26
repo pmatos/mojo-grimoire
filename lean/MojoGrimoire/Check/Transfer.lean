@@ -13,11 +13,16 @@ namespace MojoGrimoire.Check
 
 open MojoGrimoire.Core
 
-/-- Reads the place `p` as a value, which copies it implicitly: only an
-implicitly copyable value may be. -/
+/-- Rejects an implicit copy of a value of the type `t`, unless it is
+implicitly copyable, while copies are checked (`copyChecks`). -/
+def requireImplicitCopy (prog : Program) (t : Ty) : CheckM Unit := do
+  if (← get).copyChecks && copyingOf prog t != .implicit then throw (CheckError.implicitCopy t)
+
+/-- Reads the place `p` as a value, which copies it implicitly
+(`requireImplicitCopy`). -/
 def copyPlace (prog : Program) (p : Place) : CheckM Ty := do
   let t ← readPlace prog p
-  unless copyingOf prog t == .implicit do throw (CheckError.implicitCopy t)
+  requireImplicitCopy prog t
   pure t
 
 /-- Reads the place `p` by reference, uncopied, when `asRef` holds, and
