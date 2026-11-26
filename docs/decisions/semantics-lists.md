@@ -106,8 +106,11 @@ Lists, `List[T]`, follow the rules of
   when it instantiates the call.
   Then a use of an uninitialized or invalidated value; the elements of a
   literal are read late, as an operation's operands, so a later argument
-  that changes their list invalidates them. Then that literal,
-  `noMatchingInit` again. Then a constant index out of range. An argument
+  that changes their list invalidates them. Then, in the model, that
+  literal, `noMatchingInit` again, and then a constant index out of
+  range: between the literal and a constant index into an array, the
+  compiler's order depends on the optimization level, and is left
+  undefined (#331). An argument
   that holds a string literal or a call of `range`, at any depth, is
   outside the subset, whatever error comes first (#180). The
   compiler reports the misfits as "no matching function in call to
