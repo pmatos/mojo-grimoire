@@ -36,8 +36,7 @@ for #300, and an empty literal on the left has no type at all.
 :::readable MojoGrimoire.Check.binaryResult (fingerprint := "7037857992261783058")
 *Definition: the result of an operator.* An arithmetic operator gives an
 $`\mathsf{Int}`, and every other binary operator a $`\mathsf{Bool}`,
-whatever its operands: inference types an expression by it, and so does
-the checker an element whose own check fails later (`lateElemTy`).
+whatever its operands: inference types an expression by it.
 :::
 
 :::readable MojoGrimoire.Check.binaryTy MojoGrimoire.Check.unaryTy (fingerprint := "7769671662555249431")

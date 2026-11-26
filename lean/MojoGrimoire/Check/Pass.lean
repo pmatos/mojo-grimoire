@@ -8,9 +8,10 @@ result of a call that returns a reference, and passing a place to a parameter, w
 and `ref` pass the location, which must be initialized, `mut` also needs a
 place the function may change, and `var` copies it implicitly
 (`MojoGrimoire.Check.Transfer`). A misfit is reported as the call's fit
-says (`MojoGrimoire.Check.Fit`). An error of a later pass than typing, in
-an argument of `range`, may be recorded instead of thrown (`lateErrors`),
-so that the passes report in the compiler's order (#121). What a call types before it reads its first argument is in
+says (`MojoGrimoire.Check.Fit`). Each error has its phase
+(`CheckError.phase`). An error of the instantiation phase, in an argument
+of `range`, may be recorded instead of thrown (`lateErrors`), so that the
+errors report in the compiler's order (#121). What a call types before it reads its first argument is in
 `typeFirst`. A module outside the mutual block of the checker of
 expressions is given the checks of the expressions inside the ones it
 checks as `Below` says.
@@ -47,12 +48,30 @@ def requireMutable (p : Place) (fit : Fit := .call) : CheckM Unit := do
   unless v.access.canChange && !throughTransfer p do
     throw (fit.misfit (CheckError.immutablePlace p))
 
-/-- Runs `x`, and records an error of a later pass than typing that it
-throws (`CheckError.late`), or a nested literal's failed SIMD constraint,
+/-- The position of the phase `ph` in the order of phases. -/
+def Phase.rank : Phase → Nat
+  | .type => 0
+  | .flow => 1
+  | .inst => 2
+
+/-- The phase that reports the error `e`: a constant index's is
+instantiation's, a use of an uninitialized or invalidated value the flow
+phase's, and any other the type phase's, but where the call site's phase
+says otherwise, as for a literal of `Int`s of the wrong length
+(`instThrow`). -/
+def CheckError.phase : CheckError → Phase
+  | .negativeIndex _ | .constantIndexOutOfBounds _ => .inst
+  | .uninitializedUse _ | .invalidatedReference _ => .flow
+  | _ => .type
+
+/-- Runs `x`, and records an error of the instantiation phase that it
+throws (`CheckError.phase`), or a nested literal's failed SIMD constraint,
 `noMatchingInit` of `Int`, instead of throwing it. -/
 def lateErrors (x : CheckM RangeArgs) : CheckM RangeArgs :=
   tryCatch x fun err =>
-    if err.late || err == .noMatchingInit .int then pure (RangeArgs.ofLate err) else throw err
+    if err.phase == .inst then pure { index := some err }
+    else if err == .noMatchingInit .int then pure { literal := true }
+    else throw err
 
 /-- The type of a call of signature `sig`, with the arguments `args`. A
 call that returns a reference, used as a value, copies the value it points
@@ -86,23 +105,11 @@ def misfitFirst (e : Expr) (fit : Fit) (t : Ty) (check : Bool → CheckM Ty) :
       expectArg fit t (← tryCatch (check true) fun _ => throw err)
     throw err)
 
-/-- The position of the phase `ph` in the order of phases. -/
-def Phase.rank : Phase → Nat
-  | .type => 0
-  | .flow => 1
-  | .inst => 2
-
-/-- The phase that reports the error `e` of a later pass than typing
-(`CheckError.late`): a constant index's is instantiation's, and a use's
-the flow phase's. -/
-def CheckError.phase (e : CheckError) : Phase :=
-  if e matches .negativeIndex _ | .constantIndexOutOfBounds _ then .inst else .flow
-
 /-- Rejects the place `p` through the element of an `Int` as `notAList`,
 as before #127, where the model cannot yet give the compiler's result. The
 indices are checked first by `check`, with every check on (`allChecks`),
 as before, but for a constant out of an `Int`'s range, which comes after.
-An index's error of a later pass (`CheckError.late`) is left to the
+An index's error of a later phase (`CheckError.phase`) is left to the
 phase that reports it, unless an outer check has every check on. -/
 def rejectIntElem (prog : Program) (p : Place) (check : CheckM Unit) : CheckM Unit := do
   unless ← intIndexed prog p do return
@@ -110,7 +117,7 @@ def rejectIntElem (prog : Program) (p : Place) (check : CheckM Unit) : CheckM Un
   let later ← tryCatch (do modify ({ · with allChecks := true }); check; pure false) fun e => do
     if let .constantIndexOutOfBounds (.index q _) := e then
       if (← placeTy prog q) == .int then throw (CheckError.notAList .int)
-    if e.late && !s0.allChecks && s0.phase.rank < e.phase.rank then pure true else throw e
+    if !s0.allChecks && s0.phase.rank < e.phase.rank then pure true else throw e
   modify ({ · with allChecks := s0.allChecks })
   unless later do throw (CheckError.notAList .int)
 
@@ -186,17 +193,16 @@ state is left as it was. -/
 def typeFirst (prog : Program) (f : Name) (recv : CheckM Unit) (rest : List (Expr × CheckM Ty)) :
     CheckM Unit := do
   let s0 ← get
-  if inPlaceCallee f then recv
+  if inPlaceCallee f then inTypePhase recv
   else if let (some (_, "__getitem__", false), .ok sig) := (calleeMethod f, callSig prog f) then
-    modify State.typing
-    try
+    try inTypePhase do
       for (prm, a, t) in sig.params.drop 1 |>.zip rest do
         let ty ← t
         unless ty == .unknown do
           expect prm.ty ty
           if prm.conv == .owned && a matches .place _ && copyingOf prog ty != .implicit then
             throw (CheckError.implicitCopy ty)
-    catch err => unless err.late || err matches .noMatchingInit .int do throw err
+    catch err => unless err matches .noMatchingInit .int do throw err
   set s0
 
 end MojoGrimoire.Check

@@ -188,11 +188,10 @@ def lenMisfit : Ty → Option CheckError
   | t => some (.noMatchingInit t)
 
 /-- Rejects with `err`, found from the types of operands, once `typing`
-has typed them in `State.typing`: an error inside an operand, which the
+has typed them in the type phase (`inTypePhase`): an error inside an operand, which the
 compiler finds as it types it, comes first. -/
 def rejectAfter {α : Type} (typing : CheckM Unit) (err : CheckError) : CheckM α := do
-  modify State.typing
-  typing
+  inTypePhase typing
   throw err
 
 /-- Checks the call of the method `m`, of signature `sig`, on the place `p`
@@ -264,13 +263,13 @@ def requireInPlace (f : Name) (args : List Expr) : CheckM Unit := do
   if let (true, .place p :: _) := (inPlaceCallee f, args) then requireMutable p
 
 /-- Rejects `p.copy()` when `p` has the type `None`, once `typing` has
-typed `p` in `State.typing`: `None` has no `.copy()`, and the compiler
+typed `p` in the type phase (`inTypePhase`): `None` has no `.copy()`, and the compiler
 says that it has no attributes as it types the call, before it reads `p`
 (#131). An error found while typing `p` is left to the checks that follow,
 and the state is restored. -/
 def rejectNoneCopy (prog : Program) (p : Place) (typing : CheckM Unit) : CheckM Unit := do
   let s ← get
-  let t ← try (do modify State.typing; typing; placeTy prog p) catch _ => pure .unknown
+  let t ← try inTypePhase (do typing; placeTy prog p) catch _ => pure .unknown
   set s
   if t == .noneType then throw (CheckError.unknownAttribute (typeName t) "copy")
 

@@ -130,11 +130,10 @@ and its inference chose the operator's method from those types
 (`mainCallee`): when it chose a method, the call is checked as a call of
 it, and that method is given; when none, `main` rejected the operator's
 misfit on those types (`operandMisfit`, `unaryMisfit` for `-`) once it
-had typed the operands in `State.typing`
+had typed the operands in the type phase
 (`MojoGrimoire.Check.rejectAfter`), and else read them in order, as the
-call does. Typing an operand stops at an error of a later pass, which it
-leaves out (`typeArg`), and at a struct test, which the replay rejects as
-`main` did (`mainTest`): so a test reached first is `typeMismatch`, and
+call does. Typing an operand finds no error of a later phase, and stops
+at a struct test, which the replay rejects as `main` did (`mainTest`): so a test reached first is `typeMismatch`, and
 else the misfit itself, such as `missingMethod` for `+` on a `Bool`.
 Part of the bridge to `main`'s order: temporary, until #96 part 4. -/
 def mainOperator (prog : Program) (f : Name) (args : List Expr) (typing : CheckM Unit) :
@@ -168,7 +167,7 @@ differently, a test's own check failed first: its error stands only when
 the statement holds no other error, which a third run, in the model's
 own order without those checks, shows; else `main` reported the test's
 `typeMismatch`, and the second replay's error is `main`'s. A replay's
-error that is not of the compiler's later pass (`CheckError.late`) is
+error of the type phase (`CheckError.phase`) is
 reported, and else the first error stands.
 The bridge to `main`'s order: temporary, until #96 part 4. -/
 def bridged {α : Type} (check : CheckM α) : CheckM α :=
@@ -182,7 +181,7 @@ def bridged {α : Type} (check : CheckM α) : CheckM α :=
     let replayed ← if withOwn == asMain then pure withOwn
       else if (← run false false).isSome then pure asMain else pure withOwn
     match replayed with
-    | some e => throw (if e.late then err else e)
+    | some e => throw (if e.phase != .type then err else e)
     | none => throw err
 
 /-- Passes the left operand `a` of a same-type test, of type `t`, to the

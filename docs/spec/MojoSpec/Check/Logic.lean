@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17363546916613083901")
+:::moduleDocs (fingerprint := "16878759455989372186")
 :::
 
-:::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.mainRead MojoGrimoire.Check.testParams MojoGrimoire.Check.notOperand MojoGrimoire.Check.bridged (fingerprint := "12366592182690549485")
+:::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.mainRead MojoGrimoire.Check.testParams MojoGrimoire.Check.notOperand MojoGrimoire.Check.bridged (fingerprint := "12181239223146885154")
 *Rule: the bridge to `main`'s order (temporary, until #96 part 4).*
 `main` rejected a test of a struct, by $`\mathsf{and}`, $`\mathsf{or}` or
 $`\mathsf{not}`, as $`\mathsf{typeMismatch}` once its operands were
@@ -40,8 +40,8 @@ could not report: it stands only when the statement holds no other
 error, which a third run, in the model's own order without those checks,
 shows by passing; else `main` reported the test's
 $`\mathsf{typeMismatch}` first, and the replay without those checks
-gives `main`'s result. When the replay's result is an error that is not
-of the compiler's later pass (`CheckError.late`), the statement has that
+gives `main`'s result. When the replay's result is an error of the type
+phase (`CheckError.phase`), the statement has that
 error, as on `main`; else the first error stands.
 :::
 
@@ -60,8 +60,8 @@ such an operand, the operator is recovered from the method's name, and
 the call is checked as a call of `main`'s method when `main` chose one.
 When it chose none, `main` rejected the operator's misfit on those types
 ($`\mathsf{missingMethod}`, `operandMisfit`; for `-`, `unaryMisfit`)
-once it had typed the operands, leaving out an error of the later pass
-and stopping at a struct test; with no misfit, it read the operands in
+once it had typed the operands in the type phase, stopping at a struct
+test; with no misfit, it read the operands in
 order, as the call does (`mainOperator`). An operator that inference
 left as it is, with no method of the test's struct, finds its misfit
 in the replay with $`\mathsf{and}` and $`\mathsf{or}` typed as a

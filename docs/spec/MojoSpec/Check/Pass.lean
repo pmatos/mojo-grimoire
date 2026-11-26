@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16151174714825471836")
+:::moduleDocs (fingerprint := "6275181158285604554")
 :::
 
 :::readable MojoGrimoire.Check.Below (fingerprint := "14513104375151688470")
@@ -37,16 +37,16 @@ cannot be changed. Passed `mut` to an initializer, such a place is
 reported as the initializer's misfit.
 :::
 
-:::readable MojoGrimoire.Check.lateErrors (fingerprint := "5024084900289480669")
+:::readable MojoGrimoire.Check.lateErrors (fingerprint := "6813149190120378136")
 *Definition: recording a later error.* In an argument of `range`, an error
-of a later pass than typing, a use of an uninitialized or invalidated
-value or a constant index out of range (`CheckError.late`), or a nested
-literal's failed SIMD constraint, `noMatchingInit` of $`\mathsf{Int}`, is recorded
-instead of thrown, so that the errors of all the arguments can be reported
-in the compiler's order of passes (#121).
+of the instantiation phase, a constant index out of range
+(`CheckError.phase`), or a nested literal's failed SIMD constraint,
+`noMatchingInit` of $`\mathsf{Int}`, is recorded instead of thrown, so
+that the errors of all the arguments can be reported in the compiler's
+order: the literal, then the index (#121).
 :::
 
-:::readable MojoGrimoire.Check.Phase.rank MojoGrimoire.Check.CheckError.phase (fingerprint := "11439117272577371433")
+:::readable MojoGrimoire.Check.Phase.rank MojoGrimoire.Check.CheckError.phase (fingerprint := "13428765439684746331")
 *Definition: the phase of a later error.* The phases come in the order
 type, flow, instantiation. A constant index's error is the
 instantiation phase's, and a use of an uninitialized or invalidated
@@ -81,7 +81,7 @@ type fits. The call is then checked again by reference, from the state
 before it, for its type.
 :::
 
-:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "2744492610540036590")
+:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "5871374276355807643")
 *Rule: the element of an $`\mathsf{Int}` where the model cannot follow
 the compiler.* A place through the element of an $`\mathsf{Int}` is
 rejected there as $`\mathsf{notAList}`, as before #127, once its indices
@@ -103,7 +103,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.typeFirst (fingerprint := "266373056232888975")
+:::readable MojoGrimoire.Check.typeFirst (fingerprint := "2308275641646460755")
 *Rule: what a call types first.* Before a call reads its first argument,
 a place, the receiver of an in-place method that inference made is typed,
 its indices included. A subscript of a struct, which inference makes a

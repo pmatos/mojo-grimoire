@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Assigning a subscript of a struct: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9223827025109421536")
+:::moduleDocs (fingerprint := "15154048342792804156")
 :::
 
 :::readable MojoGrimoire.Check.valueSubscript (fingerprint := "8489678019998001525")
@@ -22,7 +22,7 @@ a struct that declares `__getitem__` but not `__setitem__` is what its
 getter gives: the call `S.__getitem__(q, i)` (#191).
 :::
 
-:::readable MojoGrimoire.Check.rejectSetterOnly (fingerprint := "16634584743882634428")
+:::readable MojoGrimoire.Check.rejectSetterOnly (fingerprint := "17962708486069950086")
 *Rule: assigning a subscript with no getter.* A place assigned to that
 holds a subscript `q[i]` of a struct with a setter and no getter is
 $`\mathsf{missingMethod}` of `__getitem__` (#296). The compiler reports it
@@ -35,7 +35,7 @@ cannot be typed, such as one read through a getter, is left to the
 checking that reports its error.
 :::
 
-:::readable MojoGrimoire.Check.assignGetter (fingerprint := "6488846667628778942")
+:::readable MojoGrimoire.Check.assignGetter (fingerprint := "8335980615919375634")
 *Rule: assigning a subscript with no setter.* The compiler first types
 the getter call `q[i]`, by reference: its type errors and its implicit
 copies come first, but not the errors of a later pass, such as a read of
@@ -49,7 +49,7 @@ $`\mathsf{notAList}`, as for the other subscripts of a struct used as
 places (#198).
 :::
 
-:::readable MojoGrimoire.Check.checkSetter (fingerprint := "2504041241605012872")
+:::readable MojoGrimoire.Check.checkSetter (fingerprint := "5181253492605990578")
 *Definition: checking a setter call.* Before it checks `q[i] = v` as the
 call `S.__setitem__(q, i, v)`, the compiler checks the types of the getter
 call `q[i]`, which is never made, so its implicit copies and the errors of

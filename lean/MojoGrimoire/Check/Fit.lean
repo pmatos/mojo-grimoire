@@ -146,29 +146,20 @@ def holdsStrOrRangeList (prog : Program) : List Expr → Bool
   | e :: es => holdsStrOrRange prog e || holdsStrOrRangeList prog es
 end
 
-/-- What reading the arguments of the standard library's `range` finds, of
-the compiler's passes after typing, which report in this order (#121):
-`owned`, the first use of an uninitialized or invalidated value;
+/-- What reading the arguments of the standard library's `range` finds of
+the instantiation phase's errors, which report in this order (#121):
 `literal`, a nested literal of `Int`s of the wrong length, which fails when
-the call is instantiated; `index`, the first constant index out of range. `locs` holds the places that the
-arguments read late, each with its mark, of those read without an error. -/
+the call is instantiated; `index`, the first constant index out of range.
+`locs` holds the places that the arguments read late, each with its mark,
+of those read without an error. -/
 structure RangeArgs where
-  owned : Option CheckError := none
   literal : Bool := false
   index : Option CheckError := none
   locs : List (List Place × Nat) := []
 
 /-- What the arguments `r` and then `s` find. -/
 def RangeArgs.append (r s : RangeArgs) : RangeArgs :=
-  ⟨r.owned <|> s.owned, r.literal || s.literal, r.index <|> s.index, r.locs ++ s.locs⟩
-
-/-- The error `err` of a later pass than typing, found in an argument of
-`range`: a constant index out of range, a nested literal's failed
-constraint, or else a use of a value. -/
-def RangeArgs.ofLate (err : CheckError) : RangeArgs :=
-  if err matches .negativeIndex _ | .constantIndexOutOfBounds _ then { index := some err }
-  else if err == .noMatchingInit .int then { literal := true }
-  else { owned := some err }
+  ⟨r.literal || s.literal, r.index <|> s.index, r.locs ++ s.locs⟩
 
 /-- Checks `List[u](range(…))` with `n` arguments, which `typing` types,
 giving whether one fits no form of `range` and whether one is a literal
@@ -182,7 +173,6 @@ def rangeList (prog : Program) (u : Ty) (n : Nat) (typing : CheckM (Bool × Bool
   set s
   if misfit || n == 0 || 3 < n || u != .int then throw (CheckError.noMatchingInit (.list u))
   let r ← reading
-  if let some err := r.owned then throw err
   recheckLocs prog r.locs
   instCheck do
     if literal || r.literal then throw (CheckError.noMatchingInit (.list u))
@@ -195,32 +185,18 @@ def wrongIntLiteral : Expr → Option (List Expr)
   | .list .int es => if es.length == 1 then none else some es
   | _ => none
 
-/-- The state `s` with every variable whole and no reference invalidated,
-in which an expression is typed without its reads failing. -/
-def State.typing (s : State) : State :=
-  { s with vars := s.vars.map fun v => { v with uninit := [], moved := [], pieces := [] },
-           stale := [], interior := [] }
-
-/-- The type of an element `e` of a literal where an `Int` is expected, or
-of an argument of `range` (#121), when checking it gives an error that the compiler reports after its types: one
-of a later pass (`CheckError.late`), or a nested literal's failed SIMD
-constraint. It is the type of its operator's or its call's result, of
-the place it reads, the list that `List[u](e)` builds, an array of its
-first element, or else `Int`. -/
-def lateElemTy (prog : Program) : Expr → CheckM Ty
-  | .unary .not _ => pure .bool
-  | .binary op _ _ => pure (binaryResult op)
+/-- The type of the result of the call or the method call `e`, which the
+compiler gives it before it copies a value that the call returns a
+reference to; `unknown` for any other expression. -/
+def callResultTy (prog : Program) : Expr → CheckM Ty
   | .call f _ => pure (((callSig prog f).toOption.map (·.result)).getD .int)
   | .method p m args => do
     pure (((methodSig prog (← placeTy prog p) m args.length).toOption.map (·.result)).getD .int)
-  | .place p | .copy p | .transfer p => placeTy prog p
-  | .listInit u [_] => pure (.list u)
-  | .list .unknown (e :: es) => do pure (.array (← lateElemTy prog e) (es.length + 1))
-  | _ => pure .int
+  | _ => pure .unknown
 
 /-- Rejects a `wrongIntLiteral` as a call of fit `fit` reports it. The
 compiler types its elements before it reads any: `misfit` types each in
-`State.typing`, and gives the type of the first that is no `Int`, nor
+the type phase (`inTypePhase`), and gives the type of the first that is no `Int`, nor
 such a literal of `Int`s, a type mismatch. Otherwise, in the state it
 started from, `reads` reads them, and the compiler then fails SIMD's
 constraint of one element, `noMatchingInit`: by an initializer of `t` of

@@ -33,23 +33,19 @@ def checkIterableElems (prog : Program) (u : Ty) {r : List Expr} (check : Below 
 
 /-- The type of the first of the elements `es` of a literal where an `Int`
 is expected that is no `Int`, nor such a literal of `Int`s. Each is typed
-in `State.typing`, a place by `typePlace`, any other element by `check`;
-one whose check gives an error that the compiler reports later has its
-`lateElemTy`. -/
+in the type phase (`inTypePhase`), a place by `typePlace`, any other element by
+`check`, so that no error of a later phase stops it. -/
 def intMisfit (prog : Program) {r : List Expr} (typePlace : Below Place Unit r)
     (check : Below Expr Ty r) : (es : List Expr) → sizeOf es ≤ sizeOf r → CheckM (Option Ty)
   | [], _ => pure none
   | e :: es, h => do
-    modify State.typing
-    let u ← match e, h with
+    let u ← inTypePhase (match e, h with
       | .place p, h => do
-        try typePlace p (by below_bound h) catch err =>
-          unless err.late || err == .noMatchingInit .int do throw err
+        typePlace p (by below_bound h)
         placeTy prog p
       | .list .int es', h => do
         pure ((← intMisfit prog typePlace check es' (by below_bound h)).getD .int)
-      | e, h => try check e (by below_bound h) catch err =>
-          if err.late || err == .noMatchingInit .int then lateElemTy prog e else throw err
+      | e, h => check e (by below_bound h))
     if u == .int then intMisfit prog typePlace check es (by below_bound h) else pure (some u)
   termination_by es => sizeOf es
 

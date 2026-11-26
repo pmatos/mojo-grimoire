@@ -84,8 +84,7 @@ is: `t < u` may give an `Int`.
   `typeMismatch` once its operands were checked. So a statement, or a
   condition of an `if` or a `while`, that throws an error is checked
   again replaying `main`'s order (`bridged`), and the replay's error is
-  reported unless it is of the compiler's later pass
-  (`CheckError.late`). An error found after a struct test is then
+  reported when it is of the type phase (`CheckError.phase`). An error found after a struct test is then
   `typeMismatch`: `y = (t(0) and x^) or x.f` with `y` a struct, and
   `print(y or w, bi(w))`, as the compiler reports them. One found before
   the test stays, as on `main` (`print(x.n, y.f or y)` after `x^` is
