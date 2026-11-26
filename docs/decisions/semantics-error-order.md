@@ -300,17 +300,15 @@ into a list on the compiler, and the model reports the literal first.
 
 ## Temporary bridges to `main`'s order
 
-Two bridges keep the results that `main` gave where a change exposed
-the compiler's order before the model could follow it. They act in every
-phase, and Part 4 of #96 removes both. A third, which made an index's
-error of a later pass wait for an assigned value's (#280), is gone: each
-pass now has its phase (Part 7).
-
-- The struct tests of #191, by `and`, `or` and `not`:
-  [semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares).
-- The comparisons that part 2 of #166 converts, bridged statement by
-  statement to `main`'s twin (#281):
-  [semantics-comparisons.md](semantics-comparisons.md).
+Part 4c of #96 removed the last two bridges that kept the results that
+`main` gave where a change exposed the compiler's order before the model
+could follow it: the struct tests of #191, by `and`, `or` and `not`
+([semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares)),
+and the comparisons that part 2 of #166 converts, bridged statement by
+statement to `main`'s twin (#281). A third, which made an index's error of
+a later pass wait for an assigned value's (#280), went with Part 7. Without
+them, a comparison whose literal operand holds a place that cannot be
+copied implicitly gives the model's own order, which #338 tracks.
 
 The comparisons not yet modelled stay on their page,
 [semantics-comparisons.md](semantics-comparisons.md), with their order

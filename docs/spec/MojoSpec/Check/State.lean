@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7636705156839249943")
+:::moduleDocs (fingerprint := "7280124775213452357")
 :::
 
 :::readable MojoGrimoire.Check.Access (fingerprint := "8079104089029179561")
@@ -58,7 +58,7 @@ element of an $`\mathsf{Int}` is a step of its own, since it is no
 location (#127).
 :::
 
-:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.Phase MojoGrimoire.Check.State MojoGrimoire.Check.CheckM MojoGrimoire.Check.Stage MojoGrimoire.Check.flowCheckAt MojoGrimoire.Check.flowCheck MojoGrimoire.Check.flowThrowAt MojoGrimoire.Check.flowThrow MojoGrimoire.Check.InstEvent MojoGrimoire.Check.restoreKeeping MojoGrimoire.Check.inTypePhase MojoGrimoire.Check.instCheck MojoGrimoire.Check.instThrow MojoGrimoire.Check.instRecord (fingerprint := "108941225007547675")
+:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.Phase MojoGrimoire.Check.State MojoGrimoire.Check.CheckM MojoGrimoire.Check.Stage MojoGrimoire.Check.flowCheckAt MojoGrimoire.Check.flowCheck MojoGrimoire.Check.flowThrowAt MojoGrimoire.Check.flowThrow MojoGrimoire.Check.InstEvent MojoGrimoire.Check.restoreKeeping MojoGrimoire.Check.inTypePhase MojoGrimoire.Check.instCheck MojoGrimoire.Check.instThrow MojoGrimoire.Check.instRecord (fingerprint := "15439220357215939587")
 *Definition: the checker's state.* A path $`\pi = f_1 \dots f_n` names a
 part of a variable: the empty path $`\epsilon` is the variable itself, and
 $`f_1 \dots f_n` its field $`f_1.\dots.f_n`. For each variable in scope,
@@ -73,12 +73,7 @@ the parts built from their fields, which Mojo never counts as whole. The state a
 point can be reached; after a `return` it cannot. It holds the set of
 references bound with `ref` that are invalidated, the set of those that
 only a subscript of an array invalidated (#282), and the shapes of the
-places changed as a whole so far in the current statement, in order. A
-flag, unset but while a statement is checked again to replay `main`'s
-order, makes a struct test rejected as `main` rejected it
-(`MojoGrimoire.Check.bridged`, until #96 part 4); another, set but while
-that replay runs without them, keeps the checks of a struct test
-itself. The state holds the phase too, type, flow or instantiation
+places changed as a whole so far in the current statement, in order. The state holds the phase too, type, flow or instantiation
 (`Phase`): each phase skips the checks of the others (`flowCheck` and
 `instCheck`, and `flowThrow` and `instThrow` for one that rejects),
 but where a flag turns every check on (`allChecks`). The instantiation
@@ -152,7 +147,7 @@ uninitialized, assigning $`\rho` builds from their fields the parts from
 $`\pi` down to the part just above $`\rho`.
 :::
 
-:::readable MojoGrimoire.Check.findVar MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "16593770691189142936")
+:::readable MojoGrimoire.Check.findVar MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "14972998379404748742")
 *Definition: variables in scope.* A name refers to the innermost variable in
 scope with that name, if there is one, and updating a variable replaces
 the innermost variable with its name. An unknown name is rejected.

@@ -74,28 +74,12 @@ inductive Decl where
 
 /-- A program: its structs and its functions. It runs by calling `main`.
 The parser also records the order of its declarations in the source,
-`order`, since the compiler reports some errors in that order (#96).
-Inference also gives it the bodies that `main`'s inference gave, as
-functions, each with the struct it belongs to, or none for a free
-function, `twin`, for the checker's bridge to `main`'s order
-(`MojoGrimoire.Check.bridgedToTwin`); `mainMode` holds in the program that
-infers and checks as `main` did. -/
+`order`, since the compiler reports some errors in that order (#96). -/
 structure Program where
   structs : List StructDecl
   funs : List FunDecl
   order : List Decl := []
-  mainMode : Bool := false
-  twin : Thunk (List (Option Name × FunDecl)) := Thunk.pure []
-
-/-- Two programs are equal when their structs, functions, order and mode
-are.
-The twin, a thunk, is not compared: forcing it would infer it. Inference
-gives it from the same source as the functions, but elaboration and the
-stripping of tests change the functions and keep the twin, so two
-programs equal so may differ in their twins. -/
-instance instBEqProgram : BEq Program :=
-  ⟨fun a b => a.structs == b.structs && a.funs == b.funs && a.order == b.order &&
-    a.mainMode == b.mainMode⟩
+  deriving BEq
 
 /-- The order of the members of the struct `sd` when none was recorded:
 its fields, then its `__init__`, its `__deinit__` and its other methods. -/
@@ -116,17 +100,5 @@ def Program.declOrder (prog : Program) : List Decl :=
 /-- The destructor of the struct `s`, whose body is `body`, as a function. -/
 def deinitDecl (s : Name) (body : List Stmt) : FunDecl :=
   ⟨"__deinit__", [⟨.deinit, "self", .struct s⟩], .noneType, body, none⟩
-
-/-- The program `prog`, inferred and checked as `main` did. -/
-def Program.asMain (prog : Program) : Program := { prog with mainMode := true }
-
-/-- The body that `main`'s inference gave the function `fd` of the
-program `prog`, a member of the struct `owner`, or a free function when
-`owner` is none, from its `twin`: the twin of the same owner, name and
-parameters, so that a free function never stands for a method. Empty
-when it has none. -/
-def Program.twinBody (prog : Program) (owner : Option Name) (fd : FunDecl) : List Stmt :=
-  ((prog.twin.get.find? fun (o, t) => o == owner && t.name == fd.name && t.params == fd.params).map
-    (·.2.body)).getD []
 
 end MojoGrimoire.Core

@@ -13,64 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9411218767910860420")
+:::moduleDocs (fingerprint := "2227814630432759629")
 :::
 
-:::readable MojoGrimoire.Check.mainTest MojoGrimoire.Check.mainRead MojoGrimoire.Check.testParams MojoGrimoire.Check.notOperand MojoGrimoire.Check.bridged (fingerprint := "16781170645758956012")
-*Rule: the bridge to `main`'s order (temporary, until #96 part 4).*
-`main` rejected a test of a struct, by $`\mathsf{and}`, $`\mathsf{or}` or
-$`\mathsf{not}`, as $`\mathsf{typeMismatch}` once its operands were
-checked. When a statement, or the condition of an `if` or a `while`,
-throws an error, it is checked again from the same state, replaying
-`main`'s order (`State.mainTests`). In that replay, a struct test is
-rejected as $`\mathsf{typeMismatch}` where `main` rejected it: once the
-operands of $`\mathsf{and}` or $`\mathsf{or}` are checked
-(`checkedBinaryTy`), and once the operand of $`\mathsf{not}` is
-(`notOperand`). `main` read the operand that inference tests with a
-call of `__bool__` as a value, which copies a place: a struct that is
-not `ImplicitlyCopyable` is then $`\mathsf{implicitCopy}` in the replay
-(`mainRead`). The replay runs twice: with the checks of the test itself
-before that rejection, and without them (`State.ownChecks`), as `main`
-had none. Without them, a call of `__bool__` that inference made takes
-its operand by reference, whatever the convention of `self`
-(`testParams`), and gives a $`\mathsf{Bool}`, whatever `__bool__`
-returns (`mainRead`). When the two end alike, that is the replay's result. When they
-differ, a check of the test's own failed first, an error that `main`
-could not report: it stands only when the statement holds no other
-error, which a third run, in the model's own order without those checks,
-shows by passing; else `main` reported the test's
-$`\mathsf{typeMismatch}` first, and the replay without those checks
-gives `main`'s result. When the replay's result is an error of the type
-phase (`CheckError.phase`), the statement has that
-error, as on `main`; else the first error stands.
-:::
-
-:::readable MojoGrimoire.Check.sameTest MojoGrimoire.Check.mainFormTy MojoGrimoire.Check.methodOperator MojoGrimoire.Check.mainCallee MojoGrimoire.Check.mainOperator (fingerprint := "15450890028830524673")
-*Rule: an operator on a struct test, in the replay.* An operand that is
-$`\mathsf{and}` or $`\mathsf{or}` of two operands of the same struct
-type has that type, and inference may call a method of that struct for
-an operator on it, or one that takes it. `main` typed it as a
-$`\mathsf{Bool}`, and chose the operator's method from those types as
-inference does (`MojoGrimoire.Parse.chooseBinary`): the method of the
-left operand's struct, whether or not the right one fits it, else the
-reflected method of the right operand's struct when it takes the left
-operand's type, not `mut`, and its `self` takes the right operand. In
-the replay, at a call of an operator's method that inference made with
-such an operand, the operator is recovered from the method's name, and
-the call is checked as a call of `main`'s method when `main` chose one.
-When it chose none, `main` rejected the operator's misfit on those types
-($`\mathsf{missingMethod}`, `operandMisfit`; for `-`, `unaryMisfit`)
-once it had typed the operands in the type phase, stopping at a struct
-test; with no misfit, it read the operands in
-order, as the call does (`mainOperator`). An operator that inference
-left as it is, with no method of the test's struct, finds its misfit
-in the replay with $`\mathsf{and}` and $`\mathsf{or}` typed as a
-$`\mathsf{Bool}` at any depth, a same-type test too, so that
-$`[x\ \mathsf{or}\ y]` is an array of $`\mathsf{Bool}`s
-(`mainFormTy`), as `main` did.
-:::
-
-:::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.checkedBinaryTy (fingerprint := "14539781843735670874")
+:::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.checkedBinaryTy (fingerprint := "14619223166697949421")
 *Rule: binary operations.* Once both operands are checked, the places
 among them that are read late are checked again, but for `and` and `or`,
 whose operands are read when tested; the operation then has the type
@@ -106,17 +52,10 @@ operand on either path, even of a temporary or a transfer, since the
 left operand may be the result: a struct that is not `ImplicitlyCopyable`
 is `implicitCopy`. The model moves a transfer $`p\,\hat{}` out of
 $`p` there, where the compiler, on the left of a mixed `and` or `or`,
-only borrows it and leaves $`p` initialized (#84). When the state
-replays `main`'s order, a struct test is rejected as `main` rejected it
-once both operands were checked (`mainTest`), after these checks of the
-test itself, whose errors `main` could not report. When the state leaves
-those checks out (`State.ownChecks`), the test is rejected so, or passes
-with no check of its own, a tested call of `__bool__` taken as a
-$`\mathsf{Bool}`. Both are parts of the bridge, temporary, until #96
-part 4.
+only borrows it and leaves $`p` initialized (#84).
 :::
 
-:::readable MojoGrimoire.Check.typedSimdLeft (fingerprint := "14638421453085381312")
+:::readable MojoGrimoire.Check.typedSimdLeft (fingerprint := "5939084892300411783")
 *Rule: a comparison that only the type phase converts.* A literal on the
 left of a comparison that holds an inner literal of another length than
 one where an $`\mathsf{Int}` is expected keeps the checks it had before

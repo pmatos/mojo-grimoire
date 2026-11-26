@@ -139,21 +139,18 @@ private def moveT (body : List String) : List String :=
 #guard runLines (moveT ["var t = T(4)", "print(t^ or False)"]) ==
   some (.rejected ⟨"main", .implicitCopy (.struct "T")⟩)
 #guard runLines (moveT ["print(True and T(4), not T(0))"]) == some (.finished ["True True"])
--- `main` read a place that `not` tests as a value, which copies it: once a
--- later error in the statement brings `main`'s order back, that is
--- `implicitCopy`, before the first argument's misfit, as the pin reports
--- for the second argument.
+-- The pin reports the copies in the second argument, `m or m2`, before
+-- the first argument's misfit, as it checks every argument before a
+-- call's misfit (#89, #96 part 9).
 #guard runLines ["struct M(Movable):", "    var f: Bool", "    def __init__(out self, f: Bool):",
     "        self.f = f", "    def __bool__(self) -> Bool:", "        return self.f",
     "def f2(a: Int, b: Bool) -> Int:", "    return a", "def main():", "    var m = M(True)",
     "    var m2 = M(False)", "    print(f2(not m, m or m2))"] ==
   some (.rejected ⟨"main", .implicitCopy (.struct "M")⟩)
 
--- The bridge to `main`'s order (`bridged`, until #96 part 4). `main`
--- rejected a struct test as `typeMismatch` once its operands were checked,
--- and so did any statement whose error comes after the test, which the
--- pin reports as `typeMismatch` too when the statement has a type error:
--- so it is still. An error before the test stays as it is.
+-- Statements that #191's bridge to `main`'s order kept at `main`'s
+-- `typeMismatch`, until #96 removed it: the type phase reports the pin's
+-- type error first, and a statement with none its flow error.
 private def bridgeWith (decls body : List String) : Option Outcome :=
   runLines (["struct S(ImplicitlyCopyable):", "    var n: Int", "    var f: Bool",
     "    def __init__(out self, n: Int, f: Bool):", "        self.n = n", "        self.f = f",
@@ -172,13 +169,12 @@ private def mainMismatch (body : List String) : Bool :=
 #guard mainMismatch ["var c = x^", "var w = (y or x) + k"]
 #guard mainMismatch ["var w: List[Int] = (y.f or y) and xs[5] > 0"]
 #guard mainMismatch ["var w = k + ((True and x^) or x.f)"]
-#guard mainMismatch ["var b = False", "b = (x^ or S(3, True)) and x.f"]
-#guard mainMismatch ["var c = x^", "var z = -(y or x)"]
--- Where an operator fits no `Bool`, `main` typed its operands, leaving out
--- a later-pass error, and then rejected the misfit (`mainOperator`) in the
--- flow phase; the instantiation phase comes after it, so the pin's
--- `negativeIndex`, of the list's `__getitem__`, is the first error (#96
--- part 7).
+#guard bridge ["var b = False", "b = (x^ or S(3, True)) and x.f"] matches
+  some (.rejected ⟨"main", .uninitializedUse _⟩)
+#guard bridge ["var c = x^", "var z = -(y or x)"] ==
+  some (.rejected ⟨"main", .uninitializedUse (.var "x")⟩)
+-- An operator on a test of two structs takes the struct's method, which
+-- fits; the index's error comes when the compiler instantiates the call.
 #guard bridge ["var z = (y or S(xs[1 - 2], True)) + y"]
   matches some (.rejected ⟨"main", .negativeIndex _⟩)
 #guard bridge ["var z = -(y or S(xs[1 - 2], True))"]
@@ -186,9 +182,8 @@ private def mainMismatch (body : List String) : Bool :=
 -- A test that a reflected method takes: `main` typed it as a `Bool`, so
 -- `y > (x or y)` was `y.__gt__`, which `S` lacks.
 #guard mainMismatch ["var c = x^", "var z: Int = y > (x or y)"]
--- An error after a test that passes, not of the later pass either, was
--- `main`'s `typeMismatch` too.
-#guard mainMismatch ["print(y or x, k)"]
+-- A test of two structs gives a struct, which `print` cannot write.
+#guard bridge ["print(y or x, k)"] matches some (.rejected ⟨"main", .notPrintable _⟩)
 #guard bridge ["var c = x^", "print(x.n, y.f or y)"] ==
   some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "n")⟩)
 -- `main` typed a test of two structs as a `Bool` at any depth, so
@@ -219,10 +214,9 @@ private def withU (body : List String) : Option Outcome :=
 -- of `__bool__` that the replay without those checks leaves out.
 #guard withU ["ls[bi(u)] = (True or V(True))"] matches some (.rejected ⟨"main", .typeMismatch ..⟩)
 #guard withU ["ls[bi(u)] = (not V(True))"] matches some (.rejected ⟨"main", .typeMismatch ..⟩)
--- `main`'s `typeMismatch` here too, before the `mut self` of the
--- temporary `V(True)`, which the pin reports.
+-- The `mut self` of the temporary `V(True)`, as the pin reports.
 #guard withU ["var z = (y or S(xs[1 - 2], True)) + (V(True) or v)"]
-  matches some (.rejected ⟨"main", .typeMismatch ..⟩)
+  matches some (.rejected ⟨"main", .notAPlace _⟩)
 #guard bridge ["var c = x^", "var w = (x.f and y.f) or y"] ==
   some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "f")⟩)
 -- Without a test of a struct: the type phase reports the pin's

@@ -14,11 +14,7 @@ A `ref` binding, and a function that returns a reference, keep a place as
 it is (`inferTarget`), so a subscript of a struct there is not read
 through its getter (#198). `q[i] = v` on a struct that declares
 `__getitem__` and `__setitem__` calls the setter, and its value is read
-as it is evaluated (`eagerValue`, #191). In a program in `main`'s mode
-(`Program.mainMode`), inference gives a program also the bodies it gives
-in that mode, each with the struct it belongs to (`Program.twin`), for
-the checker's bridge to `main`'s order
-(`MojoGrimoire.Check.bridgedToTwin`).
+as it is evaluated (`eagerValue`, #191).
 -/
 
 namespace MojoGrimoire.Parse
@@ -130,21 +126,11 @@ def inferStruct (prog : Program) (sd : StructDecl) : StructDecl :=
 def inferProgram (prog : Program) : Program :=
   { prog with structs := prog.structs.map (inferStruct prog), funs := prog.funs.map (inferFun prog) }
 
-/-- The bodies of the functions, initializers, destructors and methods of
-the program `prog`, as functions (`deinitDecl`), each with the struct it
-belongs to, or none for a free function. -/
-def bodies (prog : Program) : List (Option Name × FunDecl) :=
-  prog.funs.map (none, ·) ++ prog.structs.flatMap fun sd =>
-    (sd.init.toList ++ sd.deinit.toList.map (deinitDecl sd.name) ++ sd.methods).map (some sd.name, ·)
-
 /-- The program of the core calculus that the program `raw`, as parsed,
 stands for: the types that a variable hides are marked (`markHidden`), then
-`Self` is resolved, then inference fills in what the program leaves open.
-Its `twin` holds the bodies that inference gives in `main`'s mode, as a
-thunk, inferred only when the checker needs one. -/
+`Self` is resolved, then inference fills in what the program leaves open. -/
 def inferRaw (raw : Program) : Program :=
-  let prog := resolveSelf (markHidden raw)
-  { inferProgram prog with twin := Thunk.mk fun _ => bodies (inferProgram prog.asMain) }
+  inferProgram (resolveSelf (markHidden raw))
 
 /-- Parses the text of a `.mojo` file into a program of the core calculus,
 as `inferRaw` gives it. It does not check the constructs outside the

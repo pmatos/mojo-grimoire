@@ -33,9 +33,8 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
   of an `Int` passed `mut` (#222), and an unknown function, which the
   compiler calls an unknown declaration.
 - `order11/`: Part 11's probes of the order inside declarations that the
-  model rejects for another reason: an unknown type name (#237), and a
-  comparison of an array of lists with a literal, which the bridge's
-  replay reads as an implicit copy (#337), and comparisons with a literal
+  model rejects for another reason: an unknown type name (#237), and
+  comparisons with a literal
   operand, whose conversion to the other operand's type the model does
   not follow (`decl_cmp_*`, #338). `decl_empty_*` are empty literals that the
   compiler reports with a message that has no class yet (#128), and

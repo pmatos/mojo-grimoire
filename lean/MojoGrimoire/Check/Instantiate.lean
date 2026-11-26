@@ -82,42 +82,17 @@ def withDropStmts : List Stmt → List Stmt
   | s :: rest => withDropStmt s ++ withDropStmts rest
 end
 
-mutual
-/-- The twin statement `t` of the statement `d` of a body with its
-`drop` statements kept, with the same `drop` statements in its blocks. -/
-def alignStmt : Stmt → Stmt → Stmt
-  | .ifElse _ a b, .ifElse c a' b' => .ifElse c (alignTwin a a') (alignTwin b b')
-  | .whileLoop _ a, .whileLoop c a' => .whileLoop c (alignTwin a a')
-  | _, t => t
-
-/-- The twin `ts` of the block `ds`, which holds `drop` statements that
-the twin lacks, with those statements at the same places, so that
-`MojoGrimoire.Check.checkBlock` pairs each statement with its own twin. -/
-def alignTwin : List Stmt → List Stmt → List Stmt
-  | [], ts => ts
-  | .drop p :: ds, ts => .drop p :: alignTwin ds ts
-  | d :: ds, t :: ts => alignStmt d t :: alignTwin ds ts
-  | _ :: _, [] => []
-end
-
 /-- The program `prog` elaborated, with the `drop` statements of its
 bodies kept and every `withDrops` erased: its own statements, and where
-each value is destroyed. The twin of each body, `main`'s, gets the same
-`drop` statements (`alignTwin`). -/
+each value is destroyed. -/
 def dropsProgram (prog : Program) : Program :=
   let e := elabProgram prog
   let fn (fd : FunDecl) : FunDecl := { fd with body := withDropStmts fd.body }
-  let d : Program := { e with
+  { e with
     funs := e.funs.map fn
     structs := e.structs.map fun sd =>
       { sd with init := sd.init.map fn, deinit := sd.deinit.map withDropStmts,
                 methods := sd.methods.map fn } }
-  let twin (o : Option Name) (fd : FunDecl) : Option Name × FunDecl :=
-    (o, { fd with body := alignTwin fd.body (prog.twinBody o fd) })
-  { d with twin := Thunk.mk fun _ =>
-      d.funs.map (twin none) ++ d.structs.flatMap fun (sd : StructDecl) =>
-        (sd.init.toList ++ sd.methods).map (twin (some sd.name)) ++
-          (sd.deinit.map fun b => twin (some sd.name) (deinitDecl sd.name b)).toList }
 
 /-- The destructors that the compiler synthesizes, `S.__del__`, for each
 struct `S` that declares no `__deinit__`: each destroys the fields, which

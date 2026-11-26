@@ -151,10 +151,9 @@ match. The compiler finds both errors when it types the operands, before
 any read. The model's order is in
 [semantics-error-order.md](semantics-error-order.md#calls-and-initializers).
 
-A temporary bridge keeps `main`'s results for the struct tests that part
-2 of #191 accepts, until #96 part 4
-([semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares)
-says how).
+The struct tests that part 2 of #191 accepts give the compiler's order
+across the tiers since part 4 of #96
+([semantics-operators.md](semantics-operators.md#methods-that-a-struct-declares)).
 
 Rejected: mapping either message to an existing class, `noMatchingInit`,
 `typeMismatch` or `unknownAttribute`, which would merge errors that the

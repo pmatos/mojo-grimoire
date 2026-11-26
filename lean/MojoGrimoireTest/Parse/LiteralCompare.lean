@@ -8,10 +8,7 @@ element, as a call converts its argument. A literal on the right takes
 the left operand's type, and one on the left the right operand's, unless
 that is a literal too. One that does not fit is a type mismatch, found
 before the operands are read. Each verdict is the pinned compiler's for
-the program, probed on the nightly 1.3.0.dev2026111905. Where `main`
-rejected a statement with another class and part 2 rejects it too, the
-statement keeps `main`'s class until #96 part 4
-(`MojoGrimoire.Check.bridgedToTwin`): those guards wait on #96.
+the program, probed on the nightly 1.3.0.dev2026111905.
 -/
 
 namespace MojoGrimoireTest.Parse.LiteralCompare
@@ -48,7 +45,16 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["print([[1]] == [1])"] (.typeMismatch (.array (.array .int 1) 1) (.array .int 1))
 #guard rejects ["print([[1], [2]] == [1, 2])"]
   (.typeMismatch (.array (.array .int 1) 2) (.array .int 2))
+#guard rejects ["var a = [[1]]", "print(a == [[]])"] (.typeMismatch (.array (.array .int 1) 1) .unknown)
+#guard rejects ["var a = [[1, 2]]", "print(a == [[1]])"]
+  (.typeMismatch (.array (.array .int 2) 1) (.array (.array .int 1) 1))
+#guard rejects ["print([[1]] == [[]])"] (.typeMismatch (.array (.array .int 1) 1) .unknown)
+#guard rejects ["var a: Array[Int, 1]", "print(a == [[1, 2], 3])"]
+  (.typeMismatch (.array .int 1) .unknown)
 #guard rejects ["var a: Array[Int, 2]", "print(a == [[1], [2]])"] (.uninitializedUse (.var "a"))
+-- An inner literal of another length, where an `Int` is expected, fails
+-- SIMD's constraint, after the reads.
+#guard rejects ["var a = [1]", "print(a == [[1, 2]])"] (.noMatchingInit .int)
 
 -- On the left: the right operand's type, when the literal fits it.
 #guard prints ["var a = [1]", "print([[1]] == a)"] ["True"]
@@ -63,8 +69,22 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 -- Its own type, when it does not fit: it is built first, so an implicit
 -- copy in it comes first, and the right operand is converted to it.
 #guard rejects ["var a = [1]", "print([1, 2] == a)"] (.typeMismatch (.array .int 2) (.array .int 1))
+#guard rejects ["var a = [1]", "print([[True]] == a)"]
+  (.typeMismatch (.array (.array .bool 1) 1) (.array .int 1))
+#guard rejects ["var xs: List[Int] = [1]", "print([True] == xs)"]
+  (.typeMismatch (.array .bool 1) (.list .int))
 #guard rejects ["var ys: List[Int] = [1]", "var xs: List[Int] = [1]", "print([ys] == xs)"]
   (.implicitCopy (.list .int))
+#guard rejects ["var ys: List[Int] = [1]", "var xs: List[Int] = [1]", "print([ys^] == xs)"]
+  (.typeMismatch (.array (.list .int) 1) (.list .int))
+-- A list has no order, so `<` converts no literal to it, nor to an array
+-- of lists on the right, though a literal on the right converts to it.
+#guard rejects ["var xs: List[Int] = [1]", "print([1] < xs)"]
+  (.typeMismatch (.array .int 1) (.list .int))
+#guard rejects ["var v: Array[List[Int], 1] = [[1]]", "print([[1]] < v)"]
+  (.typeMismatch (.array (.array .int 1) 1) (.array (.list .int) 1))
+#guard rejects ["var v: Array[List[Int], 1] = [[1]]", "print(v < [[1]])"]
+  (.violatedConstraint (.array (.list .int) 1) "__lt__")
 -- Not yet: a literal on the left that holds an inner literal of another
 -- length where an `Int` is expected is not converted, since the order of
 -- SIMD's failure and the reads waits for #96. It keeps the checks it had

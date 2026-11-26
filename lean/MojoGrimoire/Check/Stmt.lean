@@ -223,7 +223,8 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
     let _ ← checkExpr prog e
   | .print args => do
     rejectCalledVar prog "print" (typeArgs prog args)
-    let ks ← args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark
+    let ks ← typedFirst (args.forM (valueOwn prog))
+      (args.attach.mapM fun ⟨e, _⟩ => do checkPrintArg prog e; mark)
     recheckPlaces prog args ks
     recheckLiterals prog args ks
   | .ret value => do
