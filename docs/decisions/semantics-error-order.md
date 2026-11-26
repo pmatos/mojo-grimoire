@@ -216,26 +216,82 @@ checks the value. A place through a subscript of a struct that declares
 such a subscript only as a call (#198): it keeps the index's error and
 the target's mutability (`throughGetter`).
 
+## The order inside declarations and literals
+
+A declaration's initializer is typed before its name is found to be
+declared already (#96 part 11, #134), probed on the pin
+(`order/decl_*`): `var s = s.nope` is `unknownAttribute` where `s`
+exists, and so is `ref s = s.nope`. The initializer's own expression
+comes first: a literal with no type expected in full, since its elements
+give its type, `var s = [1, True]` a `typeMismatch`, and a call by
+reference. A literal is built with the declared type before the duplicate:
+`var s: List[Int] = [True]` is `noMatchingInit`, but `var s: Int = [1, 2]`
+is the redefinition, since that literal fails only when it is
+instantiated. A value's other conversion to a declared type comes after
+the duplicate: `var s: Int = True` is the redefinition. A declared type that names no
+type comes before both, which the model classes otherwise (#237,
+`tests/sweep/order11/decl_i10`, `decl_i11`).
+
+A value's type comes before its implicit copy, as in a call: the value
+of a declaration, an assignment and a `return`, and an element of a
+literal. `var b: Int = xs`, with `xs` a `List[Int]`, is `typeMismatch`,
+and `var a: List[Int] = [xs]` `noMatchingInit`; `var a: List[Int] = xs`
+alone is `implicitCopy` (`order/decl_copy_*`). An assignment to a place
+that may not change is reported before the value's own errors, as #174
+found for its type: `x = zz`, with `x` a `read` parameter, is
+`immutablePlace` (`order/decl_assign_*`).
+
+Inside a literal with no type expected, the compiler reports, in this
+order (#133, `order/decl_lit_*`, `order/decl_empty_*`):
+
+1. The own expressions of all its elements, at any depth: an unknown
+   name, an operator's misfit, a call's misfit or arity. `[[], zz]` is
+   `unknownVariable`, and `[[], [1 + True]]` `noMatchingMethod`.
+2. Its elements built in order: an empty literal, which has no type, and
+   an inner literal with elements, with its own misfits and copies.
+   `[[], [1, True]]` is the empty literal, `[[1, True], []]` a
+   `typeMismatch`, and `[[xs], [1]]` `implicitCopy`.
+3. The literal's own misfit, then the copies of its places: `[xs, [1]]`
+   is `typeMismatch`.
+
+A literal that initializes a type that is not a list or an array, or an
+`Int` with a length other than 1, types only its elements' own
+expressions before its misfit: `var q: Int = [[xs]]` is `noMatchingInit`,
+and `var q: Int = [xs, zz]` `unknownVariable`. A literal passed to `len`
+is typed by `len`, which the model does not follow yet (#341).
+
+The checker types the initializer first when the duplicate name is found
+(`valueOwn`, `typedFirst`). A literal's check that fails in the type
+phase types its elements' own expressions first (`ownArgs`), then builds
+its inner literals in order (`literalElems`). When a value's check
+reports an implicit copy, it checks the value again without copies
+(`copyLast`), and a misfit comes first. The compiler's
+"invalid redefinition of 'V'" is `duplicate`.
+
+Inside a comparison, the compiler converts a literal operand to the type
+of the other operand, and that conversion decides the order of its copies
+and misfits. The model types such a literal as one with no type expected,
+which #338 tracks (`tests/sweep/order11/decl_cmp_*`).
+
+## The order inside an operator
+
+The model finds a missing method from the operands' types before it
+reads them, once it has typed them, as the compiler does: an error
+inside an operand comes first (`s + nope` is `unknownVariable`), and an
+uninitialized operand after (`var s: S; s + 1` is `missingMethod`). A
+struct, list or array operand is never copied first.
+
 ## Where the model differs today
 
 The checker's phases follow the compiler's tiers, and each phase its
-order across the declarations, but the order inside a statement or an
-expression of the type tier is still the model's. So it differs from the compiler in these
-cases, which #96's later parts fix.
-
-### Operators
-
-- The model finds a missing method from the operands' types before it
-  reads them, once it has typed them, so that an error inside an operand
-  comes first (`s + nope` is `unknownVariable`) and an uninitialized
-  operand after (`var s: S; s + 1` is `missingMethod`); a struct, list
-  or array operand is never copied first.
+order across the declarations, statements and expressions. The model
+still differs from the compiler in these cases.
 
 ### The arguments of `range`
 
 The compiler's order is tiered more finely than the passes that
 [semantics-lists.md](semantics-lists.md#lists) gives for the arguments of
-`range` in `List[u](range(…))`, and the rest is left to #96. Its flow
+`range` in `List[u](range(…))`, and the rest is left to #339. Its flow
 errors come before its instantiation errors, as in any expression:
 `range(xs[-1] + u)`, with `u` uninitialized, is `uninitializedUse`, and
 so is `range(g(p^, xs[-1]), p.x)`. Among the instantiation errors, a
@@ -258,7 +314,8 @@ pass now has its phase (Part 7).
   statement to `main`'s twin (#281):
   [semantics-comparisons.md](semantics-comparisons.md).
 
-Other notes that wait for #96 stay on their pages: the comparisons not yet
-modelled in [semantics-comparisons.md](semantics-comparisons.md), and
-`break` and `continue`, which are supported after #96's flow parts
+The comparisons not yet modelled stay on their page,
+[semantics-comparisons.md](semantics-comparisons.md), with their order
+tracked on #338. `break` and `continue` stay outside the subset until
+#276 supports them after #96's flow parts
 ([semantics-parser.md](semantics-parser.md)).

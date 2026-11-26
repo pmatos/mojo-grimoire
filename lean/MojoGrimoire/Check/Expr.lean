@@ -102,19 +102,21 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     checkedBinaryTy prog op a b ta tb ka (← mark) s sa
   | .list .unknown [] => throw (CheckError.invalidType .unknown)
   | .list .unknown (e :: es) => do
-    let u ← checkExprAs prog false e
-    let t := Ty.array u (es.length + 1)
-    unless declarableTy prog u do throw (CheckError.invalidType t)
-    let k ← mark
-    recheckLocs prog ((← firstElemLocs prog e, k) ::
-      (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
-        es.length es.length))
-    pure t
+    let lit : CheckM Ty := do
+      let u ← checkExprAs prog false e
+      let t := Ty.array u (es.length + 1)
+      unless declarableTy prog u do throw (CheckError.invalidType t)
+      let k ← mark
+      recheckLocs prog ((← firstElemLocs prog e, k) ::
+        (← checkArgs prog .call "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
+          es.length es.length))
+      pure t
+    typedFirst (do ownArgs prog (e :: es); literalElems prog (e :: es)) (copyLast lit)
   | .list .int [e] => do expect .int (← checkExprAs prog false e); pure .int
   | .list .int es => do
     rejectIntElems prog .call es (fun p _ => typePlace prog p) (fun a _ => checkExprAs prog false a)
     pure .int
-  | .list t es => do
+  | .list t es => typedFirst (ownArgs prog es) do
     let u ← literalElem prog (.init t) t es.length
     recheckLocs prog (← checkArgs prog (.init t) (typeName t)
       (es.map fun _ => ⟨.owned, "value", u⟩) es es.length es.length)
@@ -194,6 +196,17 @@ def ownArgs (prog : Program) : List Expr → CheckM Unit
   | .list _ es :: rest => do ownArgs prog es; ownArgs prog rest
   | e :: rest => do let _ ← typeArg prog e; ownArgs prog rest
   termination_by es => (sizeOf es, 2)
+
+/-- Builds, in order, the elements `es` of a literal with no type expected
+that the compiler builds on their own, once every element's own expression
+is typed and before it matches them with the literal's element type (#96
+part 11): an empty literal, which has no type, and a literal with elements,
+in full, its own misfits and copies included. -/
+def literalElems (prog : Program) : List Expr → CheckM Unit
+  | [] => pure ()
+  | e@(.list .unknown _) :: rest => do let _ ← checkExprAs prog false e; literalElems prog rest
+  | _ :: rest => literalElems prog rest
+  termination_by es => (sizeOf es, 3)
 
 /-- Checks each of the arguments `args` of `List[u](…)` on its own: a place
 is located, and any other expression checked, before the call is rejected. -/

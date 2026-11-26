@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11624687533809058665")
+:::moduleDocs (fingerprint := "8158416631383704308")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -45,16 +45,21 @@ does. $`\mathsf{List}[u](e)` builds its result in place, and passes $`e`
 by `ref` (#103).
 :::
 
-:::readable MojoGrimoire.Check.checkInitValue (fingerprint := "16340445673896537548")
+:::readable MojoGrimoire.Check.valueOwn MojoGrimoire.Check.checkInitValue (fingerprint := "14940655443401413922")
 *Rule: initializing values.* A value that initializes a declared variable,
 a place assigned to, or a function's result must have its type. A literal
 $`[e^*]_{?}`, which has no list or array expected, where that
 type is neither, such as a struct or a $`\mathsf{Bool}`, is
-`noMatchingInit` of that type once its elements are checked on their own:
+`noMatchingInit` of that type once its elements' own expressions are typed:
 Mojo calls the type's initializer with the elements and the keyword
 `__list_literal__`, which none takes (#46). A call that returns a
 reference to a value that is not implicitly copyable reports a type that
-does not fit before its copy (`misfitFirst`). A literal
+does not fit before its copy (`misfitFirst`), and so does any other value
+(#96 part 11); when that misfit is found, the value's own expression is
+typed first (`valueOwn`), its copies included, as for an argument: a
+literal with no type expected in full, a call by reference, and any
+other value as an argument's own expression, but a place through a
+struct's getter (#198). A literal
 $`[e^*]_{\mathsf{Int}}` of any length but 1 initializes an
 $`\mathsf{Int}`, and is rejected by `rejectIntLiteral` as an initializer
 of the type reports it (#153, #154). An assignment of either literal
@@ -69,7 +74,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "6895843092306632460")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "15544813112386835615")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 
@@ -78,11 +83,16 @@ an expression, so a place is copied implicitly.
   (`declarableTy`) and an $`e`
   of type $`t`, by `checkInitValue`, as do an assignment and `return`, and declares $`x`, initialized when $`e` is given; $`x`
   may not be the name of a variable in scope, so no variable hides another.
-  When inference left $`t` as $`?`, $`e` is checked first, so
+  When it is, the own expression of $`e` is typed first (`valueOwn`,
+  #134, #96 part 11), as the compiler does: a literal in full, against
+  $`t` (`checkInitValue`) when $`t` is declared, a call by reference,
+  and anything else as an argument's own expression. Any other conversion
+  to $`t` comes after the duplicate name. When inference left $`t` as $`?`, $`e` is checked first, so
   that its own error, such as an unknown field, is reported, as the
   compiler does (#123);
 * $`\mathsf{ref}~x = e` binds $`x` to a reference, as the next section
-  says; $`x` may not hide a variable in scope either;
+  says; $`x` may not hide a variable in scope either, and the own
+  expression of $`e` is typed before that is reported (`valueOwn`, #134);
 * $`p = e` where $`p` holds a subscript of a struct that has a setter
   and no getter is $`\mathsf{missingMethod}`, before anything else
   but the errors of the subscript's receiver (`rejectSetterOnly`, #296);

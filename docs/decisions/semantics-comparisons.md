@@ -132,7 +132,7 @@ the compiler's; where #185 changed the class, the bullet says so:
   `a` in `[ys] == xs`, `[[ys]] == 1`, `[a] == [[1], [2]]` or
   `xs == [ys]`. The compiler builds the literal, and copies the place,
   in an order against the literal's conversion and the misfit that
-  waits for #96. The comparison keeps every check it had before #166
+  waits for #338. The comparison keeps every check it had before #166
   (`keepsBefore`): most are `implicitCopy`, as the compiler says, but
   `xs == [ys]`, a type mismatch for the compiler, is `implicitCopy` too.
   So does a comparison with `List[u]()`, which is no literal the
@@ -141,7 +141,7 @@ the compiler's; where #185 changed the class, the bullet says so:
   where an `Int` is expected, `[[1, 2], 3] == a`. The compiler converts
   it, fails SIMD's constraint (`noMatchingInit`) in a later pass than its
   reads, and reports an uninitialized read in either operand first. That
-  order is #96's; until then the literal is not converted and keeps the
+  order is #338's; until then the literal is not converted and keeps the
   checks it had before #166: the right operand is copied, so a named one
   is `implicitCopy`, and an uninitialized read is `uninitializedUse`, as
   the compiler says.

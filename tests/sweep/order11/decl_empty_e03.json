@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": null,
+  "diagnostic": "cannot emit an empty list without a contextual type"
+}

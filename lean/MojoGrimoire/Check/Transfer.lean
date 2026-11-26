@@ -18,6 +18,18 @@ implicitly copyable, while copies are checked (`copyChecks`). -/
 def requireImplicitCopy (prog : Program) (t : Ty) : CheckM Unit := do
   if (← get).copyChecks && copyingOf prog t != .implicit then throw (CheckError.implicitCopy t)
 
+/-- Runs `check`; when it reports an implicit copy, checks the same again
+without the checks of implicit copies (`copyChecks`), and reports any other
+error of that before the copy: the compiler reports a copy only once the
+types fit, in a call (#89), a declaration, an assignment and a `return`
+(#96 parts 9 and 11). -/
+def copyLast {α : Type} (check : CheckM α) : CheckM α :=
+  tryCatch check fun err => do
+    unless err matches .implicitCopy _ do throw err
+    modify ({ · with copyChecks := false })
+    discard check
+    throw err
+
 /-- Reads the place `p` as a value, which copies it implicitly
 (`requireImplicitCopy`). -/
 def copyPlace (prog : Program) (p : Place) : CheckM Ty := do

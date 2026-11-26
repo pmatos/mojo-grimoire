@@ -36,7 +36,7 @@ any misfit is `noMatchingInit` (#121). Its errors come in the compiler's
 order of passes: typing errors in any argument first, then the misfits of
 `range`, then uses of uninitialized or invalidated values, then a literal
 of `Int`s of the wrong length, then a constant index out of range. The
-compiler's order is tiered more finely, which is left to #96. Anywhere
+compiler's order is tiered more finely, which is left to #339. Anywhere
 else `range` is an unknown function, and a string literal outside `print`
 is `stringOutsidePrint`; the driver finds such a program outside the
 subset before the checker runs (`MojoGrimoire.Parse.Subset`, #180).

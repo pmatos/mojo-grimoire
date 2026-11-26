@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "duplicate",
+  "diagnostic": "invalid redefinition of 's'"
+}
