@@ -129,7 +129,10 @@ the compiler's; where #185 changed the class, the bullet says so:
   `[y, y] == x`, whose conversion waits for #165 and #170, keeps its
   class too. So does a comparison with `List[u]()`, which is no literal
   the compiler converts: `List[Int]() < a` is `missingMethod`, as it
-  says.
+  says, but beside such a literal the compiler converts the literal to
+  its type, so `[y, [x]] == List[List[Int]]()` is `typeMismatch` where it
+  reports `implicitCopy`, and `List[List[Int]]() == [y, [t]]` is
+  `implicitCopy` where it reports `typeMismatch`.
 - A literal on the left that holds an inner literal of another length
   where an `Int` is expected, `[[1, 2], 3] == a`. The compiler converts
   it, fails SIMD's constraint (`noMatchingInit`) in a later pass than its

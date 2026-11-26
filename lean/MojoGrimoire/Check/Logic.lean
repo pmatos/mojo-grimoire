@@ -112,22 +112,4 @@ def typedSimdLeft (prog : Program) (op : BinOp) (a b : Expr) : CheckM Bool := do
   unless (← operandFit prog op a (some t) true) == some none do return false
   pure ((← literalFits (operandTy prog) false t a) == some true)
 
-/-- How the comparison `op` builds its left operand `a`, a literal that
-holds a place whose value is not implicitly copyable (`heldCopy`), when
-that does not wait for #338: `true` when it is converted to the type of
-`b`, no literal, that it fits (`operandFit`), and `false` when it is
-built on its own, beside a literal `b` or a known type of `b` that it is
-not converted to or does not fit. The compiler types the operands' own
-expressions first, then builds the literal, and reports its copies
-before the comparison's misfit. -/
-def heldLeft (prog : Program) (op : BinOp) (a b : Expr) : CheckM (Option Bool) := do
-  unless compares op do return none
-  unless ← heldCopy prog a do return none
-  if b matches .list .. then return if emptyList b then none else some false
-  let some t ← operandTy prog b | return none
-  pure (match ← operandFit prog op a (some t) true with
-    | some (some true) => some true
-    | some none => none
-    | _ => some false)
-
 end MojoGrimoire.Check

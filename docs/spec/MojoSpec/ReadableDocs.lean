@@ -15,6 +15,7 @@ import MojoSpec.Check.Operators
 import MojoSpec.Check.Methods
 import MojoSpec.Check.Compare
 import MojoSpec.Check.Logic
+import MojoSpec.Check.Binary
 import MojoSpec.Check.Elems
 import MojoSpec.Check.Range
 import MojoSpec.Check.Expr
