@@ -166,7 +166,7 @@ sweep of #242, one build crashed under parallel load and passed when built
 again. The first run found only the programs of D-0003 that read a field
 never set, whose output at `-O0` is uninitialized memory, and the program
 of D-0010; the program of D-0013, swept on its own after it was added,
-differs too.
+differs too, and so do the three of D-0014, which only `-O0` rejects.
 
 Both refuse to run unless the wrapper builds and runs a trivial program and
 each program named is a file. A build that fails with no `error:` line from

@@ -1,0 +1,30 @@
+{
+  "issue": 324,
+  "title": "a wrong-length literal in the right operand of or, after a variable that holds True, runs at -O1 and above and is rejected at -O0",
+  "ruled": "2026-11-26",
+  "decision_log": "D-0014",
+  "reference": {
+    "release": "1.3.0.dev2026111905",
+    "commit": "a549e6a6"
+  },
+  "reproducer": "def main():\n    var t = True\n    print(t or ([1] != [[1, 2, 3]]))\n",
+  "compiler": "prints `True` at -O1, -O2 and -O3, the default, and with mojo run and -D ASSERT=all; -O0 rejects it with \"function instantiation failed\" and the note \"constraint failed: expected 1 elements in the SIMD list literal, found 3\". The comparison alone, and the same or with `var t = False`, are rejected at every level",
+  "fixed": "rejects it at every level, as -O0 does and as every level rejects the comparison alone (noMatchingInit)",
+  "model": "rejects it (noMatchingInit)",
+  "upstream": {
+    "status": "unfiled",
+    "draft": "https://github.com/pmatos/mojo-grimoire/issues/324#issuecomment-7195536534",
+    "tracking": 347,
+    "report": null
+  },
+  "confirmation": {
+    "status": "pending",
+    "notes": "provisional ruling, until the human has discussed it with Modular"
+  },
+  "nightly": {
+    "version": "1.3.0.dev2026111905",
+    "checked": "2026-11-26",
+    "reproduces": true,
+    "result": "checked on the pin only; no newer nightly was run"
+  }
+}
