@@ -107,6 +107,8 @@ later passes come in the compiler's order: a use of an uninitialized or
 invalidated value, the places read late checked again, a literal of
 $`\mathsf{Int}`s of the wrong length, `noMatchingInit`
 $`\mathsf{List}[u]`, then a constant index out of range (#121). The
+compiler's order between the literal and the index depends on the
+optimization level, and is left undefined (#331). The
 call gives a $`\mathsf{List}[\mathsf{Int}]`.
 Each phase finds only its own pass's errors: the uses and the reads late
 are the flow phase's, and the literal and the constant index the

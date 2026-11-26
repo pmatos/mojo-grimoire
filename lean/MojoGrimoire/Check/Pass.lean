@@ -11,7 +11,7 @@ place the function may change, and `var` copies it implicitly
 says (`MojoGrimoire.Check.Fit`). Each error has its phase
 (`CheckError.phase`). An error of the instantiation phase, in an argument
 of `range`, may be recorded instead of thrown (`lateErrors`), so that the
-errors report in the compiler's order (#121). What a call types before it reads its first argument is in
+errors report in the compiler's order of passes (#121). What a call types before it reads its first argument is in
 `typeFirst`. A module outside the mutual block of the checker of
 expressions is given the checks of the expressions inside the ones it
 checks as `Below` says.

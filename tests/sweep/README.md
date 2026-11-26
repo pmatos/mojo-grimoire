@@ -25,9 +25,9 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
   diagnostic has no class yet (#319), or whose unknown type the model
   classes `invalidType` (#237), so that the suite cannot hold them.
 - `order7/`: Part 7's and Part 8's probes of the instantiation phase's order whose
-  result differs at `-O0`, unrecorded, or that the model rejects for
-  another reason: a struct's `__bool__` in a condition (#195) and the
-  destructor of a struct never used (#264).
+  result differs at `-O0`, an order left undefined (#331), unrecorded, or
+  that the model rejects for another reason: a struct's `__bool__` in a
+  condition (#195) and the destructor of a struct never used (#264).
 - `order9/`: Part 9's probes of the order inside a call that the model
   rejects for another reason: a temporary passed `mut` (#81), an element
   of an `Int` passed `mut` (#222), and an unknown function, which the
