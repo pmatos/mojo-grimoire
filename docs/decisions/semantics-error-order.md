@@ -216,8 +216,10 @@ The compiler's order is tiered more finely than the passes that
 errors come before its instantiation errors, as in any expression:
 `range(xs[-1] + u)`, with `u` uninitialized, is `uninitializedUse`, and
 so is `range(g(p^, xs[-1]), p.x)`. Among the instantiation errors, a
-constant index into an array comes before the literal and before an index
-into a list on the compiler, and the model reports the literal first.
+constant index into an array comes before an index into a list on the
+compiler. It comes before the literal at the default level, `-O3`, even
+when the literal comes first in the text, but after it at `-O0` (#331).
+The model reports the literal first.
 
 ## Temporary bridges to `main`'s order
 
