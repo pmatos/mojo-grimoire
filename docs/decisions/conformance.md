@@ -305,5 +305,5 @@ call needs the session's token, printed in the URL at start, and the
 explorer's own Host and Origin. Each run gets a fresh temporary
 directory, a timeout and an output cap, and it is killed by its own
 process group. Its tests, `scripts/test_explorer.py`, are run by hand.
-Running them as a hook waits on the human, since that adds checking
-machinery.
+Running them as a hook waits on the human's ruling (#371), since a hook
+adds checking machinery.
