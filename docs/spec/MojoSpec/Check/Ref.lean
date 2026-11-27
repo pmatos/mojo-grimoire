@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "References: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2070380988517228182")
+:::moduleDocs (fingerprint := "1813348030870201024")
 :::
 
 :::readable MojoGrimoire.Check.refTarget (fingerprint := "13673967719855213269")
@@ -33,7 +33,7 @@ once the place is typed, and in a return once its type is compared with
 the result type, before any later error (#127).
 :::
 
-:::readable MojoGrimoire.Check.refSubscripts (fingerprint := "18360651769973096422")
+:::readable MojoGrimoire.Check.refSubscripts (fingerprint := "17863825943508519616")
 *Rule: references that a subscript changes.* A reference bound with
 `ref` is subscripted as one that may change when it may be changed, as
 the rule above finds, with each `ref` parameter taken as one that may

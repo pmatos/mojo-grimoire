@@ -53,18 +53,20 @@ def checkSignature (prog : Program) (fd : FunDecl) : Except CheckError Unit := d
 /-- Checks the body of the function `fd`: its parameters and result must
 have declarable types, its origin must name parameters passed as locations,
 and the body must be accepted. It is checked in the phase `phase`, and in
-the flow phase up to the stage `stage`. When the body can
+the flow phase up to the stage `stage`, with every temporary origin
+argument in a place's index rejected when `strict` holds (`strictIndices`).
+When the body can
 reach its end and the function returns a result, it gives the missing
 return, which the flow phase reports before its other errors
 (`checkFlow`); otherwise the state at the end is checked as at a
 return. -/
-def checkBody (prog : Program) (phase : Phase) (stage : Stage) (fd : FunDecl) :
+def checkBody (prog : Program) (strict : Bool) (phase : Phase) (stage : Stage) (fd : FunDecl) :
     Except CheckError BodyResult := do
   checkSignature prog fd
   checkOrigin fd
   let start : State :=
     { vars := fd.params.reverse.map paramState, live := true, stale := [], changes := [], phase,
-      stage }
+      stage, strictIndices := strict }
   let (missing, s) ← (do
       checkBlock prog fd fd.body
       if !(← get).live then return none
@@ -80,10 +82,10 @@ def checkConventions (fn : Name) (params : List Param) : Except CheckError Unit 
     if prm.conv == .out || prm.conv == .deinit then throw (.invalidConvention fn)
 
 /-- Checks a function. -/
-def checkFun (prog : Program) (phase : Phase) (stage : Stage) (fd : FunDecl) :
+def checkFun (prog : Program) (strict : Bool) (phase : Phase) (stage : Stage) (fd : FunDecl) :
     Except CheckError BodyResult := do
   checkConventions fd.name fd.params
-  checkBody prog phase stage fd
+  checkBody prog strict phase stage fd
 
 /-- The number of operands, `self` among them, that the operator method
 `m` takes, for the operator methods that inference calls (#191): two for
@@ -100,7 +102,8 @@ def operatorArity (m : Name) : Option Nat :=
 operands as its operator, which the compiler checks when it parses the
 declaration (`operatorArity`); its first parameter is `self`, of the
 struct's type, with the convention `read`, `mut`, `var` or `ref`. -/
-def checkMethod (prog : Program) (phase : Phase) (stage : Stage) (s : Name) (fd : FunDecl) :
+def checkMethod (prog : Program) (strict : Bool) (phase : Phase) (stage : Stage) (s : Name)
+    (fd : FunDecl) :
     Except CheckError BodyResult := do
   if let some n := operatorArity fd.name then
     unless fd.params.length == n do throw (.arityMismatch fd.name n fd.params.length)
@@ -108,17 +111,18 @@ def checkMethod (prog : Program) (phase : Phase) (stage : Stage) (s : Name) (fd 
   unless self.name == "self" && self.ty == .struct s do throw (.invalidSelf fd.name)
   if self.conv == .out || self.conv == .deinit then throw (.invalidSelf fd.name)
   checkConventions fd.name fd.params.tail
-  checkBody prog phase stage fd
+  checkBody prog strict phase stage fd
 
 /-- Checks the initializer of the struct `s`: its first parameter is
 `out self`, and it returns nothing. -/
-def checkInit (prog : Program) (phase : Phase) (stage : Stage) (s : Name) (fd : FunDecl) :
+def checkInit (prog : Program) (strict : Bool) (phase : Phase) (stage : Stage) (s : Name)
+    (fd : FunDecl) :
     Except CheckError BodyResult := do
   let some self := fd.params.head? | throw (.invalidSelf fd.name)
   unless self == ⟨.out, "self", .struct s⟩ do throw (.invalidSelf fd.name)
   unless fd.result == .noneType do throw (.invalidReturn fd.name)
   checkConventions fd.name fd.params.tail
-  checkBody prog phase stage fd
+  checkBody prog strict phase stage fd
 
 /-- Checks the fields of the struct `sd`, as the compiler does when it
 resolves the struct's declaration: they have distinct names, no method has
@@ -198,15 +202,15 @@ def resolveStruct (prog : Program) :
 and its check in a phase, up to a stage: its initializer, its destructor,
 checked with the single parameter `deinit self`, or a method; none for a
 field. -/
-def memberCheck (prog : Program) (sd : StructDecl) :
+def memberCheck (prog : Program) (strict : Bool) (sd : StructDecl) :
     Member → Option (Name × (Phase → Stage → Except CheckError BodyResult))
   | .init => sd.init.map fun fd =>
-      (sd.name ++ ".__init__", fun ph st => checkInit prog ph st sd.name fd)
+      (sd.name ++ ".__init__", fun ph st => checkInit prog strict ph st sd.name fd)
   | .deinit => sd.deinit.map fun body =>
       (sd.name ++ ".__deinit__", fun ph st =>
-        checkBody prog ph st (deinitDecl sd.name body))
+        checkBody prog strict ph st (deinitDecl sd.name body))
   | .method j => sd.methods[j]?.map fun fd =>
-      (sd.name ++ "." ++ fd.name, fun ph st => checkMethod prog ph st sd.name fd)
+      (sd.name ++ "." ++ fd.name, fun ph st => checkMethod prog strict ph st sd.name fd)
   | .field _ => none
 
 /-- Checks that every field of the struct `sd` can be copied as `sd`
@@ -240,12 +244,12 @@ copy initializer that the compiler synthesizes is checked right after
 fixed compiler rejects, field by field. Otherwise a cycle comes after the
 last member, and then the copy initializer when the struct declares no
 `__init__` (#164, #96 part 6). -/
-def checkStruct (prog : Program) (sd : StructDecl) (ms : List Member) :
+def checkStruct (prog : Program) (strict : Bool) (sd : StructDecl) (ms : List Member) :
     Except Rejection (List Rejection) := do
   let atStruct (c : Except CheckError Unit) : Except Rejection Unit := c.mapError (⟨sd.name, ·⟩)
   let mut missing : List Rejection := []
   for m in ms do
-    if let some (where_, check) := memberCheck prog sd m then
+    if let some (where_, check) := memberCheck prog strict sd m then
       missing := missing ++ (← located where_ (check .type .ends))
     if m == .init then atStruct (checkCopying prog sd (sd.copying == .implicit))
   atStruct do
@@ -265,7 +269,7 @@ and a function of the name of an earlier one, and each struct's own
 declaration: resolved, unless a struct before it resolved it already
 (`resolveStruct`), and then no two of its methods have one name. Last,
 each struct in the order of the declarations (`checkStruct`). -/
-def checkTypes (prog : Program) : Except Rejection (List Rejection) := do
+def checkTypes (prog : Program) (strict : Bool) : Except Rejection (List Rejection) := do
   let structs := prog.structs.map (·.name)
   (checkDistinct structs).mapError (⟨"", ·⟩)
   if let some s := structs.find? fun s => (findFun prog s).isSome then
@@ -283,26 +287,26 @@ def checkTypes (prog : Program) : Except Rejection (List Rejection) := do
       if fd.name == "main" then
         (checkSignature prog fd).mapError (⟨"main", ·⟩)
         unless fd.params.isEmpty && fd.result == .noneType do throw ⟨"main", .noMain⟩
-      missing := missing ++ (← located fd.name (checkFun prog .type .ends fd))
+      missing := missing ++ (← located fd.name (checkFun prog strict .type .ends fd))
     | .struct i ms =>
       let some sd := prog.structs[i]? | continue
       started ← resolveStruct prog (prog.structs.length + 1) [] started sd.name
       (checkDistinct (sd.methods.map (·.name))).mapError (⟨sd.name, ·⟩)
       declared := (sd, ms) :: declared
   for (sd, ms) in declared.reverse do
-    missing := missing ++ (← checkStruct prog sd ms)
+    missing := missing ++ (← checkStruct prog strict sd ms)
   pure missing
 
 /-- The bodies of the program `prog` in the order of its declarations in
 the source, the free functions and the members of the structs
 interleaved, as the compiler's pass manager visits them, each with where
 it is and its check in the phase `ph`, up to a stage. -/
-def declBodies (prog : Program) (ph : Phase) :
+def declBodies (prog : Program) (strict : Bool) (ph : Phase) :
     List (Name × (Stage → Except CheckError BodyResult)) :=
   prog.declOrder.flatMap fun
-    | .func i => (prog.funs[i]?.map fun fd => (fd.name, fun st => checkFun prog ph st fd)).toList
+    | .func i => (prog.funs[i]?.map fun fd => (fd.name, fun st => checkFun prog strict ph st fd)).toList
     | .struct i ms => match prog.structs[i]? with
-      | some sd => ms.filterMap fun m => (memberCheck prog sd m).map fun (w, c) => (w, c ph)
+      | some sd => ms.filterMap fun m => (memberCheck prog strict sd m).map fun (w, c) => (w, c ph)
       | none => []
 
 /-- Checks a program in the flow phase, on a program that the type phase
@@ -316,8 +320,9 @@ a return come in the order of the body, before a value that may not end
 finds a value that may not end, again up to the stage of uses, whose
 error comes first. A missing `main` comes after every error of the flow
 phase. -/
-def checkFlow (prog : Program) (missing : List Rejection) : Except Rejection Unit := do
-  let bodies := declBodies prog .flow
+def checkFlow (prog : Program) (strict : Bool) (missing : List Rejection) :
+    Except Rejection Unit := do
+  let bodies := declBodies prog strict .flow
   for (w, _) in bodies do
     if let some r := missing.find? (·.decl == w) then throw r
   for (w, check) in bodies do

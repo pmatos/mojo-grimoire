@@ -180,7 +180,11 @@ choices (#18):
   keeps it alive. So it keeps these rejected as before #80, where the
   compiler accepts them, until the issue named:
   - a temporary in a place's index, as `print(xs[pz(same(mk(1)))])`, is
-    `implicitCopy` for a `T` that cannot be copied (#377);
+    `implicitCopy` for a `T` that cannot be copied (#377). The checker
+    accepts it at first, so that a program with a later error gets the
+    compiler's class, as #356's programs do. A program that it then
+    accepts is checked again, rejecting it
+    (`MojoGrimoire.Check.checkProgram`);
   - a late subscript as an origin argument of a `ref` binding, as
     `ref r = rpick(s[1], P(5), True)`, is `notAPlace` (#378);
   - an expression statement that returns a reference through one bound

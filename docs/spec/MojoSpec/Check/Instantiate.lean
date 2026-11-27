@@ -14,7 +14,7 @@ when the Lean changes under it.
 
 #doc (Manual) "Instantiation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2892030037804143084")
+:::moduleDocs (fingerprint := "13991891349247163186")
 :::
 
 :::readable MojoGrimoire.Check.placeDrops MojoGrimoire.Check.exprDrops MojoGrimoire.Check.exprsDrops MojoGrimoire.Check.stmtDrops MojoGrimoire.Check.keptDrops MojoGrimoire.Check.withDropStmt MojoGrimoire.Check.withDropStmts MojoGrimoire.Check.dropsProgram MojoGrimoire.Check.synthesizedDestructors (fingerprint := "4085899041235453346")
@@ -31,7 +31,7 @@ checker. A struct that declares no
 destroys its fields, the last first.
 :::
 
-:::readable MojoGrimoire.Check.instantiate MojoGrimoire.Check.checkInst MojoGrimoire.Check.checkProgram (fingerprint := "18032364589264327361")
+:::readable MojoGrimoire.Check.instantiate MojoGrimoire.Check.checkInst MojoGrimoire.Check.checkProgramAs MojoGrimoire.Check.checkProgram (fingerprint := "3128003761777269375")
 *Rule: instantiation.* A body is instantiated once. Its own errors come
 first, in the order of the body: a literal of $`\mathsf{Int}`s of the
 wrong length, and a constant index out of an array's or an
@@ -42,4 +42,12 @@ The instantiation starts from `main`, and then takes the bodies that
 program is checked in the type phase, then the flow phase, then the
 instantiation phase, and rejected with the first error found (#96 part
 7).
+
+It is checked twice (`checkProgramAs`). The first pass leaves a temporary
+origin argument in a place's index out of the origins, as anywhere else
+(#80), so that a rejected program gets the compiler's first error. A
+program that the first pass accepts is checked again, in a strict pass that
+rejects every such argument, as before #80. Elaboration does not name the
+temporary in an index, so the model would read it after it is destroyed
+(#377). The compiler accepts these programs.
 :::

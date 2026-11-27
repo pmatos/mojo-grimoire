@@ -136,8 +136,8 @@ def instantiate (bodies : List (Name × (Stage → Except CheckError BodyResult)
 /-- Checks a program in the instantiation phase, on a program that the
 type and flow phases accept: from `main`, then the bodies that it does not
 reach, in the order of the declarations (`instantiate`). -/
-def checkInst (prog : Program) : Except Rejection Unit := do
-  let bodies := declBodies (dropsProgram prog) .inst ++ synthesizedDestructors prog
+def checkInst (prog : Program) (strict : Bool) : Except Rejection Unit := do
+  let bodies := declBodies (dropsProgram prog) strict .inst ++ synthesizedDestructors prog
   let fuel := bodies.length + 1
   let mut seen ← instantiate bodies fuel "main" []
   for (w, _) in bodies do
@@ -146,9 +146,20 @@ def checkInst (prog : Program) : Except Rejection Unit := do
 /-- Checks a program: it is accepted, or rejected with the first error of
 the type phase, or else of the flow phase, or else of the instantiation
 phase, which the compiler reports in that order of tiers (`Phase`,
-ADR-2026-11-21-1941). -/
+ADR-2026-11-21-1941). When `strict` holds, a temporary origin argument in
+a place's index is rejected (`strictIndices`). -/
+def checkProgramAs (prog : Program) (strict : Bool) : Except Rejection Unit := do
+  checkFlow prog strict (← checkTypes prog strict)
+  checkInst prog strict
+
+/-- Checks a program as `checkProgramAs` does, twice. The first time, a
+temporary origin argument in a place's index is left out of the origins,
+as anywhere else, so that a rejected program gets the compiler's first
+error. A program that this accepts is checked again with every such
+argument rejected, as before #80, since elaboration does not keep it
+alive until it is read, and the model would read it destroyed (#377). -/
 def checkProgram (prog : Program) : Except Rejection Unit := do
-  checkFlow prog (← checkTypes prog)
-  checkInst prog
+  checkProgramAs prog false
+  checkProgramAs prog true
 
 end MojoGrimoire.Check

@@ -153,8 +153,8 @@ statement, in order, the phase and the stage of the flow phase, whether
 every check runs, whatever the phase (`allChecks`), whether implicit
 copies are checked (`copyChecks`, cleared only while a value or a call's
 arguments are matched again before their copies, `copyLast`), whether a
-temporary origin argument is rejected, as it is in a place's index
-(`strictOrigins`, #377), and what the instantiation phase
+temporary origin argument is rejected (`strictOrigins`), whether it is in
+a place's index (`strictIndices`, #377), and what the instantiation phase
 records (`InstEvent`). After a
 `return`, the current point cannot be reached. -/
 structure State where
@@ -168,6 +168,7 @@ structure State where
   allChecks : Bool := false
   copyChecks : Bool := true
   strictOrigins : Bool := false
+  strictIndices : Bool := false
   events : List InstEvent := []
   deriving BEq
 
@@ -208,11 +209,11 @@ def inTypePhase {α : Type} (x : CheckM α) : CheckM α := do
   modify ({ · with phase := s.phase, allChecks := s.allChecks })
   pure r
 
-/-- Runs `x` with every temporary origin argument rejected
-(`strictOrigins`). -/
-def withStrictOrigins {α : Type} (x : CheckM α) : CheckM α := do
+/-- Runs `x`, the check of a place's index, in which a temporary origin
+argument is rejected when `strictIndices` holds. -/
+def inIndex {α : Type} (x : CheckM α) : CheckM α := do
   let s := (← get).strictOrigins
-  modify ({ · with strictOrigins := true })
+  modify fun st => { st with strictOrigins := st.strictIndices }
   let r ← x
   modify ({ · with strictOrigins := s })
   pure r

@@ -50,9 +50,9 @@ out instead: the call's origins are those of its other origin
 arguments, and it may not be changed through, as the compiler keeps the
 temporary alive as long as the reference (#80). This is how the checker
 reads a located operand (`locOf`). Strictly, for a `return`, such a call
-is no located operand. So it is too in a place's index, where elaboration
-does not name the temporary, which would die before it is read
-(`strictOrigins`, #377). A subscript that Mojo reads late is never left
+is no located operand. So it is too in a place's index, in the checker's
+strict pass (`strictOrigins`, `inIndex`), since elaboration does not name
+the temporary there, and it would die before it is read (#377). A subscript that Mojo reads late is never left
 out (`lateCall`, #378), for the same reason.
 :::
 

@@ -19,8 +19,9 @@ it as a value that cannot be changed.
 An origin argument may be a temporary, which the compiler keeps alive as
 long as the reference (#80): it is left out of the origins, and the
 reference may not be changed through it. A `return` rejects it (#366),
-and so does a place's index (#377); a subscript read late is never left
-out (#378).
+and so does a place's index in the checker's strict pass
+(`MojoGrimoire.Check.checkProgram`, #377); a subscript read late is never
+left out (#378).
 
 A `mut` argument may not alias another argument that is passed as a location,
 Mojo's argument exclusivity. An `Int` or a `Bool` passed to a `read`
@@ -117,8 +118,8 @@ end
 /-- The origins of the located operand `e`, and whether it may be changed
 through, a temporary origin argument left out (`locOfAs`): the compiler
 keeps the temporary alive while the reference is used, and it may not be
-changed through it (#80). In a place's index, it is rejected
-(`strictOrigins`, #377). -/
+changed through it (#80). In a place's index, the checker's strict pass
+rejects it (`inIndex`, #377). -/
 def locOf (prog : Program) (e : Expr) : CheckM (Option (List Place × Bool)) := do
   locOfAs prog (← get).strictOrigins e
 
