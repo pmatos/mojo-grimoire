@@ -21,19 +21,31 @@ module that runs it:
 * is `implemented_by` other code, or `extern`, so that a program would not
   run the definition that the proofs are about.
 
-There is one exception to the last two. For an inductive type `T` with two
-or more constructors, Lean 4.36 generates `T.ctorIdx`, which gives each
-constructor's index, and has it implemented by `T.ctorIdx._impl`, an
-`unsafe` definition that reads the tag of the value at run time
-(`Lean.mkCtorIdx`). Lean needs both: without them it cannot build
+There is one exception to the last two. For every inductive type `T`
+except one of exactly one constructor, Lean 4.36 generates `T.ctorIdx`,
+which gives each constructor's index, and has it implemented by
+`T.ctorIdx._impl`, an `unsafe` definition that reads the tag of the value at
+run time (`Lean.mkCtorIdx`). Lean needs both: without them it cannot build
 `T.noConfusion`. The check allows `T.ctorIdx` to be implemented by
-`T.ctorIdx._impl`, and `T.ctorIdx._impl` to be `unsafe`, only when the pair
-is exactly the one Lean generates (`isGeneratedCtorIdx`); each must still
-pass every other test. The compiled code of `T.ctorIdx` then equals its
-definition only if Lean's run-time tag of a value is its constructor's
-index, and the check trusts that, as it trusts the compiler. Derived
-equality calls `T.ctorIdx`, so a proof by native evaluation may rest on it
-too. `MojoGrimoireTest.AxiomsGuard` shows that a look-alike is rejected.
+`T.ctorIdx._impl`, and `T.ctorIdx._impl` to be `unsafe`, only for a type of
+two or more constructors, so the pair of a type of no constructors is still
+rejected, and only when the pair has exactly the shape that Lean generates
+(`isGeneratedCtorIdx`); each must still pass every other test. The check
+looks at the shape, not at who wrote the pair: any pair that differs from
+the generated shape is rejected, and a pair in exactly that shape is
+accepted even when it is written by hand, since it behaves the same.
+
+The shape is: `T` is a safe inductive type of two or more constructors, not
+in `Prop` and not one that the run time represents in its own way, declared
+in the same module as the pair; `T.ctorIdx` is safe and its value is the
+`casesOn` of its argument whose case for each constructor is that
+constructor's index; its implementation is exactly `T.ctorIdx._impl`, of the
+same type, whose value is exactly `getObjTagNat` of its last argument. The
+compiled code of `T.ctorIdx` then equals its definition only if Lean's
+run-time tag of a value is its constructor's index, and the check trusts
+that, as it trusts the compiler. Derived equality calls `T.ctorIdx`, so a
+proof by native evaluation may rest on it too. `MojoGrimoireTest.AxiomsGuard`
+shows that a pair that differs from the shape is rejected.
 
 It also fails when a source file in `lean/` is not imported, or belongs to a
 library that is not checked, so that every module of `lean/` is checked; when
@@ -48,10 +60,10 @@ The check allows such an axiom only when it compiles and runs `e` again
 itself and gets `true`, so the proof trusts the compiler and nothing else
 (ADR-2026-11-15-1906). The bans on `unsafe`, `partial`, `implemented_by` and
 `extern` keep the compiled code equal to the definitions that the proofs are
-about, up to the exception above. A `@[csimp]` swap is allowed because it is proved, but only from the
-standard axioms: the compiler applies every swap when the check runs a claim
-again, so a swap proved from a native axiom could make a false claim run as
-true and so confirm that axiom.
+about, up to the exception above. A `@[csimp]` swap is allowed because it
+is proved, but only from the standard axioms: the compiler applies every
+swap when the check runs a claim again, so a swap proved from a native axiom
+could make a false claim run as true and so confirm that axiom.
 
 Lean does not keep an `example`, so the check cannot see one. A `sorry` in an
 example gives a warning, and `lean/` builds with `lake build --wfail`, so it
@@ -83,8 +95,8 @@ def isNativeAxiom (env : Environment) (n : Name) : CommandElabM Bool := do
     try return (← Meta.nativeEqTrue `check_axioms e) matches .success _
     catch _ => return false
 
-/-- The type and the value that Lean generates for `T.ctorIdx`, given the
-inductive type `T` with two or more constructors (`Lean.mkCtorIdx`): the
+/-- The type and the value that Lean generates for `T.ctorIdx`, given an
+inductive type `T` of other than one constructor (`Lean.mkCtorIdx`): the
 `casesOn` of the argument, whose case for each constructor is that
 constructor's index as a literal. -/
 def ctorIdxDecl (ind : InductiveVal) : MetaM (Expr × Expr) := do
