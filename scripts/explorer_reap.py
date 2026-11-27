@@ -19,6 +19,7 @@ server reaps it; for other processes it leaves a small window for reuse.
 from __future__ import annotations
 
 import ctypes
+import errno
 import os
 import signal
 import threading
@@ -28,7 +29,13 @@ from pathlib import Path
 PROC = Path("/proc")
 PR_SET_CHILD_SUBREAPER = 36
 MARKER = "MOJO_EXPLORER_RUN"
-HAS_PIDFD = hasattr(os, "pidfd_open") and hasattr(signal, "pidfd_send_signal")
+HAS_PIDFD = all(
+    (
+        hasattr(os, "pidfd_open"),
+        hasattr(signal, "pidfd_send_signal"),
+        hasattr(os, "P_PIDFD"),
+    )
+)
 
 # The PIDs of the runs that are alive, which the reaper leaves alone. A run
 # is added under the lock while it is started, so the reaper never sees it
@@ -68,14 +75,18 @@ class _Handle:
     def __init__(self, pid: int, still, fd: int | None) -> None:
         self.pid, self.still, self.fd = pid, still, fd
 
-    def kill(self) -> None:
+    def kill(self) -> bool:
+        """Whether the signal was sent."""
         try:
             if self.fd is not None:
                 signal.pidfd_send_signal(self.fd, signal.SIGKILL)
             elif self.still(self.pid):
                 os.kill(self.pid, signal.SIGKILL)
+            else:
+                return False
+            return True
         except OSError:
-            pass
+            return False
 
     def wait(self) -> bool:
         """Reaps it, if it is a child of this process."""
@@ -96,12 +107,17 @@ class _Handle:
 def _open(pid: int, still) -> _Handle | None:
     """A handle on `pid`, once `still(pid)` holds with its pidfd open, which
     keeps the PID from being reused; None otherwise."""
-    if not HAS_PIDFD:
+    if HAS_PIDFD:
+        try:
+            fd = os.pidfd_open(pid)
+        except OSError as e:
+            if e.errno != errno.ENOSYS:
+                return None
+            fd = None  # a kernel older than pidfd_open
+    else:
+        fd = None
+    if fd is None:
         return _Handle(pid, still, None) if still(pid) else None
-    try:
-        fd = os.pidfd_open(pid)
-    except OSError:
-        return None
     if still(pid):
         return _Handle(pid, still, fd)
     os.close(fd)
@@ -192,8 +208,8 @@ def reap_orphans() -> int:
             if h is None:
                 continue
             try:
-                h.kill()
-                count += h.wait()
+                if h.kill():
+                    count += h.wait()
             finally:
                 h.close()
     return count
