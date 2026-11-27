@@ -95,9 +95,11 @@ is: `t < u` may give an `Int`.
   right is `transferFromElement`. A misfit inside the left operand comes
   before every copy: `pz(idT(lT[0] or bv) or t1)` is `typeMismatch`. The
   model still copies the value of a call that returns a reference into a
-  temporary origin argument, `pz(same(T(1)))`, which the pin passes by
-  reference and accepts (#80), so such a call inside either operand
-  gives `implicitCopy` first.
+  temporary origin argument when that value is passed on, as in
+  `pz(same(T(1)))` or `same(same(T(1)))`, which the pin passes by
+  reference and accepts (#80): `pz(same(same(T(1))) or t2)` is
+  `implicitCopy` in the model, where the pin reports the `mut self`
+  receiver, `immutablePlace`.
 - A `var self` `__bool__` gets a copy of the left operand of `and` or
   `or`, on either path, even of a temporary or `p^`, since the left
   operand may be the result: a struct that is not `ImplicitlyCopyable`
