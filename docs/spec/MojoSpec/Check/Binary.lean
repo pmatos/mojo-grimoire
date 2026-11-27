@@ -70,7 +70,12 @@ $`\mathsf{Bool}`. Otherwise:
   same struct type (`sameTest`), the left one is copied only once the
   right one is checked, unless its `__bool__` takes a `var` or `deinit`
   `self` (`copiedLate`), and an `out` or `deinit` `self` is rejected only
-  then (`leftConvention`);
+  then (`leftConvention`). So the late copy of the left operand into
+  the result (`copiedLate`), for a `__bool__` that does not take a
+  `var` or `deinit` `self`, comes after both operands' own errors and
+  the left operand's test, in a subscript's index as outside it (#362):
+  `pz(t1 or t2)`, with a `mut self` `__bool__` and `t1` a `read`
+  parameter, is `immutablePlace`;
 * once both operands are checked, the operation is typed as
   `checkedBinaryTy` says, which checks the test of a struct operand on
   the right of `and` and `or`.
