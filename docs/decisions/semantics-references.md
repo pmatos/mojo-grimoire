@@ -18,9 +18,13 @@ choices (#18):
   the reference may not be changed through it: `r.v = 7` is
   `immutablePlace`, as the compiler reports it ("expression must be
   mutable in assignment"). The temporary lives until the reference's last
-  use, as the last bullet says. A `return` of such a call is still
-  rejected as `notAPlace`, where the compiler reports `escapingReference`
-  (#366).
+  use, as the last bullet says. A `return` of a reference that may
+  point into a temporary, `return r` after `ref r = pick(T(1), x, True)`
+  or `return same(r)`, is `escapingReference`, as the compiler reports it
+  ("cannot return reference with incompatible origin"): the binding
+  remembers that it may (`MojoGrimoire.Check.tempOrigin`). A `return` of
+  the call itself, `return same(T(1))`, is still rejected as
+  `notAPlace`, where the compiler reports `escapingReference` (#366).
 - A use of a reference needs every origin initialized, so a value moved
   away cannot be used through a reference to it. A value cannot be
   transferred out through a reference: `t^`, `t.f^`, `t^.f` and

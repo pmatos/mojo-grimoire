@@ -35,7 +35,7 @@ open MojoGrimoire.Core
 `mut`. -/
 def Access.canChange : Access → Bool
   | .readOnly | .refParam => false
-  | .alias _ m _ => m
+  | .alias _ m _ _ => m
   | _ => true
 
 /-- Whether the variable of the place `p` may be changed through; a place
@@ -118,14 +118,39 @@ def calleeOf : Expr → Name
   | .withDrops e _ _ => calleeOf e
   | _ => ""
 
-/-- The origins of the call `e` that returns a reference, and whether it may
-be changed through, a temporary origin argument left out. When `strict`
-holds, for a `return`, it rejects the call when an origin argument is not a
-located operand, as `notAPlace`, where the compiler reports an escaping
-reference (#366). -/
-def locatedOrigins (prog : Program) (strict : Bool) (e : Expr) : CheckM (List Place × Bool) := do
-  let some l ← locOfAs prog strict e | throw (CheckError.notAPlace (calleeOf e))
-  pure l
+/-- Whether the place `p` is reached through a reference that may point
+into a temporary. -/
+def throughTemp (p : Place) : CheckM Bool := do
+  pure (((← get).vars.find? (·.name == (splitPlace p).1)).any (·.access matches .alias _ _ _ true))
+
+mutual
+/-- Whether the located operand `e` may point into a temporary, which its
+origins leave out (#80): a reference bound to one, or a call with an origin
+argument that is a temporary or may point into one. -/
+def tempOrigin (prog : Program) : Expr → CheckM Bool
+  | .place p => throughTemp p
+  | .call f args => do
+    if (← findVar f).isSome then return false
+    match callSig prog f with
+    | .ok ⟨_, params, _, some os, _⟩ => tempArgs prog os params args
+    | _ => pure true
+  | .method p m args => do
+    let sig ← tryCatch (do pure (methodSig prog (← placeTy prog p) m args.length).toOption)
+      fun _ => pure none
+    let some ⟨self, params, _, some os, _⟩ := sig | pure true
+    if self.any (os.contains ·.name) && (← throughTemp p) then return true
+    tempArgs prog os params args
+  | .withDrops e _ _ => tempOrigin prog e
+  | _ => pure true
+
+/-- Whether an argument among `args` passed to a parameter among `params`
+that the names `os` of a callee's origin name may point into a temporary. -/
+def tempArgs (prog : Program) (os : List Name) : List Param → List Expr → CheckM Bool
+  | prm :: prms, a :: args => do
+    if os.contains prm.name && (← tempOrigin prog a) then return true
+    tempArgs prog os prms args
+  | _, _ => pure false
+end
 
 /-- Whether two places may be the same location or overlap: one is the other
 or a field of it. -/

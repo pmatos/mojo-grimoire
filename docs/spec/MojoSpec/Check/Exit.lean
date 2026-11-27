@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Ends, exits, joins and loops: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2031470269252978563")
+:::moduleDocs (fingerprint := "5032586348479960591")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -55,7 +55,7 @@ which the type phase skips: the compiler reports it after a function's
 other flow errors (#159).
 :::
 
-:::readable MojoGrimoire.Check.checkExit (fingerprint := "12649134421004998732")
+:::readable MojoGrimoire.Check.checkExit (fingerprint := "5419639758414477040")
 *Rule: a return.* When a function returns, each `mut` parameter and the
 `self` of `__init__` must be wholly initialized, since the caller holds
 them, with no piece in $`P`: otherwise the error is

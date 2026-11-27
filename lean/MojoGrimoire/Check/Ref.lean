@@ -7,7 +7,7 @@ point into, and whether it may be changed.
 A reference is bound with `ref x = e`, where `e` is a located operand
 (`MojoGrimoire.Check.locOf`): a place, or a call of a function or method
 that returns a reference, whose temporary origin arguments are left out
-(#80); a returned one may have none (#366). Its origins are the places it may point into: the
+(#80). Its origins are the places it may point into: the
 place itself, or the origins of the arguments, a method's receiver
 included, passed to the parameters that the callee's origin names. A
 reference may be changed only when every origin may be, and a use of it
@@ -31,13 +31,12 @@ a call, which rejects it (#176). A place through the element of an `Int`
 has no memory origin (`escapingReference`), which the compiler finds once
 it has typed the place, and, in a `return`, compared its type with the
 result type `expected`, before any later error (#127). A temporary origin
-argument is left out of the origins, but in a `return`, which rejects it as
-`notAPlace` (#366). -/
+argument is left out of the origins (#80). -/
 def refTarget (prog : Program) (fn : Name) (e : Expr) (expected : Option Ty := none) :
     CheckM (Ty × List Place × Bool) := do
   let located : CheckM (Ty × List Place × Bool) := do
     let t ← checkExprAs prog true e
-    let (origins, m) ← locatedOrigins prog expected.isSome e
+    let some (origins, m) ← locOf prog e | throw (CheckError.notAPlace (calleeOf e))
     pure (t, origins, m)
   match e with
   | .place p =>

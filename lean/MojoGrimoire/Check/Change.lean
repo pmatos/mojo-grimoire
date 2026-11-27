@@ -41,7 +41,7 @@ as a whole invalidates: those into an element of a list that it holds. -/
 def invalidatedBy (prog : Program) (m : Shape) : CheckM (List Name) := do
   let mut stale := []
   for v in (← get).vars do
-    if let .alias os _ _ := v.access then
+    if let .alias os _ _ _ := v.access then
       for o in os do
         if (splitPlace o).1 == m.1 then
           if invalidates m (← shapeOf prog o) then stale := v.name :: stale
@@ -66,7 +66,7 @@ reference bound with `ref` as one that may change when it is subscripted
 so. -/
 def Access.asSubscripted : Access → Access
   | .refParam => .mutable
-  | .alias os _ s => .alias os s s
+  | .alias os _ s t => .alias os s s t
   | a => a
 
 /-- Whether a variable held this way is passed to `__getitem__` as a
@@ -120,7 +120,7 @@ def subscript (prog : Program) (p : Place) (k : Nat) : CheckM Unit := do
 origin arguments that are temporaries left out; none for any other
 expression. -/
 def locsOf (prog : Program) (e : Expr) : CheckM (List Place) := do
-  pure (((← locOfAs prog false e).map (·.1)).getD [])
+  pure (((← locOf prog e).map (·.1)).getD [])
 
 /-- Rejects a place among the operands' locations `ls` that a later operand
 left uninitialized or invalidated: Mojo reads a place operand only once

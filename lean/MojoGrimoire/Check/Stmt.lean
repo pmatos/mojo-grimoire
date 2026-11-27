@@ -178,7 +178,8 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
       typedFirst (valueOwn prog e) (throw (CheckError.duplicate x))
     let (t, origins, m) ← refTarget prog sig.name e
     let sub ← refSubscripts prog e
-    modify fun s => { s with vars := ⟨x, t, .alias origins m sub, [], [], [], [], []⟩ :: s.vars }
+    let tmp ← tempOrigin prog e
+    modify fun s => { s with vars := ⟨x, t, .alias origins m sub tmp, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
     rejectSetterOnly prog p
     if let some g ← valueSubscript prog p then
@@ -240,8 +241,9 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
       checkInitValue prog sig.result e (checkReturnValue prog e)
     | some e, some os => do
       let (t, origins, _) ← refTarget prog sig.name e sig.result
+      if (← locOfAs prog true e).isNone then throw (CheckError.notAPlace (calleeOf e))
       expect sig.result t
-      unless ← origins.allM (withinOrigin prog os) do
+      unless (← origins.allM (withinOrigin prog os)) && !(← tempOrigin prog e) do
         throw (CheckError.escapingReference sig.name)
     checkExit prog
     modify fun s => { s with live := false }

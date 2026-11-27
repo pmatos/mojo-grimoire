@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Located operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8930867341562629023")
+:::moduleDocs (fingerprint := "16518836012555365344")
 :::
 
-:::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable MojoGrimoire.Check.passedMutable (fingerprint := "18189763797751499533")
+:::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable MojoGrimoire.Check.passedMutable (fingerprint := "4781551392938097025")
 *Definition: places that may change.* A function may change a place, by
 assigning to it or passing it `mut`, unless its variable is a `read` or
 `ref` parameter, or a reference that may not be changed; a `ref` binding
@@ -53,15 +53,18 @@ reads a located operand (`locOf`). Strictly, for a `return`, such a call
 is no located operand.
 :::
 
-:::readable MojoGrimoire.Check.calleeOf MojoGrimoire.Check.locatedOrigins (fingerprint := "9884788066451007940")
-*Rule: a call bound as a reference.* A call or a method call whose
-signature returns a reference, bound with `ref`, gives the origins of its
-located origin arguments, a temporary among them left out (#80). Returned,
-strictly, it must be a located operand: an argument passed to a parameter
-its origin names that is not one is rejected with
-$`\mathsf{notAPlace}`, where the compiler reports an escaping reference
-(#366). Passed to `len` or by reference, such a call is a location, its
-temporaries left out too.
+:::readable MojoGrimoire.Check.calleeOf MojoGrimoire.Check.throughTemp MojoGrimoire.Check.tempOrigin MojoGrimoire.Check.tempArgs (fingerprint := "17136805677901233987")
+*Rule: references into temporaries.* A located operand may point into a
+temporary, which its origins leave out (#80). That is the case for a place
+reached through a reference bound to one, and for a call with an origin
+argument that is a temporary, or that may point into one in turn. A
+reference bound with `ref` remembers it, so that a `return` of one that
+may is $`\mathsf{escapingReference}`, as the compiler reports it. The
+check comes after the type comparison, with the origins that do not stay
+within the function's own. A `return` of a call whose origin argument is
+itself a temporary is $`\mathsf{notAPlace}`, where the compiler reports an
+escaping reference (#366). The name of the callee is what that error
+reports (`calleeOf`).
 :::
 
 :::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.PassedLoc MojoGrimoire.Check.passedPlace MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "334350284564618373")
