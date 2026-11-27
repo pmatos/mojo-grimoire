@@ -123,7 +123,7 @@ private def sameT (bool : List String) : List String :=
 #guard runLines (sameT (m "__bool__" "" "Int" "self.n")) ==
   some (.rejected ⟨"main", .missingMethod .int "__mlir_bool__"⟩)
 #guard runLines (sameT ["def __bool__(mut self) -> Bool:", "    return True"]) matches
-  some (.rejected ⟨"main", .notAPlace _⟩)
+  some (.rejected ⟨"main", .immutablePlace _⟩)
 #guard runLines (sameT ["def __bool__(var self) -> Bool:", "    return self.n != 0"]) ==
   some (.finished ["3"])
 -- A `var self` gets a copy of the left operand, a temporary too: a struct
@@ -213,10 +213,10 @@ private def withU (body : List String) : Option Outcome :=
 -- of `__bool__`.
 #guard withU ["ls[bi(u)] = (True or V(True))"] matches some (.rejected ⟨"main", .typeMismatch ..⟩)
 #guard withU ["ls[bi(u)] = (not V(True))"] matches some (.rejected ⟨"main", .typeMismatch ..⟩)
--- Not yet: the `mut self` of the temporary `V(True)`, which the pin
--- reports as `immutablePlace` and the model as `notAPlace` (#81).
+-- The `mut self` of the temporary `V(True)`, a value that may not change,
+-- as the pin reports it (#81).
 #guard withU ["var z = (y or S(xs[1 - 2], True)) + (V(True) or v)"]
-  matches some (.rejected ⟨"main", .notAPlace _⟩)
+  matches some (.rejected ⟨"main", .immutablePlace _⟩)
 #guard runS ["var c = x^", "var w = (x.f and y.f) or y"] ==
   some (.rejected ⟨"main", .uninitializedUse (.field (.var "x") "f")⟩)
 -- Without a test of a struct: the type phase reports the pin's

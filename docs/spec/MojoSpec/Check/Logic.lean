@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "521385385582175644")
+:::moduleDocs (fingerprint := "11262284151602055139")
 :::
 
-:::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.checkedBinaryTy (fingerprint := "8972143178141132946")
+:::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.checkedBinaryTy (fingerprint := "8920481920898436421")
 *Rule: binary operations.* Once both operands are checked, the places
 among them that are read late are checked again, but for `and` and `or`,
 whose operands are read when tested; the operation then has the type
@@ -34,7 +34,8 @@ the state before it was checked, or, for a place, from the state after
 it.
 
 A `mut self` takes only a place that may change (`immutablePlace`) or
-a mutable returned reference, and no temporary (`notAPlace`, #81). An
+a mutable returned reference, and no temporary, which the compiler
+reports as a value that may not change (`immutablePlace`, #81). An
 `out` or `deinit` `self` takes nothing (`invalidConvention`), though the
 declaration's check rejects such a `__bool__` first.
 

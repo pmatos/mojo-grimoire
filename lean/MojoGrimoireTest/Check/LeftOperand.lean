@@ -43,9 +43,9 @@ private def wrapped : Expr := .call "idT" [nested]
 #guard failsWith (passing .out nested) (.invalidConvention "T.__bool__")
 #guard failsWith (passing .deinit wrapped) (.invalidConvention "T.__bool__")
 -- A `mut self` takes no temporary, a nested test or a call that returns a
--- value (`notAPlace`, where the compiler says `immutablePlace`, #81).
-#guard failsWith (passing .mutable nested) (Fit.call.misfit (.notAPlace "T.__bool__"))
-#guard failsWith (passing .mutable wrapped) (Fit.call.misfit (.notAPlace "T.__bool__"))
+-- value: the compiler reports it as a value that may not change (#81).
+#guard failsWith (passing .mutable nested) (Fit.call.misfit (.immutablePlace (.var "T.__bool__")))
+#guard failsWith (passing .mutable wrapped) (Fit.call.misfit (.immutablePlace (.var "T.__bool__")))
 -- A `read` or `var` `self` takes them, of the struct's type.
 #guard (passing .read nested matches .ok _) && (passing .owned wrapped matches .ok _)
 #guard failsWith ((passLeft none' ⟨.read, "self", t⟩ "T.__bool__" nested .int st st).run' st)
@@ -70,7 +70,7 @@ private def passFrom (c : Conv) (a : Expr) (before after : State) : Except Check
 #guard failsWith (passFrom .mutable (.transfer (.var "x")) (withX .readOnly []) (withX .owned []))
   (.transferFromBorrowed (.var "x"))
 #guard failsWith (passFrom .mutable (.transfer (.var "x")) (withX .owned []) (withX .readOnly []))
-  (Fit.call.misfit (.notAPlace "T.__bool__"))
+  (Fit.call.misfit (.immutablePlace (.var "T.__bool__")))
 
 /-- The form of an operand that `lackingTy` is given: `leaf` for an
 operand that is no binary operation, and an error for one that is, which

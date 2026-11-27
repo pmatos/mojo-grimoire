@@ -39,7 +39,12 @@ be copied implicitly: the compiler cannot synthesize the struct's copy
 initializer from its fields (#164). `valueAsType` is a type written as
 the name `name` that a variable or a parameter in scope hides
 (`MojoGrimoire.Core.hiddenTy`): the compiler reports the variable's value
-where it expects a type (#193). -/
+where it expects a type (#193). `immutablePlace` is a place `p` that may
+not change where a change needs it, or a temporary passed `mut` to the
+callee `p`: the compiler reports both alike (#81). `notAPlace` is an
+origin argument that is not a located operand of a reference bound with
+`ref`, which the compiler accepts (#80), or returned, which it reports as
+`escapingReference` (#366). -/
 inductive CheckError where
   | unknownVariable (name : Name)
   | unknownFunction (name : Name)

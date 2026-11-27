@@ -5,8 +5,8 @@ import MojoGrimoire.Check.Operators
 How a call reports an argument that does not fit its parameter (#46).
 
 A function or a method reports the misfit itself: a type mismatch, a wrong
-number of arguments, a value that is not a place, or a place that may not
-change, passed `mut`. An initializer reports every misfit as
+number of arguments, or a place that may not change passed `mut`, which a
+temporary passed `mut` is too (#81). An initializer reports every misfit as
 `noMatchingInit` of its type, since the compiler tries each initializer
 and reports only that none fits: a construction `S(…)`, and a literal that
 initializes the list or array expected where it stands, and `List[u](e)`
@@ -70,24 +70,33 @@ def Fit.misfit : Fit → CheckError → CheckError
 def expectArg (fit : Fit) (expected actual : Ty) : CheckM Unit :=
   unless expected == actual do throw (fit.misfit (CheckError.typeMismatch expected actual))
 
+/-- The error for a temporary passed `mut` to `callee`: a value that may
+not change, as the compiler reports it, whether a literal, a call's
+result, a construction, an operation or a transfer (#81). A temporary has
+no place, so the error names the place `callee`, as `checkArg` does for
+a returned reference that has no origin to name. -/
+def temporaryPassedMut (callee : Name) : CheckError :=
+  .immutablePlace (.var callee)
+
 /-- Rejects a value that is not a place passed to a parameter of convention
-`c`, of a call of `callee` of fit `fit`: it may not be passed `mut`, `out`
-or `deinit`. -/
+`c`, of a call of `callee` of fit `fit`: it may not be passed `out` or
+`deinit`, nor `mut` (`temporaryPassedMut`). -/
 def passValue (fit : Fit) (callee : Name) (c : Conv) : CheckM Unit := do
   if c == .out || c == .deinit then throw (CheckError.invalidConvention callee)
-  if c == .mutable then throw (fit.misfit (CheckError.notAPlace callee))
+  if c == .mutable then throw (fit.misfit (temporaryPassedMut callee))
 
 /-- The error for a value `e` passed `mut` to `callee`, of a call of fit
-`fit`: `notAPlace`, but `notAList` for a subscript of a struct that Mojo
-reads late, as for any subscript of a struct used as a place beyond
-reading and assigning it, whose write-back is not yet modelled (#198). -/
+`fit`: `temporaryPassedMut`, but `notAList` for a subscript of a struct
+that Mojo reads late, as for any subscript of a struct used as a place
+beyond reading and assigning it, whose write-back is not yet modelled
+(#198). -/
 def notPlaceError (prog : Program) (fit : Fit) (callee : Name) (e : Expr) : CheckError :=
   fit.misfit <| match e with
   | .call g _ =>
-    match calleeMethod g with
-    | some (s, _, _) => if lateGetter prog g then .notAList (.struct s) else .notAPlace callee
-    | none => .notAPlace callee
-  | _ => .notAPlace callee
+    match calleeMethod g, lateGetter prog g with
+    | some (s, _, _), true => .notAList (.struct s)
+    | _, _ => temporaryPassedMut callee
+  | _ => temporaryPassedMut callee
 
 /-- Rejects the type `t` as `valueAsType` when a variable hides a name in
 it (`MojoGrimoire.Core.hiddenTy`): the type of a declared variable, before

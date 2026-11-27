@@ -30,9 +30,11 @@ with `scripts/conformance.py record --mojo WRAPPER` from the nightly
   `__bool__` in a condition (#195) and the destructor of a struct never
   used (#264).
 - `order9/`: Part 9's probes of the order inside a call that the model
-  rejects for another reason: a temporary passed `mut` (#81), an element
-  of an `Int` passed `mut` (#222), and an unknown function, which the
-  compiler calls an unknown declaration.
+  rejects for another reason: an element of an `Int` passed `mut`
+  (#222), and an unknown function, which the compiler calls an unknown
+  declaration. `call_c19`, `call_d05` and `call_d15`, a temporary passed
+  `mut`, have agreed since the model reported it as `immutablePlace`, as
+  the compiler does (#81).
 - `order11/`: Part 11's probes of the order inside declarations that the
   model rejects for another reason: an unknown type name (#237).
   `decl_cmp_c1` and `decl_cmp_c3`, comparisons with a literal operand

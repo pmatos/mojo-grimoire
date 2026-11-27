@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "immutablePlace",
+  "diagnostic": "invalid call to 'bump': value passed to mutable argument 'x' must be mutable"
+}
