@@ -300,10 +300,17 @@ declarations that `scripts/explorer-ui/tokens.json` names. Their anchors
 come from the rendered HTML, and a name with no anchor is a warning at
 start.
 
-The server runs arbitrary code. It listens on 127.0.0.1 only. Every API
-call needs the session's token, printed in the URL at start, and the
-explorer's own Host and Origin. Each run gets a fresh temporary
-directory, a timeout and an output cap, and it is killed by its own
-process group. Its tests, `scripts/test_explorer.py`, are run by hand.
+The server runs arbitrary code, on 127.0.0.1 only. Each API call needs
+the session's token and the explorer's Host; a POST also needs its
+Origin, and any Origin sent must be its own. The page keeps the token in
+the tab's session storage. The spec, whose pages run outside scripts, is
+served sandboxed on a port of its own, with no API, so that no link into
+it can reach the API. Each run gets a fresh temporary directory, a
+timeout, an output cap and resource limits, and a few run at once. Its
+process group, its descendants and every process that carries its marker
+in the environment are then killed. A descendant that leaves the tree and
+clears its environment escapes, under the same limits.
+
+Its tests, `scripts/test_explorer*.py`, are run by hand.
 Running them as a hook waits on the human's ruling (#371), since a hook
 adds checking machinery.

@@ -1,17 +1,13 @@
-"""Tests for the explorer, scripts/explorer.py and its explorer_*.py modules.
-Run: python scripts/test_explorer.py"""
+"""Tests for the explorer, scripts/explorer.py: its runners, verdicts, spec
+index and suite. test_explorer_proc.py tests its processes, and
+test_explorer_server.py its servers.
+Run: python -m unittest discover -s scripts -p 'test_explorer*.py'"""
 
 import json
 import os
 import stat
-import sys
 import tempfile
-import threading
-import time
 import unittest
-import urllib.error
-import urllib.request
-from argparse import Namespace
 from pathlib import Path
 
 import explorer
@@ -102,41 +98,6 @@ class SameResultAsTheSuite(unittest.TestCase):
             model = script(Path(tmp), "m", '#!/bin/sh\necho "$2 $3"\n')
             report = run.run_on_model("x", model, 77, LIMITS)
             self.assertEqual(report["_result"].stdout, ("--fuel 77",))
-
-
-class Processes(unittest.TestCase):
-    def test_timeout_kills_the_group(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            start = time.monotonic()
-            proc = run.run_capped(
-                ["sh", "-c", "sleep 30 & sleep 30"], Path(tmp), 0.5, 1000
-            )
-            self.assertTrue(proc.timed_out)
-            self.assertIsNone(proc.code)
-            self.assertLess(time.monotonic() - start, 10)
-
-    def test_output_cap(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            argv = [sys.executable, "-c", "while True: print('x' * 100)"]
-            proc = run.run_capped(argv, Path(tmp), 20, 5000)
-            self.assertTrue(proc.overflowed)
-            self.assertLessEqual(len(proc.stdout), 5000)
-
-    def test_runs_in_its_directory_and_ends_with_its_children(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            start = time.monotonic()
-            proc = run.run_capped(["sh", "-c", "sleep 30 & pwd"], Path(tmp), 20, 1000)
-            self.assertEqual(proc.code, 0)
-            self.assertEqual(Path(proc.stdout.strip()).resolve(), Path(tmp).resolve())
-            self.assertLess(time.monotonic() - start, 10)
-
-    def test_a_timed_out_build_is_an_error(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            slow = script(Path(tmp), "slow", "#!/bin/sh\nsleep 30\n")
-            limits = run.Limits(build=0.5, run=1, model=1, output=100)
-            report = run.run_on_compiler("x", str(slow), PATTERNS, (), limits)
-            self.assertEqual(report["_result"].outcome, "error")
-            self.assertIn("timed out", report["_result"].detail)
 
 
 class Verdicts(unittest.TestCase):
@@ -230,8 +191,8 @@ class SpecIndex(unittest.TestCase):
             index = spec.build_index(self.make(Path(name)))
             decl = index.get("MojoGrimoire.Check.CheckError.notAPlace")
             self.assertEqual(
-                decl.url(),
-                "/spec/Errors/#MojoGrimoire___Check___CheckError___notAPlace",
+                decl.url("http://127.0.0.1:9"),
+                "http://127.0.0.1:9/Errors/#MojoGrimoire___Check___CheckError___notAPlace",
             )
             self.assertEqual((decl.sig, decl.doc), ("A.b : Nat", "Some `b` doc."))
             self.assertIsNone(
@@ -294,138 +255,6 @@ class TheSuite(unittest.TestCase):
         self.assertEqual(entry["bug"]["issue"], 324)
         self.assertIn("D-0002", decision_entries())
         self.assertEqual(normalized("a  \r\nb\n\n"), "a\nb")
-
-
-class Security(unittest.TestCase):
-    def setUp(self):
-        self.ex = explorer.Explorer.__new__(explorer.Explorer)
-        self.ex.token, self.ex.port = "s3cret", 8370
-        self.ex.index = spec.SpecIndex(
-            HERE.parent / "docs" / "spec" / "_out" / "html-multi"
-        )
-        self.good = {
-            "Host": "127.0.0.1:8370",
-            "Origin": "http://127.0.0.1:8370",
-            "X-Explorer-Token": "s3cret",
-        }
-
-    def refused(self, headers, api=True, method="POST"):
-        try:
-            self.ex.check_request(headers, api, method)
-        except explorer.Refused as e:
-            return e.status
-        return None
-
-    def test_checks(self):
-        self.assertIsNone(self.refused(self.good))
-        self.assertIsNone(
-            self.refused(
-                {
-                    **self.good,
-                    "Host": "localhost:8370",
-                    "Origin": "http://localhost:8370",
-                }
-            )
-        )
-        self.assertEqual(self.refused({**self.good, "Host": "evil.test:8370"}), 421)
-        self.assertEqual(self.refused({**self.good, "Origin": "http://evil.test"}), 403)
-        self.assertEqual(self.refused({**self.good, "X-Explorer-Token": "nope"}), 401)
-        no_token = {k: v for k, v in self.good.items() if k != "X-Explorer-Token"}
-        self.assertEqual(self.refused(no_token), 401)
-        no_origin = {k: v for k, v in self.good.items() if k != "Origin"}
-        self.assertEqual(self.refused(no_origin), 403)
-        self.assertIsNone(self.refused(no_origin, method="GET"))
-        self.assertEqual(
-            self.refused({**self.good, "Sec-Fetch-Site": "cross-site"}), 403
-        )
-        self.assertIsNone(
-            self.refused({"Host": "127.0.0.1:8370"}, api=False, method="GET")
-        )
-
-    def test_static_paths_stay_inside(self):
-        self.assertEqual(self.ex.static_file("/"), explorer.UI / "index.html")
-        self.assertEqual(self.ex.static_file("/ui/app.js"), explorer.UI / "app.js")
-        for path in (
-            "/ui/../explorer.py",
-            "/ui/%2e%2e/explorer.py",
-            "/ui/%2E%2E%2Fexplorer.py",
-            "/spec/../../../AGENTS.md",
-            "/ui/x%00",
-            "/etc/passwd",
-            "/ui//etc/passwd",
-        ):
-            with self.subTest(path=path), self.assertRaises(explorer.Refused):
-                self.ex.static_file(path)
-
-    def test_bad_bodies(self):
-        with self.assertRaises(explorer.Refused):
-            self.ex.source_of({"source": 3})
-        with self.assertRaises(explorer.Refused):
-            self.ex.source_of({"source": "x" * (explorer.MAX_SOURCE + 1)})
-        for fuel in (-1, True, "9", 10**12):
-            with self.subTest(fuel=fuel), self.assertRaises(explorer.Refused):
-                self.ex.fuel_of({"fuel": fuel})
-        self.assertIsNone(self.ex.fuel_of({}))
-
-
-class OverHttp(unittest.TestCase):
-    """A run through the server, with the stand-in compiler and model."""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.tmp = tempfile.TemporaryDirectory()
-        model = script(Path(cls.tmp.name), "model", "#!/bin/sh\necho hi\n")
-        args = Namespace(
-            mojo=FAKE, model=str(model), spec="/nonexistent", port=0, jobs=2
-        )
-        cls.server, cls.ex = explorer.make_server(args)
-        cls.base = f"http://127.0.0.1:{cls.ex.port}"
-        threading.Thread(target=cls.server.serve_forever, daemon=True).start()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.server.shutdown()
-        cls.server.server_close()
-        cls.tmp.cleanup()
-
-    def call(self, path, body=None, **headers):
-        sent = {"X-Explorer-Token": self.ex.token, "Origin": self.base}
-        sent.update(headers)
-        data = json.dumps(body).encode() if body is not None else None
-        if data is not None:
-            sent["Content-Type"] = "application/json"
-        request = urllib.request.Request(self.base + path, data, sent)
-        try:
-            with urllib.request.urlopen(request, timeout=60) as res:
-                return res.status, json.loads(res.read())
-        except urllib.error.HTTPError as e:
-            with e:
-                return e.code, json.loads(e.read())
-
-    def test_listens_on_loopback_only(self):
-        self.assertEqual(self.server.server_address[0], "127.0.0.1")
-
-    def test_run(self):
-        source = 'def main():\n    print("hi")\n'
-        status, answer = self.call("/api/run", {"source": source})
-        self.assertEqual(status, 200)
-        self.assertEqual(answer["compiler"]["result"]["stdout"], ["hi"])
-        self.assertEqual(answer["verdict"]["state"], "agree")
-
-    def test_refusals(self):
-        self.assertEqual(self.call("/api/info", **{"X-Explorer-Token": "x"})[0], 401)
-        self.assertEqual(self.call("/api/info", Origin="http://evil.test")[0], 403)
-        self.assertEqual(self.call("/api/info", Host="evil.test")[0], 421)
-        self.assertEqual(self.call("/api/run", {"source": "x", "level": "-O9"})[0], 400)
-
-    def test_examples(self):
-        status, listing = self.call("/api/examples")
-        self.assertEqual(status, 200)
-        self.assertGreater(len(listing), 100)
-        status, example = self.call(
-            "/api/example?name=arrays/or_unevaluated_literal_length"
-        )
-        self.assertEqual((status, example["entry"]), (200, "D-0014"))
 
 
 if __name__ == "__main__":

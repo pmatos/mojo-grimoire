@@ -82,7 +82,8 @@ scripts/build-lean.sh && scripts/build-spec.sh
 scripts/explorer.py --mojo /path/to/wrapper/mojo    # or MOJO=... scripts/explorer.py
 ```
 
-Open the URL it prints, which carries the session's token. Ctrl/Cmd+Enter
+Open the URL it prints, which carries the session's token; the spec is
+served, sandboxed, on the next port. Ctrl/Cmd+Enter
 runs the program. A token of the editor links to its section of the spec,
 and the suite's programs are under Examples.
 [conformance.md](docs/decisions/conformance.md#the-explorer) says what it

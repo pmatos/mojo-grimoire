@@ -5,19 +5,23 @@ program on the pinned compiler and on the Lean model side by side
 
 Usage:
   scripts/explorer.py [--mojo WRAPPER] [--model EXE] [--spec DIR]
-                      [--port N] [--jobs N]
+                      [--port N] [--spec-port N] [--jobs N]
       Serves the explorer on http://127.0.0.1:N/, 8370 unless --port says,
-      and prints its URL with this session's token. The compiler is the
-      wrapper that scripts/install-mojo.sh prints, from --mojo or $MOJO; the
-      model is lean/.lake/build/bin/mojo-grimoire, built with
-      scripts/build-lean.sh; the spec is docs/spec/_out/html-multi, rendered
-      with scripts/build-spec.sh. --jobs N builds at most N programs at once
-      (4).
+      and the rendered spec on a port of its own, the next one unless
+      --spec-port says, and prints the explorer's URL with this session's
+      token. The compiler is the wrapper that scripts/install-mojo.sh
+      prints, from --mojo or $MOJO; the model is
+      lean/.lake/build/bin/mojo-grimoire, built with scripts/build-lean.sh;
+      the spec is docs/spec/_out/html-multi, rendered with
+      scripts/build-spec.sh. --jobs N runs at most N processes at once (4),
+      and queues at most twice as many more.
 
-It runs arbitrary code. It listens on 127.0.0.1 only; every API call needs
-the session's token and a Host, and an Origin when one is sent, of the
-explorer itself; each run has a fresh temporary directory, a timeout and a
-cap on its output.
+It runs arbitrary code. It listens on 127.0.0.1 only. Every API call needs
+the session's token and the explorer's own Host, and the explorer's Origin
+when one is sent, as a POST always sends one; the spec is served on another
+origin, sandboxed (explorer_specsite.py). Each run has a fresh temporary
+directory, a timeout, a cap on its output and resource limits
+(explorer_proc.py).
 """
 
 from __future__ import annotations
@@ -25,7 +29,6 @@ from __future__ import annotations
 import argparse
 import hmac
 import json
-import mimetypes
 import os
 import secrets
 import subprocess
@@ -36,9 +39,16 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlsplit
 
+import explorer_proc
 import explorer_run as run
 import explorer_spec as spec
 from conformance import MODEL, ROOT, load_patterns
+from explorer_specsite import (
+    REQUEST_TIMEOUT,
+    contained_file,
+    content_type,
+    make_spec_server,
+)
 from explorer_suite import Suite
 
 UI = Path(__file__).resolve().parent / "explorer-ui"
@@ -48,7 +58,7 @@ MAX_SOURCE = 100 * 1024
 TOKEN_HEADER = "X-Explorer-Token"
 PAGE_POLICY = (
     "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
-    "connect-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'; "
+    "connect-src 'self'; frame-src {spec}; base-uri 'none'; form-action 'none'; "
     "frame-ancestors 'self'"
 )
 
@@ -63,14 +73,16 @@ class Explorer:
     """What the server knows for a session: its token, the compiler, the
     model, the spec's index and the suite."""
 
-    def __init__(self, args, port: int) -> None:
+    def __init__(self, args, port: int, spec_port: int) -> None:
         self.token = secrets.token_urlsafe(32)
         self.port = port
+        self.spec_base = f"http://127.0.0.1:{spec_port}"
+        self.policy = PAGE_POLICY.format(spec=self.spec_base)
         self.mojo = args.mojo
         self.model = Path(args.model)
         self.jobs = max(1, args.jobs)
         self.limits = run.Limits()
-        self.builds = threading.BoundedSemaphore(self.jobs)
+        explorer_proc.configure(self.jobs, 2 * self.jobs)
         self.patterns = load_patterns()
         self.suite = Suite()
         self.index = spec.build_index(Path(args.spec) if args.spec else None)
@@ -87,7 +99,7 @@ class Explorer:
             "levels": ["default", *run.SWEEP_LEVELS],
             "warnings": self.warnings,
         }
-        self.spec_payload = spec.spec_payload(self.tokens, self.index)
+        self.spec_payload = spec.spec_payload(self.tokens, self.index, self.spec_base)
 
     # --- the checks of a request -----------------------------------------
 
@@ -130,10 +142,7 @@ class Explorer:
         return fuel
 
     def compile(self, source: str, flags: tuple[str, ...]) -> dict:
-        with self.builds:
-            return run.run_on_compiler(
-                source, self.mojo, self.patterns, flags, self.limits
-            )
+        return run.run_on_compiler(source, self.mojo, self.patterns, flags, self.limits)
 
     def on_model(self, source: str, fuel: int | None) -> dict:
         return run.run_on_model(source, self.model, fuel, self.limits)
@@ -154,7 +163,9 @@ class Explorer:
             modelled = pool.submit(self.on_model, source, fuel)
             compiler, model = compiled.result(), modelled.result()
         example, suite = self.suite_of(source)
-        known = example.known if example and level == "default" else None
+        # known.json and the record are of the default build, which is -O3.
+        recorded_level = level in ("default", "-O3")
+        known = example.known if example and recorded_level else None
         expected, actual = compiler["_result"], model["_result"]
         answer = {
             "level": level,
@@ -163,7 +174,7 @@ class Explorer:
             "verdict": run.verdict(expected, actual, known),
             "suite": suite,
         }
-        if example and example.expected and level == "default":
+        if example and example.expected and recorded_level:
             answer["checkVerdict"] = run.verdict(example.expected, actual, known)
         return answer
 
@@ -203,22 +214,13 @@ class Explorer:
         raise Refused(404, "no such API")
 
     def static_file(self, path: str) -> Path:
-        """The file that a page path names, under the UI or the spec; never
-        one outside them."""
+        """The page's file that a path names, under the UI only; the spec
+        has its own server."""
         rel = unquote(path)
-        if "\0" in rel:
-            raise Refused(400, "bad path")
         if rel in ("/", "/index.html"):
             return UI / "index.html"
-        for prefix, base in (("/ui/", UI), ("/spec/", self.index.root)):
-            if base is not None and rel.startswith(prefix):
-                target = (base / rel[len(prefix) :]).resolve()
-                if not target.is_relative_to(base.resolve()):
-                    raise Refused(404, "outside the served directories")
-                if target.is_dir():
-                    target = target / "index.html"
-                if target.is_file():
-                    return target
+        if rel.startswith("/ui/") and (target := contained_file(UI, rel[4:])):
+            return target
         raise Refused(404, "not found")
 
 
@@ -269,6 +271,7 @@ def handler_for(explorer: Explorer):
     class Handler(BaseHTTPRequestHandler):
         server_version = "mojo-explorer"
         sys_version = ""
+        timeout = REQUEST_TIMEOUT
 
         def log_message(self, format, *args):
             sys.stderr.write(
@@ -285,7 +288,7 @@ def handler_for(explorer: Explorer):
             self.send_header("X-Frame-Options", "SAMEORIGIN")
             self.send_header("Cache-Control", "no-store")
             if page:
-                self.send_header("Content-Security-Policy", PAGE_POLICY)
+                self.send_header("Content-Security-Policy", explorer.policy)
             self.end_headers()
             self.wfile.write(body)
 
@@ -308,14 +311,9 @@ def handler_for(explorer: Explorer):
                 if method != "GET":
                     raise Refused(405, "method not allowed")
                 target = explorer.static_file(url.path)
-                kind = (
-                    mimetypes.guess_type(target.name)[0] or "application/octet-stream"
-                )
-                if kind.startswith("text/") or kind.endswith(("javascript", "json")):
-                    kind += "; charset=utf-8"
-                self.send(
-                    200, target.read_bytes(), kind, page=target.is_relative_to(UI)
-                )
+                self.send(200, target.read_bytes(), content_type(target), page=True)
+            except explorer_proc.Busy as e:
+                self.send_json(503, {"error": str(e)})
             except Refused as e:
                 self.send_json(e.status, {"error": str(e)})
             except Exception as e:
@@ -327,7 +325,10 @@ def handler_for(explorer: Explorer):
             kind = (self.headers.get("Content-Type") or "").split(";")[0].strip()
             if kind != "application/json":
                 raise Refused(415, "the body must be application/json")
-            length = int(self.headers.get("Content-Length") or 0)
+            given = (self.headers.get("Content-Length") or "").strip()
+            if not given.isdigit() or len(given) > 9:
+                raise Refused(400, "the body needs a valid Content-Length")
+            length = int(given)
             if not 0 < length <= MAX_BODY:
                 raise Refused(413, f"the body must be at most {MAX_BODY} bytes")
             try:
@@ -359,6 +360,9 @@ def parse_args(argv: list[str]):
     p.add_argument("--model", default=str(MODEL), help="the model's executable")
     p.add_argument("--spec", default=str(SPEC), help="the rendered spec")
     p.add_argument("--port", type=int, default=8370)
+    p.add_argument(
+        "--spec-port", type=int, help="the spec's port (default: --port + 1)"
+    )
     p.add_argument("--jobs", type=int, default=4)
     args = p.parse_args(argv)
     if not args.mojo:
@@ -366,19 +370,27 @@ def parse_args(argv: list[str]):
     return args
 
 
-def make_server(args) -> tuple[ThreadingHTTPServer, Explorer]:
-    """The server, bound to 127.0.0.1 only, and its session."""
+def make_servers(args):
+    """The explorer's server and the spec's, both bound to 127.0.0.1 only,
+    and the session."""
     server = ThreadingHTTPServer(("127.0.0.1", args.port), BaseHTTPRequestHandler)
     server.daemon_threads = True
-    explorer = Explorer(args, server.server_address[1])
+    port = server.server_address[1]
+    spec_port = (
+        args.spec_port if args.spec_port is not None else (port + 1 if port else 0)
+    )
+    root = Path(args.spec) if args.spec else None
+    site = make_spec_server(root if root and root.is_dir() else None, spec_port)
+    explorer = Explorer(args, port, site.server_address[1])
     server.RequestHandlerClass = handler_for(explorer)
-    return server, explorer
+    return server, site, explorer
 
 
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
-    server, explorer = make_server(args)
+    server, site, explorer = make_servers(args)
     port = explorer.port
+    threading.Thread(target=site.serve_forever, daemon=True).start()
     for w in explorer.warnings:
         print(f"warning: {w}", file=sys.stderr)
     print(f"compiler: {explorer.info['compiler']}")
@@ -389,6 +401,8 @@ def main(argv: list[str]) -> int:
         pass
     finally:
         server.server_close()
+        site.shutdown()
+        site.server_close()
     return 0
 
 

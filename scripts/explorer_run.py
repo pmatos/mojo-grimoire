@@ -16,11 +16,7 @@ from __future__ import annotations
 
 import os
 import re
-import signal
-import subprocess
 import tempfile
-import threading
-import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -36,6 +32,7 @@ from conformance_compiler import (
     level_differences,
     lines,
 )
+from explorer_proc import Proc, rlimits, run_capped
 
 PROGRAM = "program.mojo"
 SWEEP_LEVELS = ("-O0", "-O1", "-O2", "-O3", "ASSERT=all")
@@ -43,97 +40,25 @@ SWEEP_LEVELS = ("-O0", "-O1", "-O2", "-O3", "ASSERT=all")
 
 @dataclass(frozen=True)
 class Limits:
-    """How long each step may take, in seconds, and how many bytes each of
-    its two output streams may hold."""
+    """How long each step may take, in seconds, how many bytes each of its
+    two output streams may hold, and the resource limits of each child:
+    its address space and file size in bytes, and how many tasks it may
+    add to the user's."""
 
     build: float = 300.0
     run: float = 30.0
     model: float = 60.0
     output: int = 1 << 20
+    memory: int = 16 << 30
+    fsize: int = 1 << 30
+    tasks: int = 512
+
+    def of(self, timeout: float) -> dict[str, int]:
+        return rlimits(timeout, self.memory, self.fsize, self.tasks)
 
 
-@dataclass
-class Proc:
-    """How a process that the explorer started ended."""
-
-    code: int | None
-    stdout: str
-    stderr: str
-    seconds: float
-    timed_out: bool = False
-    overflowed: bool = False
-
-
-def _drain(stream, cap: int, sink: bytearray, over: threading.Event) -> None:
-    while chunk := os.read(stream.fileno(), 65536):
-        room = cap - len(sink)
-        sink.extend(chunk[: max(room, 0)])
-        if len(chunk) > room:
-            over.set()
-            break
-    stream.close()
-
-
-def _exited(pid: int) -> bool:
-    """Whether the child has exited, leaving it unreaped, so that its PID,
-    which is also its process group's id, cannot be reused yet."""
-    info = os.waitid(os.P_PID, pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
-    return info is not None
-
-
-def _kill_group(pid: int) -> None:
-    """Kills the process group of a child that the explorer started in a
-    session of its own: the compiler's driver and a program's children go
-    with it. Only the PID that Popen returned is ever used."""
-    try:
-        os.killpg(pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
-
-
-def _text(data: bytearray) -> str:
-    return bytes(data).decode("utf-8", "replace").replace("\r\n", "\n")
-
-
-def run_capped(argv: list[str], cwd: Path, timeout: float, cap: int) -> Proc:
-    """Runs `argv` in `cwd` with no shell, no input, at most `timeout`
-    seconds and at most `cap` bytes on each stream; past either, the whole
-    process group is killed. OSError when it cannot start."""
-    start = time.monotonic()
-    proc = subprocess.Popen(
-        argv,
-        cwd=cwd,
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        start_new_session=True,
-    )
-    over = threading.Event()
-    out, err = bytearray(), bytearray()
-    readers = [
-        threading.Thread(target=_drain, args=(proc.stdout, cap, out, over)),
-        threading.Thread(target=_drain, args=(proc.stderr, cap, err, over)),
-    ]
-    for r in readers:
-        r.daemon = True
-        r.start()
-    timed_out = False
-    try:
-        while not _exited(proc.pid):
-            if over.is_set():
-                break
-            if time.monotonic() - start > timeout:
-                timed_out = True
-                break
-            time.sleep(0.01)
-    finally:
-        _kill_group(proc.pid)
-        proc.wait()
-    seconds = time.monotonic() - start
-    for r in readers:
-        r.join(5)
-    code = None if timed_out or over.is_set() else proc.returncode
-    return Proc(code, _text(out), _text(err), seconds, timed_out, over.is_set())
+def _run(argv: list[str], cwd: Path, timeout: float, limits: Limits) -> Proc:
+    return run_capped(argv, cwd, timeout, limits.output, limits.of(timeout))
 
 
 def _stopped(proc: Proc, step: str, cmd: str, limits: Limits) -> Result | None:
@@ -207,18 +132,18 @@ def run_on_compiler(
         program, binary = tmp / PROGRAM, tmp / "program"
         program.write_text(source)
         try:
-            build = run_capped(
+            build = _run(
                 [mojo, "build", *flags, str(program), "-o", str(binary)],
                 tmp,
                 limits.build,
-                limits.output,
+                limits,
             )
             report["build"] = _step(build, tmp)
             report["diagnostics"] = diagnostics(build.stderr, program)
             result = _stopped(build, "the build", mojo, limits)
             run = None
             if result is None and build.code == 0:
-                run = run_capped([str(binary)], tmp, limits.run, limits.output)
+                run = _run([str(binary)], tmp, limits.run, limits)
                 report["run"] = _step(run, tmp)
                 result = _stopped(run, "the program", str(binary), limits)
             if result is None:
@@ -264,7 +189,7 @@ def run_on_model(source: str, model: Path, fuel: int | None, limits: Limits) -> 
         if fuel is not None:
             argv += ["--fuel", str(fuel)]
         try:
-            proc = run_capped(argv, tmp, limits.model, limits.output)
+            proc = _run(argv, tmp, limits.model, limits)
         except OSError as e:
             proc = None
             result = Result("error", (), None, f"cannot run: {e}")

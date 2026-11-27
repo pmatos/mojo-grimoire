@@ -26,15 +26,17 @@
     "",
   ].join("\n");
 
-  // The token comes in the URL the server prints; it is kept for this
-  // origin, whose port changes with each server, and dropped from the URL.
+  // The token comes in the URL the server prints. It is kept in this tab's
+  // sessionStorage, never localStorage, so that it lasts a reload, and is
+  // dropped from the URL at once.
   function token() {
     const params = new URLSearchParams(location.search);
+    const given = params.get("token");
     try {
-      if (params.has("token")) localStorage.setItem("explorer-token", params.get("token"));
-      return localStorage.getItem("explorer-token") || params.get("token");
+      if (given) sessionStorage.setItem("explorer-token", given);
+      return sessionStorage.getItem("explorer-token") || given;
     } catch (e) {
-      return params.get("token");
+      return given;
     }
   }
   const TOKEN = token();
@@ -142,7 +144,8 @@
   function declLine(source, decl) {
     if (!decl) return null;
     const lines = source.split("\n");
-    const [owner, member] = decl.includes(".") ? decl.split(".") : [null, decl];
+    const quote = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const [owner, member] = (decl.includes(".") ? decl.split(".") : [null, decl]).map((x) => x && quote(x));
     let from = 0;
     if (owner) {
       from = lines.findIndex((l) => new RegExp(`^struct\\s+${owner}\\b`).test(l));
@@ -206,7 +209,10 @@
       const answer = await api("/api/sweep", { source, fuel: settings().fuel });
       Render.sweep($("sweep-panel"), answer);
       const differ = answer.levels.filter((r) => r.differs).length;
-      $("verdict").dataset.state = differ ? "known" : "agree";
+      // Amber only when a ruling covers the program; any other difference
+      // between levels is a red flag.
+      const ruled = answer.suite && answer.suite.entry;
+      $("verdict").dataset.state = differ ? (ruled ? "known" : "disagree") : "agree";
       $("verdict-badge").textContent = differ ? `${differ} level${differ > 1 ? "s differ" : " differs"}` : "Levels agree";
       $("verdict-detail").textContent = "The sweep's table shows each level; Run gives the panes for one level.";
     });

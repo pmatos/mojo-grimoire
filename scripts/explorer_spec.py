@@ -92,13 +92,14 @@ class Decl:
     sig: str = ""
     doc: str = ""
 
-    def url(self) -> str:
-        return f"/spec/{self.page}#{anchor_of(self.name)}"
+    def url(self, base: str = "") -> str:
+        """The declaration's address on the spec's server at `base`."""
+        return f"{base}/{self.page}#{anchor_of(self.name)}"
 
-    def to_json(self) -> dict:
+    def to_json(self, base: str = "") -> dict:
         return {
             "name": self.name,
-            "url": self.url(),
+            "url": self.url(base),
             "title": self.title,
             "sig": self.sig,
             "doc": self.doc,
@@ -181,11 +182,11 @@ def check_tokens(tokens: dict[str, dict], index: SpecIndex) -> list[str]:
     ]
 
 
-def spec_payload(tokens: dict[str, dict], index: SpecIndex) -> dict:
+def spec_payload(tokens: dict[str, dict], index: SpecIndex, base: str = "") -> dict:
     """What the page needs to link tokens and error classes."""
 
     def card(d: Decl) -> dict:
-        data = d.to_json()
+        data = d.to_json(base)
         parent = index.get(d.name.rsplit(".", 1)[0])
         if not d.doc and parent is not None and parent.doc:
             data["parent"] = {"name": parent.name, "doc": parent.doc}
@@ -207,6 +208,7 @@ def spec_payload(tokens: dict[str, dict], index: SpecIndex) -> dict:
     }
     return {
         "available": index.root is not None,
+        "base": base,
         "commit": index.commit,
         "tokens": linked,
         "classes": classes,
