@@ -120,13 +120,72 @@ def checkInit (prog : Program) (phase : Phase) (stage : Stage) (s : Name) (fd : 
   checkConventions fd.name fd.params.tail
   checkBody prog phase stage fd
 
-/-- Checks a struct's own declaration, which the compiler checks with the
-free functions, in the order of the declarations: its fields and methods
-have distinct names, and its fields declarable types. -/
-def checkFields (prog : Program) (sd : StructDecl) : Except CheckError Unit := do
-  checkDistinct (sd.fields.map (·.1) ++ sd.methods.map (·.name))
+/-- Checks the fields of the struct `sd`, as the compiler does when it
+resolves the struct's declaration: they have distinct names, no method has
+the name of a field, and they have declarable types. Two methods of one
+name are not checked here: `checkTypes` checks them once the struct is
+resolved. -/
+def checkFieldDecls (prog : Program) (sd : StructDecl) : Except CheckError Unit := do
+  checkDistinct (sd.fields.map (·.1))
+  for fd in sd.methods do
+    if sd.fields.any (·.1 == fd.name) then throw (.duplicate fd.name)
   for (_, t) in sd.fields do
     unless validTy prog t do throw (.invalidType t)
+
+/-- The struct that the elements of a list or an array of type `t` lead
+to, under any number of lists and arrays; none for any other type. -/
+def containerStruct : Ty → Option Name
+  | .list u | .array u _ => match elemBase u with
+    | .struct v => some v
+    | _ => none
+  | _ => none
+
+/-- Whether `t` is a list or an array whose elements are lists or arrays
+too. -/
+def nestedContainer : Ty → Bool
+  | .list (.list _) | .list (.array _ _) | .array (.list _) _ | .array (.array _ _) _ => true
+  | _ => false
+
+/-- Resolves the declaration of the struct `s`, as the compiler's first
+pass does at its place in the source, or earlier, when a struct resolved
+before it reaches it (#358). `started` holds the structs resolved or being
+resolved, and `stack` those being resolved, innermost first, each with
+whether the field through which its resolution went on holds a list. It
+gives `started` with the structs resolved.
+
+The struct's fields are checked first (`checkFieldDecls`). Then, field by
+field, a field that is a list or an array of a struct leads to that
+struct, which is resolved now if it is not yet. A struct that declares no
+`__deinit__` gets one synthesized, which needs each such field's type to
+be `Deinitable`: when its struct is still being resolved, the field closes
+a cycle, and is rejected there unless the cycle has a field through a
+list, which the fixed compiler accepts (D-0006). A struct that declares
+`__deinit__` goes on only through a field of lists or arrays of lists or
+arrays, and is never rejected so. A field of a struct type leads nowhere
+here. The fuel, one more than the program's structs, never runs out, since
+each call resolves a struct not started yet; if it did, the struct would be
+rejected, never accepted unchecked. -/
+def resolveStruct (prog : Program) :
+    Nat → List (Name × Bool) → List Name → Name → Except Rejection (List Name)
+  | 0, _, _, s => throw ⟨s, .recursiveStruct s⟩
+  | fuel + 1, stack, started, s =>
+    if started.contains s then pure started else
+    match findStruct prog s with
+    | none => pure started
+    | some sd => do
+      (checkFieldDecls prog sd).mapError (⟨s, ·⟩)
+      let synthesized := sd.deinit.isNone
+      let mut started := s :: started
+      for (_, t) in sd.fields do
+        let some v := containerStruct t | continue
+        unless synthesized || nestedContainer t do continue
+        let path := (s, throughList t) :: stack
+        if !started.contains v then
+          started ← resolveStruct prog fuel path started v
+        else if synthesized then
+          if let some i := path.findIdx? (·.1 == v) then
+            unless (path.take (i + 1)).any (·.2) do throw ⟨s, .recursiveStruct s⟩
+      pure started
 
 /-- The member `m` of the struct `sd` that has a body, with where it is
 and its check in a phase, up to a stage: its initializer, its destructor,
@@ -196,8 +255,9 @@ Then, in the order of the declarations, each free function, with `main`'s
 signature, resolved and then of the shape that takes nothing and returns
 nothing, before its conventions and its body,
 and a function of the name of an earlier one, and each struct's own
-declaration (`checkFields`). Last, each struct in the order of the
-declarations (`checkStruct`). -/
+declaration: resolved, unless a struct before it resolved it already
+(`resolveStruct`), and then no two of its methods have one name. Last,
+each struct in the order of the declarations (`checkStruct`). -/
 def checkTypes (prog : Program) : Except Rejection (List Rejection) := do
   let structs := prog.structs.map (·.name)
   (checkDistinct structs).mapError (⟨"", ·⟩)
@@ -206,6 +266,7 @@ def checkTypes (prog : Program) : Except Rejection (List Rejection) := do
   let mut missing : List Rejection := []
   let mut seen : List Name := []
   let mut declared : List (StructDecl × List Member) := []
+  let mut started : List Name := []
   for d in prog.declOrder do
     match d with
     | .func i =>
@@ -218,7 +279,8 @@ def checkTypes (prog : Program) : Except Rejection (List Rejection) := do
       missing := missing ++ (← located fd.name (checkFun prog .type .ends fd))
     | .struct i ms =>
       let some sd := prog.structs[i]? | continue
-      (checkFields prog sd).mapError (⟨sd.name, ·⟩)
+      started ← resolveStruct prog (prog.structs.length + 1) [] started sd.name
+      (checkDistinct (sd.methods.map (·.name))).mapError (⟨sd.name, ·⟩)
       declared := (sd, ms) :: declared
   for (sd, ms) in declared.reverse do
     missing := missing ++ (← checkStruct prog sd ms)
