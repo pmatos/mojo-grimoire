@@ -15,6 +15,7 @@ import MojoGrimoire.Check.Operators
 import MojoGrimoire.Check.Methods
 import MojoGrimoire.Check.Compare
 import MojoGrimoire.Check.Logic
+import MojoGrimoire.Check.Binary
 import MojoGrimoire.Check.Elems
 import MojoGrimoire.Check.Range
 import MojoGrimoire.Check.Expr

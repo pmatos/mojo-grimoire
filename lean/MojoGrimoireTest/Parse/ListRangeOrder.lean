@@ -5,7 +5,7 @@ import MojoGrimoire.Interp.Run
 Tests of the order in which the errors among the arguments of
 `List[T](range(…))` are reported (#121): the compiler's order of passes,
 each case checked on the nightly 1.3.0.dev2026111905, and the limits of the
-model, which the compiler's tiered order leaves to #96. The forms and the
+model, which the compiler's tiered order leaves to #339. The forms and the
 values of the range are tested in `MojoGrimoireTest.Parse.ListRange`.
 -/
 
@@ -188,9 +188,10 @@ private def rangeOf (args : String) : String := s!"print(List[Int](range({args})
 #guard rejectsWith (rangeOf "h(p) + 0, b") (.implicitCopy (.struct "P"))
 #guard rejectsWith (rangeOf "1, [h(p) + 0, 1], u") (.implicitCopy (.struct "P"))
 
--- Limits of the compiler's tiered order, left to #96, which pin the model.
--- A constant index into an array comes before the literal on the compiler,
--- and before an index into a list; the model reports it as any index.
+-- The order of a literal and a constant index into an array, which the
+-- compiler's levels disagree on and #331 rules undefined: the model reports
+-- the literal first, `-O0`'s order, and this pins it. At `-O3` the index
+-- comes first. An array index beside an index into a list is left to #339.
 #guard rejectsWith "var a: Array[Int, 2] = [1, 2]\n    print(List[Int](range([1, 2], a[2])))"
   (.noMatchingInit (.list .int))
 -- A nested `List[Int](range(…))` of a literal of `Int`s fails only when

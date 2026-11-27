@@ -14,7 +14,8 @@ from a source that is not a list or an array of `u` that can be copied,
 or from `range(…)` with arguments that fit no form of `range` (#121). A
 literal passed to a function or a method is converted to its parameter's
 type, and the compiler reports one that does not fit, also inside it, as a
-type mismatch. A literal with no expected type takes the type of its
+type mismatch; a literal with no type that is or holds an empty literal
+fits no type but a list or an array (#341). A literal with no expected type takes the type of its
 elements, and an element that differs from the first is a type mismatch
 too. A literal of type `Int`, which inference keeps only for `[e]` of one
 `Int` element made of literals and operators, or passed `mut` or `ref`,
@@ -35,8 +36,11 @@ one to three `Int`s, read as `read` arguments, and needs `u` to be `Int`;
 any misfit is `noMatchingInit` (#121). Its errors come in the compiler's
 order of passes: typing errors in any argument first, then the misfits of
 `range`, then uses of uninitialized or invalidated values, then a literal
-of `Int`s of the wrong length, then a constant index out of range. The
-compiler's order is tiered more finely, which is left to #339. Anywhere
+of `Int`s of the wrong length, then a constant index out of range. Between
+a literal and a constant index into an array the compiler's order depends
+on the optimization level and is left undefined, and the model reports the
+literal first, `-O0`'s order (#331); otherwise the compiler's order is
+tiered more finely, which is left to #339. Anywhere
 else `range` is an unknown function, and a string literal outside `print`
 is `stringOutsidePrint`; the driver finds such a program outside the
 subset before the checker runs (`MojoGrimoire.Parse.Subset`, #180).
@@ -111,6 +115,20 @@ def iterableFits (prog : Program) (u t : Ty) : CheckM Unit := do
   unless (elemOf t).toOption == some u && copyingOf prog t != .none do
     throw (CheckError.noMatchingInit (.list u))
 
+/-- Whether the literal `e` with no type expected is empty, or its first
+element is such a literal: passed to `len`, it has no type (#341). -/
+def emptyFirst : Expr → Bool
+  | .list .unknown [] => true
+  | .list .unknown (e :: _) => emptyFirst e
+  | _ => false
+
+/-- Whether the literal `e` is empty, or holds an empty literal at any
+depth of its literals: it has no type of its own (#341). -/
+def holdsEmpty : Expr → Bool
+  | .list _ [] => true
+  | .list _ es => es.attach.any fun ⟨e, _⟩ => holdsEmpty e
+  | _ => false
+
 /-- The type of a literal `[e₁, …, eₙ]` with no type expected that is the
 argument of `List[u](…)`, given the type of each element, with the places
 it is read from and when it was checked: an array of the type of `e₁`. The
@@ -147,7 +165,8 @@ def holdsStrOrRangeList (prog : Program) : List Expr → Bool
 end
 
 /-- What reading the arguments of the standard library's `range` finds of
-the instantiation phase's errors, which report in this order (#121):
+the instantiation phase's errors, which the model reports in this order
+(#121, #331):
 `literal`, a nested literal of `Int`s of the wrong length, which fails when
 the call is instantiated; `index`, the first constant index out of range.
 `locs` holds the places that the arguments read late, each with its mark,

@@ -46,7 +46,8 @@ literal to it, on the left only when the comparison conforms
 (`MojoGrimoire.Check.convertsTo`). A comparison with a literal that
 holds a place whose value is not implicitly copyable, as the checker's
 `MojoGrimoire.Check.heldCopy` finds it, keeps the expectations it had
-before #166.
+before #166, unless its fit decides its order, as the checker's
+`MojoGrimoire.Check.keepsBefore` decides it (#338).
 :::
 
 :::readable MojoGrimoire.Parse.TyEnv.retype MojoGrimoire.Parse.TyEnv.retypeList MojoGrimoire.Parse.TyEnv.compared (fingerprint := "12263387979191851559")

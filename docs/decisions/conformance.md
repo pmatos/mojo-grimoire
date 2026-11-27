@@ -164,8 +164,13 @@ entry of the decision log. A bug that shows only below `-O3` is named in
 `compiler-bugs.json` alone, since the model agrees with the recorded result
 and `check` refuses a `known.json` entry for a program that agrees. No other
 list excuses a program. It is recorded from the default build, and
-`record` says that it differs. Otherwise a program that differs is either a
-compiler bug, which the human rules on, or a program to change.
+`record` says that it differs. Otherwise a program that differs is a
+compiler bug, which the human rules on, a program to change, or one whose
+first error is an order left undefined: a body that holds two errors of
+the instantiation phase, or one and a call of a function that holds
+another, whose first error differs between the levels. Such a program stays
+unrecorded
+([semantics-error-order.md](semantics-error-order.md#when-the-optimization-level-changes-the-order)).
 
 `scripts/conformance.py levels --mojo WRAPPER` builds every program at
 `-O0`, `-O1`, `-O2` and `-O3` and with `-D ASSERT=all`, lists each program
@@ -181,7 +186,7 @@ sweep of #242, one build crashed under parallel load and passed when built
 again. The first run found only the programs of D-0003 that read a field
 never set, whose output at `-O0` is uninitialized memory, and the program
 of D-0010; the program of D-0013, swept on its own after it was added,
-differs too.
+differs too, and so do the three of D-0014, which only `-O0` rejects.
 
 Both refuse to run unless the wrapper builds and runs a trivial program and
 each program named is a file. A build that fails with no `error:` line from

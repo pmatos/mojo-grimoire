@@ -16,7 +16,8 @@ type expected of it (`TyEnv.retype`), as it would have, had it expected
 that type from the start, without inferring the rest of it again.
 A comparison with a literal that holds a place whose value is not
 implicitly copyable keeps the expectations it had before #166
-(`TyEnv.heldCopy`), as the checker keeps its checks.
+(`TyEnv.heldCopy`), as the checker keeps its checks, unless its fit
+decides its order (#338).
 -/
 
 namespace MojoGrimoire.Parse
@@ -80,7 +81,8 @@ def TyEnv.literalFit (prog : Program) (env : TyEnv) (left : Bool) (t : Ty) (lit 
 
 /-- Whether the literal `e` holds, at any depth, a place whose value is not
 implicitly copyable, as the checker's `MojoGrimoire.Check.heldCopy` finds
-it: a comparison with one keeps the expectations it had before #166. -/
+it: a comparison with one keeps the expectations it had before #166,
+unless its fit decides its order (#338). -/
 def TyEnv.heldCopy (prog : Program) (env : TyEnv) (e : Expr) : Bool :=
   e matches .list .. &&
     (literalPlaces e).any fun p => (env.placeTy prog p).any (copyingOf prog · != .implicit)

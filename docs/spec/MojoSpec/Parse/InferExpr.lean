@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference in expressions: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18365513329678798640")
+:::moduleDocs (fingerprint := "12423167490377361527")
 :::
 
 :::readable MojoGrimoire.Parse.literalArg (fingerprint := "15594256188266583025")
@@ -25,7 +25,17 @@ it stays a temporary. It infers nothing itself, and its callers pass it
 only the form of a literal.
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferList (fingerprint := "7044179582321349407")
+:::readable MojoGrimoire.Parse.lenConverted (fingerprint := "10627972790977335799")
+*Definition: a literal converted for `len`.* Given the form and the type
+of the first element of a literal passed to `len`, and a way to infer
+its other elements given the types expected of them, the literal is
+$`\mathsf{Array}[t, n]` of the first element's type $`t`, with $`t`
+expected of each other element (#341). When the first element has no
+type, as an empty literal, the literal stays open and nothing is
+expected of the others.
+:::
+
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferLenArgs MojoGrimoire.Parse.inferLenLiteral MojoGrimoire.Parse.inferList (fingerprint := "6759927460180264944")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, or $`\mathsf{Int}` for the element of
@@ -35,7 +45,14 @@ $`\mathsf{Bool}`, and a binary operator the type of its result, as above.
 A call or a method call
 has the result of its signature. A call of a struct that cannot be built
 still has the struct's type, so that the checker reports why, and `len`
-gives an $`\mathsf{Int}`. A call of `range`, when the program declares no
+gives an $`\mathsf{Int}`. Its one argument, when the program declares no
+function or struct `len` and no variable hides it, is inferred by `inferLenArgs`: a
+literal left open is converted as the compiler converts it to `len`'s
+parameter, by `inferLenLiteral` (#341). Its first element is inferred
+once, by this rule in turn when it is a literal left open, and the
+literal is $`\mathsf{Array}[t, n]` of that element's type $`t`, which
+each other element is expected to have (`lenConverted`). An empty
+literal, or one whose first element is, has no type, and stays open. A call of `range`, when the program declares no
 function or struct `range`, expects an $`\mathsf{Int}` of each argument, by
 `rangeParams` (#121). A call of a name that a variable in scope hides
 follows no signature and has no type, so that the checker rejects it
@@ -81,8 +98,13 @@ an $`\mathsf{Int}`, and so is either operand of an operator other than
 (#160). A literal compared with an array or a list is expected to have
 that operand's type when it fits it: on the right, of the left operand,
 and on the left, of a right operand that is no literal and whose
-comparison conforms (#166), unless either operand is a literal that
-holds a place whose value is not implicitly copyable, or `List[u]()`. The right operand of $`==` or $`!=` whose
+comparison conforms (#166), unless either operand is `List[u]()`, or a
+literal that holds a place whose value is not implicitly copyable and
+that the checker does not convert by its fit (`keepsBefore`, #338): such
+a literal on the left that fits is converted, and one on the right,
+beside an operand that is no literal, that does not fit keeps no type.
+Beside a literal on the left, an array, the right one is expected to
+have no type either way. The right operand of $`==` or $`!=` whose
 left operand is a list is expected to have the list's type unless it
 does not fit it, as the argument of its `__eq__` or `__ne__` (#185). Each
 operand that is not a literal is inferred first, with no type expected,

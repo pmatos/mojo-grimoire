@@ -68,7 +68,7 @@ reference returned to `k[0]`, are `escapingReference`, as the compiler
 reports. The compiler passes `k[0]` to a `mut` or `ref` parameter as a
 temporary, which the model does not model yet (#222), so such a call keeps
 the result it had before #127, `notAList` (see
-[the decision page](../decisions/semantics-lists.md#an-index-of-an-int)).
+[the decision page](../decisions/semantics-int-index.md#an-index-of-an-int)).
 
 ## Evidence
 

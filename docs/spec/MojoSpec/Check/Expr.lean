@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8651366978850599933")
+:::moduleDocs (fingerprint := "1194580485562240703")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.literalElems MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "709623310528360297")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.literalElems MojoGrimoire.Check.lenLiteral MojoGrimoire.Check.lenFirst MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "739197882152240539")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -59,24 +59,9 @@ type:
   lacks is `missingMethod` (#176): found from the operands' types
   (`operandTy`, `binaryMisfit`, `unaryMisfit`) before they are
   read, once both are typed by `typeArg`, and else from their checked
-  types. The
-  right operand of an operator whose left operand is an integer literal
-  expression (`intLiteral`), but `and` and `or`, is passed as to a `read`
-  $`\mathsf{Int}` parameter of a method with several overloads: one that
-  is no $`\mathsf{Int}` is `noMatchingMethod` (#88). A literal on the
-  right of a comparison that converts it to the type of an array or a
-  list on the left, and that inference gave that type, is passed as the
-  method's `other` parameter of that type (`rightParam`, #166, #185). Once
-  both operands are checked, the operation is typed as `checkedBinaryTy`
-  says, which checks the test of a struct operand of `and` and `or`, given
-  the states before and after the left operand, which it passes to
-  `self` without checking it again (`passLeft`). The
-  misfit of a comparison of two arrays or two lists is found from the
-  operands' types too (`operandMisfit`), and an operand compared as an
-  array or a list, a place or a call that returns a reference, is read by
-  reference, uncopied (`byRef`, #166, #185): the left operand first, then
-  the right one, with the checks that a comparison kept from before #166
-  when `keepsBefore` holds (`Before.rightParam`);
+  types. A binary operation is checked by `checkBinary`
+  (`MojoGrimoire.Check.Binary`), given the checks of its operands that
+  this mutual block makes;
 * $`[e^*]_t`, with $`t` a list or an array of $`u` and $`u` a type a
   variable may have, initializes $`t`: it passes each element as to a `var`
   parameter of type $`u`, and an array must have as many elements as its
@@ -157,7 +142,15 @@ type:
   operand, is read, not copied. A $`\mathsf{Bool}`, `None` or a struct,
   or another number of arguments, fits no overload of `len`:
   `noMatchingInit`, found by `lenCall` before any argument is read
-  (#190);
+  (#190). A literal argument has the type that inference gives it
+  (`inferLenLiteral`, #341), the array it initializes, so a misfit inside it
+  is `noMatchingInit`, reported after its elements' own errors and before
+  its copies (`copyLast`). It is checked by `lenLiteral` as a literal with
+  no type expected is: its first element on its own, by this rule when it
+  is such a literal (`lenFirst`), and the others converted to that
+  element's type. One with no type, empty or whose first element
+  is, at any depth (`emptyFirst`), is `noMatchingInit` once its elements
+  are typed;
 * $`\mathsf{drops}(e; p^*; q^*)`, which only elaboration inserts, after
   checking, has the type of $`e`.
 
@@ -202,7 +195,10 @@ with `ref`, passed by reference, or read by `len` or `print`.
 
 The arguments of a call are checked in order against the parameters, each
 by `checkArg`, after the exclusivity rule; a string literal fits no
-overload. A place is passed by `passPlace`; a call that returns a
+overload, and a literal with no type that is or holds an empty literal
+(`holdsEmpty`) fits no parameter but a list or an array: once its
+elements are typed, the call's fit reports a type mismatch (#341). A place is
+passed by `passPlace`; a call that returns a
 reference and is a located operand, passed to a `read`, `mut` or `ref`
 parameter, as a location, which must be mutable for `mut`, or the call is
 $`\mathsf{immutablePlace}`, named by its first origin; and any other

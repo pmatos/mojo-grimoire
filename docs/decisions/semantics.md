@@ -4,7 +4,8 @@ This page says what holds today for what Mojo means in this project and what
 the model takes as its reference.
 [semantics-references.md](semantics-references.md) continues it with
 references, [semantics-lists.md](semantics-lists.md) with lists and
-arrays, [semantics-operators.md](semantics-operators.md) with operators
+arrays, [semantics-int-index.md](semantics-int-index.md) with an index of
+an `Int`, [semantics-operators.md](semantics-operators.md) with operators
 and calls on structs,
 [semantics-comparisons.md](semantics-comparisons.md) with comparisons of
 arrays and lists, [semantics-parser.md](semantics-parser.md) with the

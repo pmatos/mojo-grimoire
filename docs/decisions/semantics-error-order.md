@@ -22,9 +22,11 @@ the nightly 1.3.0.dev2026111905 for #96:
    tier.
 3. "function instantiation failed": a literal of `Int`s of the wrong
    length, a constant index out of range of an array, and a negative
-   constant index of a `List`. From `main`, a function's own errors come
-   first, in text order, then its callees, the last call first, depth
-   first.
+   constant index of a `List`. From `main`, at the default level, `-O3`,
+   a function's own errors come first, in text order, then its callees,
+   the last call first, depth first. At `-O0` the order of two such
+   errors can differ, and it is left undefined
+   ([below](#when-the-optimization-level-changes-the-order)).
 
 The human ruled on 2026-11-20 that the checker follows this order, by
 checking a type phase, then a flow phase, then an instantiation phase over
@@ -115,7 +117,8 @@ instantiation phase.
 
 The instantiation phase follows the compiler's instantiation of the
 functions from `main` (#96 part 7, `MojoGrimoire.Check.checkInst`),
-probed on the pin (`order/inst_*`, `tests/sweep/order7/`):
+probed on the pin at the default level, `-O3` (`order/inst_*`,
+`tests/sweep/order7/`):
 
 1. In a body, its own errors come first, in the order of the body: a
    literal of `Int`s of the wrong length, and a constant index out of an
@@ -134,11 +137,53 @@ probed on the pin (`order/inst_*`, `tests/sweep/order7/`):
    declarations. The compiler never instantiates them and accepts them,
    which #264 tracks.
 
-At `-O0` the compiler takes a constant index into an array as a call
-too, so its order there differs from `-O3`'s, the reference, when such
-an index stands beside another error of the body (#324). The model keeps
-the order at `-O3`, and the suite holds no such program. The model does
-not follow a struct's `__bool__` that a condition calls (#195).
+The model does not follow a struct's `__bool__` that a condition calls
+(#195).
+
+### When the optimization level changes the order
+
+When a body holds two errors of the instantiation phase, or one and a
+call of a function that holds another, the compiler
+can report a different one first at `-O0` than at `-O3`, the default
+(#324, #331). The human ruled on 2026-11-26 that this is not a compiler
+bug: the order between two such errors is left undefined, and either
+level's order is acceptable
+([the ruling](https://github.com/pmatos/mojo-grimoire/issues/331#issuecomment-7190045721)).
+The two levels order them so, as probed on the pin:
+
+- At `-O0`, a literal of `Int`s of the wrong length comes first in its
+  body. A constant index into an array is ordered as a call: the last
+  call in the body comes first, so of two such indices the later one is
+  reported, and an error inside a function that the body calls after an
+  index comes before that index.
+- At `-O3`, a constant index into an array comes in the order of the
+  text with the body's literals, before the body's calls. In the
+  arguments of `range`, the index comes before the literal whichever of
+  the two is written first.
+- At both levels, a negative constant index of a `List` is ordered as a
+  call.
+
+The model follows `-O3` in a body, and `-O0`'s order between a literal and
+a constant index into an array in the arguments of `range`, where it
+reports the literal first. No suite program pins such an order: `record` refuses a program whose first error differs
+at `-O0` ([conformance.md](conformance.md#optimization-levels)), and the
+six programs of #324 stay unrecorded in `tests/sweep/order7/`.
+
+Rejected: a compiler bug whose fix reports `-O0`'s order at every level,
+since its last call first is hard to defend as the fixed compiler's
+order; and deferring the question to #96's instantiation phase, since #96
+is closed.
+
+At `-O1` and above the pin drops the right operand of `or` when a
+variable that holds `True` is on its left, and with it a literal of
+`Int`s of the wrong length inside it, which only `-O0` rejects. The
+human ruled this a compiler bug on 2026-11-26 (#324,
+[D-0014](../conformance/decision-log.md)): the fixed compiler rejects
+it at every level, and so does the model (`noMatchingInit`). The same
+difference under a variable that holds `False` on the left of `and`
+and in an `if` branch, and a literal `True` on the left of `or` or
+`False` on the left of `and`, which the pin runs at every level, wait
+on #346.
 
 ## The order of the type phase
 
@@ -258,7 +303,10 @@ A literal that initializes a type that is not a list or an array, or an
 `Int` with a length other than 1, types only its elements' own
 expressions before its misfit: `var q: Int = [[xs]]` is `noMatchingInit`,
 and `var q: Int = [xs, zz]` `unknownVariable`. A literal passed to `len`
-is typed by `len`, which the model does not follow yet (#341).
+is an array of its first element's type, to which its other elements
+are converted, so `len([xs, [1]])` is
+`implicitCopy`, and its misfits are `noMatchingInit`: `len([xs, True])`
+(#341).
 
 The checker types the initializer first when the duplicate name is found
 (`valueOwn`, `typedFirst`). A literal's check that fails in the type
@@ -270,8 +318,10 @@ reports an implicit copy, it checks the value again without copies
 
 Inside a comparison, the compiler converts a literal operand to the type
 of the other operand, and that conversion decides the order of its copies
-and misfits. The model types such a literal as one with no type expected,
-which #338 tracks (`tests/sweep/order11/decl_cmp_*`).
+and misfits. The model follows it for a literal that holds a place that
+cannot be copied implicitly
+([semantics-comparisons.md](semantics-comparisons.md)); the shapes it
+leaves are #338's (`tests/sweep/cmp338/`).
 
 ## The order inside an operator
 
@@ -294,16 +344,18 @@ The compiler's order is tiered more finely than the passes that
 `range` in `List[u](range(…))`, and the rest is left to #339. Its flow
 errors come before its instantiation errors, as in any expression:
 `range(xs[-1] + u)`, with `u` uninitialized, is `uninitializedUse`, and
-so is `range(g(p^, xs[-1]), p.x)`. Among the instantiation errors, a
-constant index into an array comes before an index into a list on the
-compiler. It comes before the literal at the default level, `-O3`, even
-when the literal comes first in the text, but after it at `-O0` (#331).
-The model reports the literal first.
+so is `range(g(p^, xs[-1]), p.x)`. Among the instantiation errors, at the
+default level, a constant index into an array comes before an index into
+a list. Its order beside a literal of `Int`s of the wrong length is no
+longer a difference
+([above](#when-the-optimization-level-changes-the-order)).
 
 ## Comparisons not yet ordered
 
-A comparison whose literal operand holds a place that cannot be copied
-implicitly, and the other comparisons not yet modelled, stay on their
+The comparisons whose literal operand holds a place that cannot be
+copied implicitly and whose order the model does not yet follow, such
+as a literal converted to an `Int` or a `Bool`, or one compared with
+`List[u]()`, and the other comparisons not yet modelled, stay on their
 page, [semantics-comparisons.md](semantics-comparisons.md), with their
 order tracked on #338. No bridge to `main`'s order remains: Part 4c of
 #96 removed the last two, for the struct tests of #191 and the

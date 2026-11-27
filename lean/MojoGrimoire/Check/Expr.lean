@@ -1,4 +1,4 @@
-import MojoGrimoire.Check.Logic
+import MojoGrimoire.Check.Binary
 import MojoGrimoire.Check.Elems
 import MojoGrimoire.Check.Range
 
@@ -19,11 +19,21 @@ changes, are checked as `MojoGrimoire.Check.Change` says. An argument that
 does not fit is reported as `MojoGrimoire.Check.Fit` says, which also gives
 the rules of literals, of `List[u](…)` and of its `range` argument; the
 elements of some literals are checked as `MojoGrimoire.Check.Elems` says,
-and the arguments of `range` as `MojoGrimoire.Check.Range` says. An
+and the arguments of `range` as `MojoGrimoire.Check.Range` says. A
+literal passed to `len` has the type that inference gives it
+(`MojoGrimoire.Parse.inferLenLiteral`), the array it initializes, so a misfit
+inside it is `noMatchingInit`, reported before its copies (`lenLiteral`);
+one with no type, empty or whose first element is, is `noMatchingInit`
+once its elements are typed (#341). An
 operator or a call that its operands' types reject, a method that a type
 lacks, no overload that fits or a comparison that does not fit, is
 reported before they are read, as
-`MojoGrimoire.Check.Methods` and `MojoGrimoire.Check.Compare` say.
+`MojoGrimoire.Check.Methods` and `MojoGrimoire.Check.Compare` say. A
+binary operation is checked as `MojoGrimoire.Check.Binary` says: a
+literal on the left of a comparison that holds a place whose value is
+not implicitly copyable, and that the comparison does not convert, is
+checked before the misfit, once both operands' own expressions are
+typed (`MojoGrimoire.Check.heldLeft`, #338).
 -/
 
 namespace MojoGrimoire.Check
@@ -66,6 +76,10 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
       match f, args, err with
       | "len", [e], .unknownFunction _ => lenCall prog args (typeArgs prog args) (match e with
         | .place p => do checkIndices prog p; readPlace prog p
+        | e@(.list t es) =>
+          if emptyFirst e then rejectAfter (typeArgs prog es) (.noMatchingInit .unknown)
+          else if t matches .array .. then lenLiteral prog es
+          else checkExprAs prog false e
         | e => do checkExprAs prog (← locOf prog e).isSome e)
       | "len", _, .unknownFunction _ => lenCall prog args (typeArgs prog args) (pure .unknown)
       | _, _, .missingMethod .. => rejectAfter (typeArgs prog args) err
@@ -81,23 +95,10 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
   | .unary op a => do
     rejectMisfit (unaryMisfit prog op (← operandTy prog a)) (do let _ ← typeArg prog a)
     lift (methodUnaryTy prog op (← checkExprAs prog false a))
-  | .binary op a b => do
-    if (← get).phase == .type then
-      if ← typedSimdLeft prog op a b then
-        let _ ← typeArg prog a
-        let _ ← checkExprAs prog true b
-        return .bool
-    rejectMisfit (← operandMisfit prog op a b)
-      (do let _ ← typeArg prog a; let _ ← typeArg prog b)
-    let right ← rightParamOf prog op a b
-    let s ← get
-    let ta ← checkExprAs prog (← byRef prog op a b) a
-    let sa ← get
-    let ka ← mark
-    let tb ← match right ta with
-      | some (fit, prm) => do let _ ← checkArg prog fit (binaryMethod op) prm b; pure prm.ty
-      | none => checkExprAs prog (← byRef prog op b a true) b
-    checkedBinaryTy prog op a b ta tb ka (← mark) s sa
+  | .binary op a b =>
+    checkBinary prog op a b (typeArg prog a) (typeArg prog b) (checkExprAs prog · a)
+      (checkExprAs prog · b) (match a with | .list _ es => ownArgs prog es | _ => pure ())
+      fun fit prm => do let _ ← checkArg prog fit (binaryMethod op) prm b
   | .list .unknown [] => throw (CheckError.invalidType .unknown)
   | .list .unknown (e :: es) => do
     let lit : CheckM Ty := do
@@ -205,6 +206,31 @@ def literalElems (prog : Program) : List Expr → CheckM Unit
   | e@(.list .unknown _) :: rest => do let _ ← checkExprAs prog false e; literalElems prog rest
   | _ :: rest => literalElems prog rest
   termination_by es => (sizeOf es, 3)
+
+/-- Checks the elements `es` of a literal passed to `len`, typed by
+inference (#341), as the compiler converts it: the first is built on its
+own, by this rule when it is such a literal (`lenFirst`), and the others
+are converted to its type, a misfit `noMatchingInit`, as a literal with
+no type expected builds them, its copies after its misfits. -/
+def lenLiteral (prog : Program) : List Expr → CheckM Ty
+  | [] => throw (CheckError.noMatchingInit .unknown)
+  | e :: es => typedFirst (ownArgs prog (e :: es)) <| copyLast do
+    let u ← lenFirst prog e
+    let t := Ty.array u (es.length + 1)
+    unless declarableTy prog u do throw (CheckError.invalidType t)
+    let k ← mark
+    recheckLocs prog ((← firstElemLocs prog e, k) ::
+      (← checkArgs prog (.init t) "Array" (es.map fun _ => ⟨.owned, "value", u⟩) es
+        es.length es.length))
+    pure t
+  termination_by es => (sizeOf es, 3)
+
+/-- The type of the first element `e` of a literal passed to `len`
+(`lenLiteral`). -/
+def lenFirst (prog : Program) : Expr → CheckM Ty
+  | .list (.array ..) es => lenLiteral prog es
+  | e => checkExprAs prog false e
+  termination_by e => (sizeOf e, 4)
 
 /-- Checks each of the arguments `args` of `List[u](…)` on its own: a place
 is located, and any other expression checked, before the call is rejected. -/
@@ -321,7 +347,9 @@ def checkArgs (prog : Program) (fit : Fit) (callee : Name) :
 /-- Checks the argument `e` of a call of `callee` of fit `fit`, passed to
 the parameter `prm`, as `checkArgs` says, and gives the places it is read
 from once every argument is evaluated, with how many changes were
-recorded once it was checked. A string literal fits no overload. -/
+recorded once it was checked. A string literal fits no overload, and a
+literal with no type that is or holds an empty literal fits no parameter
+but a list or an array, once its elements are typed (#341). -/
 def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
     Expr → CheckM (List Place × Nat)
   | .place p => do
@@ -334,6 +362,9 @@ def checkArg (prog : Program) (fit : Fit) (callee : Name) (prm : Param) :
     let t' ← if t == .int && es.length != 1 then do
         rejectIntElems prog fit es (fun p _ => typePlace prog p) (fun a _ => checkExprAs prog false a)
         pure prm.ty
+      else if t == .unknown && holdsEmpty (.list t es)
+          && !(prm.ty matches .list _ | .array ..) then
+        rejectAfter (typeArgs prog es) (fit.misfit (CheckError.typeMismatch prm.ty t))
       else if !(t matches .list _ | .array ..) || fit matches .init _ then
         checkExprAs prog false (.list t es)
       else do
