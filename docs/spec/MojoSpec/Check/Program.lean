@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15851964927128471829")
+:::moduleDocs (fingerprint := "13689919375791567656")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17933977108324489146")
@@ -61,7 +61,7 @@ compiler checks when it parses the declaration; otherwise
 Each is checked in the phase it is given.
 :::
 
-:::readable MojoGrimoire.Check.checkFieldDecls MojoGrimoire.Check.containerStruct MojoGrimoire.Check.nestedContainer MojoGrimoire.Check.resolveStruct (fingerprint := "27726015716735872")
+:::readable MojoGrimoire.Check.checkFieldDecls MojoGrimoire.Check.containerStruct MojoGrimoire.Check.nestedContainer MojoGrimoire.Check.declaresDestructor MojoGrimoire.Check.resolveStruct (fingerprint := "14902101047304420057")
 *Rule: struct declarations.* A struct's declaration is resolved at its
 place in the source, or earlier, when a struct resolved before it reaches
 it (#358). Its fields have distinct names, no method has a field's name,

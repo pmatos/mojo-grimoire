@@ -128,7 +128,7 @@ resolved. -/
 def checkFieldDecls (prog : Program) (sd : StructDecl) : Except CheckError Unit := do
   checkDistinct (sd.fields.map (·.1))
   for fd in sd.methods do
-    if sd.fields.any (·.1 == fd.name) then throw (.duplicate fd.name)
+    if (fieldTy sd fd.name).isSome then throw (.duplicate fd.name)
   for (_, t) in sd.fields do
     unless validTy prog t do throw (.invalidType t)
 
@@ -146,6 +146,14 @@ def nestedContainer : Ty → Bool
   | .list (.list _) | .list (.array _ _) | .array (.list _) _ | .array (.array _ _) _ => true
   | _ => false
 
+/-- Whether the struct `sd` declares its own destructor: a `__deinit__`, or
+a method `__del__`, the destructor's older name, which the pin takes as one
+when it resolves the struct. Only `resolveStruct` asks it yet; the
+destructor that the flow and instantiation phases call, and `__del__`
+itself, are #364's. -/
+def declaresDestructor (sd : StructDecl) : Bool :=
+  sd.deinit.isSome || (findMethod sd "__del__").isSome
+
 /-- Resolves the declaration of the struct `s`, as the compiler's first
 pass does at its place in the source, or earlier, when a struct resolved
 before it reaches it (#358). `started` holds the structs resolved or being
@@ -155,13 +163,13 @@ resolved, and `stack` those being resolved, innermost first. It gives
 The struct's fields are checked first (`checkFieldDecls`). Then, field by
 field, a field that is a list or an array of a struct leads to that
 struct, which is resolved now if it is not yet. A struct that declares no
-`__deinit__`, nor a method `__del__`, the destructor's older name, which the
-pin takes as its own, gets one synthesized, which needs each such field's type to
-be `Deinitable`: when its struct is still being resolved, the field closes
+destructor (`declaresDestructor`) gets one synthesized, which needs each
+such field's type to be `Deinitable`: when its struct is still being
+resolved, the field closes
 a cycle, and is rejected there when it lies on a cycle that the fixed
 compiler rejects (`rejectedCycle`); one whose cycles all have a field
-through a list is accepted (D-0006). A struct that declares
-either goes on only through a field of lists or arrays of lists or
+through a list is accepted (D-0006). A struct that declares a destructor
+goes on only through a field of lists or arrays of lists or
 arrays, and is never rejected so. A field of a struct type leads nowhere
 here. The fuel, one more than the program's structs, never runs out, since
 each call resolves a struct not started yet; if it did, the struct would be
@@ -175,7 +183,7 @@ def resolveStruct (prog : Program) :
     | none => pure started
     | some sd => do
       (checkFieldDecls prog sd).mapError (⟨s, ·⟩)
-      let synthesized := sd.deinit.isNone && !sd.methods.any (·.name == "__del__")
+      let synthesized := !declaresDestructor sd
       let mut started := s :: started
       for (_, t) in sd.fields do
         let some v := containerStruct t | continue
