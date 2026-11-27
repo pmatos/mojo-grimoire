@@ -71,6 +71,23 @@ pre-commit run --all-files --hook-stage pre-push    # the fast checks, before a 
 Every change reaches `main` through a squash-merged pull request with a
 Conventional Commit title. [AGENTS.md](AGENTS.md) has the working rules.
 
+### The explorer
+
+To try a program on the compiler and the model side by side, build the
+model and the spec, then start the explorer with the compiler's wrapper,
+which `scripts/install-mojo.sh DIR` prints:
+
+```sh
+scripts/build-lean.sh && scripts/build-spec.sh
+scripts/explorer.py --mojo /path/to/wrapper/mojo    # or MOJO=... scripts/explorer.py
+```
+
+Open the URL it prints, which carries the session's token. Ctrl/Cmd+Enter
+runs the program. A token of the editor links to its section of the spec,
+and the suite's programs are under Examples.
+[conformance.md](docs/decisions/conformance.md#the-explorer) says what it
+compares.
+
 ## Licence
 
 MIT; see [LICENSE](LICENSE).

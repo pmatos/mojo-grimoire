@@ -277,3 +277,33 @@ hand and not as a hook (#96, Q8).
 Rejected: keeping the sweep in a session's scratchpad, which does not
 last, and running it as a hook, which would rebuild the model twice for
 every commit.
+
+## The explorer
+
+`scripts/explorer.py --mojo WRAPPER` (or `MOJO=WRAPPER`) serves a local
+page, in the style of Compiler Explorer, that runs one program on the
+compiler and on the model side by side (#370). The human asked for it on
+2026-11-27. It shows each side's exit code, output, timings and class of
+error, linked to its section of the rendered spec, and marks the
+compiler's error line and column, and the model's syntax-error or
+"outside the subset" line, in the editor. Its badge is the suite's
+`compare`. For a suite program, whose text it recognises, it reads
+`known.json` as `check` does. Its sweep compares the levels as `levels`
+does. The suite's programs are its examples, each with its record and its
+decision-log entry or ruled compiler bug.
+
+The suite's runners return only a `Result`, and read a program's output
+with no limit, so the explorer starts the processes itself. Its
+`Result` comes from the same helpers, and its tests check that it equals
+the runners' for each kind of run. The page links a token to the
+declarations that `scripts/explorer-ui/tokens.json` names. Their anchors
+come from the rendered HTML, and a name with no anchor is a warning at
+start.
+
+The server runs arbitrary code. It listens on 127.0.0.1 only. Every API
+call needs the session's token, printed in the URL at start, and the
+explorer's own Host and Origin. Each run gets a fresh temporary
+directory, a timeout and an output cap, and it is killed by its own
+process group. Its tests, `scripts/test_explorer.py`, are run by hand.
+Running them as a hook waits on the human, since that adds checking
+machinery.
