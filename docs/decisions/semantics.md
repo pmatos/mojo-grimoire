@@ -126,6 +126,17 @@ two disagree, the model follows the compiler.
   of a `ref self` method, pass on an immutable reference, and the call
   changes nothing
   (#91, [semantics-references.md](semantics-references.md#references)).
+- A temporary passed `mut` is `immutablePlace`, as the compiler reports
+  it, a value that may not change (#81): a literal, a call's result, a
+  construction, an operation, `p^` of a value the function owns, a call
+  that returns a reference from a temporary origin argument, and the
+  operand of an operator method or of `__bool__` that takes it `mut`
+  ("value passed to mutable argument 'A' must be mutable", or "invalid
+  use of mutating method on rvalue"; `rejected/mut_temporary_*`).
+  `notAPlace` is left for an origin argument of a `ref` binding that is
+  not a place, which the compiler accepts (#80). A method call or a
+  subscript on a temporary, such as `A(1).bump()`, is outside the subset
+  (#206), and the pin reports it `immutablePlace` too.
 - A struct variable declared without a value may be built field by field
   (#51). Mojo never counts such a struct, or a part built so, as
   initialized whole, even once every field is assigned: using it whole is

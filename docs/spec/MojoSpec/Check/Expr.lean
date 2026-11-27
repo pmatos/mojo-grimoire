@@ -205,9 +205,9 @@ $`\mathsf{immutablePlace}`, named by its first origin; and any other
 expression by its type, which must be the parameter's, a misfit coming
 before the implicit copy of what a call returns a reference to
 (`misfitFirst`). A `mut` parameter
-needs a place or such a call; passed $`q\,\hat{}`, it is
-$`\mathsf{notAPlace}`, where the compiler reports a value that cannot
-change (#81), or a subscript read late $`\mathsf{notAList}`
+needs a place or such a call; any other argument, $`q\,\hat{}` included,
+is a temporary that cannot change, $`\mathsf{immutablePlace}`, as the
+compiler reports it (#81), or a subscript read late $`\mathsf{notAList}`
 (`notPlaceError`, #198), with two exceptions: a $`q` with no origin of its own is
 $`\mathsf{transferFromElement}`, as above, and any other $`q`, once it
 has a type, whose variable is a `read` or `ref` parameter is

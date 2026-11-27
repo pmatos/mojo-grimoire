@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5468262388319019351")
+:::moduleDocs (fingerprint := "12495456579884713777")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -28,14 +28,22 @@ arguments included, as `noMatchingMethod` $`m`, for the same reason
 (#88). An argument whose type is not its parameter's is such a misfit.
 :::
 
-:::readable MojoGrimoire.Check.passValue (fingerprint := "184049633496572427")
-*Rule: passing a value.* A value that is not a place may not be passed
-`out` or `deinit`, nor `mut`, which is a misfit of the call.
+:::readable MojoGrimoire.Check.temporaryPassedMut (fingerprint := "15237807594116526412")
+*Definition: a temporary passed `mut`.* A temporary passed `mut`, a
+literal, a call's result, a construction, an operation or a transfer, is
+$`\mathsf{immutablePlace}`, a value that may not change, as the compiler
+reports it (#81). It has no place, so the error names the callee.
 :::
 
-:::readable MojoGrimoire.Check.notPlaceError (fingerprint := "11750609785983197812")
+:::readable MojoGrimoire.Check.passValue (fingerprint := "7274601489511794137")
+*Rule: passing a value.* A value that is not a place may not be passed
+`out` or `deinit`, nor `mut`, which is a temporary passed `mut` and a
+misfit of the call.
+:::
+
+:::readable MojoGrimoire.Check.notPlaceError (fingerprint := "8759184780552962287")
 *Definition: a value passed `mut`.* A value that is not a place, passed
-`mut`, is $`\mathsf{notAPlace}`. A subscript of a struct that Mojo reads
+`mut`, is a temporary passed `mut`, $`\mathsf{immutablePlace}`. A subscript of a struct that Mojo reads
 late, passed `mut`, such as the receiver of an operator method that takes
 `mut self`, is $`\mathsf{notAList}` of its struct, as is any subscript
 of a struct used as a place beyond reading and assigning it, whose

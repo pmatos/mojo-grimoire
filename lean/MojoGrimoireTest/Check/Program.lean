@@ -122,9 +122,10 @@ private def verdict (p : Program) : Option CheckError :=
 #guard verdict (prog [.decl "n" .int (some (.int 1)),
   .expr (.call "addInts" [use "n", use "n"])]) == none
 
--- `bump(Res(1), a)`: a `mut` argument that is not a place.
+-- `bump(Res(1), a)`: a temporary passed `mut` is a value that may not
+-- change, as the compiler reports it (#81).
 #guard verdict (prog [newRes "a" 1, .expr (.call "bump" [.call "Res" [.int 1], use "a"])]) ==
-  some (.notAPlace "bump")
+  some (.immutablePlace (.var "bump"))
 
 -- `while c: consume(a^)`: a move in a loop of a value from before it, which
 -- the next iteration would use uninitialized.
