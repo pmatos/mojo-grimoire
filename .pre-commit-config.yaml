@@ -102,6 +102,12 @@ repos:
         language: python
         pass_filenames: false
         files: ^(scripts/((test_)?(conformance(_compiler)?|sweep)|run_unittests|fake_mojo)\.py|docs/conformance/(compiler-bugs\.json|decision-log\.md)|tests/conformance/.+\.json|lean/MojoGrimoire/Driver/Main\.lean)$
+      - id: explorer-test
+        name: The explorer passes its tests
+        entry: python scripts/run_unittests.py explorer-test -m unittest discover -s scripts -p test_explorer*.py
+        language: python
+        pass_filenames: false
+        files: ^scripts/((test_)?explorer[a-z_]*\.py|explorer-ui/tokens\.json|conformance(_compiler)?\.py|fake_mojo\.py|run_unittests\.py)$
       # CI runs each hook above and below in exactly one job of
       # .github/workflows/, and its required check needs every job
       # (ADR-2026-11-15-1903).
