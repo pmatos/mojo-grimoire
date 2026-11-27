@@ -314,6 +314,5 @@ and is killed and reaped after the run and every few seconds. Only a
 server killed outright leaves such processes to init. A program loaded
 from a link carries a warning until it is run or edited.
 
-Its tests, `scripts/test_explorer*.py`, are run by hand.
-Running them as a hook waits on the human's ruling (#371), since a hook
-adds checking machinery.
+Its tests, `scripts/test_explorer*.py`, run as the `explorer-test` hook
+and in CI. The human approved the hook on 2026-11-27 (#371).
