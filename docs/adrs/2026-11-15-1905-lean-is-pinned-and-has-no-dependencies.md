@@ -6,7 +6,7 @@ Tier: direction; area: lean-model
 ## Decision
 
 - **One pin.** `lean/lean-toolchain` names a stable Lean release, today
-  `v4.35.0`. No nightlies and no release candidates. A toolchain bump is one
+  `v4.36.0`. No nightlies and no release candidates. A toolchain bump is one
   PR, which fixes every warning the new release raises.
 - **`lean/` is one Lake package, `mojo-grimoire`, with no dependencies:** no
   Mathlib, no Lean-MLIR. Adding one means editing this ADR first, with the
@@ -25,7 +25,8 @@ Tier: direction; area: lean-model
   `GIT_CEILING_DIRECTORIES` to `lean/.lake/packages`, and unsets `GH_TOKEN`
   and `GITHUB_TOKEN`.
 
-The human chose Lean 4.35.0 on 2026-11-15.
+The human chose Lean 4.35.0 on 2026-11-15, and ruled the update to 4.36.0
+on 2026-11-27 (#343).
 
 ## Why
 

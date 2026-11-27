@@ -59,7 +59,7 @@ written independently.
 ## Development
 
 Requirements: [elan](https://github.com/leanprover/elan) (the toolchain, Lean
-4.35.0, is pinned in `lean/lean-toolchain`) and
+4.36.0, is pinned in `lean/lean-toolchain`) and
 [pre-commit](https://pre-commit.com) (`uv tool install pre-commit`).
 
 ```sh

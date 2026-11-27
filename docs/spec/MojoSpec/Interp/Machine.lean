@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The machine: readable blocks" =>
 
-:::moduleDocs (fingerprint := "3433952532555869026")
+:::moduleDocs (fingerprint := "12774387924147450819")
 :::
 
 :::readable MojoGrimoire.Interp.Ref MojoGrimoire.Interp.Binding MojoGrimoire.Interp.Env (fingerprint := "10228878087589298434")
@@ -73,7 +73,7 @@ two lists, in their order. Negation wraps too, and `not` negates a
 $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Interp.placeTy MojoGrimoire.Interp.refTy (fingerprint := "15432595716733909718")
+:::readable MojoGrimoire.Interp.placeTy MojoGrimoire.Interp.refTy (fingerprint := "9434274398772757047")
 *Definition: static types.* The static type of a place follows from its
 variable's type, through fields, list and array elements, and the element
 of an $`\mathsf{Int}`, which is the $`\mathsf{Int}` (#127); that of a

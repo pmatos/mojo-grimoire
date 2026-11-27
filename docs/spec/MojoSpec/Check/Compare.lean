@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15189163265621714980")
+:::moduleDocs (fingerprint := "4607004271338482145")
 :::
 
 :::readable MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "11022081997966745842")
@@ -49,7 +49,7 @@ $`\mathsf{or}`, so is a right operand whose type lacks `__bool__`
 (`seqMisfit`).
 :::
 
-:::readable MojoGrimoire.Check.convertsTo MojoGrimoire.Check.literalFits MojoGrimoire.Check.elemsFit (fingerprint := "7642984156404013587")
+:::readable MojoGrimoire.Check.convertsTo MojoGrimoire.Check.literalFits MojoGrimoire.Check.elemsFit (fingerprint := "17566564984048055416")
 *Rule: a literal that fits the other operand's type.* A comparison
 converts a literal operand to the type $`t` of its other operand when it
 compares $`t` (`seqCompare`) and $`t` is an array, or a list compared by
@@ -84,7 +84,7 @@ when that gives none, the form of the whole nested test is not computed,
 which keeps the check of a chain of tests linear in its length.
 :::
 
-:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "15323378302640116260")
+:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "13509493921622268786")
 *Rule: operands of a comparison of arrays or lists.* The misfit of a
 binary operator is found from its operands' forms before they are read
 (`operandTy`).
@@ -112,7 +112,7 @@ unknown and which inference did not give the operand's type, beside a
 list, or an array when that literal holds a literal.
 :::
 
-:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "14466360756799766667")
+:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "4226834496865637271")
 *Rule: comparisons that keep the checks they had before #166.* A
 literal holds the places that are its elements, at any depth. A
 comparison of which either operand is an empty list built by
@@ -133,7 +133,7 @@ of the list's type. A $`\mathsf{Bool}` compared with an empty literal is
 a type mismatch there too (`boolLiteralMisfit`, #286).
 :::
 
-:::readable MojoGrimoire.Check.rightParam MojoGrimoire.Check.rightParamOf (fingerprint := "10936977070781752747")
+:::readable MojoGrimoire.Check.rightParam MojoGrimoire.Check.rightParamOf (fingerprint := "4211615316090333299")
 *Rule: a right operand checked as an argument.* When the left operand of
 a binary operator other than $`\mathsf{and}` and $`\mathsf{or}` is an
 integer literal, the right one is the argument `rhs`, an

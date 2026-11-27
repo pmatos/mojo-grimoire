@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Ends, exits, joins and loops: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14420255042041457027")
+:::moduleDocs (fingerprint := "2031470269252978563")
 :::
 
 :::readable MojoGrimoire.Check.holdsAll (fingerprint := "14941134587914973476")
@@ -23,7 +23,7 @@ hold each of its fields. A part held whole whose field was moved out and
 assigned again is recorded as its fields, which hold all of it.
 :::
 
-:::readable MojoGrimoire.Check.partlyBuilt MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "4637612087144218755")
+:::readable MojoGrimoire.Check.partlyBuilt MojoGrimoire.Check.cannotEnd MojoGrimoire.Check.checkEnd (fingerprint := "13664442982382925334")
 *Rule: the end of a variable.* The compiler destroys a struct whole, so a
 variable may not end when it still holds a part, in $`H`, and a field is
 in $`M`, moved out and not assigned again, or $`\epsilon` is in both
@@ -55,7 +55,7 @@ which the type phase skips: the compiler reports it after a function's
 other flow errors (#159).
 :::
 
-:::readable MojoGrimoire.Check.checkExit (fingerprint := "5193778193178771892")
+:::readable MojoGrimoire.Check.checkExit (fingerprint := "12649134421004998732")
 *Rule: a return.* When a function returns, each `mut` parameter and the
 `self` of `__init__` must be wholly initialized, since the caller holds
 them, with no piece in $`P`: otherwise the error is
@@ -70,13 +70,13 @@ The whole check is the flow phase's, a use's stage, but for a variable
 that may not end, which is the last stage's.
 :::
 
-:::readable MojoGrimoire.Check.endScope (fingerprint := "11161401779272043009")
+:::readable MojoGrimoire.Check.endScope (fingerprint := "7794507813629708980")
 *Rule: the end of a scope.* The variables a block declared end with it,
 each checked as above if the end of the block is reached, and leave the
 sets of invalidated references.
 :::
 
-:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "6532357485544519195")
+:::readable MojoGrimoire.Check.joinUninit MojoGrimoire.Check.joinMay MojoGrimoire.Check.joinStates (fingerprint := "18021989466172341466")
 *Rule: joining branches.* After an `if`, a part is uninitialized when
 either branch leaves it so, and may hold a value when either branch may;
 $`M`, $`T` and $`P` are the unions of the branches' sets, and
@@ -85,7 +85,7 @@ that cannot reach its end, because it returned, does not count. A loop
 joins $`M`, $`H`, $`T` and $`P` the same way, as described below.
 :::
 
-:::readable MojoGrimoire.Check.checkLoop (fingerprint := "11520629417625361493")
+:::readable MojoGrimoire.Check.checkLoop (fingerprint := "18358043729125519016")
 *Rule: loops.* A loop body that can reach its end must leave initialized
 every part that was initialized before the loop, and may not add to $`M` a
 part that was initialized before it, or its next iteration would use a

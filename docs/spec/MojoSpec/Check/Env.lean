@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9688956826981186846")
+:::moduleDocs (fingerprint := "4879727476485432117")
 :::
 
-:::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "13546443985139768063")
+:::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "5447607349216654076")
 *Definition: lookups.* The checker finds a struct or a function of the
 program by its name, the first one declared with that name, and a field or
 method of a struct by its name. `fieldOf` gives the type of the field
@@ -89,7 +89,7 @@ type's name. Inference, the checker and
 elaboration all read the signatures of calls here.
 :::
 
-:::readable MojoGrimoire.Check.builtinRange MojoGrimoire.Check.rangeParams (fingerprint := "10555727433073696386")
+:::readable MojoGrimoire.Check.builtinRange MojoGrimoire.Check.rangeParams (fingerprint := "3464469792870554795")
 *Definition: the standard library's range.* A call of $`f` is the
 standard library's `range` when $`f` is `range` and the program declares
 no struct and no function of that name (#121); the checker also needs
@@ -135,7 +135,7 @@ through a list when some list wraps it, under any number of arrays and
 lists.
 :::
 
-:::readable MojoGrimoire.Check.successors MojoGrimoire.Check.reach (fingerprint := "11918007857969338830")
+:::readable MojoGrimoire.Check.successors MojoGrimoire.Check.reach (fingerprint := "1875719550834205496")
 *Definition: reachable structs.* A field leads to the struct of its
 element type. The successors of a struct, through the fields whose type
 satisfies a predicate, are the structs that those fields lead to. The
@@ -146,7 +146,7 @@ that, the search gives nothing, rather than the structs it has reached so
 far.
 :::
 
-:::readable MojoGrimoire.Check.rejectedCycle (pin := MojoGrimoire.Check.elemBase) (pin := MojoGrimoire.Check.throughList) (pin := MojoGrimoire.Check.successors) (pin := MojoGrimoire.Check.reach) (fingerprint := "10946540318252151045")
+:::readable MojoGrimoire.Check.rejectedCycle (pin := MojoGrimoire.Check.elemBase) (pin := MojoGrimoire.Check.throughList) (pin := MojoGrimoire.Check.successors) (pin := MojoGrimoire.Check.reach) (fingerprint := "16941789551282394544")
 *Definition: rejected cycles.* A field leads to the struct of its element
 type, through a list when some list wraps it. A cycle of fields none of
 which is through a list is rejected: a struct that holds itself, directly

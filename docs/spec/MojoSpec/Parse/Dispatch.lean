@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods of operators on structs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10284903237660862545")
+:::moduleDocs (fingerprint := "2808830558839817441")
 :::
 
 :::readable MojoGrimoire.Parse.declaredMethod MojoGrimoire.Parse.inPlaceMethod MojoGrimoire.Parse.otherParam (fingerprint := "11709485608895280507")
@@ -25,7 +25,7 @@ method of $`p \mathrel{\mathit{op}{=}} e` is `__iadd__`, `__isub__` or
 the one after `self`, of a method that takes exactly one.
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.TyEnv.lookup MojoGrimoire.Parse.TyEnv.push MojoGrimoire.Parse.TyEnv.freePlace MojoGrimoire.Parse.TyEnv.placeTy (fingerprint := "1644828188159980859")
+:::readable MojoGrimoire.Parse.TyEnv MojoGrimoire.Parse.TyEnv.lookup MojoGrimoire.Parse.TyEnv.push MojoGrimoire.Parse.TyEnv.freePlace MojoGrimoire.Parse.TyEnv.placeTy (fingerprint := "14064061350418250532")
 *Definition: the types in scope.* Inference keeps the types of the
 variables in scope, innermost first, and the variables that may not
 change: `read` and `ref` parameters, and `ref` bindings that may not
@@ -33,7 +33,7 @@ change what they point to. A place may change when its variable may and
 it is no transfer. An operator's result has its `binaryResult`.
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv.mutableAt MojoGrimoire.Parse.TyEnv.mutableArgs MojoGrimoire.Parse.TyEnv.canPass (fingerprint := "2892619099815580799")
+:::readable MojoGrimoire.Parse.TyEnv.mutableAt MojoGrimoire.Parse.TyEnv.mutableArgs MojoGrimoire.Parse.TyEnv.canPass (fingerprint := "11807050205109931908")
 *Definition: what may change.* An operand may change when it is a place
 that may, or a call or a method call that returns a reference whose
 origins are all parameters it may change: `mut` ones, `self` among them,

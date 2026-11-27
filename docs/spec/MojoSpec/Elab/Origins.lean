@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The origins of references: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4691331612061004657")
+:::moduleDocs (fingerprint := "7366745718409902173")
 :::
 
-:::readable MojoGrimoire.Elab.TyEnv MojoGrimoire.Elab.placeTyOf MojoGrimoire.Elab.refCallee (fingerprint := "11596427100847495682")
+:::readable MojoGrimoire.Elab.TyEnv MojoGrimoire.Elab.placeTyOf MojoGrimoire.Elab.refCallee (fingerprint := "10131254657864107872")
 *Definition: callees.* Elaboration follows the types of the variables
 declared so far, to find the type of a place, $`p\,\hat{}` having the
 type of $`p`, and so the signature of the method a call names. A call's signature, that of a function, of a
@@ -24,7 +24,7 @@ struct's construction or of a method, comes with its arguments, the
 receiver of a method first.
 :::
 
-:::readable MojoGrimoire.Elab.locSlots MojoGrimoire.Elab.originArgs MojoGrimoire.Elab.refSlots (fingerprint := "13856677653426913393")
+:::readable MojoGrimoire.Elab.locSlots MojoGrimoire.Elab.originArgs MojoGrimoire.Elab.refSlots (fingerprint := "3915307274500994168")
 *Definition: what a reference points into.* A reference to a place points
 into the slots that the place touches; one returned by a call, into the
 slots that the arguments passed to the parameters its origin names point
@@ -34,7 +34,7 @@ origin, such as a struct's construction, points into nothing. The
 reference has the type of the place, or the result type of the call.
 :::
 
-:::readable MojoGrimoire.Elab.addAlias MojoGrimoire.Elab.aliasStmt MojoGrimoire.Elab.aliasBlock MojoGrimoire.Elab.slotsOf (fingerprint := "14262126315433238538")
+:::readable MojoGrimoire.Elab.addAlias MojoGrimoire.Elab.aliasStmt MojoGrimoire.Elab.aliasBlock MojoGrimoire.Elab.slotsOf (fingerprint := "2801494913849956689")
 *Definition: the references of a body.* A pass through the body, in order,
 records each `ref` binding with the slots it may point into, so that a
 reference bound to another reference points into the same slots. Two

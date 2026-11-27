@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Operators: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8359356254414696136")
+:::moduleDocs (fingerprint := "6556609935579419647")
 :::
 
 :::readable MojoGrimoire.Check.compares (fingerprint := "4667244952484152006")
@@ -21,7 +21,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 compare.
 :::
 
-:::readable MojoGrimoire.Check.boolLiteralMisfit (fingerprint := "2932623962651459134")
+:::readable MojoGrimoire.Check.boolLiteralMisfit (fingerprint := "1473798262456904149")
 *Rule: a $`\mathsf{Bool}` compared with an empty literal.* When the left
 operand of $`<`, $`\le`, $`>`, $`\ge`, $`==` or $`!=` is a
 $`\mathsf{Bool}` and the right one is an empty literal with no type,

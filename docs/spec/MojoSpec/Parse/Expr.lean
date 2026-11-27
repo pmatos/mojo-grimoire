@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7052113066657254816")
+:::moduleDocs (fingerprint := "11480263961697574370")
 :::
 
 :::readable MojoGrimoire.Parse.Term MojoGrimoire.Parse.Term.toExpr (fingerprint := "13183905014692490612")
@@ -22,14 +22,14 @@ and indices of a name, and an expression once it reads anything else. A
 place used where an expression is expected is read as a value.
 :::
 
-:::readable MojoGrimoire.Parse.compOps MojoGrimoire.Parse.addOps MojoGrimoire.Parse.mulOps MojoGrimoire.Parse.acceptOp (fingerprint := "4579658870066396123")
+:::readable MojoGrimoire.Parse.compOps MojoGrimoire.Parse.addOps MojoGrimoire.Parse.mulOps MojoGrimoire.Parse.acceptOp (fingerprint := "1639347613123302414")
 *Definition: operators.* The binary operators fall in three levels:
 comparisons `<`, `<=`, `>`, `>=`, `==`, `!=`; additive `+`, `-`; and
 multiplicative `*`, `//`, `%`. The parser reads an operator of a level
 when it is next.
 :::
 
-:::readable MojoGrimoire.Parse.nonOperandKeywords MojoGrimoire.Parse.startsOperand (fingerprint := "5206625054672960058")
+:::readable MojoGrimoire.Parse.nonOperandKeywords MojoGrimoire.Parse.startsOperand (fingerprint := "3616181098242013562")
 *Definition: tokens that start an operand.* A token can start an
 expression when it is an integer or string literal, one of the symbols
 `+`, `-`, `*`, `(`, `[` and `==`, or a name that is not one of the
@@ -43,7 +43,7 @@ lexer reads. The end of a logical line and a change of indentation start
 no expression.
 :::
 
-:::readable MojoGrimoire.Parse.expr MojoGrimoire.Parse.orRest MojoGrimoire.Parse.andExpr MojoGrimoire.Parse.andRest MojoGrimoire.Parse.notExpr MojoGrimoire.Parse.sum MojoGrimoire.Parse.sumRest MojoGrimoire.Parse.product MojoGrimoire.Parse.productRest MojoGrimoire.Parse.unaryExpr MojoGrimoire.Parse.chain MojoGrimoire.Parse.trailers MojoGrimoire.Parse.primary MojoGrimoire.Parse.exprList (fingerprint := "5118807522791199494")
+:::readable MojoGrimoire.Parse.expr MojoGrimoire.Parse.orRest MojoGrimoire.Parse.andExpr MojoGrimoire.Parse.andRest MojoGrimoire.Parse.notExpr MojoGrimoire.Parse.sum MojoGrimoire.Parse.sumRest MojoGrimoire.Parse.product MojoGrimoire.Parse.productRest MojoGrimoire.Parse.unaryExpr MojoGrimoire.Parse.chain MojoGrimoire.Parse.trailers MojoGrimoire.Parse.primary MojoGrimoire.Parse.exprList (fingerprint := "13270767325982771273")
 *Definition: expressions.*
 
 $$`\begin{array}{lcl}

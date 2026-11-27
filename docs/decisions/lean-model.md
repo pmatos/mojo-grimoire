@@ -5,7 +5,7 @@ organised.
 
 ## The package
 
-`lean/` is one Lake package with no dependencies, pinned to Lean 4.35.0 in
+`lean/` is one Lake package with no dependencies, pinned to Lean 4.36.0 in
 `lean/lean-toolchain` (ADR-2026-11-15-1905). It has four libraries and an
 executable:
 
@@ -40,6 +40,21 @@ than Lean's three standard ones or a native-evaluation axiom that holds, on
 (ADR-2026-11-15-1906). It also fails when a `.lean` file of `lean/` is not
 imported by `MojoGrimoireTest`'s root. So a new module is imported there in
 the same PR.
+
+One exception, ruled by the human on 2026-11-27 (#343): Lean 4.36 generates,
+for each inductive type `T` with two or more constructors, `T.ctorIdx`
+implemented by the `unsafe` `T.ctorIdx._impl`, which reads the value's tag
+with `getObjTagNat`. The check allows that pair only in its exact generated
+shape (`isGeneratedCtorIdx` in `lean/MojoGrimoireTest/Axioms.lean`), and
+`MojoGrimoireTest.AxiomsGuard` shows that a hand-written look-alike is
+rejected. So "no declaration is unsafe" and "none is implemented by other
+code" each have this one exception, and "the compiled code equals the
+definitions that the proofs are about" also assumes that Lean's run-time tag
+equals the constructor's index; a proof by native evaluation that uses
+derived equality rests on it too.
+
+Rejected: staying on Lean 4.35.0 to avoid the exception, which stops every
+Lean update; and `genCtorIdx false`, which breaks `noConfusion`.
 
 Rejected: `#print axioms` lines per theorem, where a missing line passes in
 silence.

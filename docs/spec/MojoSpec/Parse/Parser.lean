@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The parser's monad: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14035004481668319307")
+:::moduleDocs (fingerprint := "10763513246733507314")
 :::
 
 :::readable MojoGrimoire.Parse.PState MojoGrimoire.Parse.P MojoGrimoire.Parse.peek MojoGrimoire.Parse.peek2 MojoGrimoire.Parse.curLine MojoGrimoire.Parse.markStmt MojoGrimoire.Parse.fail MojoGrimoire.Parse.next (fingerprint := "2346832099094864449")
@@ -27,13 +27,13 @@ statements, from which the check of the constructs outside the subset
 reports a line (#180).
 :::
 
-:::readable MojoGrimoire.Parse.atSym MojoGrimoire.Parse.atKw MojoGrimoire.Parse.acceptSym MojoGrimoire.Parse.acceptKw MojoGrimoire.Parse.expectSym MojoGrimoire.Parse.expectKw MojoGrimoire.Parse.expectNewline MojoGrimoire.Parse.skipNewlines (fingerprint := "8776066741729761534")
+:::readable MojoGrimoire.Parse.atSym MojoGrimoire.Parse.atKw MojoGrimoire.Parse.acceptSym MojoGrimoire.Parse.acceptKw MojoGrimoire.Parse.expectSym MojoGrimoire.Parse.expectKw MojoGrimoire.Parse.expectNewline MojoGrimoire.Parse.skipNewlines (fingerprint := "2010067557158458911")
 *Definition: reading expected tokens.* `at` tests the next token, `accept`
 reads it when it is the one given and says whether it was, and `expect`
 reads it or fails. Empty logical lines may be skipped.
 :::
 
-:::readable MojoGrimoire.Parse.loopExits MojoGrimoire.Parse.keywords MojoGrimoire.Parse.name MojoGrimoire.Parse.memberName (fingerprint := "4811383286248760132")
+:::readable MojoGrimoire.Parse.loopExits MojoGrimoire.Parse.keywords MojoGrimoire.Parse.name MojoGrimoire.Parse.memberName (fingerprint := "7475315137192154068")
 *Definition: names.* A name is an identifier token that is not a keyword:
 `def`, `fn`, `struct`, `var`, `ref`, the control-flow words, the boolean
 operators and literals, the argument conventions `mut`, `out` and

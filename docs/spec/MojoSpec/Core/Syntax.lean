@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Places, expressions and statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13203923808965900470")
+:::moduleDocs (fingerprint := "7608040403659951478")
 :::
 
 :::readable MojoGrimoire.Core.Place MojoGrimoire.Core.Expr (fingerprint := "519563516514138862")
@@ -112,7 +112,7 @@ elaboration makes this explicit by inserting $`\mathsf{drop}`, so that a run
 never has to find a value's last use.
 :::
 
-:::readable MojoGrimoire.Core.methodCallee MojoGrimoire.Core.calleeMethod MojoGrimoire.Core.inPlaceCallee MojoGrimoire.Core.boolTest (fingerprint := "4835584822539248275")
+:::readable MojoGrimoire.Core.methodCallee MojoGrimoire.Core.calleeMethod MojoGrimoire.Core.inPlaceCallee MojoGrimoire.Core.boolTest (fingerprint := "16641672030198073939")
 *Definition: method callees.* A call may name the method $`m` of the
 struct $`S` as a function, $`S.m`, which takes the receiver as its first
 argument, as Mojo's $`S.m(r, \ldots)` does: inference makes such a call of

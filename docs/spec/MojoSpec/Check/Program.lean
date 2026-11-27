@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12952420569600103529")
+:::moduleDocs (fingerprint := "14111025864232253597")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17933977108324489146")
@@ -26,7 +26,7 @@ touched or built from its fields, and each holds its whole value but the
 `self` of `__init__`, which holds nothing.
 :::
 
-:::readable MojoGrimoire.Check.checkDistinct MojoGrimoire.Check.checkConventions (fingerprint := "18041074665712261837")
+:::readable MojoGrimoire.Check.checkDistinct MojoGrimoire.Check.checkConventions (fingerprint := "3840921892517559410")
 *Rule: declarations.* Names that must be unique are rejected when one
 repeats. Only the `self` of `__init__` may be `out`, and only the
 `self` of `__deinit__` `deinit`.
@@ -48,7 +48,7 @@ return; the flow phase reports it first. The body also gives what the
 instantiation phase records in it (`InstEvent`).
 :::
 
-:::readable MojoGrimoire.Check.operatorArity MojoGrimoire.Check.checkFun MojoGrimoire.Check.checkMethod MojoGrimoire.Check.checkInit (fingerprint := "18319660083264349436")
+:::readable MojoGrimoire.Check.operatorArity MojoGrimoire.Check.checkFun MojoGrimoire.Check.checkMethod MojoGrimoire.Check.checkInit (fingerprint := "2547135469488102416")
 *Rule: functions, methods and initializers.* A function's body is checked.
 A method of the struct $`S` has a first parameter `self` of type $`S`,
 `read`, `mut`, `var` or `ref`. An operator method that inference calls
@@ -89,7 +89,7 @@ is the error at its place too. The type phase locates the error of each
 body there, or gives its missing return (`located`).
 :::
 
-:::readable MojoGrimoire.Check.checkTypes MojoGrimoire.Check.declBodies MojoGrimoire.Check.checkFlow (fingerprint := "10044932711426079901")
+:::readable MojoGrimoire.Check.checkTypes MojoGrimoire.Check.declBodies MojoGrimoire.Check.checkFlow (fingerprint := "18106343609100170426")
 *Rule: programs.* A program is checked in three phases, the type phase,
 the flow phase and the instantiation phase
 (`MojoGrimoire.Check.checkProgram`), and is rejected with the first error

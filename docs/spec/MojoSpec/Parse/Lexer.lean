@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The lexer: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10062317002505781530")
+:::moduleDocs (fingerprint := "2211775908552720783")
 :::
 
 :::readable MojoGrimoire.Parse.Tok MojoGrimoire.Parse.Token MojoGrimoire.Parse.SyntaxError (fingerprint := "12871311785592106213")
@@ -42,7 +42,7 @@ before `=`. A name starts with a letter or `_` and continues with letters,
 digits and `_`.
 :::
 
-:::readable MojoGrimoire.Parse.lexChars MojoGrimoire.Parse.lexChars.close MojoGrimoire.Parse.lexLine (fingerprint := "8824115498293957067")
+:::readable MojoGrimoire.Parse.lexChars MojoGrimoire.Parse.lexChars.close MojoGrimoire.Parse.lexLine (fingerprint := "5061502162610172510")
 *Definition: the tokens of a line.* The characters of a line are read left
 to right. Blanks are skipped and `#` ends the line. Digits make an integer
 literal, and a name start makes a name. `"""…"""` is a docstring, which
