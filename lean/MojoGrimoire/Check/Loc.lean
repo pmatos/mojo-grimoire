@@ -64,12 +64,33 @@ def passOn (c : Conv) (m : Bool) : Bool :=
   | .ref => m
   | _ => false
 
+mutual
 /-- Whether `e` is a subscript that Mojo reads late (`lateGetter`), which
-elaboration does not name as a temporary (#378). -/
-def lateCall (prog : Program) : Expr → Bool
-  | .call f _ => lateGetter prog f
+elaboration does not name as a temporary (#378), or a call that returns a
+reference with one among its origin arguments, at any depth. -/
+def lateCall (prog : Program) : Expr → CheckM Bool
+  | .call f args => do
+    if lateGetter prog f then return true
+    if (← findVar f).isSome then return false
+    match callSig prog f with
+    | .ok ⟨_, params, _, some os, _⟩ => lateArgs prog os params args
+    | _ => pure false
+  | .method p m args => do
+    let sig ← tryCatch (do pure (methodSig prog (← placeTy prog p) m args.length).toOption)
+      fun _ => pure none
+    let some ⟨_, params, _, some os, _⟩ := sig | pure false
+    lateArgs prog os params args
   | .withDrops e _ _ => lateCall prog e
-  | _ => false
+  | _ => pure false
+
+/-- Whether an argument among `args` passed to a parameter among `params`
+that the names `os` of a callee's origin name is read late (`lateCall`). -/
+def lateArgs (prog : Program) (os : List Name) : List Param → List Expr → CheckM Bool
+  | prm :: prms, a :: args => do
+    if os.contains prm.name && (← lateCall prog a) then return true
+    lateArgs prog os prms args
+  | _, _ => pure false
+end
 
 mutual
 /-- The origins of the located operand `e`, and whether it may be changed
@@ -109,7 +130,7 @@ def originsOf (prog : Program) (strict : Bool) (os : List Name) :
     let some (rest, m) ← originsOf prog strict os prms args | pure none
     if os.contains prm.name then
       let some (qs, mq) ← locOfAs prog strict a
-        | pure (if strict || lateCall prog a then none else some (rest, false))
+        | do pure (if strict || (← lateCall prog a) then none else some (rest, false))
       pure (some (qs ++ rest, m && passOn prm.conv mq))
     else pure (some (rest, m))
   | _, _ => pure (some ([], true))
@@ -175,9 +196,10 @@ def overlaps (p q : Place) : Bool :=
   x == y && (a.isPrefixOf b || b.isPrefixOf a)
 
 /-- A location passed to a call: the convention it is passed by, the place
-reported when it is aliased, the places it may be, whether it is a mutable
-location passed to a `ref` parameter (`lent`), and whether it may point
-into a temporary (`temp`, `tempOrigin`). -/
+reported when it is aliased, the places it may be, whether it is a
+location passed to a `ref` parameter that may be changed through it
+(`lent`, `mayChange`), and whether it may point into a temporary (`temp`,
+`tempOrigin`). -/
 structure PassedLoc where
   conv : Conv
   place : Place
@@ -185,10 +207,19 @@ structure PassedLoc where
   lent : Bool := false
   temp : Bool := false
 
+/-- Whether the place `p` may be changed through when it is passed to a
+`ref` parameter: it passes on a mutable reference (`passedMutable`), or
+its variable is a `ref` parameter, whose mutability is a parameter of its
+own (#139). -/
+def mayChange (p : Place) : CheckM Bool := do
+  let v := (← get).vars.find? (·.name == (splitPlace p).1)
+  pure ((← passedMutable p) || v.any (·.access == .refParam))
+
 /-- The place `p` passed by the convention `c`. A reference counts as every
 place it may point into. -/
 def passedPlace (c : Conv) (p : Place) : CheckM PassedLoc := do
-  pure { conv := c, place := p, places := resolvePlace (← get).vars p }
+  pure { conv := c, place := p, places := resolvePlace (← get).vars p,
+         lent := c == .ref && (← mayChange p), temp := ← throughTemp p }
 
 /-- The arguments among `args` that are passed as locations: every located
 operand whose parameter is `read`, `mut` or `ref`, except an `Int` or a
@@ -198,13 +229,12 @@ def locationArgs (prog : Program) : List Param → List Expr → CheckM (List Pa
   | prm :: prms, a :: args => do
     let rest ← locationArgs prog prms args
     if passedByValue prm then return rest
-    let lent (m : Bool) := prm.conv == .ref && m
     match a, ← locOf prog a with
-    | .place p, some (_, m) =>
-      pure ({ ← passedPlace prm.conv p with lent := lent m, temp := ← tempOrigin prog true a } :: rest)
+    | .place p, some _ => pure ((← passedPlace prm.conv p) :: rest)
     | _, some (o :: os, m) =>
-      pure ({ conv := prm.conv, place := o, places := o :: os, lent := lent m,
-              temp := ← tempOrigin prog true a } :: rest)
+      let temp ← tempOrigin prog true a
+      let lent := prm.conv == .ref && (m || !temp && (← (o :: os).allM mayChange))
+      pure ({ conv := prm.conv, place := o, places := o :: os, lent, temp } :: rest)
     | _, _ => pure rest
   | _, _ => pure []
 

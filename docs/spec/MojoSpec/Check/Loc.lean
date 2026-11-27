@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Located operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2295899750604538009")
+:::moduleDocs (fingerprint := "15054994443183033946")
 :::
 
 :::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable MojoGrimoire.Check.passedMutable (fingerprint := "4781551392938097025")
@@ -32,7 +32,7 @@ returns through a `mut` parameter may be changed; through a `ref`
 parameter, when its argument may be; through a `read` parameter, never.
 :::
 
-:::readable MojoGrimoire.Check.lateCall MojoGrimoire.Check.locOfAs MojoGrimoire.Check.originsOf MojoGrimoire.Check.locOf (fingerprint := "8705670448452709391")
+:::readable MojoGrimoire.Check.lateCall MojoGrimoire.Check.lateArgs MojoGrimoire.Check.locOfAs MojoGrimoire.Check.originsOf MojoGrimoire.Check.locOf (fingerprint := "3732083874106212796")
 *Rule: located operands.* A located operand names a location. A place is
 one: its origins are the place, or the same place in each origin of the
 reference it goes through, and it passes on a mutable reference when its
@@ -53,10 +53,11 @@ reads a located operand (`locOf`). Strictly, for a `return`, such a call
 is no located operand. So it is too in a place's index, in the checker's
 strict pass (`strictOrigins`, `inIndex`), since elaboration does not name
 the temporary there, and it would die before it is read (#377). A subscript that Mojo reads late is never left
-out (`lateCall`, #378), for the same reason.
+out, nor a call that returns a reference with one among its origin
+arguments, at any depth (`lateCall`, #378), for the same reason.
 :::
 
-:::readable MojoGrimoire.Check.calleeOf MojoGrimoire.Check.throughTemp MojoGrimoire.Check.tempOrigin MojoGrimoire.Check.tempArgs (fingerprint := "17752257135694289997")
+:::readable MojoGrimoire.Check.calleeOf MojoGrimoire.Check.throughTemp MojoGrimoire.Check.tempOrigin MojoGrimoire.Check.tempArgs (fingerprint := "7124317059190285579")
 *Rule: references into temporaries.* A located operand may point into a
 temporary, which its origins leave out (#80). That is the case for a place
 reached through a reference bound to one, and for a call with an origin
@@ -71,7 +72,7 @@ escaping reference (#366). The name of the callee is what that error
 reports (`calleeOf`).
 :::
 
-:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.PassedLoc MojoGrimoire.Check.passedPlace MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "12720061300649723827")
+:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.PassedLoc MojoGrimoire.Check.mayChange MojoGrimoire.Check.passedPlace MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "12451465105163273593")
 *Rule: argument exclusivity.* Two places overlap when they have the same
 variable and one path is a prefix of the other. The arguments of a call
 that are passed as locations are the located operands whose parameters
@@ -82,9 +83,13 @@ is copied instead. A call is rejected when a location passed `mut`, of
 any type, overlaps another location of the same call. A reference, and a
 call that returns one, overlaps what its origins overlap: `n(first(xs),
 xs)` is rejected when `n` takes its second argument `mut`. So is a
-mutable location passed to a `ref` parameter that overlaps another
-location, when either may point into a temporary (`lent`, `temp`):
-`pick(r, y, False)` after `ref r = pick(y, T(1), True)`. The compiler
+location passed to a `ref` parameter, a `ref self` receiver among them,
+that may be changed through it, and that overlaps another location, when
+either may point into a temporary (`lent`, `temp`): `pick(r, y, False)`
+after `ref r = pick(y, T(1), True)`, and `m.cmp(mpick(M(1), m, False))`.
+A place may be changed so when it passes on a mutable reference, or when
+its variable is a `ref` parameter, whose mutability is a parameter of its
+own (`mayChange`, #139). The compiler
 rejects this without a temporary too, which the model does not yet
 (#381). The error names the place passed, or a call's first origin.
 :::

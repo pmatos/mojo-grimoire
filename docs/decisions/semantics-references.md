@@ -186,13 +186,17 @@ choices (#18):
     accepts is checked again, rejecting it
     (`MojoGrimoire.Check.checkProgram`);
   - a late subscript as an origin argument of a `ref` binding, as
-    `ref r = rpick(s[1], P(5), True)`, is `notAPlace` (#378);
+    `ref r = rpick(s[1], P(5), True)`, or of a call that is one in turn,
+    as `ref r = psame(rpick(s[1], P(5), True))`, is `notAPlace` (#378);
   - an expression statement that returns a reference through one bound
     to a temporary, as `psame(r)` after `ref r = psame(pmk(1))`, is
     `notAPlace` (#379).
 
-  A mutable location passed to a `ref` parameter that aliases another
-  argument is `argumentExclusivity`, as the compiler reports it, when
-  either may point into a temporary: `vv(pick(r, y, False))` after
-  `ref r = pick(y, T(1), True)`. The compiler rejects the case with no
+  A location passed to a `ref` parameter or a `ref self` receiver that
+  may be changed through it, and aliases another argument, is
+  `argumentExclusivity`, as the compiler reports it, when either may
+  point into a temporary: `vv(pick(r, y, False))` after
+  `ref r = pick(y, T(1), True)`, `m.cmp(mpick(M(1), m, False))`, and
+  `two(y, pick(T(1), y, False))` for a `ref` parameter `y`, whose
+  mutability is a parameter (#139). The compiler rejects the case with no
   temporary too, which the model still runs (#381).

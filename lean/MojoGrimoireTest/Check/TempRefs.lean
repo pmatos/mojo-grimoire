@@ -46,6 +46,12 @@ private def decls : List String := [
   "    if first:",
   "        return a",
   "    return b",
+  "def rsame(x: P) -> ref [x] P:",
+  "    return x",
+  "def ppick(ref a: P, ref b: P, first: Bool) -> ref [a, b] P:",
+  "    if first:",
+  "        return a",
+  "    return b",
   "def rpick(a: P, b: P, first: Bool) -> ref [a, b] P:",
   "    if first:",
   "        return a",
@@ -84,6 +90,23 @@ private def rejection (ls : List String) : Option (Name × CheckError) :=
 #guard rejection ["def g(ref y: P) -> Int:", "    var s = S2()",
     "    ref r = rpick(s[2], y, True)", "    print(\"mid\")", "    return rd(r)",
     "def main():", "    var a = P(1)", "    print(g(a))"] == some ("g", .notAPlace "rpick")
+
+-- A late subscript one call deeper, as the origin argument of a call that
+-- is itself an origin argument. The compiler prints `get 1`, `mid`,
+-- `rd 8`, `pdrop 8`, `pdrop 5`, `8`.
+#guard rejection ["def main():", "    var s = S2()", "    ref r = psame(rpick(s[1], P(5), True))",
+    "    print(\"mid\")", "    print(rd(r))"] == some ("main", .notAPlace "psame")
+
+-- The compiler prints `get 1`, `mid`, `rd 8`, `pdrop 8`, `pdrop 5`, `8`.
+#guard rejection ["def main():", "    var s = S2()", "    var a = P(5)",
+    "    ref r = ppick(rsame(s[1]), a, True)", "    print(\"mid\")", "    print(rd(r))"] ==
+  some ("main", .notAPlace "ppick")
+
+-- In a loop body. The compiler prints `get 0`, `rd 7`, `pdrop 7`, `7`,
+-- `get 1`, `rd 8`, `pdrop 8`, `8`.
+#guard rejection ["def main():", "    var s = S2()", "    var i = 0", "    while i < 2:",
+    "        ref r = psame(rsame(s[i]))", "        print(rd(r))", "        i += 1"] ==
+  some ("main", .notAPlace "psame")
 
 -- A temporary origin argument in a read place's index (#377). The compiler
 -- prints `mk 1`, `pz 1`, `drop 1`, `20`.
