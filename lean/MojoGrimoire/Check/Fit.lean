@@ -6,7 +6,7 @@ How a call reports an argument that does not fit its parameter (#46).
 
 A function or a method reports the misfit itself: a type mismatch, a wrong
 number of arguments, or a place that may not change passed `mut`, which a
-temporary passed `mut` is too, as the compiler reports it (#81). An initializer reports every misfit as
+temporary passed `mut` is too (#81). An initializer reports every misfit as
 `noMatchingInit` of its type, since the compiler tries each initializer
 and reports only that none fits: a construction `S(…)`, and a literal that
 initializes the list or array expected where it stands, and `List[u](e)`
@@ -93,10 +93,9 @@ beyond reading and assigning it, whose write-back is not yet modelled
 def notPlaceError (prog : Program) (fit : Fit) (callee : Name) (e : Expr) : CheckError :=
   fit.misfit <| match e with
   | .call g _ =>
-    match calleeMethod g with
-    | some (s, _, _) =>
-      if lateGetter prog g then .notAList (.struct s) else temporaryPassedMut callee
-    | none => temporaryPassedMut callee
+    match calleeMethod g, lateGetter prog g with
+    | some (s, _, _), true => .notAList (.struct s)
+    | _, _ => temporaryPassedMut callee
   | _ => temporaryPassedMut callee
 
 /-- Rejects the type `t` as `valueAsType` when a variable hides a name in

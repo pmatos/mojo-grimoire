@@ -69,8 +69,8 @@ of these classes, each with the names or types it concerns:
   or through a reference bound with `ref` (`transferFromElement`), a
   change to a place the function may not change, or a temporary passed
   `mut`, which the compiler reports alike (`immutablePlace`, #81), an
-  origin argument of a reference bound with `ref` that is not a place
-  (`notAPlace`, #80), a `mut` argument that aliases another argument, or a call that builds
+  origin argument that is not a place of a reference bound with `ref` or
+  returned (`notAPlace`, #80, #366), a `mut` argument that aliases another argument, or a call that builds
   its result into an element of a list it changes
   (`argumentExclusivity`), a `mut` parameter or the `self` of `__init__`
   not wholly initialized when the function returns

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12495456579884713777")
+:::moduleDocs (fingerprint := "12238576568400600817")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -41,10 +41,10 @@ reports it (#81). It has no place, so the error names the callee.
 misfit of the call.
 :::
 
-:::readable MojoGrimoire.Check.notPlaceError (fingerprint := "8759184780552962287")
+:::readable MojoGrimoire.Check.notPlaceError (fingerprint := "4444314192788955997")
 *Definition: a value passed `mut`.* A value that is not a place, passed
-`mut`, is a temporary passed `mut`, $`\mathsf{immutablePlace}`. A subscript of a struct that Mojo reads
-late, passed `mut`, such as the receiver of an operator method that takes
+`mut`, is a temporary passed `mut`, $`\mathsf{immutablePlace}`. A
+subscript of a struct that Mojo reads late, passed `mut`, such as the receiver of an operator method that takes
 `mut self`, is $`\mathsf{notAList}` of its struct, as is any subscript
 of a struct used as a place beyond reading and assigning it, whose
 write-back is not yet modelled (#198). Either is reported as the call's
@@ -88,7 +88,7 @@ one of its elements is a literal that holds an empty one, at any depth.
 With no type expected, it has no type of its own (#341).
 :::
 
-:::readable MojoGrimoire.Check.iterableLiteralTy (fingerprint := "3935624038139464072")
+:::readable MojoGrimoire.Check.iterableLiteralTy (fingerprint := "6744732323666495849")
 *Definition: the type of a literal argument of $`\mathsf{List}[u](e)`.*
 Given the type of each element of a literal with no type expected, the
 literal is an array of the type of its first element, which must be a
@@ -117,7 +117,7 @@ records the places each argument read without an error reads late, with
 its mark. Two records join, the first's errors first.
 :::
 
-:::readable MojoGrimoire.Check.rangeList (fingerprint := "18390113362267453304")
+:::readable MojoGrimoire.Check.rangeList (fingerprint := "8488394887846765671")
 *Rule: $`\mathsf{List}[u](\mathsf{range}(e^*))`.* The arguments of
 `range` are typed first, and the state that typing leaves is dropped.
 An argument that fits no form of `range`, no argument or more than three,
@@ -135,7 +135,7 @@ are the flow phase's, and the literal and the constant index the
 instantiation phase's.
 :::
 
-:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.callResultTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "7831331129291091907")
+:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.callResultTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "2376789455438189879")
 *Rule: a literal of the wrong length where an $`\mathsf{Int}` is
 expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1, which
 `wrongIntLiteral` picks out, fits no initializer of $`\mathsf{Int}`,

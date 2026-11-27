@@ -218,8 +218,8 @@ signature where a body first refers to it, and a struct's `__init__`
 signature with the struct, in declaration order, where the model checks a
 signature with its body (#231). And
 `ref r = List[T]()` stays `notAReference`, and `List[T]()` passed to a
-`mut` parameter `immutablePlace` (#81), since the model rejects what is
-not a location there before it checks the expression.
+`mut` parameter `immutablePlace` (#81, #367), since the model rejects
+what is not a location there before it checks the expression.
 
 A variable named `List` or `Array` makes `List[...]` a subscript of the
 variable, which the compiler reports with other errors. The model does

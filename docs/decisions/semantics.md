@@ -133,8 +133,9 @@ two disagree, the model follows the compiler.
   operand of an operator method or of `__bool__` that takes it `mut`
   ("value passed to mutable argument 'A' must be mutable", or "invalid
   use of mutating method on rvalue"; `rejected/mut_temporary_*`).
-  `notAPlace` is left for an origin argument of a `ref` binding that is
-  not a place, which the compiler accepts (#80). A method call or a
+  `notAPlace` is left for an origin argument that is not a place of a
+  reference bound with `ref`, which the compiler accepts (#80), or
+  returned, which it reports as `escapingReference` (#366). A method call or a
   subscript on a temporary, such as `A(1).bump()`, is outside the subset
   (#206), and the pin reports it `immutablePlace` too.
 - A struct variable declared without a value may be built field by field
