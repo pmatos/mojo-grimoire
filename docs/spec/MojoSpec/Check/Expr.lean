@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expressions and arguments: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1194580485562240703")
+:::moduleDocs (fingerprint := "11753174685865079110")
 :::
 
-:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.literalElems MojoGrimoire.Check.lenLiteral MojoGrimoire.Check.lenFirst MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "739197882152240539")
+:::readable MojoGrimoire.Check.checkExprAs MojoGrimoire.Check.checkOperands MojoGrimoire.Check.typeArg MojoGrimoire.Check.typeArgs MojoGrimoire.Check.ownArgs MojoGrimoire.Check.literalElems MojoGrimoire.Check.lenLiteral MojoGrimoire.Check.lenFirst MojoGrimoire.Check.checkArgs MojoGrimoire.Check.checkArg MojoGrimoire.Check.checkIndices MojoGrimoire.Check.indicesOf MojoGrimoire.Check.checkIndex MojoGrimoire.Check.requireOwnOrigin MojoGrimoire.Check.typePlace (fingerprint := "8358284387302199450")
 *Rule: expressions.* An expression is checked from left to right, and has a
 type:
 
@@ -168,9 +168,12 @@ A place through the element of an $`\mathsf{Int}` passed `mut` or `ref`
 is rejected by `rejectIntElemArg`, once its indices are checked (#222).
 Every index in a place is checked first, and must be an $`\mathsf{Int}`:
 an index of a list or an array is an argument of `__getitem__`, which has
-several overloads, checked by `checkArg`, so that a misfit is
+several overloads, so that a misfit is
 `noMatchingMethod` (`checkIndex`, #169), and one of an $`\mathsf{Int}` a
-type mismatch;
+type mismatch. An index that is a place or a literal is checked by
+`checkArg`; any other is checked in full, its implicit copies included,
+before its misfit, and only the copy of the value that a call returns a
+reference to comes after it (`resultCopyLast`, #356);
 a constant index may not be negative, nor, into an array of $`n`
 elements, $`n` or more, nor, into an $`\mathsf{Int}`, 1 or more (#127). Mojo locates $`q` in $`q[i]` before it
 evaluates $`i`, so $`i` may not invalidate $`q`, and then subscripts

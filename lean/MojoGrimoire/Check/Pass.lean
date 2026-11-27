@@ -90,20 +90,26 @@ def refResult (prog : Program) (asRef : Bool) (sig : Signature) (args : List Exp
 
 /-- Checks the value `e`, given `check`, which checks it as a value
 (`false`) or by reference, uncopied (`true`), and then that its type is
-`t`, else the misfit that `fit` reports (`expectArg`). The compiler reports the implicit copy of the value that
-a call returns a reference to (`refResult`) only once the type fits, so
-when the check of a call or a method call as a value reports that copy,
-`e` is checked again from the same state by reference, and a type that
-does not fit comes first. Any other value's copy, such as of a place or
-of a literal's element, comes after its misfit too (`copyLast`, #96
-part 11). -/
+`t`, else the misfit that `fit` reports (`expectArg`). The compiler
+reports the implicit copy of the value that a call returns a reference to
+(`refResult`) only once the type fits, so when the check of a call or a
+method call as a value reports that copy, `e` is checked again from the
+same state by reference, and a type that does not fit comes first. Every
+other error of `e`, its other copies included, comes before the misfit,
+as in a subscript's index (#356). -/
+def resultCopyLast (e : Expr) (fit : Fit) (t : Ty) (check : Bool → CheckM Ty) :
+    CheckM Unit := do
+  expectArg fit t (← tryCatch (check false) fun err => do
+    if err matches .implicitCopy _ && e matches .call .. | .method .. then
+      expectArg fit t (← tryCatch (check true) fun _ => throw err)
+    throw err)
+
+/-- Checks the value `e` as `resultCopyLast` does, but with any value's
+copy after its misfit, such as of a place or of a literal's element
+(`copyLast`, #96 part 11), as a call checks its argument. -/
 def misfitFirst (e : Expr) (fit : Fit) (t : Ty) (check : Bool → CheckM Ty) :
     CheckM Unit :=
-  copyLast do
-    expectArg fit t (← tryCatch (check false) fun err => do
-      if err matches .implicitCopy _ && e matches .call .. | .method .. then
-        expectArg fit t (← tryCatch (check true) fun _ => throw err)
-      throw err)
+  copyLast (resultCopyLast e fit t check)
 
 /-- Rejects the place `p` through the element of an `Int` as `notAList`,
 as before #127, where the model cannot yet give the compiler's result. The

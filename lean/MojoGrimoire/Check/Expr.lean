@@ -286,10 +286,14 @@ def indicesOf (prog : Program) : Place → CheckM Unit
 
 /-- Checks the index `i` of a place of type `base`, an `Int`. An index of a
 list or an array is an argument of `__getitem__`, which has several
-overloads (`overloaded`). -/
+overloads (`overloaded`). Its own expression is checked in full, its
+implicit copies included, before its misfit (`resultCopyLast`, #356). -/
 def checkIndex (prog : Program) (base : Option Ty) (i : Expr) : CheckM Unit :=
   let m := "__getitem__"
-  if base.any (overloaded · m) then do let _ ← checkArg prog (.overload m) m ⟨.read, "idx", .int⟩ i
+  if base.any (overloaded · m) then
+    if i matches .place _ | .list .. | .str _ then do
+      let _ ← checkArg prog (.overload m) m ⟨.read, "idx", .int⟩ i
+    else resultCopyLast i (.overload m) .int (checkExprAs prog · i)
   else do expect .int (← checkExprAs prog false i)
   termination_by (sizeOf i, 4)
 

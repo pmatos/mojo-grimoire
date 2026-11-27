@@ -250,7 +250,12 @@ index after it, `l[0].nope[zz]`, and a subscript of a struct that
 declares neither `__getitem__` nor `__setitem__` before its index,
 `p[zz]`. An assignment types its target place in full before the value
 it assigns: `p.nope = zz` is `unknownAttribute`, and `p[0] = zz`
-`notAList`.
+`notAList`. The index's own expression is checked in full, its implicit
+copies included, before the index's misfit, as a call's argument's own
+expression is (#356, `rejected/index_own_*`): `xs[idM(m)]`, with `idM(var x: M)` and
+`M` not implicitly copyable, is `implicitCopy`, and `xs[idM(M(True))]`
+`noMatchingMethod`. Only the copy of the value that a call returns a
+reference to comes after the misfit: `xs[same(m)]` is `noMatchingMethod`.
 
 The checker checks a place's indices as before (`indicesOf`). When that
 fails with an error of the type phase, the place is typed in the
@@ -259,7 +264,9 @@ compiler's order first (`typePlace`), and its error comes first
 checks the value. A place through a subscript of a struct that declares
 `__getitem__` or `__setitem__` has no type in the model, which types
 such a subscript only as a call (#198): it keeps the index's error and
-the target's mutability (`throughGetter`).
+the target's mutability (`throughGetter`). An index of a list or an
+array that is neither a place nor a literal is checked with its copies
+on, and its misfit comes after its own errors (`resultCopyLast`).
 
 ## The order inside declarations and literals
 
