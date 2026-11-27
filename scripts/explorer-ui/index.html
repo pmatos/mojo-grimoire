@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grimoire Explorer</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/ui/style.css">
+<link rel="stylesheet" href="/ui/panes.css">
+<script src="/ui/theme.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="sigil" aria-hidden="true">&#x2726;</span>
+    <span class="brand-name">grimoire<span class="brand-sub">explorer</span></span>
+  </div>
+  <div class="meta" id="meta" aria-label="Versions"></div>
+  <div class="top-actions">
+    <button class="ghost" id="warnings" hidden></button>
+    <button class="ghost icon" id="theme" title="Switch the theme" aria-label="Switch the theme"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></svg></button>
+  </div>
+</header>
+
+<div class="banner" id="banner" hidden></div>
+<div class="banner link-banner" id="link-banner" role="alert" hidden>This program came from a link; read it before running.</div>
+
+<main class="layout">
+  <section class="panel editor-panel" aria-label="Program">
+    <div class="toolbar">
+      <button class="ghost" id="examples-open" title="The programs of tests/conformance">Examples</button>
+      <span class="suite-tag" id="suite-tag" hidden></span>
+      <span class="spacer"></span>
+      <label class="field" title="The compiler's optimization level; the default build is -O3, as the suite records">
+        <span>Level</span>
+        <select id="level"></select>
+      </label>
+      <label class="field" title="The model's fuel, --fuel N; empty for the driver's default">
+        <span>Fuel</span>
+        <input id="fuel" inputmode="numeric" placeholder="default" size="7">
+      </label>
+      <button class="secondary" id="sweep" title="Build at -O0, -O1, -O2, -O3 and with -D ASSERT=all (Ctrl/Cmd+Shift+Enter)">Sweep levels</button>
+      <button class="primary" id="run" title="Run on both (Ctrl/Cmd+Enter)">Run <kbd id="run-key">Ctrl &#x21B5;</kbd></button>
+    </div>
+    <div class="editor" id="editor">
+      <div class="gutter" id="gutter" aria-hidden="true"></div>
+      <div class="code">
+        <pre class="hl" id="hl" aria-hidden="true"></pre>
+        <textarea id="source" spellcheck="false" autocapitalize="off" autocomplete="off"
+          aria-label="Mojo source; Ctrl or Cmd and Enter runs it; Escape then Tab leaves the editor"></textarea>
+      </div>
+    </div>
+    <div class="status" id="status">
+      <span id="caret">Ln 1, Col 1</span>
+      <span id="caret-token" class="caret-token"></span>
+      <span class="spacer"></span>
+      <span class="hint">Hover a token for its spec section; Ctrl/Cmd+click opens it</span>
+    </div>
+  </section>
+
+  <section class="results" aria-label="Results">
+    <div class="verdict panel" id="verdict" data-state="idle">
+      <div class="verdict-badge" id="verdict-badge">Not run yet</div>
+      <div class="verdict-detail" id="verdict-detail">Press Run, or Ctrl/Cmd+Enter, to run the program on the compiler and on the model.</div>
+    </div>
+    <div class="panel sweep" id="sweep-panel" hidden></div>
+    <div class="panes">
+      <article class="panel pane" id="pane-compiler">
+        <header class="pane-head">
+          <h2>Compiler <span class="pane-sub" id="compiler-sub">mojo build</span></h2>
+          <div class="chips" id="compiler-chips"></div>
+        </header>
+        <div class="pane-body" id="compiler-body"><p class="empty">No run yet.</p></div>
+      </article>
+      <article class="panel pane" id="pane-model">
+        <header class="pane-head">
+          <h2>Model <span class="pane-sub">mojo-grimoire</span></h2>
+          <div class="chips" id="model-chips"></div>
+        </header>
+        <div class="pane-body" id="model-body"><p class="empty">No run yet.</p></div>
+      </article>
+    </div>
+  </section>
+</main>
+
+<aside class="drawer left" id="examples" hidden aria-label="Examples">
+  <header class="drawer-head">
+    <h2>Suite programs</h2>
+    <button class="ghost icon" data-close="examples" aria-label="Close">&#x2715;</button>
+  </header>
+  <div class="drawer-tools">
+    <input id="example-filter" type="search" placeholder="Filter by name, outcome, class or entry">
+    <label class="check"><input type="checkbox" id="example-entries"> With an entry only</label>
+  </div>
+  <div class="example-count" id="example-count"></div>
+  <ul class="example-list" id="example-list"></ul>
+</aside>
+
+<aside class="drawer right" id="spec-drawer" hidden aria-label="Spec">
+  <header class="drawer-head">
+    <h2 id="spec-title">Spec</h2>
+    <a id="spec-newtab" target="_blank" rel="noopener">Open in a tab &#x2197;</a>
+    <button class="ghost icon" data-close="spec-drawer" aria-label="Close">&#x2715;</button>
+  </header>
+  <iframe id="spec-frame" title="The spec" sandbox="allow-scripts allow-popups" referrerpolicy="no-referrer"></iframe>
+</aside>
+
+<div class="modal" id="entry-modal" hidden role="dialog" aria-modal="true" aria-labelledby="entry-title">
+  <div class="modal-card">
+    <header class="drawer-head">
+      <h2 id="entry-title"></h2>
+      <button class="ghost icon" data-close="entry-modal" aria-label="Close">&#x2715;</button>
+    </header>
+    <div class="modal-body" id="entry-body"></div>
+  </div>
+</div>
+
+<div class="card" id="hover-card" hidden role="tooltip"></div>
+
+<script src="/ui/highlight.js"></script>
+<script src="/ui/editor.js"></script>
+<script src="/ui/render.js"></script>
+<script src="/ui/app.js"></script>
+</body>
+</html>
