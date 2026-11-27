@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "implicitCopy",
+  "diagnostic": "value of type 'A' cannot be implicitly copied, it does not conform to 'ImplicitlyCopyable'"
+}

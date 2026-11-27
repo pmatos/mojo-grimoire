@@ -134,9 +134,10 @@ two disagree, the model follows the compiler.
   operand of an operator method that takes it `mut` ("value passed to
   mutable argument 'A' must be mutable", or "invalid use of mutating
   method on rvalue"; `rejected/mut_temporary_*`). So is the operand of
-  a `__bool__` that takes it `mut` in `and`, `or` and `not`, but for the
-  order of the left operand's test against the right operand's errors
-  and the copy into the result (#357, #362), and for an `if` or `while`
+  a `__bool__` that takes it `mut` in `and`, `or` and `not`, whose left
+  operand's test comes before the right operand's errors and the copy
+  of the left operand into the result (#357), but for the order of the
+  other copies into the result (#362), and for an `if` or `while`
   condition, which the model rejects as `typeMismatch` (#195,
   [semantics-operators.md](semantics-operators.md#what-is-not-yet-modelled)).
   `notAPlace` is left for an origin argument that is not a place of a

@@ -314,6 +314,11 @@ inside an operand comes first (`s + nope` is `unknownVariable`), and an
 uninitialized operand after (`var s: S; s + 1` is `missingMethod`). A
 struct, list or array operand is never copied first.
 
+`and` and `or` differ: the left operand's conversion with `__bool__`
+comes before every error of the right operand, an unknown name included
+(#357, `order/logic_left_*`). Errors inside the left operand still come
+first. [semantics-operators.md](semantics-operators.md) gives the rule.
+
 ## Where the model differs today
 
 The checker's phases follow the compiler's tiers, and each phase its
