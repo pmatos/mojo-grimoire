@@ -149,9 +149,8 @@ def nestedContainer : Ty → Bool
 /-- Resolves the declaration of the struct `s`, as the compiler's first
 pass does at its place in the source, or earlier, when a struct resolved
 before it reaches it (#358). `started` holds the structs resolved or being
-resolved, and `stack` those being resolved, innermost first, each with
-whether the field through which its resolution went on holds a list. It
-gives `started` with the structs resolved.
+resolved, and `stack` those being resolved, innermost first. It gives
+`started` with the structs resolved.
 
 The struct's fields are checked first (`checkFieldDecls`). Then, field by
 field, a field that is a list or an array of a struct leads to that
@@ -159,15 +158,16 @@ struct, which is resolved now if it is not yet. A struct that declares no
 `__deinit__`, nor a method `__del__`, the destructor's older name, which the
 pin takes as its own, gets one synthesized, which needs each such field's type to
 be `Deinitable`: when its struct is still being resolved, the field closes
-a cycle, and is rejected there unless the cycle has a field through a
-list, which the fixed compiler accepts (D-0006). A struct that declares
+a cycle, and is rejected there when it lies on a cycle that the fixed
+compiler rejects (`rejectedCycle`); one whose cycles all have a field
+through a list is accepted (D-0006). A struct that declares
 either goes on only through a field of lists or arrays of lists or
 arrays, and is never rejected so. A field of a struct type leads nowhere
 here. The fuel, one more than the program's structs, never runs out, since
 each call resolves a struct not started yet; if it did, the struct would be
 rejected, never accepted unchecked. -/
 def resolveStruct (prog : Program) :
-    Nat → List (Name × Bool) → List Name → Name → Except Rejection (List Name)
+    Nat → List Name → List Name → Name → Except Rejection (List Name)
   | 0, _, _, s => throw ⟨s, .recursiveStruct s⟩
   | fuel + 1, stack, started, s =>
     if started.contains s then pure started else
@@ -180,12 +180,10 @@ def resolveStruct (prog : Program) :
       for (_, t) in sd.fields do
         let some v := containerStruct t | continue
         unless synthesized || nestedContainer t do continue
-        let path := (s, throughList t) :: stack
         if !started.contains v then
-          started ← resolveStruct prog fuel path started v
-        else if synthesized then
-          if let some i := path.findIdx? (·.1 == v) then
-            unless (path.take (i + 1)).any (·.2) do throw ⟨s, .recursiveStruct s⟩
+          started ← resolveStruct prog fuel (s :: stack) started v
+        else if synthesized && (s :: stack).contains v && rejectedCycle prog s t then
+          throw ⟨s, .recursiveStruct s⟩
       pure started
 
 /-- The member `m` of the struct `sd` that has a body, with where it is

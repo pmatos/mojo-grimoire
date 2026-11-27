@@ -69,11 +69,16 @@ two with an identical signature is #360.
 A cycle through a list is accepted (D-0006). The pin rejects it in step
 2, as it rejects a cycle of arrays, and the fixed compiler accepts it, so
 the model goes on there as for a struct resolved already. The suite holds
-none of these, since each would be a known disagreement.
+none of these, since each would be a known disagreement. A field that
+closes a cycle is still rejected when it also lies on a cycle with no
+list (`rejectedCycle`), though the resolution reached it through a list:
+of `A: List[B], Array[B, 1]` and `B: Array[A, 1]`, the error is at `B`'s
+field, as on the pin.
 
-Rejected: rejecting every cycle with no list edge at the resolution
-(`rejectedCycle`), since the pin reports a cycle with a field by value or
-a `__deinit__` in step 3; and resolving a struct's whole declaration from
+Rejected: rejecting at the resolution every field on a cycle with no list
+edge (`rejectedCycle`), whether or not the field closes a cycle there,
+since the pin reports a cycle with a field by value or a `__deinit__` in
+step 3; and resolving a struct's whole declaration from
 another's field, which would also report its two methods of one name
 there, where the pin does not.
 

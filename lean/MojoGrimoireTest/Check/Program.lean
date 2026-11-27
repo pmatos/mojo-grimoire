@@ -289,7 +289,10 @@ private def dupB : StructDecl := fw "B" [("x", .int), ("x", .int)]
 #guard cyc [fw "A" [("b", sB)], q, dupB] == some (.invalidType (.struct "Nope"))
 #guard cyc [withDeinit (fw "A" [("bs", .array sB 1)]), q, dupB] ==
   some (.invalidType (.struct "Nope"))
--- A cycle through a list stays accepted when it is resolved (D-0006).
+-- A field on a cycle with no list is rejected though the resolution reached it
+-- through a list; a cycle through a list stays accepted (D-0006).
+#guard cyc [resR, bad, fw "A" [("xs", .list sB), ("bs", .array sB 1)],
+  fw "B" [("as", .array sA 1)]] == some (.recursiveStruct "B")
 #guard cyc [fw "A" [("bs", .list sB)], fw "B" [("as", .array sA 1)]] == none
 #guard cyc [fw "A" [("bs", .array sB 1)], fw "B" [("bs", .list sB)]] == none
 
