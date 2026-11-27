@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5181049176974800048")
+:::moduleDocs (fingerprint := "4910641082040918957")
 :::
 
-:::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.testOperand (fingerprint := "11263943678275367833")
+:::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.testOperand (fingerprint := "2356369989952386309")
 *Rule: the test of a struct operand.* A struct operand of `and` or `or`
 is tested with its struct's `__bool__`, which takes only `self`, as the
 declaration's check requires. What it returns must be a
@@ -54,7 +54,7 @@ $`p` there, where the compiler, on the left of a mixed `and` or `or`,
 only borrows it and leaves $`p` initialized (#84).
 :::
 
-:::readable MojoGrimoire.Check.sameTest MojoGrimoire.Check.leftLacks MojoGrimoire.Check.leftTest MojoGrimoire.Check.copiedLate MojoGrimoire.Check.copiedValue MojoGrimoire.Check.leftConvention MojoGrimoire.Check.checkedBinaryTy (fingerprint := "7391636147501160651")
+:::readable MojoGrimoire.Check.sameTest MojoGrimoire.Check.leftLacks MojoGrimoire.Check.leftTest MojoGrimoire.Check.copiedLate MojoGrimoire.Check.copiedValue MojoGrimoire.Check.leftConvention MojoGrimoire.Check.checkedBinaryTy (fingerprint := "1965296642617984566")
 *Rule: the left operand of `and` and `or` comes first.* The compiler
 converts the left operand of `and` or `or` with `__bool__` before it
 looks at the right one (#357). Once the left operand's own expression is
@@ -96,7 +96,7 @@ misfit of the types first. The test of a struct operand on the right of
 `and` or `or` is checked there.
 :::
 
-:::readable MojoGrimoire.Check.typedSimdLeft (fingerprint := "3501249858413900342")
+:::readable MojoGrimoire.Check.typedSimdLeft (fingerprint := "13260769461416092314")
 *Rule: a comparison that only the type phase converts.* A literal on the
 left of a comparison that holds an inner literal of another length than
 one where an $`\mathsf{Int}` is expected keeps the checks it had before

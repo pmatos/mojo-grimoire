@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The program's tables: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4879727476485432117")
+:::moduleDocs (fingerprint := "12325288894748451855")
 :::
 
 :::readable MojoGrimoire.Check.findStruct MojoGrimoire.Check.findFun MojoGrimoire.Check.fieldTy MojoGrimoire.Check.findMethod MojoGrimoire.Check.fieldOf MojoGrimoire.Check.fieldNames (fingerprint := "5447607349216654076")
@@ -168,7 +168,7 @@ parameter, or an $`\mathsf{Int}` or a $`\mathsf{Bool}` passed to a
 `read` one, is passed by value. Any other place is passed by reference.
 :::
 
-:::readable MojoGrimoire.Check.consumedReceiver (fingerprint := "18022522862863130174")
+:::readable MojoGrimoire.Check.consumedReceiver (fingerprint := "11182513525488799340")
 *Definition: consumed receivers.* A method call whose receiver is
 $`q\,\hat{}` consumes $`q` when the method's `self` is `var`: Mojo
 transfers $`q` into it. Any other receiver is passed by its convention.

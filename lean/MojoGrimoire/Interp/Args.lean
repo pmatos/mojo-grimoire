@@ -173,6 +173,15 @@ def lookupVar (env : Env) (x : Name) : EvalM Ref := do
   let some b := env.lookup x | stuck s!"unknown variable {x}"
   pure b.ref
 
+/-- Moves the value `v` of a temporary into its hidden variable `x`, which
+its declaration left blank (`MojoGrimoire.Elab.tempBlock`), and gives the
+place `x`. -/
+def fillTemp (env : Env) (x : Name) (v : Value) : EvalM Ref := do
+  let r ← lookupVar env x
+  unless (← readRef r).empty do stuck s!"a temporary {x} filled twice"
+  writeRef r v
+  pure r
+
 /-- The `Int` and the index of the place `p` of the variables `env` when
 `p` is an element of an `Int` (#127). -/
 def intElem (prog : Program) (env : Env) : Place → Option (Place × Expr)

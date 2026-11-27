@@ -16,7 +16,9 @@ Mojo destroys each value as soon as possible, right after its last use.
 The core calculus makes destruction explicit with the statement `drop`, and
 with the expression `withDrops` for a value whose last use is inside an
 expression. No Mojo program contains them: elaboration inserts them, so
-that running a program never has to find a value's last use.
+that running a program never has to find a value's last use. It also gives
+each temporary that a returned reference may point into a hidden variable,
+which `temp` fills (`tempName`).
 -/
 
 namespace MojoGrimoire.Core
@@ -51,7 +53,10 @@ more, the compiler rejects it (#46): no initializer of `List` takes its
 elements as arguments.
 `withDrops e pre post` performs the operation `e` and destroys the values
 in the places `pre` once its operands are read, before it is performed,
-and those in `post` once it is done; only elaboration inserts it. -/
+and those in `post` once it is done; only elaboration inserts it. So does
+`temp x e`, a temporary origin argument of a call that returns a reference:
+it moves the value of `e` into the hidden variable `x` and is the place `x`,
+so that the temporary lives until the reference's last use (#80). -/
 inductive Expr where
   | int (value : Int)
   | bool (value : Bool)
@@ -66,6 +71,7 @@ inductive Expr where
   | list (ty : Ty) (elems : List Expr)
   | listInit (elem : Ty) (args : List Expr)
   | withDrops (e : Expr) (pre post : List Place)
+  | temp (name : Name) (value : Expr)
 end
 
 /-- The statements. `decl x t e` is Mojo's `var x: t = e`, or `var x: t`
@@ -86,6 +92,14 @@ inductive Stmt where
   | whileLoop (cond : Expr) (body : List Stmt)
   | ret (value : Option Expr)
   | drop (p : Place)
+
+/-- The hidden variable of the `k`th temporary of a function body that
+elaboration names (`Expr.temp`). No name of a program holds `%`, so none
+is a variable of the program. -/
+def tempName (k : Nat) : Name := "%" ++ toString k
+
+/-- Whether `x` is the hidden variable of a temporary (`tempName`). -/
+def isTempName (x : Name) : Bool := x.startsWith "%"
 
 /-- The callee of a call of the method `m` of the struct `s` as a
 function, written `s.m`, which takes the receiver as its first argument,

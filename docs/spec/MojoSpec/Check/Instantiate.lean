@@ -14,17 +14,19 @@ when the Lean changes under it.
 
 #doc (Manual) "Instantiation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13377681250067326486")
+:::moduleDocs (fingerprint := "2892030037804143084")
 :::
 
-:::readable MojoGrimoire.Check.placeDrops MojoGrimoire.Check.exprDrops MojoGrimoire.Check.exprsDrops MojoGrimoire.Check.stmtDrops MojoGrimoire.Check.withDropStmt MojoGrimoire.Check.withDropStmts MojoGrimoire.Check.dropsProgram MojoGrimoire.Check.synthesizedDestructors (fingerprint := "4769810320813713944")
+:::readable MojoGrimoire.Check.placeDrops MojoGrimoire.Check.exprDrops MojoGrimoire.Check.exprsDrops MojoGrimoire.Check.stmtDrops MojoGrimoire.Check.keptDrops MojoGrimoire.Check.withDropStmt MojoGrimoire.Check.withDropStmts MojoGrimoire.Check.dropsProgram MojoGrimoire.Check.synthesizedDestructors (fingerprint := "4085899041235453346")
 *Definition: where values are destroyed.* The instantiation phase checks
 each body as written, with the `drop` statements that elaboration places
 after the last use of each value kept among its statements, and every
 other change of elaboration erased. A value that an expression destroys
 is destroyed by a `drop` statement after the statement, or, in a
-condition, at the start of each block it leads to and after a loop. A
-struct that declares no
+condition, at the start of each block it leads to and after a loop. The
+hidden variables of temporaries are erased with their declarations and
+their drops (`keptDrops`), as a temporary is everywhere else in the
+checker. A struct that declares no
 `__deinit__` has the destructor that the compiler synthesizes, which
 destroys its fields, the last first.
 :::

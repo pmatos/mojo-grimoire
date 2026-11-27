@@ -67,7 +67,7 @@ def indexUses (sl : Slots) : Place → List Place
   | .transferred p => indexUses sl p
 
 /-- The slots that the expression `e` uses. A place uses its own slot and
-those its index expressions use. -/
+those its index expressions use; a temporary its hidden variable too. -/
 def uses (sl : Slots) : Expr → List Place
   | .int _ | .bool _ | .str _ => []
   | .place p | .transfer p | .copy p => union (sl.of p) (indexUses sl p)
@@ -77,6 +77,7 @@ def uses (sl : Slots) : Expr → List Place
   | .binary _ a b => union (uses sl a) (uses sl b)
   | .list _ es | .listInit _ es => usesList sl es
   | .withDrops e _ _ => uses sl e
+  | .temp x e => union (sl.of (.var x)) (uses sl e)
 
 /-- The slots that the expressions `es` use. -/
 def usesList (sl : Slots) : List Expr → List Place
@@ -103,7 +104,7 @@ def moves (sl : Slots) : Expr → List Place
   | .unary _ a => moves sl a
   | .binary _ a b => union (moves sl a) (moves sl b)
   | .list _ es | .listInit _ es => movesList sl es
-  | .withDrops e _ _ => moves sl e
+  | .withDrops e _ _ | .temp _ e => moves sl e
 
 /-- The slots that the expressions `es` move away whole. -/
 def movesList (sl : Slots) : List Expr → List Place

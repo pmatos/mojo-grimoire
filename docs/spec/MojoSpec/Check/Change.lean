@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Changes and late re-checks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11083100286845785547")
+:::moduleDocs (fingerprint := "8436107591842073821")
 :::
 
-:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.invalidatedBy MojoGrimoire.Check.recordChange MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "13933301063027450085")
+:::readable MojoGrimoire.Check.mark MojoGrimoire.Check.invalidatedBy MojoGrimoire.Check.recordChange MojoGrimoire.Check.changePlace MojoGrimoire.Check.changedArgs (fingerprint := "4200467782613444519")
 *Rule: changes.* A call changes as a whole each place it is passed `mut`,
 and each place it is passed `ref` that the function may change and that
 is not reached through `p^`; for a
@@ -43,7 +43,7 @@ change nothing. The references that such a subscript invalidates are kept
 apart from the others, as `State.interior` says.
 :::
 
-:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.lateLocs MojoGrimoire.Check.lateLocsList MojoGrimoire.Check.locsOf MojoGrimoire.Check.nestedLocs MojoGrimoire.Check.literalLocs MojoGrimoire.Check.recheckPlaces MojoGrimoire.Check.recheckLiterals MojoGrimoire.Check.recheckArgs MojoGrimoire.Check.firstElemLocs (fingerprint := "4036625857144436477")
+:::readable MojoGrimoire.Check.requireUnchanged MojoGrimoire.Check.recheckLocs MojoGrimoire.Check.lateLocs MojoGrimoire.Check.lateLocsList MojoGrimoire.Check.locsOf MojoGrimoire.Check.nestedLocs MojoGrimoire.Check.literalLocs MojoGrimoire.Check.recheckPlaces MojoGrimoire.Check.recheckLiterals MojoGrimoire.Check.recheckArgs MojoGrimoire.Check.firstElemLocs (fingerprint := "17917035804604085493")
 *Rule: places read late.* Mojo reads a place operand only once every
 operand of its operation is evaluated, and a place passed by reference is
 used during the call. So once the operands are checked, every operand that

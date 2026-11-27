@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments and operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7525170753817471869")
+:::moduleDocs (fingerprint := "8589200513718073534")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "12042878878789727990")
@@ -40,7 +40,7 @@ that elaboration gave it, when it is read (#191). A pending argument read
 into a temporary is passed to a borrowing parameter.
 :::
 
-:::readable MojoGrimoire.Interp.lateCall (fingerprint := "4828782437804165570")
+:::readable MojoGrimoire.Interp.lateCall (fingerprint := "11407878043055436380")
 *Definition: the getter of an operand.* An operand that is a subscript
 read late is a call of its getter, wrapped or not with the drops that
 elaboration gave it (`lateGetter`, #191): the getter, its arguments and
@@ -55,13 +55,14 @@ struct fields of a `@fieldwise_init` construction, then the subscripts
 read late, whose getters Mojo calls then, then the other operands (#191).
 :::
 
-:::readable MojoGrimoire.Interp.asInt MojoGrimoire.Interp.asBool MojoGrimoire.Interp.lookupVar (fingerprint := "12587210854594036958")
+:::readable MojoGrimoire.Interp.asInt MojoGrimoire.Interp.asBool MojoGrimoire.Interp.lookupVar MojoGrimoire.Interp.fillTemp (fingerprint := "4249809753148583741")
 *Definition: helpers.* An index is an $`\mathsf{Int}`, a condition a
 $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
-stuck.
+stuck. A temporary that elaboration names is moved into its hidden
+variable, which must still be blank, and passed as its place (`fillTemp`).
 :::
 
-:::readable MojoGrimoire.Interp.intElem MojoGrimoire.Interp.fixIndices (fingerprint := "1596570024928780030")
+:::readable MojoGrimoire.Interp.intElem MojoGrimoire.Interp.fixIndices (fingerprint := "9312942343898440180")
 *Definition: the indices of an assigned place.* An assignment into the
 element of an $`\mathsf{Int}` keeps the order of `__setitem__`'s
 arguments (#127). Into any other place, the indices are evaluated first,

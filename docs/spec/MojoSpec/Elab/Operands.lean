@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "What an operation destroys: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13598419881521117139")
+:::moduleDocs (fingerprint := "9929536457847720112")
 :::
 
-:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.locOperand MojoGrimoire.Elab.directOf MojoGrimoire.Elab.opKeep MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "4109670401814801624")
+:::readable MojoGrimoire.Elab.Ctx MojoGrimoire.Elab.locOperand MojoGrimoire.Elab.directOf MojoGrimoire.Elab.opKeep MojoGrimoire.Elab.directArgs MojoGrimoire.Elab.placeUses MojoGrimoire.Elab.opDrops MojoGrimoire.Elab.withDropsOf (fingerprint := "16788260925323604352")
 *Definition: what an operation destroys.* Inside a function, elaboration
 knows the program, the slots, the slots the function owns in the order they
 die, and the types of the variables declared so far. An operation uses
@@ -45,10 +45,10 @@ subscript read late only that. The slots that a list
 of operands read by reference uses directly are the union of theirs.
 :::
 
-:::readable MojoGrimoire.Elab.consumedSlot MojoGrimoire.Elab.consumedIn MojoGrimoire.Elab.consumedList (fingerprint := "1304641025228155356")
+:::readable MojoGrimoire.Elab.consumedSlot MojoGrimoire.Elab.consumedIn MojoGrimoire.Elab.consumedList (fingerprint := "10806009808688638107")
 *Definition: consumed receivers.* A method call on $`q\,\hat{}`, where
 $`q` is a whole slot and the method takes `var self`, consumes $`q`: it
 moves the value away, and the method destroys it. An expression consumes
 the slots that the method calls in it consume, at any depth, also inside
-the argument of $`\mathsf{List}[u](e)`.
+the argument of $`\mathsf{List}[u](e)` and the value of a temporary.
 :::

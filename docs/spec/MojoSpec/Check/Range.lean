@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The arguments of range: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10115839282511562051")
+:::moduleDocs (fingerprint := "12198081840402470659")
 :::
 
-:::readable MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeRangeArgs (fingerprint := "2913712515458760246")
+:::readable MojoGrimoire.Check.typeLiteral MojoGrimoire.Check.typeRangeArgs (fingerprint := "11359486937833407631")
 *Rule: typing the arguments of `range`.* Each argument of the standard
 library's `range` in the argument of $`\mathsf{List}[u](\ldots)` is typed
 in the type phase (`inTypePhase`) by the `typeArg` that the checker of expressions gives,
@@ -29,7 +29,7 @@ literal of $`\mathsf{Int}`s, which the compiler takes for an
 $`\mathsf{Int}` and rejects only when it instantiates the call (#121).
 :::
 
-:::readable MojoGrimoire.Check.readRangeArgs (fingerprint := "8675768994125759930")
+:::readable MojoGrimoire.Check.readRangeArgs (fingerprint := "6940108650801018651")
 *Rule: reading the arguments of `range`.* The arguments are then read in
 order as $`\mathsf{Int}`s passed to `read` parameters, and an open
 literal's elements in turn: a place once the `checkIndices` it is given

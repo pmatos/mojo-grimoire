@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and declarations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16977180158904710886")
+:::moduleDocs (fingerprint := "12323565020925867499")
 :::
 
-:::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.augCallee MojoGrimoire.Parse.exprStmt (fingerprint := "14674107341489909627")
+:::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.augCallee MojoGrimoire.Parse.exprStmt (fingerprint := "10466851165274512682")
 *Definition: sugar.* `p += e`, `p -= e` and `p *= e` are read as calls of
 the callees `+=`, `-=` and `*=` with $`p` and $`e`, which no name of a
 program is: inference replaces each with a call of the in-place method of

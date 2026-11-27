@@ -48,6 +48,7 @@ def exprDrops : Expr → List Place
   | .unary _ a => exprDrops a
   | .binary _ a b => exprDrops a ++ exprDrops b
   | .withDrops e pre post => exprDrops e ++ pre ++ post
+  | .temp _ e => exprDrops e
   | .int _ | .bool _ | .str _ => []
 
 /-- The places that the `withDrops` in the expressions `es` destroy. -/
@@ -63,20 +64,27 @@ def stmtDrops : Stmt → List Place
   | .print args => exprsDrops args
   | _ => []
 
+/-- The `drop` statements of the places `ps` but the hidden variables of
+temporaries. -/
+def keptDrops (ps : List Place) : List Stmt :=
+  (ps.filter fun p => !isTempName (splitPlace p).1).map .drop
+
 mutual
 /-- The statement `s` of an elaborated body with its `drop` statements
 kept and every `withDrops` erased. A value that a `withDrops` destroys
 is destroyed by a `drop` statement after the statement, or, in a
-condition, at the start of each block it leads to and after a loop. -/
+condition, at the start of each block it leads to and after a loop. The
+drops of the hidden variables of temporaries are left out, as their
+declarations are (`stripStmt`). -/
 def withDropStmt : Stmt → List Stmt
-  | .drop p => [.drop p]
+  | .drop p => keptDrops [p]
   | .ifElse c a b =>
-    let ds := (exprDrops c).map .drop
+    let ds := keptDrops (exprDrops c)
     [.ifElse (stripExpr c) (ds ++ withDropStmts a) (ds ++ withDropStmts b)]
   | .whileLoop c body =>
-    let ds := (exprDrops c).map .drop
+    let ds := keptDrops (exprDrops c)
     [.whileLoop (stripExpr c) (ds ++ withDropStmts body)] ++ ds
-  | s => stripStmt s ++ (stmtDrops s).map .drop
+  | s => stripStmt s ++ keptDrops (stmtDrops s)
 
 /-- The block `b` of an elaborated body with its `drop` statements kept
 and every `withDrops` erased (`withDropStmt`). -/

@@ -121,8 +121,8 @@ choices (#18):
   (`invalidatedReference`): `print(pick(xs[0], b, True), xs.pop())` is
   rejected. An origin argument that is a temporary is left out, and the
   others are checked: `print(pick([1], b, False), eat(b^))` is rejected.
-  The interpreter destroys such a temporary when the inner call returns,
-  where the compiler keeps it until the reference is read (#98). The
+  The temporary lives until the reference is read, as the last bullet
+  says (#98). The
   operand of a unary operator, `and` or `or` is read at once. Passed to
   `len`, or to a `read`, `mut` or `ref` parameter, it is a location when it is a located operand, as the compiler does
   (#69): it is not copied, it
@@ -133,9 +133,9 @@ choices (#18):
   invalidated, once the call's later arguments are evaluated. An `Int` or
   a `Bool` passed `read` is copied, and a `var` parameter copies it
   implicitly. One with a temporary origin argument is checked as a value
-  (#80). The interpreter still passes the reference, so the temporary is
-  destroyed once, when the inner call returns, which matches the
-  compiler's output for `show(id(P(1)))` with an implicitly copyable `P`.
+  (#80). The interpreter still passes the reference, and the temporary
+  dies once the call it is passed to is done, as in the compiler's output
+  for `show(id(P(1)))` with an implicitly copyable `P`.
 - Elaboration counts each use of a reference as a use of its origins, so
   their values live until the reference's last use. A call that returns a
   reference, passed by reference, keeps its origins alive until the
@@ -147,3 +147,14 @@ choices (#18):
   the interpreter read a destroyed value (#94). The value of a `return`
   reads it first, then destroys them in the same order: the parameters
   first, then the local variables, each the last declared first.
+- A temporary origin argument whose value is dropped, a struct or a list
+  or an array of them, lives as an unnamed local variable declared where
+  it is made, as the compiler keeps it (#80): until the last use of the
+  reference that points into it, and it dies then with the values that
+  die there, as the one declared last. `print(vv(same(P(1))), f(2))`
+  destroys it right after `vv`, `same(mk(1)) + same(mk(2))` destroys
+  both after `__add__`, the second first. Elaboration gives it a hidden variable,
+  declared with no value right before its statement, in the same block
+  (`MojoGrimoire.Elab.tempBlock`); in a `while` condition, each run of
+  the condition makes and destroys it. A temporary of another type is
+  destroyed when its call returns, as before, since nothing shows when.

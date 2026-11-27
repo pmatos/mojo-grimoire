@@ -28,6 +28,7 @@ import MojoSpec.Check.Program
 import MojoSpec.Check.Instantiate
 import MojoSpec.Elab.Live
 import MojoSpec.Elab.Origins
+import MojoSpec.Elab.Temps
 import MojoSpec.Elab.Late
 import MojoSpec.Elab.Operands
 import MojoSpec.Elab.Operations

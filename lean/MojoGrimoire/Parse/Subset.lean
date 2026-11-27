@@ -103,7 +103,7 @@ def Expr.outside (prog : Program) (vs : List Name) : Expr → Option String
   | .list _ es => Expr.listOutside prog vs es
   | .listInit _ [.call "range" args] => Expr.listOutside prog vs args
   | .listInit _ es => Expr.listOutside prog vs es
-  | .withDrops e _ _ => Expr.outside prog vs e
+  | .withDrops e _ _ | .temp _ e => Expr.outside prog vs e
 
 /-- The first construct outside the subset in the expressions `es`. -/
 def Expr.listOutside (prog : Program) (vs : List Name) : List Expr → Option String

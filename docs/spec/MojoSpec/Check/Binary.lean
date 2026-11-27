@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Binary operations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12406545064419752213")
+:::moduleDocs (fingerprint := "15750486869539369018")
 :::
 
-:::readable MojoGrimoire.Check.heldLeft (fingerprint := "4609557105210351087")
+:::readable MojoGrimoire.Check.heldLeft (fingerprint := "7670984892346008501")
 *Rule: how a literal on the left is built.* A literal on the left of a
 comparison that holds a place whose value is not implicitly copyable
 (`heldCopy`) is converted to the type of a right operand that is no
@@ -31,7 +31,7 @@ operand whose type is not known, leave the comparison to the checks it
 had before #166.
 :::
 
-:::readable MojoGrimoire.Check.checkBinary (fingerprint := "14048690194773262837")
+:::readable MojoGrimoire.Check.checkBinary (fingerprint := "14289253287069625716")
 *Rule: binary operations.* `checkExprAs` checks a binary operation by
 `checkBinary`, passing it the checks it makes of the two operands, so
 that this rule lives outside the mutual block of expressions. In the type

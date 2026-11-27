@@ -13,17 +13,17 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "17759041609436831828")
+:::moduleDocs (fingerprint := "2044840157824065735")
 :::
 
-:::readable MojoGrimoire.Parse.eagerValue (fingerprint := "681582824631525660")
+:::readable MojoGrimoire.Parse.eagerValue (fingerprint := "17332285368980072941")
 *Definition: the value of a setter.* The value $`v` of $`q[i] = v` is
 read as it is evaluated, before the getters of the subscripts read late
 in $`i`, as the compiler does: a subscript read late there is a call of
 its getter as a method (#191).
 :::
 
-:::readable MojoGrimoire.Parse.inferTarget MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "925809142732783676")
+:::readable MojoGrimoire.Parse.inferTarget MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "16392578501341609014")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 $`\mathsf{None}` for a call that returns nothing (#131),
 and `ref x = e` binds $`x` with the type of $`e`; $`x` may change what

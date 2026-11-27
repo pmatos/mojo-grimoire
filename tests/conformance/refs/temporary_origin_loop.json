@@ -1,0 +1,31 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "mk 0",
+    "drop 0",
+    "mk 0",
+    "mk 10",
+    "add 0 10",
+    "drop 10",
+    "drop 0",
+    "10",
+    "drop 10",
+    "mk 1",
+    "drop 1",
+    "mk 1",
+    "mk 10",
+    "add 1 10",
+    "drop 10",
+    "drop 1",
+    "11",
+    "drop 11",
+    "mk 2",
+    "drop 2",
+    "mk 20",
+    "drop 20",
+    "then",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

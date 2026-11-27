@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Types that a variable hides: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16047529627306185748")
+:::moduleDocs (fingerprint := "1582097571704809152")
 :::
 
 :::readable MojoGrimoire.Parse.Ty.markHidden (fingerprint := "2266457470116632289")
@@ -24,7 +24,7 @@ type $`\mathsf{Int}`, $`\mathsf{Bool}` or a struct $`S` other than
 are never marked.
 :::
 
-:::readable MojoGrimoire.Parse.Place.markHidden MojoGrimoire.Parse.Expr.markHidden MojoGrimoire.Parse.Expr.listMarkHidden (fingerprint := "6603496113252030798")
+:::readable MojoGrimoire.Parse.Place.markHidden MojoGrimoire.Parse.Expr.markHidden MojoGrimoire.Parse.Expr.listMarkHidden (fingerprint := "1736315466598006906")
 *Definition: marking an expression.* The types of
 $`\mathsf{List}[u]()` and $`\mathsf{List}[u](\ldots)` are marked wherever
 they stand in an expression, also inside an index of a place. A literal's

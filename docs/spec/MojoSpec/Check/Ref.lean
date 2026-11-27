@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "References: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9174975529103303033")
+:::moduleDocs (fingerprint := "13280904503640088750")
 :::
 
-:::readable MojoGrimoire.Check.refTarget (fingerprint := "15477698907736277328")
+:::readable MojoGrimoire.Check.refTarget (fingerprint := "16062519472296711204")
 *Rule: what a reference names.* $`\mathsf{ref}~x = e` needs $`e` to be a
 place, which must be initialized, or a call or a method call whose
 signature returns a reference. A place gives a reference to itself, or
@@ -33,7 +33,7 @@ once the place is typed, and in a return once its type is compared with
 the result type, before any later error (#127).
 :::
 
-:::readable MojoGrimoire.Check.refSubscripts (fingerprint := "464618283341381209")
+:::readable MojoGrimoire.Check.refSubscripts (fingerprint := "11378039300623005978")
 *Rule: references that a subscript changes.* A reference bound with
 `ref` is subscripted as one that may change when it may be changed, as
 the rule above finds, with each `ref` parameter taken as one that may

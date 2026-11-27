@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Comparisons: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4607004271338482145")
+:::moduleDocs (fingerprint := "1884408937923708109")
 :::
 
 :::readable MojoGrimoire.Check.seqCompare MojoGrimoire.Check.seqCompare.modelled MojoGrimoire.Check.seqCompare.conforms (fingerprint := "11022081997966745842")
@@ -49,7 +49,7 @@ $`\mathsf{or}`, so is a right operand whose type lacks `__bool__`
 (`seqMisfit`).
 :::
 
-:::readable MojoGrimoire.Check.convertsTo MojoGrimoire.Check.literalFits MojoGrimoire.Check.elemsFit (fingerprint := "17566564984048055416")
+:::readable MojoGrimoire.Check.convertsTo MojoGrimoire.Check.literalFits MojoGrimoire.Check.elemsFit (fingerprint := "4115380662758462818")
 *Rule: a literal that fits the other operand's type.* A comparison
 converts a literal operand to the type $`t` of its other operand when it
 compares $`t` (`seqCompare`) and $`t` is an array, or a list compared by
@@ -74,7 +74,7 @@ Off the left, such an inner literal fits as the compiler types it, which
 the type phase uses (`typedSimdLeft`).
 :::
 
-:::readable MojoGrimoire.Check.nestedTest MojoGrimoire.Check.lackingTy (fingerprint := "7903400112366600565")
+:::readable MojoGrimoire.Check.nestedTest MojoGrimoire.Check.lackingTy (fingerprint := "10670084566439597826")
 *Rule: the operands of a test.* For $`\mathsf{and}` and
 $`\mathsf{or}`, the misfit needs of an operand only whether its form
 gives a type that lacks `__bool__`, such as a struct without it, an
@@ -84,7 +84,7 @@ when that gives none, the form of the whole nested test is not computed,
 which keeps the check of a chain of tests linear in its length.
 :::
 
-:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "13509493921622268786")
+:::readable MojoGrimoire.Check.literalTy MojoGrimoire.Check.holdsLiteral MojoGrimoire.Check.operandFit MojoGrimoire.Check.fitTy MojoGrimoire.Check.operandMisfit MojoGrimoire.Check.byRef (fingerprint := "962758176981635117")
 *Rule: operands of a comparison of arrays or lists.* The misfit of a
 binary operator is found from its operands' forms before they are read
 (`operandTy`).
@@ -112,7 +112,7 @@ unknown and which inference did not give the operand's type, beside a
 list, or an array when that literal holds a literal.
 :::
 
-:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "4226834496865637271")
+:::readable MojoGrimoire.Check.literalPlaces MojoGrimoire.Check.placesOf MojoGrimoire.Check.heldCopy MojoGrimoire.Check.emptyList MojoGrimoire.Check.keepsBefore MojoGrimoire.Check.Before.holdsLiteral MojoGrimoire.Check.Before.convertsLiteral MojoGrimoire.Check.Before.operandMisfit MojoGrimoire.Check.Before.byRef MojoGrimoire.Check.Before.rightParam (fingerprint := "3619834338473843269")
 *Rule: comparisons that keep the checks they had before #166.* A
 literal holds the places that are its elements, at any depth. A
 comparison of which either operand is an empty list built by

@@ -41,7 +41,7 @@ def consumedIn (ctx : Ctx) : Expr → List Place
   | .method p m args => union (consumedSlot ctx p m args.length) (consumedList ctx args)
   | .call _ args | .list _ args | .listInit _ args => consumedList ctx args
   | .binary _ a b => union (consumedIn ctx a) (consumedIn ctx b)
-  | .unary _ a | .withDrops a _ _ => consumedIn ctx a
+  | .unary _ a | .withDrops a _ _ | .temp _ a => consumedIn ctx a
   | _ => []
 
 /-- The slots that the method calls in `es` consume. -/

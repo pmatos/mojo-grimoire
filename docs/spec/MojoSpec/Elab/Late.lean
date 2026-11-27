@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Subscripts read late: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10483923369512154981")
+:::moduleDocs (fingerprint := "2322873941866477339")
 :::
 
-:::readable MojoGrimoire.Elab.placeSlots MojoGrimoire.Elab.isGetter MojoGrimoire.Elab.lateValue (fingerprint := "18223303959924848957")
+:::readable MojoGrimoire.Elab.placeSlots MojoGrimoire.Elab.isGetter MojoGrimoire.Elab.lateValue (fingerprint := "12691388662068961543")
 *Definition: subscripts read late.* A subscript of a struct that declares
 `__getitem__` and `__setitem__` is a call of its getter that Mojo makes
 when its operation reads the operand (`lateGetter`, #191). The places

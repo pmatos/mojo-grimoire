@@ -13,12 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16257611633981542953")
-:::
-
-:::readable MojoGrimoire.Elab.envAfter (fingerprint := "3023937792142485577")
-*Definition: the types after a statement.* The types of the variables
-after a statement, which a declaration or a `ref` binding extends.
+:::moduleDocs (fingerprint := "11146887827271562093")
 :::
 
 :::readable MojoGrimoire.Elab.elabPrintOps MojoGrimoire.Elab.elabPrintArgs (fingerprint := "17802690047684658857")
@@ -35,7 +30,7 @@ getters before it, and what the later operands use, live as its arguments
 are evaluated (#191).
 :::
 
-:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "3980773780576500172")
+:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "18308385079530767380")
 *Definition: elaboration.* Given the slots live after a statement:
 
 - a simple statement's expressions are elaborated, and the statement is
@@ -50,8 +45,10 @@ are evaluated (#191).
   consumes and that are not live at the start of the branch;
 - a `while` loop is followed by the drops of the slots live at its head
   that are dead after it and that its test does not consume, and its body is elaborated with the slots live at
-  its head live at its end, since the next iteration may use them; its test
-  is left as it is, since every slot it uses is live at the head;
+  its head live at its end, since the next iteration may use them. Its test
+  is elaborated with the slots live at the head live after it. Every slot
+  it uses is live there, so the test destroys only the temporaries it
+  makes, each time it runs; they are not live at the head (`tempsIn`);
 - a `return` gets no drops of its own: its value is elaborated with
   nothing live after it, and returning destroys whatever is still alive.
   When the value is a call that returns a reference, the owned slots it
@@ -63,22 +60,26 @@ A block elaborates each statement with the slots live after it, and the
 types of the variables declared before it.
 :::
 
-:::readable MojoGrimoire.Elab.elabBody MojoGrimoire.Elab.ownedParams MojoGrimoire.Elab.paramEnv MojoGrimoire.Elab.elabFun (fingerprint := "16178615905400234092")
+:::readable MojoGrimoire.Elab.elabBody MojoGrimoire.Elab.ownedParams MojoGrimoire.Elab.paramEnv MojoGrimoire.Elab.elabFun (fingerprint := "18357588521383928537")
 *Definition: function bodies.* A function owns its `var` parameters and
 its local variables whose values are dropped; when several die at once,
 the parameters die first, then the local variables, each the last declared
 first. An owned parameter that its body never uses is dropped before the
 body runs; the rest of the body is elaborated with nothing live at its
 end, the parameters' types, and the references the body binds, which
-`slotsOf` finds.
+`slotsOf` finds. The body's temporaries are named first
+(`tempBlock`): each hidden variable is a local variable declared where
+its temporary is made, so a temporary dies with the values that die
+where it does, as the one declared last (#80).
 :::
 
-:::readable MojoGrimoire.Elab.elabDeinit (fingerprint := "15846165684164288143")
+:::readable MojoGrimoire.Elab.elabDeinit (fingerprint := "13967661530387209184")
 *Definition: destructors.* In `__deinit__(deinit self)` the fields of
 `self` are slots of their own. Those whose values are dropped are owned on
 entry, and die in their order when several die at once. So such a field
 that the body never uses is destroyed before the body runs, and every
-other one right after its own last use, as the compiler does.
+other one right after its own last use, as the compiler does. The body's
+temporaries are named as in a function.
 :::
 
 :::readable MojoGrimoire.Elab.elabStruct MojoGrimoire.Elab.elabProgram (fingerprint := "9827350811176813833")

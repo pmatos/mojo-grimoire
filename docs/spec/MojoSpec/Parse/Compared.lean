@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Expected types of literals: readable blocks" =>
 
-:::moduleDocs (fingerprint := "18370531286486667113")
+:::moduleDocs (fingerprint := "4043895337021314875")
 :::
 
 :::readable MojoGrimoire.Parse.openLiteralTy MojoGrimoire.Parse.elemExpected (fingerprint := "17740833371835876722")
@@ -23,7 +23,7 @@ otherwise its elements decide. Its elements are expected to have its
 element type.
 :::
 
-:::readable MojoGrimoire.Parse.foldable (fingerprint := "1995746572076948755")
+:::readable MojoGrimoire.Parse.foldable (fingerprint := "15260548219655541986")
 *Definition: a literal that stays.* An expression made only of literals,
 negations, `not` and binary operators, or of a literal
 $`[e]_{\mathsf{Int}}` of one, reads no place and calls nothing. A literal
@@ -31,7 +31,7 @@ $`[e]` of type $`\mathsf{Int}` that holds one stays a literal, so that the
 checker does not compute an index from it, as Mojo does not (#103).
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv.leafTy MojoGrimoire.Parse.TyEnv.literalFit MojoGrimoire.Parse.TyEnv.heldCopy MojoGrimoire.Parse.converts (fingerprint := "7528809212757310702")
+:::readable MojoGrimoire.Parse.TyEnv.leafTy MojoGrimoire.Parse.TyEnv.literalFit MojoGrimoire.Parse.TyEnv.heldCopy MojoGrimoire.Parse.converts (fingerprint := "2382498433404993431")
 *Rule: the fit of a compared literal.* The literal is inferred once with
 no type expected, so that an operator or a call of a struct in it is a
 call of the method it calls. An element of it then has the type its form
@@ -50,7 +50,7 @@ before #166, unless its fit decides its order, as the checker's
 `MojoGrimoire.Check.keepsBefore` decides it (#338).
 :::
 
-:::readable MojoGrimoire.Parse.TyEnv.retype MojoGrimoire.Parse.TyEnv.retypeList MojoGrimoire.Parse.TyEnv.compared (fingerprint := "13598464193347018901")
+:::readable MojoGrimoire.Parse.TyEnv.retype MojoGrimoire.Parse.TyEnv.retypeList MojoGrimoire.Parse.TyEnv.compared (fingerprint := "121817638282181627")
 *Rule: a compared literal's type.* A literal that fits the type $`t` of
 the operand it is compared with takes $`t`, and so does one on the right
 of $`==` or $`!=` of a list whose fit is not known (#185). Inference does
