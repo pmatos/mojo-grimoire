@@ -12,7 +12,8 @@ comparison takes it so (`byRef`), and the operation is typed
 (`checkedBinaryTy`). The left operand of `and` and `or` is converted
 with `__bool__` before the right operand is looked at, as the compiler
 converts it (#357): a type that lacks `__bool__`, found from the left
-operand's form once it is typed, and then its test (`leftTest`). When
+operand's form once it is typed, and then its test (`leftTest`), also
+before the right operand's missing `__bool__`. When
 both operands have the same struct type, the operator gives the one that
 decides, and the left one, unless its `__bool__` takes a `var` or
 `deinit` `self`, is read by reference, uncopied, and copied once the
@@ -68,7 +69,9 @@ def checkBinary (prog : Program) (op : BinOp) (a b : Expr) (typeA typeB : CheckM
     rejectMisfit (← leftLacks prog op a) (discard typeA)
     rejectMisfit (← operandMisfit prog op a b)
       (do
-        let _ ← (if held == some false then checkA false else typeA)
+        let s ← get
+        let ta ← (if held == some false then checkA false else typeA)
+        leftTest prog op a ta false s (← get)
         let _ ← typeB)
     let right ← rightParamOf prog op a b
     let same ← sameTest prog op a b

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Binary operations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12579589020245250618")
+:::moduleDocs (fingerprint := "10543108389107475206")
 :::
 
 :::readable MojoGrimoire.Check.heldLeft (fingerprint := "4609557105210351087")
@@ -31,7 +31,7 @@ operand whose type is not known, leave the comparison to the checks it
 had before #166.
 :::
 
-:::readable MojoGrimoire.Check.checkBinary (fingerprint := "12917353789084692134")
+:::readable MojoGrimoire.Check.checkBinary (fingerprint := "11108989116679799066")
 *Rule: binary operations.* `checkExprAs` checks a binary operation by
 `checkBinary`, passing it the checks it makes of the two operands, so
 that this rule lives outside the mutual block of expressions. In the type
@@ -42,7 +42,9 @@ $`\mathsf{Bool}`. Otherwise:
 * a misfit found from the operands' forms (`operandMisfit`) is reported
   before they are read, once both are typed by `typeArg`, but a literal on
   the left that is built on its own (`heldLeft`) is checked in full
-  instead, so that its own errors, its copies among them, come first;
+  instead, so that its own errors, its copies among them, come first.
+  For `and` and `or`, the left operand's test (`leftTest`) comes between
+  the two, before the right operand is typed;
 * when the left literal is one that `heldLeft` builds, converted or not,
   and the check fails in the type phase, both operands' own expressions
   are typed first (`typedFirst`), so an error in the right operand comes
