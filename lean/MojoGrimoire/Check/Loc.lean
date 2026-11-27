@@ -16,9 +16,10 @@ method among them. It may be changed through when its place may be, or,
 for a call, when each origin argument passes on a mutable reference. A
 place reached through `q^` passes on an immutable one: the compiler borrows
 it as a value that cannot be changed.
-A reference that a call returns and that is read late is re-checked
-through the origins of those of its origin arguments that are located
-operands, a temporary among them left out.
+An origin argument may be a temporary, which the compiler keeps alive as
+long as the reference (#80): it is left out of the origins, and the
+reference may not be changed through it. Only a `return` rejects it
+(`locatedOrigins`, #366).
 
 A `mut` argument may not alias another argument that is passed as a location,
 Mojo's argument exclusivity. An `Int` or a `Bool` passed to a `read`
@@ -105,8 +106,10 @@ def originsOf (prog : Program) (strict : Bool) (os : List Name) :
 end
 
 /-- The origins of the located operand `e`, and whether it may be changed
-through, with `locOfAs` strict. -/
-def locOf (prog : Program) : Expr → CheckM (Option (List Place × Bool)) := locOfAs prog true
+through, a temporary origin argument left out (`locOfAs`, not strict): the
+compiler keeps the temporary alive while the reference is used, and it may
+not be changed through it (#80). -/
+def locOf (prog : Program) : Expr → CheckM (Option (List Place × Bool)) := locOfAs prog false
 
 /-- The name of the function or method that `e` calls; empty for an
 expression that is no call. -/
@@ -116,10 +119,12 @@ def calleeOf : Expr → Name
   | _ => ""
 
 /-- The origins of the call `e` that returns a reference, and whether it may
-be changed through. It rejects the call when an origin argument is not a
-located operand: a temporary would not outlive the call. -/
-def locatedOrigins (prog : Program) (e : Expr) : CheckM (List Place × Bool) := do
-  let some l ← locOf prog e | throw (CheckError.notAPlace (calleeOf e))
+be changed through, a temporary origin argument left out. When `strict`
+holds, for a `return`, it rejects the call when an origin argument is not a
+located operand, as `notAPlace`, where the compiler reports an escaping
+reference (#366). -/
+def locatedOrigins (prog : Program) (strict : Bool) (e : Expr) : CheckM (List Place × Bool) := do
+  let some l ← locOfAs prog strict e | throw (CheckError.notAPlace (calleeOf e))
   pure l
 
 /-- Whether two places may be the same location or overlap: one is the other

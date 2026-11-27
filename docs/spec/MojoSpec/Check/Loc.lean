@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Located operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9052859064413456092")
+:::moduleDocs (fingerprint := "8930867341562629023")
 :::
 
 :::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable MojoGrimoire.Check.passedMutable (fingerprint := "18189763797751499533")
@@ -32,7 +32,7 @@ returns through a `mut` parameter may be changed; through a `ref`
 parameter, when its argument may be; through a `read` parameter, never.
 :::
 
-:::readable MojoGrimoire.Check.locOfAs MojoGrimoire.Check.originsOf MojoGrimoire.Check.locOf (fingerprint := "8948597143670477765")
+:::readable MojoGrimoire.Check.locOfAs MojoGrimoire.Check.originsOf MojoGrimoire.Check.locOf (fingerprint := "16884867861159506642")
 *Rule: located operands.* A located operand names a location. A place is
 one: its origins are the place, or the same place in each origin of the
 reference it goes through, and it passes on a mutable reference when its
@@ -45,19 +45,23 @@ reference. A call of a name that a variable in scope hides is one, with
 no origins and immutable, so that checking it as a call rejects it
 (#176). Nothing else is one.
 
-Not strictly, an origin argument that is not a located operand, such as
-a temporary, is left out instead: the call's origins are those of its
-other origin arguments, and it may not be changed through. The checker
-uses this to re-check a reference read late.
+An origin argument that is not a located operand, a temporary, is left
+out instead: the call's origins are those of its other origin
+arguments, and it may not be changed through, as the compiler keeps the
+temporary alive as long as the reference (#80). This is how the checker
+reads a located operand (`locOf`). Strictly, for a `return`, such a call
+is no located operand.
 :::
 
-:::readable MojoGrimoire.Check.calleeOf MojoGrimoire.Check.locatedOrigins (fingerprint := "1093210673669858572")
+:::readable MojoGrimoire.Check.calleeOf MojoGrimoire.Check.locatedOrigins (fingerprint := "9884788066451007940")
 *Rule: a call bound as a reference.* A call or a method call whose
-signature returns a reference, bound with `ref`, must be a located
-operand: an argument passed to a parameter its origin names that is not
-one is rejected with $`\mathsf{notAPlace}`, since a temporary would not
-outlive the call. Passed to `len` or by reference, such a call is a
-location only when it is a located operand, and a value otherwise.
+signature returns a reference, bound with `ref`, gives the origins of its
+located origin arguments, a temporary among them left out (#80). Returned,
+strictly, it must be a located operand: an argument passed to a parameter
+its origin names that is not one is rejected with
+$`\mathsf{notAPlace}`, where the compiler reports an escaping reference
+(#366). Passed to `len` or by reference, such a call is a location, its
+temporaries left out too.
 :::
 
 :::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.PassedLoc MojoGrimoire.Check.passedPlace MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "334350284564618373")

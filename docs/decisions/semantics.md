@@ -139,9 +139,8 @@ two disagree, the model follows the compiler.
   copy of either operand into the result (#357, #362), but for an `if`
   or `while` condition, which the model rejects as `typeMismatch` (#195,
   [semantics-operators.md](semantics-operators.md#what-is-not-yet-modelled)).
-  `notAPlace` is left for an origin argument that is not a place of a
-  reference bound with `ref`, which the compiler accepts (#80), or
-  returned, which it reports as `escapingReference` (#366). A method
+  `notAPlace` is left for a temporary origin argument of a returned
+  reference, which the compiler reports as `escapingReference` (#366). A method
   call, a subscript or a field of a temporary, such as `A(1).bump()` or
   `bump(In(3).n)`, is outside the subset (#206), and the pin reports it
   `immutablePlace` too.

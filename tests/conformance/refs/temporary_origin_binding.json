@@ -1,0 +1,22 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "mk 1",
+    "after bind",
+    "drop 1",
+    "1 2",
+    "drop 2",
+    "mk 3",
+    "drop 3",
+    "never used",
+    "mk 4",
+    "5",
+    "mid",
+    "drop 4",
+    "drop 5",
+    "5",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

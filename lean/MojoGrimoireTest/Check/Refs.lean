@@ -102,9 +102,10 @@ private def pickAB : Expr := .call "pick" [use "a", use "b", .bool true]
 -- `ref r = Res(1)`: a value is not a location.
 #guard verdict (prog [.refDecl "r" (.call "Res" [.int 1])]) == some .notAReference
 
--- `ref r = pick(Res(1), b, True)`: an origin argument must be a place.
+-- `ref r = pick(Res(1), b, True)`: a temporary origin argument lives as
+-- long as the reference, as the compiler keeps it (#80).
 #guard verdict (prog (ab ++ [.refDecl "r" (.call "pick" [.call "Res" [.int 1], use "b",
-  .bool true])])) == some (.notAPlace "pick")
+  .bool true])])) == none
 
 -- `var c = pick(a, b, True)`: reading the reference copies a `Res` implicitly.
 #guard verdict (prog (ab ++ [.decl "c" res (some pickAB)])) == some (.implicitCopy res)

@@ -13,17 +13,18 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "References: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13280904503640088750")
+:::moduleDocs (fingerprint := "17673931769824210104")
 :::
 
-:::readable MojoGrimoire.Check.refTarget (fingerprint := "16062519472296711204")
+:::readable MojoGrimoire.Check.refTarget (fingerprint := "5197226277278826970")
 *Rule: what a reference names.* $`\mathsf{ref}~x = e` needs $`e` to be a
 place, which must be initialized, or a call or a method call whose
 signature returns a reference. A place gives a reference to itself, or
 to the origins of the reference it goes through, and may be changed when
 its variable may be: through $`p\,\hat{}` too, as the compiler allows. A
-call gives its origins as a located operand, and is rejected when an
-origin argument is none. A call of a name that a variable in scope hides
+call gives its origins as a located operand, a temporary origin argument
+left out (#80); in a return, it is rejected when an origin argument is
+none (#366). A call of a name that a variable in scope hides
 is checked as a call, which rejects it when the variable's type has no
 `__call__` (#176).
 Any other expression, a struct's construction included, is rejected.

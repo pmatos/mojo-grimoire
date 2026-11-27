@@ -1,0 +1,33 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "pz 1",
+    "drop 1",
+    "1",
+    "100",
+    "mk 2",
+    "pz 2",
+    "drop 2",
+    "pz 10",
+    "drop 10",
+    "300",
+    "0 2 10 0",
+    "pz 5",
+    "drop 3",
+    "drop 5",
+    "5",
+    "mk 6",
+    "mk 7",
+    "pz 6",
+    "drop 7",
+    "drop 6",
+    "6",
+    "drop 8",
+    "drop 9",
+    "9",
+    "8 0",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}
