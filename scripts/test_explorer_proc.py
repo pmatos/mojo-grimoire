@@ -4,6 +4,7 @@ Run: python -m unittest discover -s scripts -p 'test_explorer*.py'"""
 
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import threading
@@ -12,6 +13,7 @@ import unittest
 from pathlib import Path
 
 import explorer_proc as proc
+import explorer_reap as reap
 import explorer_run as run
 from conformance import load_patterns
 from test_explorer import script
@@ -20,19 +22,11 @@ PATTERNS = load_patterns()
 NONE: dict[str, int] = {}
 
 
-def alive(pid: int) -> bool:
-    """Whether `pid` runs, a zombie not counted."""
-    try:
-        state = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0]
-    except OSError:
-        return False
-    return state != "Z"
-
-
-def gone(pid: int, within: float = 3.0) -> bool:
+def reaped(pid: int, within: float = 3.0) -> bool:
+    """Whether `pid` is gone, its zombie reaped too."""
     end = time.monotonic() + within
     while time.monotonic() < end:
-        if not alive(pid):
+        if not Path(f"/proc/{pid}").exists():
             return True
         time.sleep(0.05)
     return False
@@ -76,53 +70,104 @@ class Processes(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, self.assertRaises(OSError):
             proc.run_capped([str(Path(tmp) / "nope")], Path(tmp), 5, 100, NONE)
 
+    def test_a_program_cannot_pass_for_the_launcher(self):
+        fake = (
+            "import sys; sys.stderr.write('explorer: cannot run: x\\n'); sys.exit(127)"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            p = proc.run_capped([sys.executable, "-c", fake], Path(tmp), 10, 100, NONE)
+        self.assertEqual(p.code, 127)
+        self.assertIn("cannot run", p.stderr)
 
+
+# A double fork out of the run's session; the grandchild then hides from
+# the marker by HOW: "keep" keeps its environment, "clear" execs with an
+# empty one, "undumpable" makes its /proc files root's.
 ESCAPE = """\
-import os, sys, time
+import ctypes, os, sys, time
+pid_file, how, parent_sleep = sys.argv[1], sys.argv[2], float(sys.argv[3])
+hold = "import os, sys, time; open(sys.argv[1], 'w').write(str(os.getpid())); time.sleep(300)"
 if os.fork() == 0:
     os.setsid()
     if os.fork() == 0:
-        open(sys.argv[1], "w").write(str(os.getpid()))
-        sys.stdout.write("escaped\\n")
-        sys.stdout.flush()
+        if how == "clear":
+            os.execve(sys.executable, [sys.executable, "-c", hold, pid_file], {})
+        if how == "undumpable":
+            ctypes.CDLL(None).prctl(4, 0, 0, 0, 0)
+        open(pid_file, "w").write(str(os.getpid()))
         time.sleep(300)
     os._exit(0)
-time.sleep(float(sys.argv[2]))
+time.sleep(parent_sleep)
 """
+
+
+def setUpModule():
+    if Path("/proc").is_dir() and not reap.become_subreaper():
+        raise unittest.SkipTest("this system has no child subreaper")
 
 
 @unittest.skipUnless(Path("/proc").is_dir(), "containment reads /proc")
 class Containment(unittest.TestCase):
-    """A descendant that leaves the process group with setsid, and whose
-    parent exits, is still killed, and no reader is left behind."""
+    """A descendant that leaves the run's session with a double fork is
+    killed and reaped, however it hides, and no reader is left behind."""
 
-    def escape(self, parent_sleep: float, timeout: float):
+    def escape(self, how: str, parent_sleep: float, timeout: float):
         with tempfile.TemporaryDirectory() as tmp:
             pid_file = Path(tmp) / "pid"
-            argv = [sys.executable, "-c", ESCAPE, str(pid_file), str(parent_sleep)]
+            argv = [sys.executable, "-c", ESCAPE, str(pid_file), how, str(parent_sleep)]
             threads = threading.active_count()
             start = time.monotonic()
             p = proc.run_capped(argv, Path(tmp), timeout, 1000, NONE)
             elapsed = time.monotonic() - start
-            for _ in range(100):
+            for _ in range(150):
                 if pid_file.exists() and pid_file.read_text():
                     break
                 time.sleep(0.02)
             pid = int(pid_file.read_text())
-            self.assertTrue(gone(pid), f"the escaped process {pid} still runs")
+            self.assertTrue(reaped(pid), f"the escaped process {pid} survived ({how})")
             self.assertEqual(threading.active_count(), threads)
             self.assertLess(elapsed, 5)
             return p
 
     def test_after_a_timeout(self):
-        self.assertTrue(self.escape(parent_sleep=30, timeout=1).timed_out)
+        for how in ("keep", "clear", "undumpable"):
+            with self.subTest(how=how):
+                self.assertTrue(
+                    self.escape(how, parent_sleep=30, timeout=1.5).timed_out
+                )
 
-    def test_after_the_child_exits(self):
-        p = self.escape(parent_sleep=0.5, timeout=20)
-        self.assertEqual(p.code, 0)
+    def test_after_the_run_exits(self):
+        for how in ("keep", "clear", "undumpable"):
+            with self.subTest(how=how):
+                self.assertEqual(self.escape(how, parent_sleep=0.8, timeout=20).code, 0)
+
+    def test_an_orphan_is_reaped_without_a_run(self):
+        hold = "import time; time.sleep(300)"
+        code = (
+            "import os, subprocess, sys\n"
+            f"p = subprocess.Popen([sys.executable, '-c', {hold!r}], env={{}},\n"
+            "    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,\n"
+            "    stderr=subprocess.DEVNULL, start_new_session=True)\n"
+            "print(p.pid)\n"
+        )
+        out = subprocess.run(
+            [sys.executable, "-c", code],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        pid = int(out.stdout)
+        for _ in range(100):
+            if reap._parent_of(pid) == os.getpid():
+                break
+            time.sleep(0.02)
+        self.assertEqual(reap._parent_of(pid), os.getpid(), "not reparented here")
+        self.assertGreaterEqual(reap.reap_orphans(), 1)
+        self.assertTrue(reaped(pid))
 
     def test_the_marker_finds_only_its_run(self):
-        self.assertEqual(proc.marked("no-such-marker"), set())
+        self.assertEqual(reap.marked("no-such-marker"), [])
 
 
 class TheGate(unittest.TestCase):

@@ -33,6 +33,12 @@
     const params = new URLSearchParams(location.search);
     const given = params.get("token");
     try {
+      // An earlier version kept the token there; it must not stay.
+      localStorage.removeItem("explorer-token");
+    } catch (e) {
+      // No storage.
+    }
+    try {
       if (given) sessionStorage.setItem("explorer-token", given);
       return sessionStorage.getItem("explorer-token") || given;
     } catch (e) {
@@ -190,7 +196,15 @@
     }
   }
 
+  // A program from a link is someone else's until it is read: the banner
+  // stays until the program is run or edited.
+  function fromLink(on) {
+    $("link-banner").hidden = !on;
+  }
+  $("source").addEventListener("input", () => fromLink(false));
+
   function run() {
+    fromLink(false);
     const source = Editor.value();
     const s = settings();
     return guarded("Building with the compiler and running the model…", async () => {
@@ -204,6 +218,7 @@
   }
 
   function sweep() {
+    fromLink(false);
     const source = Editor.value();
     return guarded("Building at -O0, -O1, -O2, -O3 and with ASSERT=all…", async () => {
       const answer = await api("/api/sweep", { source, fuel: settings().fuel });
@@ -257,6 +272,7 @@
       const data = await api(`/api/example?name=${encodeURIComponent(name)}`);
       history.pushState(null, "", location.pathname + location.hash);
       loaded = data.source.replace(/\n$/, "");
+      fromLink(false);
       Editor.setValue(loaded);
       persist();
       $("examples").hidden = true;
@@ -288,6 +304,7 @@
     const fromHash = Editor.readHash();
     Editor.init(persist);
     Editor.setValue(fromHash.code ?? SAMPLE);
+    fromLink(fromHash.code !== null);
     if (!TOKEN) banner("This page has no token. Open the URL that scripts/explorer.py printed.");
     let info, specPayload;
     try {
@@ -310,7 +327,10 @@
     Editor.setTokens(specPayload.tokens, openSpec);
     window.addEventListener("popstate", () => {
       const h = Editor.readHash();
-      if (h.code !== null && h.code !== Editor.value()) Editor.setValue(h.code);
+      if (h.code !== null && h.code !== Editor.value()) {
+        Editor.setValue(h.code);
+        fromLink(true);
+      }
       applyHash(h);
     });
   }

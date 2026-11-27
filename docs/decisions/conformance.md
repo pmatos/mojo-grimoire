@@ -308,8 +308,11 @@ served sandboxed on a port of its own, with no API, so that no link into
 it can reach the API. Each run gets a fresh temporary directory, a
 timeout, an output cap and resource limits, and a few run at once. Its
 process group, its descendants and every process that carries its marker
-in the environment are then killed. A descendant that leaves the tree and
-clears its environment escapes, under the same limits.
+in the environment are then killed, through pidfds. The server is a child
+subreaper, so a process that leaves its run's tree is reparented to it,
+and is killed and reaped after the run and every few seconds. Only a
+server killed outright leaves such processes to init. A program loaded
+from a link carries a warning until it is run or edited.
 
 Its tests, `scripts/test_explorer*.py`, are run by hand.
 Running them as a hook waits on the human's ruling (#371), since a hook

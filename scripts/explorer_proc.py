@@ -1,17 +1,15 @@
-"""How the explorer, scripts/explorer.py, starts and stops the processes of a
-run (docs/decisions/conformance.md#the-explorer).
+"""How the explorer, scripts/explorer.py, starts the processes of a run
+(docs/decisions/conformance.md#the-explorer).
 
 Every process runs with no shell and no input, in a session of its own,
 under resource limits, and holds a slot of one bounded gate while it runs,
 so that the explorer never has more than a few running at once. Its output is
 read with no thread, up to a cap. When it ends, times out or prints too much,
-the explorer kills its process group, every descendant it can still find
-through the process tree, and every process that carries the run's marker in
-its environment, which a descendant inherits even when it leaves the group
-with setsid. A descendant that leaves the process tree and clears its
-environment escapes; its resource limits, the CPU time included, still hold.
-The rlimits are set by a short Python trampoline that then executes the
-command, not by `preexec_fn`, which is unsafe in a threaded server.
+explorer_reap.py kills whatever of it is left. The rlimits are set by a
+short Python launcher that then executes the command, not by `preexec_fn`,
+which is unsafe in a threaded server; the launcher reports its own failure
+on a pipe of its own, closed when the command starts, so that no output of
+the command can pass for it.
 """
 
 from __future__ import annotations
@@ -20,7 +18,6 @@ import json
 import os
 import secrets
 import selectors
-import signal
 import subprocess
 import sys
 import threading
@@ -28,25 +25,28 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-MARKER = "MOJO_EXPLORER_RUN"
-CANNOT_RUN = "explorer: cannot run: "
+from explorer_reap import LOCK, MARKER, TRACKED, contain, reap_orphans
+
 PROC = Path("/proc")
 
-# Sets each limit, never above its hard limit, then runs the command; a
-# command that cannot start is reported on standard error with exit 127.
+# Sets each limit, never above its hard limit, then runs the command. The
+# pipe `sys.argv[1]` closes when the command starts; a command that cannot
+# start is reported on it instead.
 TRAMPOLINE = """\
 import json, os, resource, sys
-for name, value in json.loads(sys.argv[1]).items():
+report = int(sys.argv[1])
+os.set_inheritable(report, False)
+for name, value in json.loads(sys.argv[2]).items():
     which = getattr(resource, name)
     hard = resource.getrlimit(which)[1]
     if hard != resource.RLIM_INFINITY:
         value = min(value, hard)
     resource.setrlimit(which, (value, value))
 try:
-    os.execvp(sys.argv[2], sys.argv[2:])
+    os.execvp(sys.argv[3], sys.argv[3:])
 except OSError as e:
-    sys.stderr.write("explorer: cannot run: %s: %s\\n" % (sys.argv[2], e))
-    sys.exit(127)
+    os.write(report, ("%s: %s" % (sys.argv[3], e)).encode())
+    os._exit(127)
 """
 
 
@@ -135,80 +135,6 @@ def _exited(pid: int) -> bool:
     return info is not None
 
 
-def _parents() -> dict[int, int]:
-    found = {}
-    if not PROC.is_dir():
-        return found
-    for entry in PROC.iterdir():
-        if entry.name.isdigit():
-            try:
-                stat = (entry / "stat").read_text()
-                found[int(entry.name)] = int(stat.rsplit(")", 1)[1].split()[1])
-            except (OSError, ValueError, IndexError):
-                continue
-    return found
-
-
-def descendants(pid: int) -> set[int]:
-    """The processes whose parents lead to `pid`."""
-    children: dict[int, list[int]] = {}
-    for child, parent in _parents().items():
-        children.setdefault(parent, []).append(child)
-    found, todo = set(), [pid]
-    while todo:
-        for child in children.get(todo.pop(), []):
-            if child not in found:
-                found.add(child)
-                todo.append(child)
-    return found
-
-
-def marked(marker: str) -> set[int]:
-    """The user's processes whose environment carries the run's marker."""
-    needle = f"{MARKER}={marker}".encode()
-    found, uid = set(), os.getuid()
-    if not PROC.is_dir():
-        return found
-    for entry in PROC.iterdir():
-        if not entry.name.isdigit():
-            continue
-        try:
-            if (
-                entry.stat().st_uid == uid
-                and needle in (entry / "environ").read_bytes()
-            ):
-                found.add(int(entry.name))
-        except OSError:
-            continue
-    return found
-
-
-def _kill(pids) -> None:
-    for pid in pids:
-        try:
-            os.kill(pid, signal.SIGKILL)
-        except (ProcessLookupError, PermissionError):
-            pass
-
-
-def contain(pid: int, marker: str) -> None:
-    """Kills the child's process group, its descendants, and every process
-    that carries its marker, until none is left. The child itself stays
-    unreaped until the caller waits for it."""
-    tree = descendants(pid)
-    try:
-        os.killpg(pid, signal.SIGKILL)
-    except (ProcessLookupError, PermissionError):
-        pass
-    _kill(tree)
-    for _ in range(20):
-        left = marked(marker) - {pid}
-        if not left:
-            return
-        _kill(left)
-        time.sleep(0.01)
-
-
 def _pump(sel, buffers, cap: int, wait: float) -> bool:
     """Reads what is ready; whether a stream went past the cap."""
     over = False
@@ -236,18 +162,29 @@ def run_capped(
     start; Busy when the gate's queue is full."""
     marker = secrets.token_hex(12)
     env = {**os.environ, MARKER: marker}
-    command = [sys.executable, "-I", "-c", TRAMPOLINE, json.dumps(limits), *argv]
     with GATE:
+        report, report_w = os.pipe()
+        command = [sys.executable, "-I", "-c", TRAMPOLINE, str(report_w)]
+        command += [json.dumps(limits), *argv]
         start = time.monotonic()
-        proc = subprocess.Popen(
-            command,
-            cwd=cwd,
-            env=env,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            start_new_session=True,
-        )
+        try:
+            with LOCK:
+                proc = subprocess.Popen(
+                    command,
+                    cwd=cwd,
+                    env=env,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    start_new_session=True,
+                    pass_fds=(report_w,),
+                )
+                TRACKED.add(proc.pid)
+        except BaseException:
+            os.close(report)
+            raise
+        finally:
+            os.close(report_w)
         out, err = bytearray(), bytearray()
         sel = selectors.DefaultSelector()
         sel.register(proc.stdout, selectors.EVENT_READ)
@@ -265,15 +202,29 @@ def run_capped(
         finally:
             contain(proc.pid, marker)
             proc.wait()
+            with LOCK:
+                TRACKED.discard(proc.pid)
             end = time.monotonic() + 1
             while not over and sel.get_map() and time.monotonic() < end:
                 over = _pump(sel, buffers, cap, 0.02)
             sel.close()
             proc.stdout.close()
             proc.stderr.close()
+            failure = _read_all(report)
+            reap_orphans()
         seconds = time.monotonic() - start
-    stderr = _text(err)
-    if proc.returncode == 127 and stderr.startswith(CANNOT_RUN):
-        raise OSError(stderr[len(CANNOT_RUN) :].strip())
+    if failure:
+        raise OSError(failure.decode("utf-8", "replace"))
     code = None if timed_out or over else proc.returncode
-    return Proc(code, _text(out), stderr, seconds, timed_out, over)
+    return Proc(code, _text(out), _text(err), seconds, timed_out, over)
+
+
+def _read_all(fd: int) -> bytes:
+    """What the launcher wrote on its pipe, whose writers are all gone."""
+    data = b""
+    try:
+        while chunk := os.read(fd, 4096):
+            data += chunk
+    finally:
+        os.close(fd)
+    return data

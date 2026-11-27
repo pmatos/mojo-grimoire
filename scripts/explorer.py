@@ -21,7 +21,7 @@ the session's token and the explorer's own Host, and the explorer's Origin
 when one is sent, as a POST always sends one; the spec is served on another
 origin, sandboxed (explorer_specsite.py). Each run has a fresh temporary
 directory, a timeout, a cap on its output and resource limits
-(explorer_proc.py).
+(explorer_proc.py), and none of its processes outlives it (explorer_reap.py).
 """
 
 from __future__ import annotations
@@ -40,6 +40,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlsplit
 
 import explorer_proc
+import explorer_reap
 import explorer_run as run
 import explorer_spec as spec
 from conformance import MODEL, ROOT, load_patterns
@@ -391,6 +392,12 @@ def main(argv: list[str]) -> int:
     server, site, explorer = make_servers(args)
     port = explorer.port
     threading.Thread(target=site.serve_forever, daemon=True).start()
+    if not explorer_reap.become_subreaper():
+        explorer.warnings.append(
+            "cannot become a subreaper; a run's process that leaves its tree "
+            "and its environment marker may outlive it"
+        )
+    explorer_reap.start_reaper()
     for w in explorer.warnings:
         print(f"warning: {w}", file=sys.stderr)
     print(f"compiler: {explorer.info['compiler']}")
@@ -403,6 +410,7 @@ def main(argv: list[str]) -> int:
         server.server_close()
         site.shutdown()
         site.server_close()
+        explorer_reap.reap_orphans()
     return 0
 
 
