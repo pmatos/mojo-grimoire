@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14678169447348694267")
+:::moduleDocs (fingerprint := "5287309534538833537")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17933977108324489146")
@@ -61,18 +61,19 @@ compiler checks when it parses the declaration; otherwise
 Each is checked in the phase it is given.
 :::
 
-:::readable MojoGrimoire.Check.checkFieldDecls MojoGrimoire.Check.containerStruct MojoGrimoire.Check.nestedContainer MojoGrimoire.Check.resolveStruct (fingerprint := "12486398600278523377")
+:::readable MojoGrimoire.Check.checkFieldDecls MojoGrimoire.Check.containerStruct MojoGrimoire.Check.nestedContainer MojoGrimoire.Check.resolveStruct (fingerprint := "10236129263979895947")
 *Rule: struct declarations.* A struct's declaration is resolved at its
 place in the source, or earlier, when a struct resolved before it reaches
 it (#358). Its fields have distinct names, no method has a field's name,
 and its fields declarable types. Then, field by field, a field that is a
 list or an array of a struct, at any depth, resolves that struct now if
-it is not resolved yet. A struct that declares no `__deinit__` gets one
-synthesized, which needs each such field's type to be `Deinitable`: a
+it is not resolved yet. A struct that declares no `__deinit__`, nor a
+method `__del__`, the destructor's older name, gets one synthesized,
+which needs each such field's type to be `Deinitable`: a
 field whose struct is still being resolved closes a cycle and is rejected
 there, `recursiveStruct`, unless a field on the cycle is through a list,
-which the fixed compiler accepts (D-0006). A struct that declares
-`__deinit__` goes on only through a field of lists or arrays of lists or
+which the fixed compiler accepts (D-0006). A struct that declares either
+goes on only through a field of lists or arrays of lists or
 arrays, and is never rejected so. A field of a struct type leads nowhere.
 :::
 

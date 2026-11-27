@@ -43,15 +43,17 @@ The compiler resolves a struct's declaration, in step 2, in this order
    declarations between the two. So `struct A: var bs: Array[B, 1]`
    reports `B`'s duplicate field before a function declared between
    them. A field of a struct type resolves nothing.
-3. A struct that declares no `__deinit__` gets one synthesized, which
-   needs the type of each such field to be `Deinitable`. When the
+3. A struct that declares no `__deinit__`, nor a method `__del__`, the
+   destructor's older name, which the pin takes as one (#364), gets one
+   synthesized, which needs the type of each such field to be
+   `Deinitable`. When the
    field's struct is still being resolved, the field closes a cycle and
    is rejected there: "field 'halves' has non-'Deinitable' type
    'Array[Pair, Int(2)]'", `recursiveStruct`. So `struct Pair: var
    halves: Array[Pair, 2]` comes before an earlier struct's field that
-   cannot be copied, which step 3 reports, and of `A: Array[B, 1]` and
+   cannot be copied, which the type phase reports in its step 3, and of `A: Array[B, 1]` and
    `B: Array[A, 1]` the error is at `B`'s field.
-4. A struct that declares `__deinit__` goes on only through a field of
+4. A struct that declares either goes on only through a field of
    lists or arrays of lists or arrays, such as `Array[Array[B, 1], 1]`,
    and is never rejected so. A struct that it resolves is rejected when
    it leads back to it.

@@ -156,11 +156,12 @@ gives `started` with the structs resolved.
 The struct's fields are checked first (`checkFieldDecls`). Then, field by
 field, a field that is a list or an array of a struct leads to that
 struct, which is resolved now if it is not yet. A struct that declares no
-`__deinit__` gets one synthesized, which needs each such field's type to
+`__deinit__`, nor a method `__del__`, the destructor's older name, which the
+pin takes as its own, gets one synthesized, which needs each such field's type to
 be `Deinitable`: when its struct is still being resolved, the field closes
 a cycle, and is rejected there unless the cycle has a field through a
 list, which the fixed compiler accepts (D-0006). A struct that declares
-`__deinit__` goes on only through a field of lists or arrays of lists or
+either goes on only through a field of lists or arrays of lists or
 arrays, and is never rejected so. A field of a struct type leads nowhere
 here. The fuel, one more than the program's structs, never runs out, since
 each call resolves a struct not started yet; if it did, the struct would be
@@ -174,7 +175,7 @@ def resolveStruct (prog : Program) :
     | none => pure started
     | some sd => do
       (checkFieldDecls prog sd).mapError (⟨s, ·⟩)
-      let synthesized := sd.deinit.isNone
+      let synthesized := sd.deinit.isNone && !sd.methods.any (·.name == "__del__")
       let mut started := s :: started
       for (_, t) in sd.fields do
         let some v := containerStruct t | continue

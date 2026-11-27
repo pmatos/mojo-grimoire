@@ -272,6 +272,10 @@ private def uncopyable : Option CheckError := some (.uncopyableField "Bad" "r" (
 #guard cyc [resR, bad, fw "A" [("bs", .array sB 1)], fw "B" [("a", sA)]] == uncopyable
 #guard cyc [resR, bad, withDeinit (fw "A" [("bs", .array sB 1)]), fw "B" [("as", .array sA 1)]] ==
   uncopyable
+-- A method `__del__`, the destructor's older name, counts as one.
+#guard cyc [resR, bad, { twin (.array (.struct "Twin") 2) with
+  methods := [⟨"__del__", [⟨.deinit, "self", .struct "Twin"⟩], .noneType, [], none⟩] }] ==
+  uncopyable
 -- Through a field of arrays of arrays, a struct with `__deinit__` resolves `B`,
 -- which leads back to it.
 #guard cyc [resR, bad, withDeinit (fw "A" [("bs", .array (.array sB 1) 1)]),
