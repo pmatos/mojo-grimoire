@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14111025864232253597")
+:::moduleDocs (fingerprint := "13689919375791567656")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17933977108324489146")
@@ -61,13 +61,27 @@ compiler checks when it parses the declaration; otherwise
 Each is checked in the phase it is given.
 :::
 
-:::readable MojoGrimoire.Check.checkFields MojoGrimoire.Check.memberCheck MojoGrimoire.Check.checkStruct (fingerprint := "14296206318854017213")
-*Rule: structs.* A struct's own declaration is checked with the free
-functions, in the order of the declarations: its fields and methods have
-distinct names, and its fields declarable types. Its members are checked
-once every free function is: its initializer, its destructor, checked with
-the single parameter `deinit self`, and its methods, each with its
-signature and its body, in their order (`memberCheck`, which the flow
+:::readable MojoGrimoire.Check.checkFieldDecls MojoGrimoire.Check.containerStruct MojoGrimoire.Check.nestedContainer MojoGrimoire.Check.declaresDestructor MojoGrimoire.Check.resolveStruct (fingerprint := "14902101047304420057")
+*Rule: struct declarations.* A struct's declaration is resolved at its
+place in the source, or earlier, when a struct resolved before it reaches
+it (#358). Its fields have distinct names, no method has a field's name,
+and its fields declarable types. Then, field by field, a field that is a
+list or an array of a struct, at any depth, resolves that struct now if
+it is not resolved yet. A struct that declares no `__deinit__`, nor a
+method `__del__`, the destructor's older name, gets one synthesized,
+which needs each such field's type to be `Deinitable`: a
+field whose struct is still being resolved closes a cycle and is rejected
+there, `recursiveStruct`, when it lies on a cycle with no field through a
+list; the fixed compiler accepts the others (D-0006). A struct that declares either
+goes on only through a field of lists or arrays of lists or
+arrays, and is never rejected so. A field of a struct type leads nowhere.
+:::
+
+:::readable MojoGrimoire.Check.memberCheck MojoGrimoire.Check.checkStruct (fingerprint := "1901650206435973550")
+*Rule: structs.* A struct's members are checked once every free function
+and every struct's own declaration is: its initializer, its destructor,
+checked with the single parameter `deinit self`, and its methods, each with
+its signature and its body, in their order (`memberCheck`, which the flow
 phase uses too). The copy initializer that the compiler synthesizes is
 checked right after `__init__`: the struct's copyability holds, and for
 an implicit one no field, taken in order, leads to a rejected cycle back to
@@ -76,7 +90,7 @@ last member, and then the copyability of a struct that declares no
 `__init__` (#164).
 :::
 
-:::readable MojoGrimoire.Check.checkCopying MojoGrimoire.Check.located (fingerprint := "4026125360921521139")
+:::readable MojoGrimoire.Check.checkCopying MojoGrimoire.Check.located (fingerprint := "11841583936570447118")
 *Rule: copyable structs.* A struct that declares `Copyable` gets a copy
 initializer synthesized from its fields, so each field's type must be
 copyable; one that declares `ImplicitlyCopyable` needs each field's type
@@ -89,7 +103,7 @@ is the error at its place too. The type phase locates the error of each
 body there, or gives its missing return (`located`).
 :::
 
-:::readable MojoGrimoire.Check.checkTypes MojoGrimoire.Check.declBodies MojoGrimoire.Check.checkFlow (fingerprint := "18106343609100170426")
+:::readable MojoGrimoire.Check.checkTypes MojoGrimoire.Check.declBodies MojoGrimoire.Check.checkFlow (fingerprint := "8176958443499083371")
 *Rule: programs.* A program is checked in three phases, the type phase,
 the flow phase and the instantiation phase
 (`MojoGrimoire.Check.checkProgram`), and is rejected with the first error
@@ -102,8 +116,9 @@ order of the declarations in the source, each free function, `main`'s
 parameters and result resolved before it must take nothing and return
 nothing, before its conventions and body, and
 a function of the name of an earlier one at its place; and each struct's
-own declaration. Last, each struct's members, in the order of the
-declarations. A body that can reach its end without returning the result
+own declaration, resolved unless a struct before it resolved it
+(`resolveStruct`), and then no two of its methods have one name. Last,
+each struct's members, in the order of the declarations. A body that can reach its end without returning the result
 it declares is not rejected there: the type phase gives it to the flow
 phase.
 
