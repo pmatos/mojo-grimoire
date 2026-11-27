@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "recursiveStruct",
+  "diagnostic": "field 'halves' has non-'Deinitable' type 'Array[Array[Pair, Int(2)], Int(2)]'"
+}

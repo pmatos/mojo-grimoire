@@ -212,7 +212,7 @@ The model reports the error in program order: after an earlier error in
 the body, and before the declaration's initializer, its reuse of a name
 and the arguments of `List[T](...)`, as the compiler does. Among the
 declarations, it takes its place in the type phase's order
-([semantics-error-order.md](semantics-error-order.md#the-order-of-the-type-phase)).
+([semantics-error-order-types.md](semantics-error-order-types.md#the-order-of-the-type-phase)).
 The compiler also resolves a function's or a method's
 signature where a body first refers to it, and a struct's `__init__`
 signature with the struct, in declaration order, where the model checks a
@@ -275,7 +275,7 @@ matched whole, to `uncopyableField`. The human ruled this on 2026-11-20
 Self)`, which the compiler accepts, is not yet parsed (#184).
 
 Where this error comes among the compiler's is in
-[semantics-error-order.md](semantics-error-order.md#the-order-of-the-type-phase).
+[semantics-error-order-types.md](semantics-error-order-types.md#the-order-of-the-type-phase).
 
 Rejected: an existing class, `notCopyable` or `implicitCopy`, which would
 merge an error at a struct's declaration with an error at a copy.

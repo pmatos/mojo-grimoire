@@ -11,7 +11,8 @@ and calls on structs,
 arrays and lists, [semantics-parser.md](semantics-parser.md) with the
 parser and the driver,
 [semantics-error-order.md](semantics-error-order.md) with the order of
-errors, and [semantics-interpreter.md](semantics-interpreter.md) with
+errors, [semantics-error-order-types.md](semantics-error-order-types.md)
+with that of the type phase, and [semantics-interpreter.md](semantics-interpreter.md) with
 elaboration and the interpreter.
 
 ## The reference
@@ -251,7 +252,7 @@ two disagree, the model follows the compiler.
 - A struct that declares `Copyable`, or `ImplicitlyCopyable`, is
   rejected when a field cannot be copied so, `uncopyableField`. Where it
   comes among the compiler's errors is in
-  [semantics-error-order.md](semantics-error-order.md#the-order-of-the-type-phase)
+  [semantics-error-order-types.md](semantics-error-order-types.md#the-order-of-the-type-phase)
   (#164).
 - A declaration may not reuse the name of a variable in scope, a
   parameter included, so no variable hides another. Sibling blocks may
