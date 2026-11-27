@@ -12,12 +12,14 @@ comparison takes it so (`byRef`), and the operation is typed
 (`checkedBinaryTy`). The left operand of `and` and `or` is converted
 with `__bool__` before the right operand is looked at, as the compiler
 converts it (#357): a type that lacks `__bool__`, found from the left
-operand's form once it is typed, and then its test (`leftTest`), also
-before the right operand's missing `__bool__`. When
-both operands have the same struct type, the operator gives the one that
-decides, and the left one, unless its `__bool__` takes a `var` or
-`deinit` `self`, is read by reference, uncopied, and copied once the
-right one is checked, after the right one's own errors (`copiedLate`). In the type
+operand's form once it is typed, a literal checked in full, and then its
+test (`leftTest`), also before the right operand's missing `__bool__`.
+The left operand is read by reference, and copied before its test as
+checking it as a value would copy it (`copiedValue`). When both operands have the same struct type
+(`sameTest`), the operator gives the one that decides, and the left one,
+unless its `__bool__` takes a `var` or `deinit` `self`, is copied only
+once the right one is checked, after the right one's own errors
+(`copiedLate`). In the type
 phase, a comparison that only that phase converts types its operands
 alone (`typedSimdLeft`). A literal on the left
 of a comparison that holds a place whose value is not implicitly copyable
@@ -65,26 +67,32 @@ def checkBinary (prog : Program) (op : BinOp) (a b : Expr) (typeA typeB : CheckM
       return .bool
   let held ← heldLeft prog op a b
   let typing : CheckM Unit := if held.isSome then do ownA; let _ ← typeB else pure ()
+  let logic := op == .and || op == .or
+  let ownLeft : CheckM Ty :=
+    if held == some false || logic && a matches .list .. then checkA false else typeA
   typedFirst typing do
-    rejectMisfit (← leftLacks prog op a) (discard typeA)
+    rejectMisfit (← leftLacks prog op a) (discard ownLeft)
     rejectMisfit (← operandMisfit prog op a b)
       (do
         let s ← get
-        let ta ← (if held == some false then checkA false else typeA)
+        let ta ← ownLeft
         leftTest prog op a ta false s (← get)
         let _ ← typeB)
     let right ← rightParamOf prog op a b
-    let same ← sameTest prog op a b
-    let late ← copiedLate prog same a
     let s ← get
-    let ta ← checkA (late || (← byRef prog op a b))
+    let ta ← checkA (logic || (← byRef prog op a b))
     let sa ← get
+    let same := sameTest prog op a b ta
+    let late := copiedLate prog same ta
+    let copied ← if logic then copiedValue prog a else pure false
+    if copied && !late then requireImplicitCopy prog ta
     leftTest prog op a ta same s sa
     let ka ← mark
     let tb ← match right ta with
       | some (fit, prm) => do argB fit prm; pure prm.ty
       | none => checkB (← byRef prog op b a true)
-    if late && (← copiedValue prog a) then requireImplicitCopy prog ta
-    checkedBinaryTy prog op a b ta tb ka (← mark) s sa same
+    if copied && late then requireImplicitCopy prog ta
+    leftConvention prog same ta
+    checkedBinaryTy prog op a b ta tb ka (← mark)
 
 end MojoGrimoire.Check

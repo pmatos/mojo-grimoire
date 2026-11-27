@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Binary operations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10543108389107475206")
+:::moduleDocs (fingerprint := "12406545064419752213")
 :::
 
 :::readable MojoGrimoire.Check.heldLeft (fingerprint := "4609557105210351087")
@@ -31,7 +31,7 @@ operand whose type is not known, leave the comparison to the checks it
 had before #166.
 :::
 
-:::readable MojoGrimoire.Check.checkBinary (fingerprint := "11108989116679799066")
+:::readable MojoGrimoire.Check.checkBinary (fingerprint := "14048690194773262837")
 *Rule: binary operations.* `checkExprAs` checks a binary operation by
 `checkBinary`, passing it the checks it makes of the two operands, so
 that this rule lives outside the mutual block of expressions. In the type
@@ -42,9 +42,10 @@ $`\mathsf{Bool}`. Otherwise:
 * a misfit found from the operands' forms (`operandMisfit`) is reported
   before they are read, once both are typed by `typeArg`, but a literal on
   the left that is built on its own (`heldLeft`) is checked in full
-  instead, so that its own errors, its copies among them, come first.
-  For `and` and `or`, the left operand's test (`leftTest`) comes between
-  the two, before the right operand is typed;
+  instead, so that its own errors, its copies among them, come first,
+  and so is a literal on the left of `and` or `or`. For `and` and `or`,
+  the left operand's test (`leftTest`) comes between the two, before the
+  right operand is typed;
 * when the left literal is one that `heldLeft` builds, converted or not,
   and the check fails in the type phase, both operands' own expressions
   are typed first (`typedFirst`), so an error in the right operand comes
@@ -64,12 +65,13 @@ $`\mathsf{Bool}`. Otherwise:
 * the left operand of `and` and `or` is converted with `__bool__`
   before the right operand is looked at (#357): a type that lacks
   `__bool__`, found from its form once it is typed (`leftLacks`), and,
-  once it is checked, its test (`leftTest`). When both operands have the
-  same struct type (`sameTest`), the left one is read by reference and
-  copied once the right one is checked, unless its `__bool__` takes a
-  `var` or `deinit` `self` (`copiedLate`);
+  once it is checked, by reference and then copied as its value would be
+  (`copiedValue`), its test (`leftTest`). When both operands have the
+  same struct type (`sameTest`), the left one is copied only once the
+  right one is checked, unless its `__bool__` takes a `var` or `deinit`
+  `self` (`copiedLate`), and an `out` or `deinit` `self` is rejected only
+  then (`leftConvention`);
 * once both operands are checked, the operation is typed as
   `checkedBinaryTy` says, which checks the test of a struct operand on
-  the right of `and` and `or`, given the states before and after the
-  left operand.
+  the right of `and` and `or`.
 :::

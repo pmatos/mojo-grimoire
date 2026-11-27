@@ -76,7 +76,9 @@ is: `t < u` may give an `Int`.
   `missingMethod`. When both operands have the same struct type, the left
   one is copied after the right one's own errors, `t0 or T(zz)` is
   `unknownVariable`, unless its `__bool__` takes a `var` or `deinit`
-  `self`, whose copy comes first. The suite's `order/logic_left_*`
+  `self`, whose copy comes first. The model still rejects a `deinit
+  self` that the pin takes as a `var self` (#361), and on a same-type
+  test only after the right operand's errors. The suite's `order/logic_left_*`
   programs hold these orders, recorded from the pin.
 - A `var self` `__bool__` gets a copy of the left operand of `and` or
   `or`, on either path, even of a temporary or `p^`, since the left
