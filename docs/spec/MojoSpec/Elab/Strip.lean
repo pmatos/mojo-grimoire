@@ -71,6 +71,8 @@ statements and blocks.
 
 :::readable MojoGrimoire.Elab.stripProgram_elabProgram (fingerprint := "18027251158332834446")
 *Theorem: elaboration only inserts drops.* A program and its elaboration
-are the same once their drops, temporaries and hidden variables are
-erased. Elaboration changes when values are destroyed, and nothing else.
+are the same once their drops, `withDrops`, temporaries and declarations
+of `%`-named variables are erased. That is all it says. A parsed program
+holds none of these, since no Mojo name starts with `%`, so for a parsed
+program elaboration changes only when values are destroyed.
 :::
