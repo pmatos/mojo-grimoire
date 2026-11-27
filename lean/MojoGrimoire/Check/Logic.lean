@@ -117,10 +117,13 @@ def sameTest (prog : Program) (op : BinOp) (a b : Expr) (ta : Ty) : Bool :=
 /-- The missing `__bool__` of the left operand `a` of `and` or `or`, found
 from its form (`lackingTy`) before it is read: the compiler converts the
 left operand before it looks at the right one (#357). An integer literal
-is left to checking, as `binaryMisfit` leaves it. -/
+is left to checking, as `binaryMisfit` leaves it, and so is a call of
+`__bool__` that inference made: its struct declares `__bool__`, and its
+test, the copy that a `var self` takes before a result that is no `Bool`,
+is `testOperand`'s. -/
 def leftLacks (prog : Program) (op : BinOp) (a : Expr) : CheckM (Option CheckError) := do
   unless op == .and || op == .or do return none
-  if intLiteral a then return none
+  if intLiteral a || (boolTest a).isSome then return none
   pure (lacks prog "__bool__" (← lackingTy prog (operandTy prog) a))
 
 /-- Checks the test of the left operand `a` of `and` or `or`, of type `ta`,
@@ -149,7 +152,8 @@ def copiedLate (prog : Program) (same : Bool) (ta : Ty) : Bool :=
     | _ => false
 
 /-- Whether checking the operand `e` as a value copies what it gives: a
-place, and a call that returns a reference (`refResult`). -/
+place, and a call or a method call that returns a reference
+(`refResult`). -/
 def copiedValue (prog : Program) : Expr → CheckM Bool
   | .place _ => pure true
   | .call f _ => do

@@ -70,7 +70,8 @@ is: `t < u` may give an `Int`.
   operand's own errors, its conversion comes first: a type that lacks
   `__bool__` (`missingMethod`), then the call of `__bool__`, its
   receiver's mutability or its `var self` copy, then a result that is no
-  `Bool`. Only then come the right operand's errors, an unknown name
+  `Bool`, a struct included: with `B.__bool__(var self) -> W`, `B(1) or c`
+  is the copy's `implicitCopy`. Only then come the right operand's errors, an unknown name
   included, and its own conversion: `v and a`, with `V` lacking
   `__bool__` and `a` a `read` operand of a `mut self` `__bool__`, is
   `missingMethod`. When both operands have the same struct type, the left
@@ -78,8 +79,8 @@ is: `t < u` may give an `Int`.
   `unknownVariable`, unless its `__bool__` takes a `var` or `deinit`
   `self`, whose copy comes first. The model still rejects a `deinit
   self` that the pin takes as a `var self` (#361), and on a same-type
-  test only after the right operand's errors. The suite's `order/logic_left_*`
-  programs hold these orders, recorded from the pin.
+  test only after the right operand's errors. The suite's
+  `order/logic_left_*` programs hold these orders, recorded from the pin.
 - A `var self` `__bool__` gets a copy of the left operand of `and` or
   `or`, on either path, even of a temporary or `p^`, since the left
   operand may be the result: a struct that is not `ImplicitlyCopyable`

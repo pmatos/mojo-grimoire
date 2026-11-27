@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11367347492647837597")
+:::moduleDocs (fingerprint := "5181049176974800048")
 :::
 
 :::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.testOperand (fingerprint := "11263943678275367833")
@@ -54,13 +54,16 @@ $`p` there, where the compiler, on the left of a mixed `and` or `or`,
 only borrows it and leaves $`p` initialized (#84).
 :::
 
-:::readable MojoGrimoire.Check.sameTest MojoGrimoire.Check.leftLacks MojoGrimoire.Check.leftTest MojoGrimoire.Check.copiedLate MojoGrimoire.Check.copiedValue MojoGrimoire.Check.leftConvention MojoGrimoire.Check.checkedBinaryTy (fingerprint := "13655322191062332502")
+:::readable MojoGrimoire.Check.sameTest MojoGrimoire.Check.leftLacks MojoGrimoire.Check.leftTest MojoGrimoire.Check.copiedLate MojoGrimoire.Check.copiedValue MojoGrimoire.Check.leftConvention MojoGrimoire.Check.checkedBinaryTy (fingerprint := "7391636147501160651")
 *Rule: the left operand of `and` and `or` comes first.* The compiler
 converts the left operand of `and` or `or` with `__bool__` before it
 looks at the right one (#357). Once the left operand's own expression is
 typed, a type that lacks `__bool__`, found from its form (`leftLacks`,
 `lackingTy`), is `missingMethod`, whatever the right operand holds, an
-unknown name included; an integer literal is left to checking. Once the
+unknown name included; an integer literal is left to checking, and so
+is a call of `__bool__` that inference made, whose test `testOperand`
+checks: its `var self` copy comes before a result that is no
+$`\mathsf{Bool}`, a struct included. Once the
 left operand is checked, its test (`leftTest`) comes before the right
 operand is checked: the call of `__bool__` that inference made, its
 receiver's misfit or copy and a result that is no $`\mathsf{Bool}`, or,
@@ -73,7 +76,7 @@ reads no operand's form, so a chain of tests costs one check of each.
 
 The left operand is checked by reference, uncopied, and copied where
 checking it as a value copies what it gives (`copiedValue`): a place, or
-a call that returns a reference. That copy comes before its test, but
+a call or a method call that returns a reference. That copy comes before its test, but
 when both operands have the same struct type and their struct's
 `__bool__` borrows `self` (`copiedLate`): then it comes once the right
 operand is checked, so the right operand's own errors come first, as the
