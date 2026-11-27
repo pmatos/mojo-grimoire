@@ -1,11 +1,16 @@
 import MojoGrimoire.Elab.Elaborate
 
 /-!
-Elaboration only inserts drops and the hidden variables of temporaries:
-erasing every `drop` statement and every `withDrops`, and every `temp` and
-declaration of a hidden variable (`isTempName`), from an elaborated
-program gives the program it elaborated, with those erased too. So
-elaboration changes when values are destroyed, and nothing else.
+Elaboration only inserts drops and the hidden variables of temporaries.
+`stripProgram` erases every `drop` statement, every `withDrops`, every
+`temp`, and every declaration of a variable whose name starts with `%`
+(`isTempName`). `stripProgram_elabProgram` says exactly that a program and
+its elaboration erase to the same program. It says nothing about where the
+inserted parts are, nor about a program that already holds some of them,
+which loses them on both sides. A parsed program holds none: the parser
+makes no `drop`, `withDrops` or `temp`, and no name starts with `%`, an
+operator in Mojo. For such a program, elaboration changes only what the
+erasure erases, and so when values are destroyed.
 -/
 
 namespace MojoGrimoire.Elab
@@ -269,8 +274,8 @@ theorem stripBlock_tempBlock (prog : Program) (env : TyEnv) (k : Nat) (b : List 
     simp [tempBlock, stripBlock, stripBlock_append, stripBlock_tempStmt, stripBlock_tempBlock]
 end
 
-/-- Elaboration only inserts drops and temporaries: a program and its
-elaboration are the same once they are erased. -/
+/-- A program and its elaboration are the same once their drops,
+`withDrops`, temporaries and `%`-named declarations are erased. -/
 theorem stripProgram_elabProgram (prog : Program) :
     stripProgram (elabProgram prog) = stripProgram prog := by
   have hf : ∀ fd : FunDecl, stripFun (elabFun prog fd) = stripFun fd := by
