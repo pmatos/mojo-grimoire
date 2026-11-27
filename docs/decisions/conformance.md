@@ -114,10 +114,10 @@ A loose pattern is searched for anywhere in the message, so a name of the
 program's that holds its word, such as a `mut` parameter named
 `uninitialized`, would send the message to the wrong class. Every pattern
 for a message that quotes a name is therefore matched whole, with each
-name a quoted `'[^']*'`, and placed above every loose pattern; the loose
-patterns stay below for wordings the pin has not shown, and where they
-need a wildcard they use `[^']*`, which cannot span a quoted name. A test
-of the `conformance-test` hook fails when a pattern with a name slot, a
+name a quoted `'[^']*'`, and placed above every loose pattern; only
+recorded messages that quote no name reach the loose patterns below, and
+where they need a wildcard they use `[^']*`, which cannot span a quoted
+name. A test of the `conformance-test` hook fails when a pattern with a name slot, a
 wildcard that can match a quoted name such as `'[^']*'`, `'.+'` or a bare
 `.*`, is not a single `^...$` with no `|` outside a group, or sits below
 a loose pattern, one that is not such a single `^...$`; and when a recorded message that quotes a name reaches a pattern without a
@@ -126,10 +126,30 @@ pins it. The dead `expected \d+ positional arguments?` pattern, which no
 message of the pin matches, is gone. The human ruled this on 2026-11-22
 (#271).
 
+The loose fallbacks that #274 listed and that no recorded rejection
+reached first, 19 of them, are gone too. The loose `recursiveStruct` pattern
+"attempt to resolve a recursive reference to declaration" stays, since 4
+recorded messages, which quote no name, reach it. A wording that the pin
+has not shown records with no class unless a kept loose pattern matches
+it, and a PR adds an anchored entry for it. The human ruled this on
+2026-11-26 (#274).
+
+That ruling also asked for an anchored entry for "invalid call to
+'immutable': unexpected keyword argument 'uninitialized'". It waits for a
+ruling on #274: no class of the model fits it, since the model does not
+read keyword arguments, so such a program is outside its subset. Until
+then the message is `immutablePlace`, by the loose `immutable` that its
+callee's name holds. The same loose pattern takes a message whose name
+holds both `'` and that word, such as "use of uninitialized value 'it's
+immutable'", and the loose `value passed to mutable argument`, which no
+recorded rejection reaches, stays outside the ruling's list.
+
 Rejected: comparing the compiler's diagnostics word for word, since their
 wording changes between releases and says nothing the class does not;
 anchoring and reordering the patterns without a test; keeping the dead
-pattern; and making `record` fail when a rejection has no class.
+pattern; keeping every fallback, since a new wording would get a class
+that is wrong when the message quotes a name holding the fallback's word
+(#274); and making `record` fail when a rejection has no class.
 
 ### Optimization levels
 
