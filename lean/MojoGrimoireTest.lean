@@ -1,5 +1,6 @@
 import MojoGrimoire
 import MojoGrimoireTest.Axioms
+import MojoGrimoireTest.AxiomsGuard
 import MojoGrimoireTest.Reference
 import MojoGrimoireTest.Core.Syntax
 import MojoGrimoireTest.Check.Program

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference in expressions: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12423167490377361527")
+:::moduleDocs (fingerprint := "15681585480017583317")
 :::
 
 :::readable MojoGrimoire.Parse.literalArg (fingerprint := "15594256188266583025")
@@ -35,7 +35,7 @@ type, as an empty literal, the literal stays open and nothing is
 expected of the others.
 :::
 
-:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferLenArgs MojoGrimoire.Parse.inferLenLiteral MojoGrimoire.Parse.inferList (fingerprint := "6759927460180264944")
+:::readable MojoGrimoire.Parse.inferPlace MojoGrimoire.Parse.inferExpr MojoGrimoire.Parse.inferArgs MojoGrimoire.Parse.inferArg MojoGrimoire.Parse.inferLenArgs MojoGrimoire.Parse.inferLenLiteral MojoGrimoire.Parse.inferList (fingerprint := "1841320413688447699")
 *Definition: the types of places and expressions.* A variable has its
 declared type, a field the type its struct declares, and an element the
 element type of its list or array, or $`\mathsf{Int}` for the element of
@@ -126,7 +126,7 @@ value, wherever $`p` is: also an element of a list or an array, or a field
 of one.
 :::
 
-:::readable MojoGrimoire.Parse.unsignedResult (fingerprint := "9724387943405349278")
+:::readable MojoGrimoire.Parse.unsignedResult (fingerprint := "17872486900115442035")
 *Definition: expected types of arguments.* The arguments of a call or a
 method call are expected to have the types of the parameters of its
 signature, for the number of arguments of the call, and those of a call

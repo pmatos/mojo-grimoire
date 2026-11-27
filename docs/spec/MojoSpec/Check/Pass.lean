@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10305122982515686542")
+:::moduleDocs (fingerprint := "14434490435072489856")
 :::
 
 :::readable MojoGrimoire.Check.Below (fingerprint := "14513104375151688470")
@@ -63,7 +63,7 @@ that it declares, or else the destructor that the compiler synthesizes,
 (`MojoGrimoire.Check.checkInst`).
 :::
 
-:::readable MojoGrimoire.Check.refResult (fingerprint := "3574657827208784643")
+:::readable MojoGrimoire.Check.refResult (fingerprint := "5271747420467440621")
 *Definition: the result of a call.* A call or a method call that returns a
 reference, used as a value, gives the value it points to, which must be
 implicitly copyable, unless it is used as a reference, while copies are

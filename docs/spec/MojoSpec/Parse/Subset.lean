@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Constructs outside the subset: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10869864927373003482")
+:::moduleDocs (fingerprint := "8108617843396572117")
 :::
 
-:::readable MojoGrimoire.Parse.Outside MojoGrimoire.Parse.ReadError MojoGrimoire.Parse.outsideString MojoGrimoire.Parse.outsideRange MojoGrimoire.Parse.outsideLoopExit MojoGrimoire.Parse.loopExit (pin := MojoGrimoire.Parse.loopExits) (fingerprint := "18164383195230809481")
+:::readable MojoGrimoire.Parse.Outside MojoGrimoire.Parse.ReadError MojoGrimoire.Parse.outsideString MojoGrimoire.Parse.outsideRange MojoGrimoire.Parse.outsideLoopExit MojoGrimoire.Parse.loopExit (pin := MojoGrimoire.Parse.loopExits) (fingerprint := "9413004263020938000")
 *Definition: constructs outside the subset.* A construct outside the
 subset is reported with the line where the statement that holds it starts
 and what it is: a string literal outside `print`, a call of `range`
@@ -27,14 +27,14 @@ file is no program of the subset when it has a syntax error or such a
 construct.
 :::
 
-:::readable MojoGrimoire.Parse.stdRange (fingerprint := "14901185376653266137")
+:::readable MojoGrimoire.Parse.stdRange (fingerprint := "12363406301872528563")
 *Definition: the standard library's `range`.* A call of `range` calls
 the standard library's when no variable or parameter in scope, and no
 struct or function of the program, is named `range` (#176); the second
 half is the checker's own test, `builtinRange`.
 :::
 
-:::readable MojoGrimoire.Parse.Place.outside MojoGrimoire.Parse.Expr.outside MojoGrimoire.Parse.Expr.listOutside (fingerprint := "1072187626577693458")
+:::readable MojoGrimoire.Parse.Place.outside MojoGrimoire.Parse.Expr.outside MojoGrimoire.Parse.Expr.listOutside (fingerprint := "10507066288405817820")
 *Definition: constructs in an expression.* The first construct outside
 the subset in an expression, in the order of its text, is a string
 literal, or a call of the standard library's `range`, at any depth, also
@@ -43,7 +43,7 @@ $`\mathsf{List}[T](\mathsf{range}(\ldots))` is the call of `range` that
 the subset takes, whose own arguments are checked.
 :::
 
-:::readable MojoGrimoire.Parse.foundIn MojoGrimoire.Parse.Stmt.outside MojoGrimoire.Parse.Stmt.blockOutside (fingerprint := "1496206810667714673")
+:::readable MojoGrimoire.Parse.foundIn MojoGrimoire.Parse.Stmt.outside MojoGrimoire.Parse.Stmt.blockOutside (fingerprint := "10336137089066279299")
 *Definition: constructs in a block.* The statements are walked in the
 order of the file, each before the statements it holds, and numbered so;
 the walk stops at the first statement that holds a construct. A

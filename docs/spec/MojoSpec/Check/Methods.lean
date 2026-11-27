@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1039169852282946113")
+:::moduleDocs (fingerprint := "15222679744748130270")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.reflectedMethod MojoGrimoire.Check.unaryMethod (fingerprint := "14078108206647463870")
@@ -30,7 +30,7 @@ $`\mathsf{not}`, $`\mathsf{and}` and $`\mathsf{or}` call `__bool__` on
 each operand.
 :::
 
-:::readable MojoGrimoire.Check.hasMethod (fingerprint := "10449175719696369603")
+:::readable MojoGrimoire.Check.hasMethod (fingerprint := "2991799410413763253")
 *Definition: the methods of a type.* Of the methods that operators and
 calls need, an $`\mathsf{Int}` has every one but `__call__`. A
 $`\mathsf{Bool}` has the comparisons and `__bool__`, and no arithmetic
@@ -41,7 +41,7 @@ has none, nor has $`?`. A string literal, which is only printed, is
 taken to have them all: the model claims nothing of it.
 :::
 
-:::readable MojoGrimoire.Check.overloaded MojoGrimoire.Check.intLiteral (fingerprint := "14804267025960426371")
+:::readable MojoGrimoire.Check.overloaded MojoGrimoire.Check.intLiteral (fingerprint := "8278715128314698603")
 *Definition: methods with several overloads.* Of the methods the model
 calls, a list's `pop` has several overloads, and so has `__getitem__`
 of a list or an array, which an index calls. Their misfits are
@@ -51,7 +51,7 @@ them, negation and arithmetic, has the type `IntLiteral`, whose operators
 have several overloads too.
 :::
 
-:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "3743439047245667153")
+:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "2578483934896862560")
 *Definition: the type of an operand from its form.* The type of an
 operand is found, without checking or reading it, from its form: a
 literal's, a place's type, the result of the function, struct or method

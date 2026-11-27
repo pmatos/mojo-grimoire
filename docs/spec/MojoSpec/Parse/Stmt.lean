@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements and declarations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10603791703508468645")
+:::moduleDocs (fingerprint := "16977180158904710886")
 :::
 
 :::readable MojoGrimoire.Parse.augOps MojoGrimoire.Parse.augCallee MojoGrimoire.Parse.exprStmt (fingerprint := "14674107341489909627")
@@ -30,7 +30,7 @@ subset, which the check of the constructs outside it reports (#268),
 until #276 supports them.
 :::
 
-:::readable MojoGrimoire.Parse.simpleStmt MojoGrimoire.Parse.exprTail MojoGrimoire.Parse.stmt MojoGrimoire.Parse.ifRest MojoGrimoire.Parse.block MojoGrimoire.Parse.stmts (fingerprint := "4075543082761067632")
+:::readable MojoGrimoire.Parse.simpleStmt MojoGrimoire.Parse.exprTail MojoGrimoire.Parse.stmt MojoGrimoire.Parse.ifRest MojoGrimoire.Parse.block MojoGrimoire.Parse.stmts (fingerprint := "14074465439634610945")
 *Definition: statements and blocks.*
 
 $$`\begin{array}{lcl}
@@ -78,7 +78,7 @@ keyword, as in the compiler, and a function's may not (`memberName`,
 statements of its body start.
 :::
 
-:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.PState.deinitScope MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "18275070692354261957")
+:::readable MojoGrimoire.Parse.conformances MojoGrimoire.Parse.PState.deinitScope MojoGrimoire.Parse.members MojoGrimoire.Parse.structDecl (fingerprint := "4637067641820776598")
 *Definition: structs.*
 
 $$`\begin{array}{lcl}
@@ -99,7 +99,7 @@ and each method where it stands, and a second `__init__` or `__deinit__`,
 which replaces the first, where it stands.
 :::
 
-:::readable MojoGrimoire.Parse.addStruct MojoGrimoire.Parse.addFun MojoGrimoire.Parse.decls MojoGrimoire.Parse.parseLines MojoGrimoire.Parse.parseRaw (fingerprint := "10554130985542246685")
+:::readable MojoGrimoire.Parse.addStruct MojoGrimoire.Parse.addFun MojoGrimoire.Parse.decls MojoGrimoire.Parse.parseLines MojoGrimoire.Parse.parseRaw (fingerprint := "3743957077990004232")
 *Definition: programs.* A program is a sequence of structs and functions,
 in any order, which the parser records in the program's order of
 declarations, each struct with the order of its members (#96). The only decorator is `@fieldwise_init`. The parser is given

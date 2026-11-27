@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Types that a variable hides: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10732508992566060101")
+:::moduleDocs (fingerprint := "16047529627306185748")
 :::
 
-:::readable MojoGrimoire.Parse.Ty.markHidden (fingerprint := "17310990593456863048")
+:::readable MojoGrimoire.Parse.Ty.markHidden (fingerprint := "2266457470116632289")
 *Definition: marking a type.* Where the variables $`vs` are in scope, a
 type $`\mathsf{Int}`, $`\mathsf{Bool}` or a struct $`S` other than
 `Self`, also inside a list or an array type, is marked as hidden

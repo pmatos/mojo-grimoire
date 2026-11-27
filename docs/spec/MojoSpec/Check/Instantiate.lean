@@ -14,7 +14,7 @@ when the Lean changes under it.
 
 #doc (Manual) "Instantiation: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8218670733466028970")
+:::moduleDocs (fingerprint := "13377681250067326486")
 :::
 
 :::readable MojoGrimoire.Check.placeDrops MojoGrimoire.Check.exprDrops MojoGrimoire.Check.exprsDrops MojoGrimoire.Check.stmtDrops MojoGrimoire.Check.withDropStmt MojoGrimoire.Check.withDropStmts MojoGrimoire.Check.dropsProgram MojoGrimoire.Check.synthesizedDestructors (fingerprint := "4769810320813713944")
@@ -29,7 +29,7 @@ struct that declares no
 destroys its fields, the last first.
 :::
 
-:::readable MojoGrimoire.Check.instantiate MojoGrimoire.Check.checkInst MojoGrimoire.Check.checkProgram (fingerprint := "925330081724011157")
+:::readable MojoGrimoire.Check.instantiate MojoGrimoire.Check.checkInst MojoGrimoire.Check.checkProgram (fingerprint := "18032364589264327361")
 *Rule: instantiation.* A body is instantiated once. Its own errors come
 first, in the order of the body: a literal of $`\mathsf{Int}`s of the
 wrong length, and a constant index out of an array's or an

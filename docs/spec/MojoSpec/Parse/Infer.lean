@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Type inference: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2501881836489940814")
+:::moduleDocs (fingerprint := "17759041609436831828")
 :::
 
 :::readable MojoGrimoire.Parse.eagerValue (fingerprint := "681582824631525660")
@@ -23,7 +23,7 @@ in $`i`, as the compiler does: a subscript read late there is a call of
 its getter as a method (#191).
 :::
 
-:::readable MojoGrimoire.Parse.inferTarget MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "11494058955055973050")
+:::readable MojoGrimoire.Parse.inferTarget MojoGrimoire.Parse.inferStmt MojoGrimoire.Parse.inferBlock (fingerprint := "925809142732783676")
 *Definition: statements.* `var x = e` declares $`x` with the type of $`e`,
 $`\mathsf{None}` for a call that returns nothing (#131),
 and `ref x = e` binds $`x` with the type of $`e`; $`x` may change what

@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "2227814630432759629")
+:::moduleDocs (fingerprint := "521385385582175644")
 :::
 
-:::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.checkedBinaryTy (fingerprint := "14619223166697949421")
+:::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.checkedBinaryTy (fingerprint := "8972143178141132946")
 *Rule: binary operations.* Once both operands are checked, the places
 among them that are read late are checked again, but for `and` and `or`,
 whose operands are read when tested; the operation then has the type
@@ -55,7 +55,7 @@ $`p` there, where the compiler, on the left of a mixed `and` or `or`,
 only borrows it and leaves $`p` initialized (#84).
 :::
 
-:::readable MojoGrimoire.Check.typedSimdLeft (fingerprint := "5939084892300411783")
+:::readable MojoGrimoire.Check.typedSimdLeft (fingerprint := "17279951126828030497")
 *Rule: a comparison that only the type phase converts.* A literal on the
 left of a comparison that holds an inner literal of another length than
 one where an $`\mathsf{Int}` is expected keeps the checks it had before

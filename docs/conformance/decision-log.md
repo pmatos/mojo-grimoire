@@ -32,7 +32,7 @@ An entry whose detail would push this file past the file-size budget
 
 | Component | Version | Commit | Where it is pinned |
 | --------- | ------- | ------ | ------------------ |
-| Lean      | 4.35.0  | n/a    | `lean/lean-toolchain` |
+| Lean      | 4.36.0  | n/a    | `lean/lean-toolchain` |
 | Mojo      | nightly 1.3.0.dev2026111905, which reports `Mojo 1.3.0.dev2026111905 (a549e6a6)` | none public; source read at `10c54f6f5bf5725e3da0d189a67735594696a262` of `modular/modular` | the version in `MojoGrimoire.referenceMojo`; the wheels and their sha256 in `scripts/install-mojo.sh` |
 
 Each move of the Mojo pin gets an entry below.

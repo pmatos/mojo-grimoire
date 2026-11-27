@@ -5,7 +5,7 @@ organised.
 
 ## The package
 
-`lean/` is one Lake package with no dependencies, pinned to Lean 4.35.0 in
+`lean/` is one Lake package with no dependencies, pinned to Lean 4.36.0 in
 `lean/lean-toolchain` (ADR-2026-11-15-1905). It has four libraries and an
 executable:
 
@@ -40,6 +40,24 @@ than Lean's three standard ones or a native-evaluation axiom that holds, on
 (ADR-2026-11-15-1906). It also fails when a `.lean` file of `lean/` is not
 imported by `MojoGrimoireTest`'s root. So a new module is imported there in
 the same PR.
+
+One exception, ruled by the human on 2026-11-27 (#343): Lean 4.36 generates,
+for every inductive type `T` except one of exactly one constructor,
+`T.ctorIdx` implemented by the `unsafe` `T.ctorIdx._impl`, which reads the
+value's tag with `getObjTagNat`. The check accepts that pair only for a type
+of two or more constructors, so an empty type's pair is still rejected, and
+only in exactly the generated shape (`isGeneratedCtorIdx` in
+`lean/MojoGrimoireTest/Axioms.lean`). Any pair that differs from that shape
+is rejected, as `MojoGrimoireTest.AxiomsGuard` shows, and a pair in exactly
+that shape is accepted whoever wrote it, since it behaves the same. So "no
+declaration is unsafe" and "none is implemented by other code" each have
+this one exception, and "the compiled code equals the definitions that the
+proofs are about" also assumes that Lean's run-time tag equals the
+constructor's index; a proof by native evaluation that uses derived equality
+rests on it too.
+
+Rejected: staying on Lean 4.35.0 to avoid the exception, which stops every
+Lean update; and `genCtorIdx false`, which breaks `noConfusion`.
 
 Rejected: `#print axioms` lines per theorem, where a missing line passes in
 silence.

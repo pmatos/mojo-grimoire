@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13662291392390792621")
+:::moduleDocs (fingerprint := "5468262388319019351")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -43,7 +43,7 @@ write-back is not yet modelled (#198). Either is reported as the call's
 fit says.
 :::
 
-:::readable MojoGrimoire.Check.iterableFits (fingerprint := "13744519018623115126")
+:::readable MojoGrimoire.Check.iterableFits (fingerprint := "17866204432643165276")
 *Rule: a source of $`\mathsf{List}[u](e)`.* The one argument of
 $`\mathsf{List}[u](e)` fits the initializer of `List` from any iterable
 when its type is a list or an array of $`u`, and $`u` can be copied,

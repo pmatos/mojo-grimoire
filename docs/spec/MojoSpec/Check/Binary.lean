@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Binary operations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4667406386917041991")
+:::moduleDocs (fingerprint := "1722338304435635213")
 :::
 
 :::readable MojoGrimoire.Check.heldLeft (fingerprint := "4609557105210351087")
@@ -31,7 +31,7 @@ operand whose type is not known, leave the comparison to the checks it
 had before #166.
 :::
 
-:::readable MojoGrimoire.Check.checkBinary (fingerprint := "7824276668756139551")
+:::readable MojoGrimoire.Check.checkBinary (fingerprint := "15851451484636754669")
 *Rule: binary operations.* `checkExprAs` checks a binary operation by
 `checkBinary`, passing it the checks it makes of the two operands, so
 that this rule lives outside the mutual block of expressions. In the type

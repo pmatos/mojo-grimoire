@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Values: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7451052750227518831")
+:::moduleDocs (fingerprint := "9940355447561108822")
 :::
 
 :::readable MojoGrimoire.Interp.Value (fingerprint := "6154955959241713508")
@@ -36,7 +36,7 @@ with fields that holds no value holds its blank instead, as the next
 blocks say.
 :::
 
-:::readable MojoGrimoire.Interp.Step MojoGrimoire.Interp.Value.get MojoGrimoire.Interp.Value.set (fingerprint := "5790956165834944557")
+:::readable MojoGrimoire.Interp.Step MojoGrimoire.Interp.Value.get MojoGrimoire.Interp.Value.set (fingerprint := "6349410121551546864")
 *Definition: parts of a value.* A path of steps names a part of a value:
 each step is a field of a struct, or the element at a position of a list
 or an array. An array is a list value whose length is the size $`N` of

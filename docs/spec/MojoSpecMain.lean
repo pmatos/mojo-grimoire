@@ -13,11 +13,11 @@ when it is elaborated, so a warm build never shows a stale commit.
 -/
 def builtFrom : IO (Array Html) := do
   let some commit ← IO.getEnv "MOJOSPEC_COMMIT" | return #[]
-  let name : Html := {{<code>{{commit}}</code>}}
+  let name : Html := html%{<code>{commit}</code>}
   let name := match ← IO.getEnv "MOJOSPEC_COMMIT_URL" with
-    | some url => {{<a href={{url}}>{{name}}</a>}}
+    | some url => html%{<a href={url}>{name}</a>}
     | none => name
-  return #[{{<p class="mojo-built-from"><small>"Built from commit " {{name}} "."</small></p>}}]
+  return #[html%{<p class="mojo-built-from"><small>Built from commit {name}.</small></p>}]
 
 /--
 Where `manualMain` writes the multi-page site, given the same options: the

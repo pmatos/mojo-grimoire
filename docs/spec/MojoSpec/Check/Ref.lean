@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "References: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15612801977812121133")
+:::moduleDocs (fingerprint := "9174975529103303033")
 :::
 
 :::readable MojoGrimoire.Check.refTarget (fingerprint := "15477698907736277328")
@@ -45,7 +45,7 @@ call returns through a `read` parameter is subscripted as one that may
 not.
 :::
 
-:::readable MojoGrimoire.Check.withinOrigin (fingerprint := "1783623240663657123")
+:::readable MojoGrimoire.Check.withinOrigin (fingerprint := "16684585582372494429")
 *Rule: a returned reference.* A function that returns a reference returns
 one within its origin: each origin of the returned location, with its
 indices into arrays left out, is a parameter the origin names. The compiler
@@ -54,7 +54,7 @@ one, or anything under one, is $`\mathsf{escapingReference}`; an element
 of an array, at any depth, stays within the array's origin.
 :::
 
-:::readable MojoGrimoire.Check.checkOrigin (fingerprint := "15391653035526331512")
+:::readable MojoGrimoire.Check.checkOrigin (fingerprint := "17322446482107442762")
 *Rule: declared origins.* A function that returns a reference has a result,
 and its origin names only parameters passed as locations: `read`, `mut`
 or `ref`. A `var` parameter dies with the call, so a reference into it

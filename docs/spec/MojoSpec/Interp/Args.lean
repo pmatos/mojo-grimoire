@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments and operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "4802195752693910527")
+:::moduleDocs (fingerprint := "7525170753817471869")
 :::
 
 :::readable MojoGrimoire.Interp.Arg MojoGrimoire.Interp.bindParams (fingerprint := "12042878878789727990")
@@ -55,13 +55,13 @@ struct fields of a `@fieldwise_init` construction, then the subscripts
 read late, whose getters Mojo calls then, then the other operands (#191).
 :::
 
-:::readable MojoGrimoire.Interp.asInt MojoGrimoire.Interp.asBool MojoGrimoire.Interp.lookupVar (fingerprint := "10013699750299172460")
+:::readable MojoGrimoire.Interp.asInt MojoGrimoire.Interp.asBool MojoGrimoire.Interp.lookupVar (fingerprint := "12587210854594036958")
 *Definition: helpers.* An index is an $`\mathsf{Int}`, a condition a
 $`\mathsf{Bool}`, and a variable is looked up in scope; anything else is
 stuck.
 :::
 
-:::readable MojoGrimoire.Interp.intElem MojoGrimoire.Interp.fixIndices (fingerprint := "17025294742309079598")
+:::readable MojoGrimoire.Interp.intElem MojoGrimoire.Interp.fixIndices (fingerprint := "1596570024928780030")
 *Definition: the indices of an assigned place.* An assignment into the
 element of an $`\mathsf{Int}` keeps the order of `__setitem__`'s
 arguments (#127). Into any other place, the indices are evaluated first,
