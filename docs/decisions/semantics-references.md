@@ -158,3 +158,8 @@ choices (#18):
   (`MojoGrimoire.Elab.tempBlock`); in a `while` condition, each run of
   the condition makes and destroys it. A temporary of another type is
   destroyed when its call returns, as before, since nothing shows when.
+  So are two kinds that the model does not name yet: a temporary in the
+  index of a place, as `xs[vv(same(T(1)))]`, since elaboration does not
+  look inside indices (#377), and a subscript that Mojo reads late
+  (#191), as `same(s[1])`, which is read only once its call's arguments
+  are evaluated.

@@ -145,12 +145,15 @@ def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
     let args' := elabPrintArgs ctx args after
     rest (.print args') (droppedList args' ++ consumedList ctx args)
 
-/-- Elaborates the block `b`, given the slots live after it. -/
+/-- Elaborates the block `b`, given the slots live after it. A declaration
+with no value is its own elaboration, whatever is live after it, so the
+slots live after it are not computed, which the hidden variables of a
+statement's temporaries would otherwise do once each. -/
 def elabBlock (ctx : Ctx) (b : List Stmt) (after : List Place) : List Stmt :=
   match b with
   | [] => []
   | s :: rest =>
-    elabStmt ctx s (liveBlock ctx.sl rest after) ++
+    (if s matches .decl _ _ none then [s] else elabStmt ctx s (liveBlock ctx.sl rest after)) ++
       elabBlock { ctx with env := envAfter ctx.prog ctx.sl ctx.env s } rest after
 end
 

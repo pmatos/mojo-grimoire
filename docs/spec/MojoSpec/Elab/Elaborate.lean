@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "ASAP elaboration: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11146887827271562093")
+:::moduleDocs (fingerprint := "1046780278155584540")
 :::
 
 :::readable MojoGrimoire.Elab.elabPrintOps MojoGrimoire.Elab.elabPrintArgs (fingerprint := "17802690047684658857")
@@ -30,7 +30,7 @@ getters before it, and what the later operands use, live as its arguments
 are evaluated (#191).
 :::
 
-:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "18308385079530767380")
+:::readable MojoGrimoire.Elab.elabReturn MojoGrimoire.Elab.elabStmt MojoGrimoire.Elab.elabBlock (fingerprint := "8045837836061175941")
 *Definition: elaboration.* Given the slots live after a statement:
 
 - a simple statement's expressions are elaborated, and the statement is
@@ -57,7 +57,10 @@ are evaluated (#191).
   destroying what else it last uses (#191).
 
 A block elaborates each statement with the slots live after it, and the
-types of the variables declared before it.
+types of the variables declared before it. A declaration with no value is
+its own elaboration, so the slots live after it are not computed: a
+statement with many temporaries would otherwise compute them once for each
+hidden variable declared before it.
 :::
 
 :::readable MojoGrimoire.Elab.elabBody MojoGrimoire.Elab.ownedParams MojoGrimoire.Elab.paramEnv MojoGrimoire.Elab.elabFun (fingerprint := "18357588521383928537")

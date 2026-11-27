@@ -18,7 +18,10 @@ statement, in the same block, and replaces the argument with
 hidden variables in the order its temporaries are made, those inside an
 argument before the argument's own. Liveness and the drops then treat each
 one as a local variable, and a use of a reference into it as a use of it
-(`MojoGrimoire.Elab.locSlots`).
+(`MojoGrimoire.Elab.locSlots`). Two kinds of temporary keep the old
+lifetime, ending when their call returns: one inside the index of a place,
+which elaboration leaves as it is (#377), and a subscript that Mojo reads
+late (#191), which is read only once its call's arguments are evaluated.
 -/
 
 namespace MojoGrimoire.Elab
@@ -32,11 +35,13 @@ def envAfter (prog : Program) (sl : Slots) (env : TyEnv) (s : Stmt) : TyEnv :=
   | .refDecl .. => (aliasStmt prog (sl, env) s).2
   | _ => env
 
-/-- Whether the origin argument `e` is a temporary: neither a place nor a
-call of a function or a method that returns a reference. -/
+/-- Whether the origin argument `e` is a temporary that gets a hidden
+variable: neither a place, a call of a function or a method that returns a
+reference, nor a subscript read late. -/
 def isTempArg (prog : Program) (env : TyEnv) (e : Expr) : Bool :=
   match e with
   | .place _ => false
+  | .call f _ => !lateGetter prog f && !(refCallee prog env e).any (·.1.origin.isSome)
   | e => !(refCallee prog env e).any (·.1.origin.isSome)
 
 /-- For each parameter among `params`, the type of a temporary passed to
@@ -46,7 +51,7 @@ def tempParams (os : List Name) (params : List Param) : List (Option Ty) :=
   params.map fun prm => if os.contains prm.name && needsDrop prm.ty then some prm.ty else none
 
 /-- The temporaries made so far in a statement: the number of the next one,
-and the number and type of each, in the order they are made. -/
+and the number and type of each, the last made first. -/
 abbrev Temps := Nat × List (Nat × Ty)
 
 /-- The argument `a`, elaborated inside as `a'`, passed to a parameter
@@ -56,40 +61,20 @@ def wrapTemp (prog : Program) (env : TyEnv) (o : Option Ty) (a a' : Expr) (acc :
     Expr × Temps :=
   match o with
   | some t =>
-    if isTempArg prog env a then (.temp (tempName acc.1) a', (acc.1 + 1, acc.2 ++ [(acc.1, t)]))
+    if isTempArg prog env a then (.temp (tempName acc.1) a', (acc.1 + 1, (acc.1, t) :: acc.2))
     else (a', acc)
   | none => (a', acc)
 
 mutual
-/-- Names the temporaries in the indices of the place `p`. -/
-def tempPlace (prog : Program) (env : TyEnv) (acc : Temps) : Place → Place × Temps
-  | .var x => (.var x, acc)
-  | .field p f => let r := tempPlace prog env acc p; (.field r.1 f, r.2)
-  | .index p i =>
-    let r := tempPlace prog env acc p
-    let s := tempExpr prog env r.2 i
-    (.index r.1 s.1, s.2)
-  | .transferred p => let r := tempPlace prog env acc p; (.transferred r.1, r.2)
-
 /-- Names the temporary origin arguments in the expression `e`, in the
-order Mojo evaluates them. -/
-def tempExpr (prog : Program) (env : TyEnv) (acc : Temps) : Expr → Expr × Temps
-  | .place p => let r := tempPlace prog env acc p; (.place r.1, r.2)
-  | .transfer p => let r := tempPlace prog env acc p; (.transfer r.1, r.2)
-  | .copy p => let r := tempPlace prog env acc p; (.copy r.1, r.2)
-  | .call f args =>
-    let ps := match callSig prog f with
-      | .ok ⟨_, params, _, some os, _⟩ => tempParams os params
-      | _ => []
-    let r := tempArgs prog env ps acc args
-    (.call f r.1, r.2)
-  | .method p m args =>
-    let ps := match (placeTyOf prog env p).bind fun t => (methodSig prog t m args.length).toOption with
-      | some ⟨_, params, _, some os, _⟩ => tempParams os params
-      | _ => []
-    let r := tempPlace prog env acc p
-    let s := tempArgs prog env ps r.2 args
-    (.method r.1 m s.1, s.2)
+order Mojo evaluates them, but those in the indices of its places. -/
+def tempExpr (prog : Program) (env : TyEnv) (acc : Temps) (e : Expr) : Expr × Temps :=
+  let ps := match refCallee prog env e with
+    | some (⟨_, params, _, some os, _⟩, _) => tempParams os params
+    | _ => []
+  match e with
+  | .call f args => let r := tempArgs prog env ps acc args; (.call f r.1, r.2)
+  | .method p m args => let r := tempArgs prog env ps acc args; (.method p m r.1, r.2)
   | .unary op a => let r := tempExpr prog env acc a; (.unary op r.1, r.2)
   | .binary op a b =>
     let r := tempExpr prog env acc a
@@ -99,9 +84,8 @@ def tempExpr (prog : Program) (env : TyEnv) (acc : Temps) : Expr → Expr × Tem
   | .listInit u es => let r := tempArgs prog env [] acc es; (.listInit u r.1, r.2)
   | .withDrops e pre post => let r := tempExpr prog env acc e; (.withDrops r.1 pre post, r.2)
   | .temp x e => let r := tempExpr prog env acc e; (.temp x r.1, r.2)
-  | .int k => (.int k, acc)
-  | .bool b => (.bool b, acc)
-  | .str t => (.str t, acc)
+  | e@(.int _) | e@(.bool _) | e@(.str _) | e@(.place _) | e@(.transfer _) | e@(.copy _) =>
+    (e, acc)
 
 /-- Names the temporaries in the arguments `es`, passed to the parameters
 for which `tempParams` gives `ps`. -/
@@ -116,9 +100,9 @@ def tempArgs (prog : Program) (env : TyEnv) (ps : List (Option Ty)) (acc : Temps
 end
 
 /-- The declarations, with no value, of the hidden variables of the
-temporaries `ds`. -/
+temporaries `ds`, the last made first, in the order they are made. -/
 def tempDecls (ds : List (Nat × Ty)) : List Stmt :=
-  ds.map fun (k, t) => .decl (tempName k) t none
+  (ds.map fun (k, t) => .decl (tempName k) t none).reverse
 
 /-- The statement `s'`, whose temporaries are `acc`, after the
 declarations of their hidden variables, and the number of the next one. -/
@@ -132,10 +116,7 @@ those of the blocks it holds inside them. -/
 def tempStmt (prog : Program) (env : TyEnv) (k : Nat) : Stmt → List Stmt × Nat
   | .decl x t (some e) => let r := tempExpr prog env (k, []) e; withTemps (.decl x t (some r.1)) r.2
   | .refDecl x e => let r := tempExpr prog env (k, []) e; withTemps (.refDecl x r.1) r.2
-  | .assign p e =>
-    let r := tempPlace prog env (k, []) p
-    let s := tempExpr prog env r.2 e
-    withTemps (.assign r.1 s.1) s.2
+  | .assign p e => let r := tempExpr prog env (k, []) e; withTemps (.assign p r.1) r.2
   | .expr e => let r := tempExpr prog env (k, []) e; withTemps (.expr r.1) r.2
   | .print args => let r := tempArgs prog env [] (k, []) args; withTemps (.print r.1) r.2
   | .ret (some e) => let r := tempExpr prog env (k, []) e; withTemps (.ret (some r.1)) r.2
@@ -164,22 +145,13 @@ def tempBlock (prog : Program) (env : TyEnv) (k : Nat) : List Stmt → List Stmt
 end
 
 mutual
-/-- The hidden variables of the temporaries in the indices of the place
-`p`. -/
-def tempsPlace : Place → List Place
-  | .var _ => []
-  | .field p _ | .transferred p => tempsPlace p
-  | .index p i => tempsPlace p ++ tempsIn i
-
 /-- The hidden variables of the temporaries in the expression `e`. -/
 def tempsIn : Expr → List Place
   | .temp x e => .var x :: tempsIn e
-  | .place p | .transfer p | .copy p => tempsPlace p
-  | .method p _ args => tempsPlace p ++ tempsList args
-  | .call _ args | .list _ args | .listInit _ args => tempsList args
+  | .call _ args | .method _ _ args | .list _ args | .listInit _ args => tempsList args
   | .unary _ a | .withDrops a _ _ => tempsIn a
   | .binary _ a b => tempsIn a ++ tempsIn b
-  | .int _ | .bool _ | .str _ => []
+  | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .copy _ => []
 
 /-- The hidden variables of the temporaries in the expressions `es`. -/
 def tempsList : List Expr → List Place

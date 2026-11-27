@@ -188,8 +188,8 @@ theorem stripBlock_elabBlock (ctx : Ctx) (b : List Stmt) (after : List Place) :
   match b with
   | [] => simp [elabBlock, stripBlock]
   | s :: rest =>
-    simp [elabBlock, stripBlock, stripBlock_append, stripBlock_elabStmt,
-      stripBlock_elabBlock _ rest after]
+    simp only [elabBlock, stripBlock, stripBlock_append, stripBlock_elabBlock _ rest after]
+    split <;> simp [stripBlock, stripBlock_elabStmt]
 end
 
 /-- Elaborating a function body only inserts drops. -/
@@ -205,7 +205,9 @@ theorem isTempName_tempName (k : Nat) : isTempName (tempName k) = true := by
 theorem stripBlock_tempDecls (ds : List (Nat × Ty)) : stripBlock (tempDecls ds) = [] := by
   induction ds with
   | nil => rfl
-  | cons d ds ih => simpa [tempDecls, stripBlock, stripStmt, isTempName_tempName] using ih
+  | cons d ds ih =>
+    simp only [tempDecls, List.map_cons, List.reverse_cons, stripBlock_append] at *
+    simp [ih, stripBlock, stripStmt, isTempName_tempName]
 
 /-- Erasing a temporary leaves its value. -/
 theorem stripExpr_wrapTemp (prog : Program) (env : TyEnv) (o : Option Ty) (a a' : Expr)
@@ -216,26 +218,15 @@ theorem stripExpr_wrapTemp (prog : Program) (env : TyEnv) (o : Option Ty) (a a' 
   · rfl
 
 mutual
-/-- Naming the temporaries in a place only inserts them. -/
-theorem stripPlace_tempPlace (prog : Program) (env : TyEnv) (acc : Temps) (p : Place) :
-    stripPlace (tempPlace prog env acc p).1 = stripPlace p := by
-  match p with
-  | .var _ => simp [tempPlace, stripPlace]
-  | .field p _ | .transferred p => simp [tempPlace, stripPlace, stripPlace_tempPlace]
-  | .index p i => simp [tempPlace, stripPlace, stripPlace_tempPlace, stripExpr_tempExpr]
-termination_by structural p
-
 /-- Naming the temporaries in an expression only inserts them. -/
 theorem stripExpr_tempExpr (prog : Program) (env : TyEnv) (acc : Temps) (e : Expr) :
     stripExpr (tempExpr prog env acc e).1 = stripExpr e := by
   match e with
-  | .place p | .transfer p | .copy p => simp [tempExpr, stripExpr, stripPlace_tempPlace]
-  | .call _ args | .list _ args | .listInit _ args =>
+  | .call _ args | .method _ _ args | .list _ args | .listInit _ args =>
     simp [tempExpr, stripExpr, stripExprs_tempArgs]
-  | .method p _ args => simp [tempExpr, stripExpr, stripPlace_tempPlace, stripExprs_tempArgs]
   | .unary _ a | .withDrops a _ _ | .temp _ a => simp [tempExpr, stripExpr, stripExpr_tempExpr]
   | .binary _ a b => simp [tempExpr, stripExpr, stripExpr_tempExpr]
-  | .int _ | .bool _ | .str _ => simp [tempExpr, stripExpr]
+  | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .copy _ => simp [tempExpr]
 termination_by structural e
 
 /-- Naming the temporaries in arguments only inserts them. -/
@@ -262,8 +253,7 @@ theorem stripBlock_tempStmt (prog : Program) (env : TyEnv) (k : Nat) (s : Stmt) 
   match s with
   | .decl _ _ (some _) | .refDecl .. | .expr _ | .ret (some _) =>
     simp [tempStmt, stripBlock_withTemps, stripStmt, stripExpr_tempExpr]
-  | .assign .. =>
-    simp [tempStmt, stripBlock_withTemps, stripStmt, stripExpr_tempExpr, stripPlace_tempPlace]
+  | .assign .. => simp [tempStmt, stripBlock_withTemps, stripStmt, stripExpr_tempExpr]
   | .print _ => simp [tempStmt, stripBlock_withTemps, stripStmt, stripExprs_tempArgs]
   | .ifElse .. | .whileLoop .. =>
     simp [tempStmt, stripBlock_append, stripBlock_tempDecls, stripBlock, stripStmt,

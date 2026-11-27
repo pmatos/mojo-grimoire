@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Elaboration only inserts drops: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16613917273633785324")
+:::moduleDocs (fingerprint := "5884568760521945247")
 :::
 
 :::readable MojoGrimoire.Elab.stripPlace MojoGrimoire.Elab.stripExpr MojoGrimoire.Elab.stripExprs (fingerprint := "11164421411142739363")
@@ -60,13 +60,13 @@ drops erased. The proof is by mutual induction on statements and blocks,
 using the lemmas on expressions.
 :::
 
-:::readable MojoGrimoire.Elab.isTempName_tempName MojoGrimoire.Elab.stripBlock_tempDecls MojoGrimoire.Elab.stripExpr_wrapTemp MojoGrimoire.Elab.stripPlace_tempPlace MojoGrimoire.Elab.stripExpr_tempExpr MojoGrimoire.Elab.stripExprs_tempArgs MojoGrimoire.Elab.stripBlock_withTemps MojoGrimoire.Elab.stripBlock_tempStmt MojoGrimoire.Elab.stripBlock_tempBlock (fingerprint := "9151839084587273634")
+:::readable MojoGrimoire.Elab.isTempName_tempName MojoGrimoire.Elab.stripBlock_tempDecls MojoGrimoire.Elab.stripExpr_wrapTemp MojoGrimoire.Elab.stripExpr_tempExpr MojoGrimoire.Elab.stripExprs_tempArgs MojoGrimoire.Elab.stripBlock_withTemps MojoGrimoire.Elab.stripBlock_tempStmt MojoGrimoire.Elab.stripBlock_tempBlock (fingerprint := "14623661532255733941")
 *Lemma: temporaries.* The declarations of hidden variables erase to
 nothing, and so does a temporary in an argument. So naming the
-temporaries of a place, an expression, a list of arguments, a statement or
-a block, and declaring their hidden variables, gives what it named once
-erased. The proof is by mutual induction on places, expressions and lists
-of them, then on statements and blocks.
+temporaries of an expression, a list of arguments, a statement or a block,
+and declaring their hidden variables, gives what it named once erased. The
+proof is by mutual induction on expressions and lists of them, then on
+statements and blocks.
 :::
 
 :::readable MojoGrimoire.Elab.stripProgram_elabProgram (fingerprint := "18027251158332834446")
