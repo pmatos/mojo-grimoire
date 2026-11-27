@@ -317,7 +317,13 @@ struct, list or array operand is never copied first.
 `and` and `or` differ: the left operand's conversion with `__bool__`
 comes before every error of the right operand, an unknown name included
 (#357, `order/logic_left_*`). Errors inside the left operand still come
-first. [semantics-operators.md](semantics-operators.md) gives the rule.
+first. When both operands have the same struct type, the copy of the
+left operand into the result comes after both operands' own errors and
+the left operand's test, unless a `var` or `deinit` `self` takes it
+first, wherever the operation stands, in a subscript's index too:
+`lT[pz(t1 or t2)]`, with a `mut self` `__bool__` and `t1` a `read`
+parameter, is `immutablePlace` (#362, `order/logic_own_*`).
+[semantics-operators.md](semantics-operators.md) gives the rule.
 
 ## Where the model differs today
 
