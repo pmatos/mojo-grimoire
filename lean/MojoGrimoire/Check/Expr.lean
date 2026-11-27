@@ -333,8 +333,8 @@ passed as a location, uncopied, when it is a located operand, and for
 `mut` it must be mutable; the origin it is reported by is its first. One
 with a temporary origin argument is checked as a value. A value passed
 `mut` is a temporary that may not change (`temporaryPassedMut`, #81).
-`n` and `m` are
-the numbers of parameters and arguments, for the error when they differ.
+`n` and `m` are the numbers of parameters and arguments, for the error
+when they differ.
 The call's fit `fit` says how a misfit is reported; a literal passed to a
 function or a method is converted to its parameter's type. -/
 def checkArgs (prog : Program) (fit : Fit) (callee : Name) :

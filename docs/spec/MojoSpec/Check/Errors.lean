@@ -70,8 +70,9 @@ of these classes, each with the names or types it concerns:
   change to a place the function may not change, or a temporary passed
   `mut`, which the compiler reports alike (`immutablePlace`, #81), an
   origin argument that is not a place of a reference bound with `ref` or
-  returned (`notAPlace`, #80, #366), a `mut` argument that aliases another argument, or a call that builds
-  its result into an element of a list it changes
+  returned (`notAPlace`, #80, #366), a `mut` argument that aliases
+  another argument, or a call that builds its result into an element of
+  a list it changes
   (`argumentExclusivity`), a `mut` parameter or the `self` of `__init__`
   not wholly initialized when the function returns
   (`uninitializedAtExit`), and a struct that ends or is overwritten with
