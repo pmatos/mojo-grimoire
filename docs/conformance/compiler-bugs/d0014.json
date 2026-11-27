@@ -13,13 +13,13 @@
   "model": "rejects it (noMatchingInit)",
   "upstream": {
     "status": "unfiled",
-    "draft": "https://github.com/pmatos/mojo-grimoire/issues/324#issuecomment-7195536534",
+    "draft": "https://github.com/pmatos/mojo-grimoire/issues/324#issuecomment-7214807616",
     "tracking": 347,
     "report": null
   },
   "confirmation": {
     "status": "pending",
-    "notes": "provisional ruling, until the human has discussed it with Modular"
+    "notes": "provisional ruling, until the human has discussed it with Modular. 2026-11-26, the human: \"Isn't this a shortcut or like C has? But maybe it is not a compiler bug - still worth me checking with mojo people.\" Four cases to raise with Modular, each run on the pin (#346), where the comparison alone is rejected at every level: (1) `var t = True; print(t or ([1] != [[1, 2, 3]]))` prints `True` at -O1, -O2 and -O3, the default, and -O0 rejects it with \"constraint failed: expected 1 elements in the SIMD list literal, found 3\"; (2) `var t = False; print(t and ([1] != [[1, 2, 3]]))` prints `False` at -O1, -O2 and -O3, and -O0 rejects it with the same constraint; (3) the dead `if` branch `var t = True; if t: print(1) else: print([1] != [[1, 2, 3]])` prints `1` at -O1, -O2 and -O3, and -O0 rejects it with the same constraint; (4) the literal `print(True or ([1] != [[1, 2, 3]]))` prints `True` at every level, -O0 included, with the warning \"unreachable code on right side of 'True or ...'\". The question for Modular is whether an or/and operand that is never evaluated is meant to be type-checked and instantiated."
   },
   "nightly": {
     "version": "1.3.0.dev2026111905",
