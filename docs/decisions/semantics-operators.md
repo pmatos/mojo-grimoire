@@ -83,23 +83,27 @@ is: `t < u` may give an `Int`.
   `order/logic_left_*` programs hold these orders, recorded from the pin.
 - When both operands have the same struct type, the copy of the left
   operand into the result comes after both operands' own errors and the
-  left operand's test, unless a `var` or `deinit` `self` takes it first,
-  in a subscript's index as outside it (#362, `order/logic_own_*`). With
-  `pz(x: T)`, `pz(t1 or t2)` is `missingMethod` when `__bool__` returns
-  an `Int`; with a `mut self` `__bool__` it is `immutablePlace` when
-  `t1` is a `read` parameter, and `implicitCopy` when `t1` is a
-  variable, whose test passes, for a `T` that is not
-  `ImplicitlyCopyable`. A transfer on the right comes first too:
-  `pz(hl[0].t or t2^)`, with `t2` a `read` parameter, is
+  left operand's test, unless a `var` or `deinit` `self` takes it first
+  (#362, `order/logic_own_*`). With `pz(x: T)`, `pz(t1 or t2)` is
+  `missingMethod` when `__bool__` returns an `Int`; with a `mut self`
+  `__bool__` it is `immutablePlace` when `t1` is a `read` parameter, and
+  `implicitCopy` when `t1` is a variable, whose test passes, for a `T`
+  that is not `ImplicitlyCopyable`. A transfer on the right comes first
+  too: `pz(hl[0].t or t2^)`, with `t2` a `read` parameter, is
   `transferFromBorrowed`, and `eatT(rr^)` of a `ref` binding `rr` on the
   right is `transferFromElement`. A misfit inside the left operand comes
   before every copy: `pz(idT(lT[0] or bv) or t1)` is `typeMismatch`. The
-  model still copies the value of a call that returns a reference into a
-  temporary origin argument when that value is passed on, as in
-  `pz(same(T(1)))` or `same(same(T(1)))`, which the pin passes by
-  reference and accepts (#80): `pz(same(same(T(1))) or t2)` is
-  `implicitCopy` in the model, where the pin reports the `mut self`
-  receiver, `immutablePlace`.
+  pin keeps this order in a subscript's index too, and so does the
+  model, but for the copy that a `var` or `deinit` `self` takes: in an
+  index the model still reports that copy after the other errors, until
+  #356. With `T(Copyable)` and `__bool__(var self) -> Int`,
+  `lT[pz((t1 and t2))].n` is `implicitCopy` on the pin and
+  `missingMethod` in the model. The model still copies the value of a
+  call that returns a reference into a temporary origin argument when
+  that value is passed on, as in `pz(same(T(1)))` or `same(same(T(1)))`,
+  which the pin passes by reference and accepts (#80):
+  `pz(same(same(T(1))) or t2)` is `implicitCopy` in the model, where the
+  pin reports the `mut self` receiver, `immutablePlace`.
 - A `var self` `__bool__` gets a copy of the left operand of `and` or
   `or`, on either path, even of a temporary or `p^`, since the left
   operand may be the result: a struct that is not `ImplicitlyCopyable`

@@ -322,7 +322,9 @@ left operand into the result comes after both operands' own errors and
 the left operand's test, unless a `var` or `deinit` `self` takes it
 first, wherever the operation stands, in a subscript's index too:
 `lT[pz(t1 or t2)]`, with a `mut self` `__bool__` and `t1` a `read`
-parameter, is `immutablePlace` (#362, `order/logic_own_*`).
+parameter, is `immutablePlace` (#362, `order/logic_own_*`). In an index
+the model still reports the copy that a `var` or `deinit` `self` takes
+after the other errors ([below](#a-var-self-copy-in-an-index)).
 [semantics-operators.md](semantics-operators.md) gives the rule.
 
 ## Where the model differs today
@@ -343,6 +345,16 @@ default level, a constant index into an array comes before an index into
 a list. Its order beside a literal of `Int`s of the wrong length is no
 longer a difference
 ([above](#when-the-optimization-level-changes-the-order)).
+
+### A `var` self copy in an index
+
+The model checks a list's or an array's index with its copies last, so
+the copy that a `var` or `deinit` `self` `__bool__` takes of the left
+operand of `and` or `or` comes after the index's other errors there,
+where the pin reports it first. With `T(Copyable)` and
+`__bool__(var self) -> Int`, `lT[pz((t1 and t2))].n` is `implicitCopy`
+on the pin and `missingMethod` in the model, and so are its `or` and
+`deinit self` forms. #356 checks an index's copies first.
 
 ## Comparisons not yet ordered
 
