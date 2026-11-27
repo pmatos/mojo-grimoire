@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "missingMethod",
+  "diagnostic": "'V' does not implement the '__bool__' method"
+}

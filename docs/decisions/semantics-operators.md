@@ -65,6 +65,19 @@ is: `t < u` may give an `Int`.
   `__mlir_bool__`, or the operator is `missingMethod`; a `mut self` takes
   only a place that may change (`immutablePlace`) and no temporary
   (`notAPlace`, #81).
+- The compiler converts the left operand of `and` or `or` before it
+  looks at the right one (#357), and so does the model. After the left
+  operand's own errors, its conversion comes first: a type that lacks
+  `__bool__` (`missingMethod`), then the call of `__bool__`, its
+  receiver's mutability or its `var self` copy, then a result that is no
+  `Bool`. Only then come the right operand's errors, an unknown name
+  included, and its own conversion: `v and a`, with `V` lacking
+  `__bool__` and `a` a `read` operand of a `mut self` `__bool__`, is
+  `missingMethod`. When both operands have the same struct type, the left
+  one is copied after the right one's own errors, `t0 or T(zz)` is
+  `unknownVariable`, unless its `__bool__` takes a `var` or `deinit`
+  `self`, whose copy comes first. The suite's `order/logic_left_*` programs hold these
+  orders, recorded from the pin.
 - A `var self` `__bool__` gets a copy of the left operand of `and` or
   `or`, on either path, even of a temporary or `p^`, since the left
   operand may be the result: a struct that is not `ImplicitlyCopyable`

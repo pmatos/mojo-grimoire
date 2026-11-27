@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Binary operations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "1722338304435635213")
+:::moduleDocs (fingerprint := "12579589020245250618")
 :::
 
 :::readable MojoGrimoire.Check.heldLeft (fingerprint := "4609557105210351087")
@@ -31,7 +31,7 @@ operand whose type is not known, leave the comparison to the checks it
 had before #166.
 :::
 
-:::readable MojoGrimoire.Check.checkBinary (fingerprint := "15851451484636754669")
+:::readable MojoGrimoire.Check.checkBinary (fingerprint := "12917353789084692134")
 *Rule: binary operations.* `checkExprAs` checks a binary operation by
 `checkBinary`, passing it the checks it makes of the two operands, so
 that this rule lives outside the mutual block of expressions. In the type
@@ -59,8 +59,15 @@ $`\mathsf{Bool}`. Otherwise:
   #185): the left operand first, then the right one, with the checks that
   a comparison kept from before #166 when `keepsBefore` holds
   (`Before.rightParam`);
+* the left operand of `and` and `or` is converted with `__bool__`
+  before the right operand is looked at (#357): a type that lacks
+  `__bool__`, found from its form once it is typed (`leftLacks`), and,
+  once it is checked, its test (`leftTest`). When both operands have the
+  same struct type (`sameTest`), the left one is read by reference and
+  copied once the right one is checked, unless its `__bool__` takes a
+  `var` or `deinit` `self` (`copiedLate`);
 * once both operands are checked, the operation is typed as
-  `checkedBinaryTy` says, which checks the test of a struct operand of
-  `and` and `or`, given the states before and after the left operand,
-  which it passes to `self` without checking it again (`passLeft`).
+  `checkedBinaryTy` says, which checks the test of a struct operand on
+  the right of `and` and `or`, given the states before and after the
+  left operand.
 :::
