@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "missingMethod",
+  "diagnostic": "'Int' does not implement the '__mlir_bool__' method"
+}
