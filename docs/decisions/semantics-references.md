@@ -175,4 +175,20 @@ choices (#18):
   index of a place, as `xs[vv(same(T(1)))]`, since elaboration does not
   look inside indices (#377), and a subscript that Mojo reads late
   (#191), as `same(s[1])`, which is read only once its call's arguments
-  are evaluated.
+  are evaluated (#378).
+- The checker accepts a temporary origin argument only where elaboration
+  keeps it alive. So it keeps these rejected as before #80, where the
+  compiler accepts them, until the issue named:
+  - a temporary in a place's index, as `print(xs[pz(same(mk(1)))])`, is
+    `implicitCopy` for a `T` that cannot be copied (#377);
+  - a late subscript as an origin argument of a `ref` binding, as
+    `ref r = rpick(s[1], P(5), True)`, is `notAPlace` (#378);
+  - an expression statement that returns a reference through one bound
+    to a temporary, as `psame(r)` after `ref r = psame(pmk(1))`, is
+    `notAPlace` (#379).
+
+  A mutable location passed to a `ref` parameter that aliases another
+  argument is `argumentExclusivity`, as the compiler reports it, when
+  either may point into a temporary: `vv(pick(r, y, False))` after
+  `ref r = pick(y, T(1), True)`. The compiler rejects the case with no
+  temporary too, which the model still runs (#381).

@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Located operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "16518836012555365344")
+:::moduleDocs (fingerprint := "2295899750604538009")
 :::
 
 :::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable MojoGrimoire.Check.passedMutable (fingerprint := "4781551392938097025")
@@ -32,7 +32,7 @@ returns through a `mut` parameter may be changed; through a `ref`
 parameter, when its argument may be; through a `read` parameter, never.
 :::
 
-:::readable MojoGrimoire.Check.locOfAs MojoGrimoire.Check.originsOf MojoGrimoire.Check.locOf (fingerprint := "16884867861159506642")
+:::readable MojoGrimoire.Check.lateCall MojoGrimoire.Check.locOfAs MojoGrimoire.Check.originsOf MojoGrimoire.Check.locOf (fingerprint := "8705670448452709391")
 *Rule: located operands.* A located operand names a location. A place is
 one: its origins are the place, or the same place in each origin of the
 reference it goes through, and it passes on a mutable reference when its
@@ -50,14 +50,18 @@ out instead: the call's origins are those of its other origin
 arguments, and it may not be changed through, as the compiler keeps the
 temporary alive as long as the reference (#80). This is how the checker
 reads a located operand (`locOf`). Strictly, for a `return`, such a call
-is no located operand.
+is no located operand. So it is too in a place's index, where elaboration
+does not name the temporary, which would die before it is read
+(`strictOrigins`, #377). A subscript that Mojo reads late is never left
+out (`lateCall`, #378), for the same reason.
 :::
 
-:::readable MojoGrimoire.Check.calleeOf MojoGrimoire.Check.throughTemp MojoGrimoire.Check.tempOrigin MojoGrimoire.Check.tempArgs (fingerprint := "17136805677901233987")
+:::readable MojoGrimoire.Check.calleeOf MojoGrimoire.Check.throughTemp MojoGrimoire.Check.tempOrigin MojoGrimoire.Check.tempArgs (fingerprint := "17752257135694289997")
 *Rule: references into temporaries.* A located operand may point into a
 temporary, which its origins leave out (#80). That is the case for a place
 reached through a reference bound to one, and for a call with an origin
-argument that is a temporary, or that may point into one in turn. A
+argument that is a temporary, or that may point into one in turn: only
+the latter when `direct` does not hold. A
 reference bound with `ref` remembers it, so that a `return` of one that
 may is $`\mathsf{escapingReference}`, as the compiler reports it. The
 check comes after the type comparison, with the origins that do not stay
@@ -67,7 +71,7 @@ escaping reference (#366). The name of the callee is what that error
 reports (`calleeOf`).
 :::
 
-:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.PassedLoc MojoGrimoire.Check.passedPlace MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "334350284564618373")
+:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.PassedLoc MojoGrimoire.Check.passedPlace MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "12720061300649723827")
 *Rule: argument exclusivity.* Two places overlap when they have the same
 variable and one path is a prefix of the other. The arguments of a call
 that are passed as locations are the located operands whose parameters
@@ -77,6 +81,10 @@ consumes, which counts as $`q` passed `mut`; an $`\mathsf{Int}` or a $`\mathsf{B
 is copied instead. A call is rejected when a location passed `mut`, of
 any type, overlaps another location of the same call. A reference, and a
 call that returns one, overlaps what its origins overlap: `n(first(xs),
-xs)` is rejected when `n` takes its second argument `mut`. The error names
-the place passed, or a call's first origin.
+xs)` is rejected when `n` takes its second argument `mut`. So is a
+mutable location passed to a `ref` parameter that overlaps another
+location, when either may point into a temporary (`lent`, `temp`):
+`pick(r, y, False)` after `ref r = pick(y, T(1), True)`. The compiler
+rejects this without a temporary too, which the model does not yet
+(#381). The error names the place passed, or a call's first origin.
 :::

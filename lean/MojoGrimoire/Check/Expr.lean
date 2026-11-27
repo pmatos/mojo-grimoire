@@ -286,9 +286,11 @@ def indicesOf (prog : Program) : Place → CheckM Unit
 
 /-- Checks the index `i` of a place of type `base`, an `Int`. An index of a
 list or an array is an argument of `__getitem__`, which has several
-overloads (`overloaded`). -/
+overloads (`overloaded`). A temporary origin argument in it is rejected,
+since elaboration does not name it (#377). -/
 def checkIndex (prog : Program) (base : Option Ty) (i : Expr) : CheckM Unit :=
   let m := "__getitem__"
+  withStrictOrigins do
   if base.any (overloaded · m) then do let _ ← checkArg prog (.overload m) m ⟨.read, "idx", .int⟩ i
   else do expect .int (← checkExprAs prog false i)
   termination_by (sizeOf i, 4)

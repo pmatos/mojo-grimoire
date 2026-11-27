@@ -9,6 +9,7 @@ import MojoGrimoireTest.Elab.NewValue
 import MojoGrimoireTest.Elab.Temps
 import MojoGrimoireTest.Check.Lists
 import MojoGrimoireTest.Check.Refs
+import MojoGrimoireTest.Check.TempRefs
 import MojoGrimoireTest.Check.PartialMoves
 import MojoGrimoireTest.Check.LeftOperand
 import MojoGrimoireTest.Interp.Run

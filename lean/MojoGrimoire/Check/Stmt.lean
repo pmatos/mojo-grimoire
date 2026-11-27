@@ -153,7 +153,10 @@ def checkReturnValue (prog : Program) : Expr → CheckM Ty
 
 /-- Checks the statement `s` of the function `sig`, whose name, result type
 and origin a `return` is checked against, when it holds no block: an `if`
-and a loop are checked by `MojoGrimoire.Check.checkStmt`. -/
+and a loop are checked by `MojoGrimoire.Check.checkStmt`. An expression
+statement that returns a reference through one bound to a temporary
+(`tempOrigin`) is `notAPlace`, as the binding was before #80: elaboration
+would destroy its value twice (#379). -/
 def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
   | .pass => pure ()
   | .decl x t init => do
@@ -178,7 +181,7 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
       typedFirst (valueOwn prog e) (throw (CheckError.duplicate x))
     let (t, origins, m) ← refTarget prog sig.name e
     let sub ← refSubscripts prog e
-    let tmp ← tempOrigin prog e
+    let tmp ← tempOrigin prog true e
     modify fun s => { s with vars := ⟨x, t, .alias origins m sub tmp, [], [], [], [], []⟩ :: s.vars }
   | .assign p e => do
     rejectSetterOnly prog p
@@ -227,6 +230,8 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
   | .expr e => do
     checkSetter prog e
     let _ ← checkExpr prog e
+    if !(e matches .place _) && (← tempOrigin prog false e) then
+      throw (CheckError.notAPlace (calleeOf e))
   | .print args => do
     rejectCalledVar prog "print" (typeArgs prog args)
     let ks ← typedFirst (args.forM (argOwn prog))
@@ -243,7 +248,7 @@ def checkSimple (prog : Program) (sig : FunDecl) : Stmt → CheckM Unit
       let (t, origins, _) ← refTarget prog sig.name e sig.result
       if (← locOfAs prog true e).isNone then throw (CheckError.notAPlace (calleeOf e))
       expect sig.result t
-      unless (← origins.allM (withinOrigin prog os)) && !(← tempOrigin prog e) do
+      unless (← origins.allM (withinOrigin prog os)) && !(← tempOrigin prog true e) do
         throw (CheckError.escapingReference sig.name)
     checkExit prog
     modify fun s => { s with live := false }
