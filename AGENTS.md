@@ -139,7 +139,8 @@ commands until it succeeds. Start agents in another worktree with
   and CI tokens away from this repository (ADR-2026-11-15-1905).
 - The build fails on any warning, on `sorry`, on an axiom beyond Lean's
   standard three, on `unsafe` or `partial` code, and on `implemented_by` or
-  `extern` (ADR-2026-11-15-1906).
+  `extern`, except the `ctorIdx` pair that Lean generates, in its exact form
+  (ADR-2026-11-15-1906).
 - Import every new module from `lean/MojoGrimoireTest.lean`, or the axiom
   check fails.
 - Every module ships with its spec section in the same PR: a readable
