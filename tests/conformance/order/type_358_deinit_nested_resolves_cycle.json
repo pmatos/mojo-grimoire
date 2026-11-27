@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "recursiveStruct",
+  "diagnostic": "field 'as_' has non-'Deinitable' type 'Array[B, Int(1)]'"
+}

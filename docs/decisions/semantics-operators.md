@@ -63,8 +63,12 @@ is: `t < u` may give an `Int`.
   checked as the call of `__bool__` that the other operands get: what
   `__bool__` returns must be a `Bool`, which the compiler converts with
   `__mlir_bool__`, or the operator is `missingMethod`; a `mut self` takes
-  only a place that may change (`immutablePlace`) and no temporary
-  (`notAPlace`, #81).
+  only a place that may change, and a place that may not or a temporary
+  is `immutablePlace`, as the compiler reports both (#81). The model
+  still reports an error of the right operand, or the copy of the left
+  one into the result, before that test: `T(1) or t2`, `T` only
+  `Movable`, is `implicitCopy` where the pin says `immutablePlace`
+  (#357, #362).
 - A `var self` `__bool__` gets a copy of the left operand of `and` or
   `or`, on either path, even of a temporary or `p^`, since the left
   operand may be the result: a struct that is not `ImplicitlyCopyable`
@@ -200,8 +204,7 @@ Each of these keeps the result the model gave before #191:
 - `not` on an `Int` that `__bool__` gives, and `and` or `or` on an `Int`
   operand beside a struct, which the compiler accepts (#179, #187).
 - The order of the compiler's passes across a call
-  ([semantics-error-order.md](semantics-error-order.md#calls-and-initializers)),
-  and a temporary receiver passed to `mut self`, which is `notAPlace` (#81).
+  ([semantics-error-order.md](semantics-error-order.md#calls-and-initializers)).
 - The order in which a call's temporaries are destroyed (#199), an
   in-place method whose result is not `None` (#200), a missing argument
   reported before a misfit of the others (#201), and the destination of

@@ -122,9 +122,10 @@ private def verdict (p : Program) : Option CheckError :=
 #guard verdict (prog [.decl "n" .int (some (.int 1)),
   .expr (.call "addInts" [use "n", use "n"])]) == none
 
--- `bump(Res(1), a)`: a `mut` argument that is not a place.
+-- `bump(Res(1), a)`: a temporary passed `mut` is a value that may not
+-- change, as the compiler reports it (#81).
 #guard verdict (prog [newRes "a" 1, .expr (.call "bump" [.call "Res" [.int 1], use "a"])]) ==
-  some (.notAPlace "bump")
+  some (.immutablePlace (.var "bump"))
 
 -- `while c: consume(a^)`: a move in a loop of a value from before it, which
 -- the next iteration would use uninitialized.
@@ -238,11 +239,12 @@ private def cyc (ss : List StructDecl) : Option CheckError := verdict (prog [] [
 #guard cyc [fw "A" [("bs", .list sB)], fw "B" [("as", .array sA 1)]] == none
 #guard cyc [fw "A" [("bs", .list sB)], fw "B" [("cs", .list sC)], fw "C" [("as", .list sA)]] == none
 -- A cycle with no list edge is rejected: plain edges, an array and a plain
--- edge, or arrays alone.
+-- edge, or arrays alone. A cycle of arrays alone is rejected where `A`'s
+-- declaration resolves `B`'s, at `B`'s field that leads back to `A` (#358).
 #guard cyc [fw "A" [("b", sB)], fw "B" [("a", sA)]] == some (.recursiveStruct "A")
 #guard cyc [fw "A" [("bs", .array sB 1)], fw "B" [("a", sA)]] == some (.recursiveStruct "A")
 #guard cyc [fw "A" [("bs", .array sB 1)], fw "B" [("as", .array sA 1)]] ==
-  some (.recursiveStruct "A")
+  some (.recursiveStruct "B")
 -- A struct on several cycles, each with a list edge, is accepted.
 #guard cyc [fw "A" [("bs", .list sB), ("xs", .list sA)], fw "B" [("a", sA)]] == none
 #guard cyc [fw "A" [("bs", .list sB)], fw "B" [("a", sA), ("xs", .list sA)]] == none
@@ -252,6 +254,47 @@ private def cyc (ss : List StructDecl) : Option CheckError := verdict (prog [] [
   some (.recursiveStruct "A")
 #guard cyc [fw "A" [("bs", .list sB)], fw "B" [("c", sC)], fw "C" [("b", sB)]] ==
   some (.recursiveStruct "B")
+
+-- A struct's declaration is resolved at its place, or from a list or array
+-- field of a struct before it (#358). A cycle of arrays is rejected there,
+-- before an earlier struct's field that cannot be copied, in either order; a
+-- cycle by value, or one through a struct that declares `__deinit__`, after.
+private def resR : StructDecl := fw "R" [("id", .int)]
+private def bad : StructDecl := ⟨"Bad", [("r", .struct "R")], .explicit, true, none, none, []⟩
+private def twin (t : Ty) : StructDecl := fw "Twin" [("halves", t)]
+private def withDeinit (sd : StructDecl) : StructDecl := { sd with deinit := some [] }
+private def uncopyable : Option CheckError := some (.uncopyableField "Bad" "r" (.struct "R"))
+#guard cyc [resR, bad, twin (.array (.struct "Twin") 2)] == some (.recursiveStruct "Twin")
+#guard cyc [twin (.array (.struct "Twin") 2), resR, bad] == some (.recursiveStruct "Twin")
+#guard cyc [resR, bad, twin (.array (.array (.struct "Twin") 2) 2)] ==
+  some (.recursiveStruct "Twin")
+#guard cyc [resR, bad, twin (.struct "Twin")] == uncopyable
+#guard cyc [resR, bad, withDeinit (twin (.array (.struct "Twin") 2))] == uncopyable
+#guard cyc [resR, bad, fw "A" [("bs", .array sB 1)], fw "B" [("a", sA)]] == uncopyable
+#guard cyc [resR, bad, withDeinit (fw "A" [("bs", .array sB 1)]), fw "B" [("as", .array sA 1)]] ==
+  uncopyable
+-- A method `__del__`, the destructor's older name, counts as one.
+#guard cyc [resR, bad, { twin (.array (.struct "Twin") 2) with
+  methods := [⟨"__del__", [⟨.deinit, "self", .struct "Twin"⟩], .noneType, [], none⟩] }] ==
+  uncopyable
+-- Through a field of arrays of arrays, a struct with `__deinit__` resolves `B`,
+-- which leads back to it.
+#guard cyc [resR, bad, withDeinit (fw "A" [("bs", .array (.array sB 1) 1)]),
+  fw "B" [("as", .array sA 1)]] == some (.recursiveStruct "B")
+-- `B`, resolved from `A`'s field, reports its duplicate field before `Q`'s
+-- type; through a field by value, or from a struct with `__deinit__`, it does not.
+private def q : StructDecl := fw "Q" [("x", .struct "Nope")]
+private def dupB : StructDecl := fw "B" [("x", .int), ("x", .int)]
+#guard cyc [fw "A" [("bs", .array sB 1)], q, dupB] == some (.duplicate "x")
+#guard cyc [fw "A" [("bs", .list sB)], q, dupB] == some (.duplicate "x")
+#guard cyc [fw "A" [("b", sB)], q, dupB] == some (.invalidType (.struct "Nope"))
+#guard cyc [withDeinit (fw "A" [("bs", .array sB 1)]), q, dupB] ==
+  some (.invalidType (.struct "Nope"))
+-- A field on a cycle with no list is rejected though the resolution reached it
+-- through a list. A cycle through a list stays accepted (D-0006), as above.
+#guard cyc [resR, bad, fw "A" [("xs", .list sB), ("bs", .array sB 1)],
+  fw "B" [("as", .array sA 1)]] == some (.recursiveStruct "B")
+#guard cyc [fw "A" [("bs", .array sB 1)], fw "B" [("bs", .list sB)]] == none
 
 /-- The structs `S0`, …, `S(n-1)`, each holding the next in a field of type
 `wrap (S(i+1))`, the last holding `last`. -/

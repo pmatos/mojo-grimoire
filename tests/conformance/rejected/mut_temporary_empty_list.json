@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "immutablePlace",
+  "diagnostic": "invalid call to 'count': value passed to mutable argument 'ys' must be mutable"
+}
