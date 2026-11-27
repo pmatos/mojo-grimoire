@@ -120,13 +120,13 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard prints ["var d = D(1)", "print([d.n] + loud(2))"] ["loud 2", "del 1", "3"]
 -- Passed `mut` or `ref`, it is a temporary, not the place, so it is read at
 -- once, and it is not a place that `mut` may change.
-#guard rejects ["bump([x])"] (.notAPlace "bump")
+#guard rejects ["bump([x])"] (.immutablePlace (.var "bump"))
 #guard prints ["print(pick([x]) + inc(x))"] ["1"]
 #guard prints ["print(pick([xs[0]]) + xs.pop())"] ["11"]
 -- The temporary is filled when the call is made, after its other arguments.
 #guard prints ["print(both([x], inc(x)))"] ["11"]
 -- So is a literal of a call that returns a reference.
-#guard rejects ["bump([pick(x)])"] (.notAPlace "bump")
+#guard rejects ["bump([pick(x)])"] (.immutablePlace (.var "bump"))
 #guard prints ["print(pick([pick(x)]) + inc(x))"] ["1"]
 #guard prints ["print(both([pick(x)], inc(x)))"] ["11"]
 #guard rejects ["var d = D(1)", "print(both([d.n], eat(d^)))"]
@@ -252,7 +252,8 @@ private def rejects (body : List String) (e : CheckError) : Bool :=
 #guard rejects ["print(-[1])"] (.missingMethod (.array .int 1) "__neg__")
 #guard rejects ["var ys = List[Int]([[1]])"] (.noMatchingInit (.list .int))
 #guard rejects ["var a = [1]", "var y: Int = a.copy()"] (.typeMismatch .int (.array .int 1))
--- A value is not a place, so it cannot be passed `mut`.
-#guard rejects ["bump([1])"] (.notAPlace "bump")
+-- A value is not a place, so it cannot be passed `mut`: the compiler
+-- reports it as a value that may not change (#81).
+#guard rejects ["bump([1])"] (.immutablePlace (.var "bump"))
 
 end MojoGrimoireTest.Parse.IntLiteral

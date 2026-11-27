@@ -11,7 +11,8 @@ and calls on structs,
 arrays and lists, [semantics-parser.md](semantics-parser.md) with the
 parser and the driver,
 [semantics-error-order.md](semantics-error-order.md) with the order of
-errors, and [semantics-interpreter.md](semantics-interpreter.md) with
+errors, [semantics-error-order-types.md](semantics-error-order-types.md)
+with that of the type phase, and [semantics-interpreter.md](semantics-interpreter.md) with
 elaboration and the interpreter.
 
 ## The reference
@@ -126,6 +127,25 @@ two disagree, the model follows the compiler.
   of a `ref self` method, pass on an immutable reference, and the call
   changes nothing
   (#91, [semantics-references.md](semantics-references.md#references)).
+- A temporary passed `mut` is `immutablePlace`, as the compiler reports
+  it, a value that may not change (#81): a literal, a call's result, a
+  construction, an operation, `p^` of a value the function owns, a call
+  that returns a reference from a temporary origin argument, and the
+  operand of an operator method that takes it `mut` ("value passed to
+  mutable argument 'A' must be mutable", or "invalid use of mutating
+  method on rvalue"; `rejected/mut_temporary_*`). So is the operand of
+  a `__bool__` that takes it `mut` in `and`, `or` and `not`, whose left
+  operand's test comes before the right operand's errors and the copy
+  of the left operand into the result (#357), but for the order of the
+  other copies into the result (#362), and for an `if` or `while`
+  condition, which the model rejects as `typeMismatch` (#195,
+  [semantics-operators.md](semantics-operators.md#what-is-not-yet-modelled)).
+  `notAPlace` is left for an origin argument that is not a place of a
+  reference bound with `ref`, which the compiler accepts (#80), or
+  returned, which it reports as `escapingReference` (#366). A method
+  call, a subscript or a field of a temporary, such as `A(1).bump()` or
+  `bump(In(3).n)`, is outside the subset (#206), and the pin reports it
+  `immutablePlace` too.
 - A struct variable declared without a value may be built field by field
   (#51). Mojo never counts such a struct, or a part built so, as
   initialized whole, even once every field is assigned: using it whole is
@@ -239,7 +259,7 @@ two disagree, the model follows the compiler.
 - A struct that declares `Copyable`, or `ImplicitlyCopyable`, is
   rejected when a field cannot be copied so, `uncopyableField`. Where it
   comes among the compiler's errors is in
-  [semantics-error-order.md](semantics-error-order.md#the-order-of-the-type-phase)
+  [semantics-error-order-types.md](semantics-error-order-types.md#the-order-of-the-type-phase)
   (#164).
 - A declaration may not reuse the name of a variable in scope, a
   parameter included, so no variable hides another. Sibling blocks may

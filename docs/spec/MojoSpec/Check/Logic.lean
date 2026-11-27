@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The test of a struct operand: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8143480878338698565")
+:::moduleDocs (fingerprint := "13199169660256867554")
 :::
 
-:::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.testOperand (fingerprint := "6621541952305546987")
+:::readable MojoGrimoire.Check.passLeft MojoGrimoire.Check.testOperand (fingerprint := "2409266196980513428")
 *Rule: the test of a struct operand.* A struct operand of `and` or `or`
 is tested with its struct's `__bool__`, which takes only `self`, as the
 declaration's check requires. What it returns must be a
@@ -30,7 +30,8 @@ it. The receiver's misfit comes before the result's, as the pin reports
 them.
 
 A `mut self` takes only a place that may change (`immutablePlace`) or
-a mutable returned reference, and no temporary (`notAPlace`, #81). An
+a mutable returned reference, and no temporary, which the compiler
+reports as a value that may not change (`immutablePlace`, #81). An
 `out` or `deinit` `self` takes nothing (`invalidConvention`), though the
 declaration's check rejects such a `__bool__` first.
 

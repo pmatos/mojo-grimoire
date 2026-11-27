@@ -53,7 +53,7 @@ def passLeft (prog : Program) (self : Param) (callee : Name) (a : Expr) (t : Ty)
       if self.conv == .mutable then
         if let .transfer p := e then
           unless ← placeMutable p do throw (CheckError.transferFromBorrowed p)
-        throw (Fit.call.misfit (CheckError.notAPlace callee))
+        throw (Fit.call.misfit (temporaryPassedMut callee))
       expectArg .call self.ty t
 
 /-- Checks the test of the struct operand `e` of `and` or `or`, of the

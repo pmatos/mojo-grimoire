@@ -10,9 +10,9 @@ returns a reference, whether it may be changed or not, even when its
 origins are moved away or invalidated, and when `t^` is passed to a `mut`
 parameter. A `ref` or a `read` parameter stays
 `transferFromBorrowed`, also passed to a `mut` parameter. `t^` of type `Int`
-is the place `t` (#50). Each expected outcome is the compiler's, but for the
-one marked as the model's departure (#81). The programs are parsed from
-text, one line per string, after the shared declarations.
+is the place `t` (#50). Each expected outcome is the compiler's (#81). The
+programs are parsed from text, one line per string, after the shared
+declarations.
 -/
 
 namespace MojoGrimoireTest.Parse.TransferThroughRef
@@ -102,13 +102,13 @@ private def t : Place := .var "t"
 
 -- Passed to a `mut` parameter, of a function or an initializer, `t^` is
 -- rejected so too. `s^` of a value it owns is not a place: the compiler
--- reports it as a value that cannot change (`immutablePlace`), the model's
--- departure (#81).
+-- reports it as a value that cannot change (`immutablePlace`), and so does
+-- the model (#81).
 #guard inMain ["    var s = S(7)", "    ref t = s", "    bump(t^)"] ==
   rejects (.transferFromElement t)
 #guard inMain ["    var s = S(7)", "    ref t = s", "    var w = W(t^)", "    print(w.k)"] ==
   rejects (.transferFromElement t)
-#guard inMain ["    var s = S(7)", "    bump(s^)"] == rejects (.notAPlace "bump")
+#guard inMain ["    var s = S(7)", "    bump(s^)"] == rejects (.immutablePlace (.var "bump"))
 
 -- Passed to a `mut` parameter, a place with no type is reported first, and
 -- an uninitialized index or a constant one out of range only after the
