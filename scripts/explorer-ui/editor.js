@@ -273,6 +273,8 @@ const Editor = (() => {
   let changed = () => {};
   let hashTimer = null;
   function onInput() {
+    // The last run's markers no longer match the text.
+    marks = {};
     paint();
     caret();
     clearTimeout(hashTimer);

@@ -318,6 +318,10 @@ def handler_for(explorer: Explorer):
                 )
             except Refused as e:
                 self.send_json(e.status, {"error": str(e)})
+            except Exception as e:
+                # The page shows why, rather than a dropped connection.
+                self.send_json(500, {"error": f"{type(e).__name__}: {e}"})
+                raise
 
         def read_body(self) -> dict:
             kind = (self.headers.get("Content-Type") or "").split(";")[0].strip()

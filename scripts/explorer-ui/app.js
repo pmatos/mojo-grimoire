@@ -234,8 +234,10 @@
     const list = $("example-list");
     const shown = examples.filter((x) => (!only || x.entry) &&
       (!q || [x.name, x.outcome, x.class, x.entry].some((f) => f && f.toLowerCase().includes(q))));
-    $("example-count").textContent = `${shown.length} of ${examples.length} programs`;
-    list.replaceChildren(...shown.slice(0, 400).map((x) => el("li", {},
+    const cap = 400;
+    $("example-count").textContent = `${shown.length} of ${examples.length} programs` +
+      (shown.length > cap ? `, the first ${cap} shown; filter to see the others` : "");
+    list.replaceChildren(...shown.slice(0, cap).map((x) => el("li", {},
       el("button", { class: "example", onclick: () => loadExample(x.name) },
         el("span", { class: "ex-name" }, x.name),
         el("span", { class: "ex-tags" },

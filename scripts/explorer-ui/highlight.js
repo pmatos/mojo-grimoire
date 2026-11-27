@@ -26,7 +26,7 @@ const Highlight = (() => {
   function tokenize(line, state) {
     const tokens = [];
     let i = 0;
-    if (state.depth === 0) state.inDef = /^\s*(def|fn)\b/.test(line);
+    if (state.depth === 0 && !state.triple) state.inDef = /^\s*(def|fn)\b/.test(line);
     const prev = () => {
       for (let k = tokens.length - 1; k >= 0; k--) {
         if (tokens[k].kind !== "space") return tokens[k];
@@ -37,10 +37,23 @@ const Highlight = (() => {
       tokens.push({ text, start: i, kind, key: key || null });
       i += text.length;
     };
+    if (state.triple) {
+      const end = line.indexOf(state.triple);
+      const stop = end < 0 ? line.length : end + 3;
+      push(line.slice(0, stop), "string");
+      if (end >= 0) state.triple = null;
+    }
     while (i < line.length) {
       const rest = line.slice(i);
       const c = line[i];
       let m;
+      if (rest.startsWith('"""') || rest.startsWith("'''")) {
+        const q = rest.slice(0, 3);
+        const end = rest.indexOf(q, 3);
+        if (end < 0) state.triple = q;
+        push(end < 0 ? rest : rest.slice(0, end + 3), "string", "STRING");
+        continue;
+      }
       if ((m = /^\s+/.exec(rest))) { push(m[0], "space"); continue; }
       if (c === "#") { push(rest, "comment"); continue; }
       if (c === '"' || c === "'") {
@@ -85,7 +98,7 @@ const Highlight = (() => {
           (p.kind === "keyword" && p.text !== "self");
         let key = op;
         if (op === "-" && operand) key = "-(unary)";
-        if (op === "[" && !operand) key = "[(index)";
+        if (op === "[" && !operand) key = p.kind === "type" ? "[(type)" : "[(index)";
         if ("([{".includes(op)) state.depth++;
         if (")]}".includes(op)) state.depth = Math.max(0, state.depth - 1);
         push(op, "operator", key);
@@ -106,7 +119,7 @@ const Highlight = (() => {
   // spec section; `marks` maps a line number to a list of
   // {kind, column, message}, the column 0 when only the line is known.
   function render(source, links, marks) {
-    const state = { depth: 0, inDef: false, lastToken: null };
+    const state = { depth: 0, inDef: false, lastToken: null, triple: null };
     const out = [];
     source.split("\n").forEach((line, n) => {
       const lineMarks = marks[n + 1] || [];
@@ -137,7 +150,7 @@ const Highlight = (() => {
 
   // The token at a character offset of the source, or null.
   function tokenAt(source, offset) {
-    const state = { depth: 0, inDef: false, lastToken: null };
+    const state = { depth: 0, inDef: false, lastToken: null, triple: null };
     let base = 0;
     for (const line of source.split("\n")) {
       const tokens = tokenize(line, state);
