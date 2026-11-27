@@ -21,6 +21,7 @@ decide what it means for the model to agree with the compiler.
 - `tests/conformance/diagnostics.json` (maps compiler messages to error classes)
 - `lean/MojoGrimoireCheck.lean` (the trusted-declaration check)
 - `lean/MojoGrimoireTest/Axioms.lean` (the axiom check)
+- `lean/MojoGrimoireTest/AxiomsGuard.lean` (the guard tests that pin what the axiom check excuses)
 - `lean/lakefile.lean` (build options and targets)
 - `.github/rulesets/` (the merge gate on main)
 - `.pre-commit-config.yaml` (every check the project runs)
