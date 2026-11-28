@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Elaborating operations: readable blocks" =>
 
-:::moduleDocs (fingerprint := "11071766344013542632")
+:::moduleDocs (fingerprint := "8798683561911290358")
 :::
 
-:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList (fingerprint := "1383764278707033588")
+:::readable MojoGrimoire.Elab.droppedIn MojoGrimoire.Elab.droppedList (fingerprint := "12963655357715411073")
 *Definition: what an elaborated expression destroys.* The slots that the
 drops of an elaborated expression, or list of operands, name, at every
 depth, also inside the argument of $`\mathsf{List}[u](e)`.
@@ -30,7 +30,7 @@ destroys once its operands are read and once it is done, and destroys
 those slots before the ones its operands destroy.
 :::
 
-:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps MojoGrimoire.Elab.elabLate (fingerprint := "1757302389012888379")
+:::readable MojoGrimoire.Elab.elabExpr MojoGrimoire.Elab.elabOps MojoGrimoire.Elab.elabLate (fingerprint := "12875365568387439444")
 *Definition: elaborating expressions.* Each call, method call, operator,
 list literal, $`\mathsf{List}[u](e)` and `.copy()` is wrapped with what it
 destroys, and its operands are elaborated in turn, each with the slots that the later
@@ -63,6 +63,11 @@ once the new list is built. So is an operand of a comparison of two
 arrays or two lists, a place or a call that returns a reference, which
 the comparison reads by reference (`MojoGrimoire.Check.byRef`, #166,
 #185): what it last uses dies once the comparison is done.
+
+A temporary, $`\mathsf{temp}~x := e`, has its value $`e` elaborated with
+the slots live once it is evaluated: the call it is passed to uses $`x` by
+reference, as it uses a place, so $`x` dies with the values that the call
+or the reference it returns last uses.
 
 Each elaboration also gives the slots that the expression uses and those
 that its elaborated form destroys, built from those of its operands. The

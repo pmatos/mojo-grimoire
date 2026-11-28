@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Arguments that do not fit: readable blocks" =>
 
-:::moduleDocs (fingerprint := "12238576568400600817")
+:::moduleDocs (fingerprint := "2109285671052164779")
 :::
 
 :::readable MojoGrimoire.Check.Fit MojoGrimoire.Check.Fit.misfit MojoGrimoire.Check.expectArg (fingerprint := "15738289546311638140")
@@ -41,7 +41,7 @@ reports it (#81). It has no place, so the error names the callee.
 misfit of the call.
 :::
 
-:::readable MojoGrimoire.Check.notPlaceError (fingerprint := "4444314192788955997")
+:::readable MojoGrimoire.Check.notPlaceError (fingerprint := "13190556607730380024")
 *Definition: a value passed `mut`.* A value that is not a place, passed
 `mut`, is a temporary passed `mut`, $`\mathsf{immutablePlace}`. A
 subscript of a struct that Mojo reads late, passed `mut`, such as the receiver of an operator method that takes
@@ -76,13 +76,13 @@ it as `noMatchingInit` $`t`, and a conversion for a function's parameter
 as a type mismatch.
 :::
 
-:::readable MojoGrimoire.Check.emptyFirst (fingerprint := "14995349183210217029")
+:::readable MojoGrimoire.Check.emptyFirst (fingerprint := "18331944899287867155")
 *Definition: a literal with no type.* A literal with no type expected is
 empty, or its first element is such a literal, at any depth. Passed to
 `len`, it has no type, and fits no overload (#341).
 :::
 
-:::readable MojoGrimoire.Check.holdsEmpty (fingerprint := "1620323159748488936")
+:::readable MojoGrimoire.Check.holdsEmpty (fingerprint := "4764017236370987815")
 *Definition: a literal that holds an empty one.* A literal is empty, or
 one of its elements is a literal that holds an empty one, at any depth.
 With no type expected, it has no type of its own (#341).
@@ -99,7 +99,7 @@ $`\mathsf{List}[u]` (#103). The places that the elements are read from
 are checked again once every element is evaluated.
 :::
 
-:::readable MojoGrimoire.Check.holdsStrOrRange MojoGrimoire.Check.holdsStrOrRangeList (fingerprint := "10596365314781892554")
+:::readable MojoGrimoire.Check.holdsStrOrRange MojoGrimoire.Check.holdsStrOrRangeList (fingerprint := "17619129693782350478")
 *Definition: an argument the model cannot type.* An expression holds a
 string or a call of the standard library's `range` when it is one, or a
 literal or an operator holds one at any depth; a function of the program
@@ -135,7 +135,7 @@ are the flow phase's, and the literal and the constant index the
 instantiation phase's.
 :::
 
-:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.callResultTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "2376789455438189879")
+:::readable MojoGrimoire.Check.wrongIntLiteral MojoGrimoire.Check.callResultTy MojoGrimoire.Check.rejectIntLiteral (fingerprint := "10486380525281511581")
 *Rule: a literal of the wrong length where an $`\mathsf{Int}` is
 expected.* A literal $`[e^*]_{\mathsf{Int}}` of any length but 1, which
 `wrongIntLiteral` picks out, fits no initializer of $`\mathsf{Int}`,

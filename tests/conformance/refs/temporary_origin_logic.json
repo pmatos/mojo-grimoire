@@ -1,0 +1,20 @@
+{
+  "outcome": "finished",
+  "stdout": [
+    "mk 1",
+    "bool 1",
+    "drop 1",
+    "mk 2",
+    "drop 2",
+    "2",
+    "drop 2",
+    "True",
+    "mk 4",
+    "drop 4",
+    "drop 5",
+    "True",
+    "end"
+  ],
+  "class": null,
+  "diagnostic": null
+}

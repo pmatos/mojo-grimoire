@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Uses, moves and liveness: readable blocks" =>
 
-:::moduleDocs (fingerprint := "8172035936160369936")
+:::moduleDocs (fingerprint := "16608829197567484505")
 :::
 
-:::readable MojoGrimoire.Elab.Slots MojoGrimoire.Elab.Slots.of MojoGrimoire.Elab.Slots.isSlot (fingerprint := "4309134932494091178")
+:::readable MojoGrimoire.Elab.Slots MojoGrimoire.Elab.Slots.of MojoGrimoire.Elab.Slots.isSlot (fingerprint := "2661377257414350841")
 *Definition: slots.* A slot is what elaboration destroys on its own. It is
 a variable, except in `__deinit__`, where each field $`f` of `self` is
 the slot $`\mathit{self}.f`. A use of a place touches the slot of its
@@ -35,14 +35,16 @@ in the order they are found. Their union $`A \cup B` is the checker's;
 $`A \setminus B` keeps the slots of $`A` not in $`B`.
 :::
 
-:::readable MojoGrimoire.Elab.indexUses MojoGrimoire.Elab.uses MojoGrimoire.Elab.usesList (fingerprint := "16851513916571064759")
+:::readable MojoGrimoire.Elab.indexUses MojoGrimoire.Elab.uses MojoGrimoire.Elab.usesList (fingerprint := "228837542184320920")
 *Definition: uses.* An expression uses the slots of every place it reads,
 copies, transfers or calls a method on, the slots its index expressions
 use, and those of its arguments. A use of an element of a list or an
-array uses the slot of the list or array.
+array uses the slot of the list or array. A temporary,
+$`\mathsf{temp}~x := e`, uses the hidden variable $`x` and what $`e`
+uses, and moves what $`e` moves.
 :::
 
-:::readable MojoGrimoire.Elab.indexMoves MojoGrimoire.Elab.moves MojoGrimoire.Elab.movesList (fingerprint := "15611526501584066692")
+:::readable MojoGrimoire.Elab.indexMoves MojoGrimoire.Elab.moves MojoGrimoire.Elab.movesList (fingerprint := "18196544866655410997")
 *Definition: moves.* An expression moves away the whole slots it
 transfers with `^`. Transferring a part of a slot does not move the slot:
 what is left of it is still destroyed. Moves inside index expressions

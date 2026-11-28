@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Methods: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15222679744748130270")
+:::moduleDocs (fingerprint := "4726882263950050337")
 :::
 
 :::readable MojoGrimoire.Check.binaryMethod MojoGrimoire.Check.reflectedMethod MojoGrimoire.Check.unaryMethod (fingerprint := "14078108206647463870")
@@ -41,7 +41,7 @@ has none, nor has $`?`. A string literal, which is only printed, is
 taken to have them all: the model claims nothing of it.
 :::
 
-:::readable MojoGrimoire.Check.overloaded MojoGrimoire.Check.intLiteral (fingerprint := "8278715128314698603")
+:::readable MojoGrimoire.Check.overloaded MojoGrimoire.Check.intLiteral (fingerprint := "2151049886550026709")
 *Definition: methods with several overloads.* Of the methods the model
 calls, a list's `pop` has several overloads, and so has `__getitem__`
 of a list or an array, which an index calls. Their misfits are
@@ -51,7 +51,7 @@ them, negation and arithmetic, has the type `IntLiteral`, whose operators
 have several overloads too.
 :::
 
-:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "2578483934896862560")
+:::readable MojoGrimoire.Check.operandTy MojoGrimoire.Check.operandTy.formTy MojoGrimoire.Check.operandTy.sameTy (fingerprint := "11823732820471986989")
 *Definition: the type of an operand from its form.* The type of an
 operand is found, without checking or reading it, from its form: a
 literal's, a place's type, the result of the function, struct or method
@@ -76,7 +76,7 @@ the comparisons of arrays and lists
 (`MojoGrimoire.Check.Compare`).
 :::
 
-:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "3466774821178277940")
+:::readable MojoGrimoire.Check.lenMisfit MojoGrimoire.Check.lenCall (fingerprint := "941688760157018676")
 *Rule: a call of `len`.* The built-in `len` takes one list, array or
 $`\mathsf{Int}`, a SIMD vector of width 1, and gives an $`\mathsf{Int}`.
 A string is left to the check of a string outside `print`. Any other type,
@@ -171,7 +171,7 @@ struct type declares `__call__` never reaches this rule: inference makes
 the call one of the method (#191).
 :::
 
-:::readable MojoGrimoire.Check.requireInPlace (fingerprint := "2635740280216961138")
+:::readable MojoGrimoire.Check.requireInPlace (fingerprint := "547376665106534574")
 *Rule: an in-place operator on a struct.* A call of a struct's
 `__iadd__`, `__isub__` or `__imul__`, which inference makes of
 $`p \mathrel{+}= e`, $`p \mathrel{-}= e` or $`p \mathrel{\times}= e`,

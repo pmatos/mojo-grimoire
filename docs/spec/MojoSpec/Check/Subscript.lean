@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Assigning a subscript of a struct: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15154048342792804156")
+:::moduleDocs (fingerprint := "10394491540007131137")
 :::
 
-:::readable MojoGrimoire.Check.valueSubscript (fingerprint := "8489678019998001525")
+:::readable MojoGrimoire.Check.valueSubscript (fingerprint := "18437652847931715847")
 *Definition: a subscript read through its getter.* A subscript `q[i]` of
 a struct that declares `__getitem__` but not `__setitem__` is what its
 getter gives: the call `S.__getitem__(q, i)` (#191).
@@ -35,7 +35,7 @@ cannot be typed, such as one read through a getter, is left to the
 checking that reports its error.
 :::
 
-:::readable MojoGrimoire.Check.assignGetter (fingerprint := "8335980615919375634")
+:::readable MojoGrimoire.Check.assignGetter (fingerprint := "1927637643416670500")
 *Rule: assigning a subscript with no setter.* The compiler first types
 the getter call `q[i]`, by reference: its type errors and its implicit
 copies come first, but not the errors of a later pass, such as a read of
@@ -49,7 +49,7 @@ $`\mathsf{notAList}`, as for the other subscripts of a struct used as
 places (#198).
 :::
 
-:::readable MojoGrimoire.Check.checkSetter (fingerprint := "5181253492605990578")
+:::readable MojoGrimoire.Check.checkSetter (fingerprint := "4293177506152425283")
 *Definition: checking a setter call.* Before it checks `q[i] = v` as the
 call `S.__setitem__(q, i, v)`, the compiler checks the types of the getter
 call `q[i]`, which is never made, so its implicit copies and the errors of

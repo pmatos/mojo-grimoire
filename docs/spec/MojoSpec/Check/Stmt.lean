@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5663983932367860409")
+:::moduleDocs (fingerprint := "10358350302449654775")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -21,7 +21,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 checked by `checkExprAs`, not as a reference, and has the type it gives.
 :::
 
-:::readable MojoGrimoire.Check.printable MojoGrimoire.Check.checkPrintArg (fingerprint := "6868542877883536562")
+:::readable MojoGrimoire.Check.printable MojoGrimoire.Check.checkPrintArg (fingerprint := "3412007431027418354")
 *Rule: printing.* `print` takes string literals, and values it can write:
 those of type $`\mathsf{Int}` or $`\mathsf{Bool}`, and lists and arrays
 of values it can write, nested ones included. It reads a place by
@@ -32,7 +32,7 @@ value it points to, uncopied. Anything else, a struct or a list of
 structs, is $`\mathsf{notPrintable}`.
 :::
 
-:::readable MojoGrimoire.Check.checkConstructed (fingerprint := "5308049381047874511")
+:::readable MojoGrimoire.Check.checkConstructed (fingerprint := "1025177803228059216")
 *Rule: building into an element.* $`p = e` is rejected as
 $`\mathsf{argumentExclusivity}` when $`p` is inside an element of a list,
 and $`e` is a call that builds its result in place and is passed `mut`, or
@@ -45,7 +45,7 @@ does. $`\mathsf{List}[u](e)` builds its result in place, and passes $`e`
 by `ref` (#103).
 :::
 
-:::readable MojoGrimoire.Check.argOwn MojoGrimoire.Check.valueOwn MojoGrimoire.Check.checkInitValue (fingerprint := "12117695827101225511")
+:::readable MojoGrimoire.Check.argOwn MojoGrimoire.Check.valueOwn MojoGrimoire.Check.checkInitValue (fingerprint := "5697726064314121961")
 *Rule: initializing values.* A value that initializes a declared variable,
 a place assigned to, or a function's result must have its type. A literal
 $`[e^*]_{?}`, which has no list or array expected, where that
@@ -68,13 +68,13 @@ In the type phase, which skips that literal's failure, it initializes the
 value with no other check.
 :::
 
-:::readable MojoGrimoire.Check.checkReturnValue (fingerprint := "6201929813473914141")
+:::readable MojoGrimoire.Check.checkReturnValue (fingerprint := "9104203789370620089")
 *Rule: returned values.* `return x` moves the variable $`x` out when the
 function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "8045501190021204475")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "3380492499622882732")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 

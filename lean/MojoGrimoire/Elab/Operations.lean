@@ -24,7 +24,7 @@ def droppedIn : Expr → List Place
   | .withDrops e pre post => pre ++ post ++ droppedIn e
   | .call _ args | .method _ _ args | .list _ args | .listInit _ args => droppedList args
   | .binary _ a b => droppedIn a ++ droppedIn b
-  | .unary _ a => droppedIn a
+  | .unary _ a | .temp _ a => droppedIn a
   | _ => []
 
 /-- The slots that the elaborated expressions `es` destroy. -/
@@ -113,6 +113,9 @@ def elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) : Elaborat
   | .copy p =>
     let d := opDrops ctx.owned [directOf ctx (.place p) false] after
     .op (.copy p) (uses ctx.sl (.copy p)) d.1 (if top then [] else d.2.1) []
+  | .temp x v =>
+    let r := elabExpr ctx false v after
+    ⟨.temp x r.out, union (ctx.sl.of (.var x)) r.uses, r.dropped⟩
   | e => ⟨e, uses ctx.sl e, droppedIn e⟩
 
 /-- Elaborates the operands `es`, evaluated in order, given the slots live
@@ -168,6 +171,7 @@ theorem elabExpr_uses (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place) :
     simp only [elabExpr]
     split <;> simp [Elaborated.op, uses, elabOps_uses]
   | .copy p => simp [elabExpr, Elaborated.op]
+  | .temp x v => simp [elabExpr, uses, elabExpr_uses]
   | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .withDrops .. => simp [elabExpr]
 termination_by structural e
 
@@ -187,7 +191,7 @@ theorem elabLate_uses (ctx : Ctx) (e : Expr) (after held : List Place) :
   match e with
   | .call f args => simp [elabLate, Elaborated.op, uses, elabOps_uses]
   | .method .. | .binary .. | .unary .. | .list .. | .listInit .. | .copy _ | .int _ | .bool _
-    | .str _ | .place _ | .transfer _ | .withDrops .. =>
+    | .str _ | .place _ | .transfer _ | .withDrops .. | .temp .. =>
     simp [elabLate]
 termination_by structural e
 end
@@ -211,6 +215,7 @@ theorem elabExpr_dropped (ctx : Ctx) (top : Bool) (e : Expr) (after : List Place
     simp only [elabExpr]
     split <;> simp [Elaborated.op, droppedIn_withDropsOf, droppedIn, elabOps_dropped]
   | .copy p => simp [elabExpr, Elaborated.op, droppedIn_withDropsOf, droppedIn]
+  | .temp x v => simp [elabExpr, droppedIn, elabExpr_dropped]
   | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .withDrops .. => simp [elabExpr]
 termination_by structural e
 
@@ -232,7 +237,7 @@ theorem elabLate_dropped (ctx : Ctx) (e : Expr) (after held : List Place) :
   | .call f args =>
     simp [elabLate, Elaborated.op, droppedIn_withDropsOf, droppedIn, elabOps_dropped]
   | .method .. | .binary .. | .unary .. | .list .. | .listInit .. | .copy _ | .int _ | .bool _
-    | .str _ | .place _ | .transfer _ | .withDrops .. =>
+    | .str _ | .place _ | .transfer _ | .withDrops .. | .temp .. =>
     simp [elabLate]
 termination_by structural e
 end

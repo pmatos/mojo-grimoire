@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Places, expressions and statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "7608040403659951478")
+:::moduleDocs (fingerprint := "7217271212720065453")
 :::
 
-:::readable MojoGrimoire.Core.Place MojoGrimoire.Core.Expr (fingerprint := "519563516514138862")
+:::readable MojoGrimoire.Core.Place MojoGrimoire.Core.Expr (fingerprint := "12283163437355674375")
 *Definition: places and expressions.* A place $`p` names a location that holds a value:
 
 ```grammar MojoGrimoire.Core.Place
@@ -50,6 +50,7 @@ binary        e~\mathit{binop}~e
 list          [e^*]_t
 listInit      \mathsf{List}[t](e^+)
 withDrops     \mathsf{drops}(e; p^*; p^*)
+temp          \mathsf{temp}~x := e
 ```
 
 Here $`n` is an integer, $`b` a boolean and $`s` a string literal.
@@ -81,6 +82,12 @@ Here $`n` is an integer, $`b` a boolean and $`s` a string literal.
   the values in the places $`p^*` once its operands are read and those in
   $`q^*` once it is done. No program contains it: elaboration inserts it
   where a value's last use is inside an expression.
+* $`\mathsf{temp}~x := e` is a temporary origin argument of a call that
+  returns a reference: it moves the value of $`e` into the hidden
+  variable $`x`, which a declaration with no value made blank, and is the
+  place $`x`. So the temporary lives as long as a local variable would:
+  until the last use of the reference that points into it (#80). No
+  program contains it either: elaboration inserts it.
 :::
 
 :::readable MojoGrimoire.Core.Stmt (fingerprint := "14081413901527619483")
@@ -112,7 +119,14 @@ elaboration makes this explicit by inserting $`\mathsf{drop}`, so that a run
 never has to find a value's last use.
 :::
 
-:::readable MojoGrimoire.Core.methodCallee MojoGrimoire.Core.calleeMethod MojoGrimoire.Core.inPlaceCallee MojoGrimoire.Core.boolTest (fingerprint := "16641672030198073939")
+:::readable MojoGrimoire.Core.tempName MojoGrimoire.Core.isTempName (fingerprint := "7959265706676719582")
+*Definition: hidden variables.* The $`k`th temporary of a function body
+that elaboration names gets the hidden variable $`\%k`
+(`Expr.temp`). No name of a program holds `%`, so no hidden variable is
+a variable of the program, and a name that starts with `%` is one.
+:::
+
+:::readable MojoGrimoire.Core.methodCallee MojoGrimoire.Core.calleeMethod MojoGrimoire.Core.inPlaceCallee MojoGrimoire.Core.boolTest (fingerprint := "7546573103766060768")
 *Definition: method callees.* A call may name the method $`m` of the
 struct $`S` as a function, $`S.m`, which takes the receiver as its first
 argument, as Mojo's $`S.m(r, \ldots)` does: inference makes such a call of

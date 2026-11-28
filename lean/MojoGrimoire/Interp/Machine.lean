@@ -19,10 +19,11 @@ lexicographically, element by element (#166, #185).
 The evaluator (`MojoGrimoire.Interp.Eval`) destroys values as follows.
 A value is destroyed where elaboration put a `drop` or a `withDrops`, when
 an assignment replaces it, after its call for a temporary passed to a
-borrowing parameter, when a call's result is not used, when `len` or
-`List[u](e)` has read a list that is neither a place nor a returned
-reference, and when a function returns, for every value it still owns.
-`p^.m(…)` with `var self` takes the value out of `p`. Destroying a struct
+borrowing parameter that elaboration does not name (`Expr.temp`), when a
+call's result is not used, when `len` or `List[u](e)` has read a list
+that is neither a place nor a returned reference, and when a function
+returns, for every value it still owns. `p^.m(…)` with `var self` takes
+the value out of `p`. Destroying a struct
 runs its `__deinit__`, whose elaborated body destroys its fields, or else
 destroys its fields in order, and a list its elements. A value that holds
 nothing, a blank included, needs nothing; a struct partly built is never

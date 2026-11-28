@@ -126,6 +126,8 @@ compiler destroys a value, so that the interpreter destroys only what a
 
 {includeReadable "." MojoGrimoire.Elab.Origins "The origins of references" MojoSpec.Elab.Origins (level := 2)}
 
+{includeReadable "." MojoGrimoire.Elab.Temps "Temporaries of returned references" MojoSpec.Elab.Temps (level := 2)}
+
 {includeReadable "." MojoGrimoire.Elab.Late "Subscripts read late" MojoSpec.Elab.Late (level := 2)}
 
 {includeReadable "." MojoGrimoire.Elab.Operands "What an operation destroys" MojoSpec.Elab.Operands (level := 2)}

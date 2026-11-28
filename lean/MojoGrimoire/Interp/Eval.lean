@@ -115,6 +115,7 @@ def evalResult (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Resu
   | 0 => fail .outOfFuel
   | n + 1 => match e with
     | .call .. | .method .. => evalCall prog n env e []
+    | .temp x e => do pure (.ref (← fillTemp env x (← evalExpr prog n env e)))
     | .withDrops e pre post => do
       if let .binary op a b := e then if op == .and || op == .or then
         return .value (← evalLogic prog n env (op == .or) a b pre post)
@@ -128,17 +129,11 @@ def evalResult (prog : Program) (fuel : Nat) (env : Env) (e : Expr) : EvalM Resu
       pure r
     | e => do pure (.value (← evalExpr prog n env e))
 
-/-- Takes the value out of the place `p` and destroys it. -/
-def dropPlace (prog : Program) (fuel : Nat) (env : Env) (p : Place) : EvalM Unit :=
-  match fuel with
-  | 0 => fail .outOfFuel
-  | n + 1 => do destroy prog n (← take (← placeRef prog n env p))
-
-/-- Destroys the values in the places `ps`, in order. -/
+/-- Takes the values out of the places `ps` and destroys them, in order. -/
 def dropAll (prog : Program) (fuel : Nat) (env : Env) (ps : List Place) : EvalM Unit :=
   match fuel with
   | 0 => fail .outOfFuel
-  | n + 1 => ps.forM (dropPlace prog n env)
+  | n + 1 => ps.forM fun p => do destroy prog n (← take (← placeRef prog n env p))
 
 /-- The operand `e`: a place, or a call that returns a reference, is
 located, a subscript read late has its arguments evaluated, its getter
@@ -440,7 +435,7 @@ def execStmt (prog : Program) (fuel : Nat) (refs : Bool) (env : Env) (s : Stmt) 
       destroyOwned prog n env
       throw (.returned r)
     | .drop p => do
-      dropPlace prog n env p
+      dropAll prog n env [p]
       pure env
 
 /-- What `return e` gives back in a function that returns a value: `return

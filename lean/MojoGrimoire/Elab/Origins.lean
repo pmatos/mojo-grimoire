@@ -59,6 +59,7 @@ def locSlots (prog : Program) (sl : Slots) (env : TyEnv) : Expr → List Place
         (originArgs prog sl env os sig.params args)
     | none => []
   | .withDrops e _ _ => locSlots prog sl env e
+  | .temp x _ => sl.of (.var x)
   | _ => []
 
 /-- The slots of the arguments `args` passed to the parameters named `os`

@@ -35,6 +35,7 @@ def Expr.beq : Expr → Expr → Bool
   | .listInit t as, .listInit u bs => t == u && Expr.beqList as bs
   | .withDrops a ps qs, .withDrops b rs ss =>
     Expr.beq a b && Place.beqList ps rs && Place.beqList qs ss
+  | .temp x a, .temp y b => x == y && Expr.beq a b
   | _, _ => false
 
 /-- Whether two lists of places are the same, element by element. -/

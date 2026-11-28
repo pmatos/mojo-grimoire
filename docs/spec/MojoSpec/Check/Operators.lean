@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Operators: readable blocks" =>
 
-:::moduleDocs (fingerprint := "6556609935579419647")
+:::moduleDocs (fingerprint := "11643330475195301674")
 :::
 
 :::readable MojoGrimoire.Check.compares (fingerprint := "4667244952484152006")
@@ -21,7 +21,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 compare.
 :::
 
-:::readable MojoGrimoire.Check.boolLiteralMisfit (fingerprint := "1473798262456904149")
+:::readable MojoGrimoire.Check.boolLiteralMisfit (fingerprint := "7580903694873803838")
 *Rule: a $`\mathsf{Bool}` compared with an empty literal.* When the left
 operand of $`<`, $`\le`, $`>`, $`\ge`, $`==` or $`!=` is a
 $`\mathsf{Bool}` and the right one is an empty literal with no type,
@@ -48,7 +48,7 @@ and give $`\mathsf{Bool}`. Negation takes an $`\mathsf{Int}`, and
 $`\mathsf{not}` a $`\mathsf{Bool}`.
 :::
 
-:::readable MojoGrimoire.Check.constInt (fingerprint := "18142347407676829893")
+:::readable MojoGrimoire.Check.constInt (fingerprint := "5788987419930283119")
 *Definition: constant indices.* An index made only of integer literals,
 negation, $`+`, $`-`, $`\times`, `//` and `%` has a value that Mojo
 computes when it compiles the program, with the same integer arithmetic

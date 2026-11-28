@@ -70,6 +70,11 @@ corrected against the compiler's recorded results (#25):
   destroyed: the checker rejects the program (#51, D-0003).
 - A temporary passed to a borrowing parameter is destroyed right after the
   call; the unused result of an expression statement is destroyed at once.
+  A temporary origin argument of a call that returns a reference, whose
+  value is dropped, is the exception: elaboration gives it a hidden
+  variable, which the interpreter fills, and it dies where elaboration
+  drops it, at the last use of the reference (#80,
+  [semantics-references.md](semantics-references.md#references)).
 - An assignment evaluates the indices of its place first, outermost
   first, and stops at an index out of bounds, as the compiler does
   (#205). It then evaluates its value, locates the element in the list as

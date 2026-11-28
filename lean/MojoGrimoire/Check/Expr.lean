@@ -149,7 +149,7 @@ def checkExprAs (prog : Program) (asRef : Bool) : Expr → CheckM Ty
     rejectHidden u
     checkOperands prog args
     throw (CheckError.noMatchingInit (.list u))
-  | .withDrops e _ _ => checkExprAs prog asRef e
+  | .withDrops e _ _ | .temp _ e => checkExprAs prog asRef e
   termination_by e => (sizeOf e, 0)
 
 /-- The type of the argument `e` of `range`, or of an element of one, as

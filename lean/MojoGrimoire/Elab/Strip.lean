@@ -1,10 +1,16 @@
 import MojoGrimoire.Elab.Elaborate
 
 /-!
-Elaboration only inserts drops: erasing every `drop` statement and every
-`withDrops` from an elaborated program gives the program it elaborated,
-with its drops erased too. So elaboration changes when values are
-destroyed, and nothing else.
+Elaboration only inserts drops and the hidden variables of temporaries.
+`stripProgram` erases every `drop` statement, every `withDrops`, every
+`temp`, and every declaration of a variable whose name starts with `%`
+(`isTempName`). `stripProgram_elabProgram` says exactly that a program and
+its elaboration erase to the same program. It says nothing about where the
+inserted parts are, nor about a program that already holds some of them,
+which loses them on both sides. A parsed program holds none: the parser
+makes no `drop`, `withDrops` or `temp`, and no name starts with `%`, an
+operator in Mojo. For such a program, elaboration changes only what the
+erasure erases, and so when values are destroyed.
 -/
 
 namespace MojoGrimoire.Elab
@@ -19,7 +25,7 @@ def stripPlace : Place → Place
   | .index p i => .index (stripPlace p) (stripExpr i)
   | .transferred p => .transferred (stripPlace p)
 
-/-- The expression `e` with every `withDrops` in it erased. -/
+/-- The expression `e` with every `withDrops` and `temp` in it erased. -/
 def stripExpr : Expr → Expr
   | .int k => .int k
   | .bool b => .bool b
@@ -33,7 +39,7 @@ def stripExpr : Expr → Expr
   | .binary op a b => .binary op (stripExpr a) (stripExpr b)
   | .list t es => .list t (stripExprs es)
   | .listInit u es => .listInit u (stripExprs es)
-  | .withDrops e _ _ => stripExpr e
+  | .withDrops e _ _ | .temp _ e => stripExpr e
 
 /-- The expressions `es` with every `withDrops` in them erased. -/
 def stripExprs : List Expr → List Expr
@@ -42,13 +48,14 @@ def stripExprs : List Expr → List Expr
 end
 
 mutual
-/-- The statement `s` with every `drop` and `withDrops` in it erased. -/
+/-- The statement `s` with every `drop`, `withDrops`, `temp` and
+declaration of a hidden variable in it erased. -/
 def stripStmt : Stmt → List Stmt
   | .drop _ => []
   | .ifElse c a b => [.ifElse (stripExpr c) (stripBlock a) (stripBlock b)]
   | .whileLoop c body => [.whileLoop (stripExpr c) (stripBlock body)]
   | .pass => [.pass]
-  | .decl x t init => [.decl x t (init.map stripExpr)]
+  | .decl x t init => if isTempName x then [] else [.decl x t (init.map stripExpr)]
   | .refDecl x e => [.refDecl x (stripExpr e)]
   | .assign p e => [.assign (stripPlace p) (stripExpr e)]
   | .expr e => [.expr (stripExpr e)]
@@ -113,6 +120,7 @@ theorem stripExpr_elabExpr (ctx : Ctx) (top : Bool) (e : Expr) (after : List Pla
     split <;> simp [Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
   | .listInit _ es => simp [elabExpr, Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
   | .copy p => simp [elabExpr, Elaborated.op, stripExpr_withDropsOf]
+  | .temp x v => simp [elabExpr, stripExpr, stripExpr_elabExpr]
   | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .withDrops .. =>
     simp [elabExpr]
 termination_by structural e
@@ -135,7 +143,7 @@ theorem stripExpr_elabLate (ctx : Ctx) (e : Expr) (after held : List Place) :
   match e with
   | .call f args => simp [elabLate, Elaborated.op, stripExpr_withDropsOf, stripExpr, stripExprs_elabOps]
   | .method .. | .binary .. | .unary .. | .list .. | .listInit .. | .copy _ | .int _ | .bool _
-    | .str _ | .place _ | .transfer _ | .withDrops .. =>
+    | .str _ | .place _ | .transfer _ | .withDrops .. | .temp .. =>
     simp [elabLate]
 termination_by structural e
 end
@@ -166,7 +174,8 @@ theorem stripBlock_elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) :
     simp [elabStmt, stripBlock, stripStmt, stripBlock_append, stripBlock_drops,
       stripBlock_elabBlock, stripExpr_elabExpr]
   | .whileLoop c body =>
-    simp [elabStmt, stripBlock, stripStmt, stripBlock_drops, stripBlock_elabBlock]
+    simp [elabStmt, stripBlock, stripStmt, stripBlock_drops, stripBlock_elabBlock,
+      stripExpr_elabExpr]
   | .ret value =>
     cases value <;> simp [elabStmt, stripBlock, stripStmt, stripExpr_elabReturn]
   | .pass | .drop _ => simp [elabStmt, stripBlock, stripStmt]
@@ -184,8 +193,8 @@ theorem stripBlock_elabBlock (ctx : Ctx) (b : List Stmt) (after : List Place) :
   match b with
   | [] => simp [elabBlock, stripBlock]
   | s :: rest =>
-    simp [elabBlock, stripBlock, stripBlock_append, stripBlock_elabStmt,
-      stripBlock_elabBlock _ rest after]
+    simp only [elabBlock, stripBlock, stripBlock_append, stripBlock_elabBlock _ rest after]
+    split <;> simp [stripBlock, stripBlock_elabStmt]
 end
 
 /-- Elaborating a function body only inserts drops. -/
@@ -193,18 +202,90 @@ theorem stripBlock_elabBody (prog : Program) (sl : Slots) (env : TyEnv) (params 
     (body : List Stmt) : stripBlock (elabBody prog sl env params body) = stripBlock body := by
   simp [elabBody, stripBlock_append, stripBlock_drops, stripBlock_elabBlock]
 
-/-- Elaboration only inserts drops: a program and its elaboration are the
-same once their drops are erased. -/
+/-- The hidden variable of a temporary is one (`isTempName`). -/
+theorem isTempName_tempName (k : Nat) : isTempName (tempName k) = true := by
+  simp [isTempName, tempName]
+
+/-- The declarations of hidden variables erase to nothing. -/
+theorem stripBlock_tempDecls (ds : List (Nat × Ty)) : stripBlock (tempDecls ds) = [] := by
+  induction ds with
+  | nil => rfl
+  | cons d ds ih =>
+    simp only [tempDecls, List.map_cons, List.reverse_cons, stripBlock_append] at *
+    simp [ih, stripBlock, stripStmt, isTempName_tempName]
+
+/-- Erasing a temporary leaves its value. -/
+theorem stripExpr_wrapTemp (prog : Program) (env : TyEnv) (o : Option Ty) (a a' : Expr)
+    (acc : Temps) : stripExpr (wrapTemp prog env o a a' acc).1 = stripExpr a' := by
+  unfold wrapTemp
+  split
+  · split <;> simp [stripExpr]
+  · rfl
+
+mutual
+/-- Naming the temporaries in an expression only inserts them. -/
+theorem stripExpr_tempExpr (prog : Program) (env : TyEnv) (acc : Temps) (e : Expr) :
+    stripExpr (tempExpr prog env acc e).1 = stripExpr e := by
+  match e with
+  | .call _ args | .method _ _ args | .list _ args | .listInit _ args =>
+    simp [tempExpr, stripExpr, stripExprs_tempArgs]
+  | .unary _ a | .withDrops a _ _ | .temp _ a => simp [tempExpr, stripExpr, stripExpr_tempExpr]
+  | .binary _ a b => simp [tempExpr, stripExpr, stripExpr_tempExpr]
+  | .int _ | .bool _ | .str _ | .place _ | .transfer _ | .copy _ => simp [tempExpr]
+termination_by structural e
+
+/-- Naming the temporaries in arguments only inserts them. -/
+theorem stripExprs_tempArgs (prog : Program) (env : TyEnv) (ps : List (Option Ty))
+    (acc : Temps) (es : List Expr) :
+    stripExprs (tempArgs prog env ps acc es).1 = stripExprs es := by
+  match es with
+  | [] => simp [tempArgs, stripExprs]
+  | a :: es =>
+    simp [tempArgs, stripExprs, stripExpr_wrapTemp, stripExpr_tempExpr, stripExprs_tempArgs]
+termination_by structural es
+end
+
+/-- A statement after the declarations of its hidden variables erases to
+the statement. -/
+theorem stripBlock_withTemps (s : Stmt) (acc : Temps) :
+    stripBlock (withTemps s acc).1 = stripStmt s := by
+  simp [withTemps, stripBlock_append, stripBlock_tempDecls, stripBlock]
+
+mutual
+/-- Naming the temporaries of a statement only inserts them. -/
+theorem stripBlock_tempStmt (prog : Program) (env : TyEnv) (k : Nat) (s : Stmt) :
+    stripBlock (tempStmt prog env k s).1 = stripStmt s := by
+  match s with
+  | .decl _ _ (some _) | .refDecl .. | .expr _ | .ret (some _) =>
+    simp [tempStmt, stripBlock_withTemps, stripStmt, stripExpr_tempExpr]
+  | .assign .. => simp [tempStmt, stripBlock_withTemps, stripStmt, stripExpr_tempExpr]
+  | .print _ => simp [tempStmt, stripBlock_withTemps, stripStmt, stripExprs_tempArgs]
+  | .ifElse .. | .whileLoop .. =>
+    simp [tempStmt, stripBlock_append, stripBlock_tempDecls, stripBlock, stripStmt,
+      stripExpr_tempExpr, stripBlock_tempBlock]
+  | .decl _ _ none | .ret none | .pass | .drop _ => simp [tempStmt, stripBlock]
+
+/-- Naming the temporaries of a block only inserts them. -/
+theorem stripBlock_tempBlock (prog : Program) (env : TyEnv) (k : Nat) (b : List Stmt) :
+    stripBlock (tempBlock prog env k b).1 = stripBlock b := by
+  match b with
+  | [] => simp [tempBlock, stripBlock]
+  | s :: rest =>
+    simp [tempBlock, stripBlock, stripBlock_append, stripBlock_tempStmt, stripBlock_tempBlock]
+end
+
+/-- A program and its elaboration are the same once their drops,
+`withDrops`, temporaries and `%`-named declarations are erased. -/
 theorem stripProgram_elabProgram (prog : Program) :
     stripProgram (elabProgram prog) = stripProgram prog := by
   have hf : ∀ fd : FunDecl, stripFun (elabFun prog fd) = stripFun fd := by
     intro fd
-    simp [stripFun, elabFun, stripBlock_elabBody]
+    simp [stripFun, elabFun, stripBlock_elabBody, stripBlock_tempBlock]
   have hs : ∀ sd : StructDecl, stripStruct (elabStruct prog sd) = stripStruct sd := by
     intro sd
     cases sd
-    simp [stripStruct, elabStruct, elabDeinit, stripBlock_elabBody, Option.map_map,
-      Function.comp_def, hf]
+    simp [stripStruct, elabStruct, elabDeinit, stripBlock_elabBody, stripBlock_tempBlock,
+      Option.map_map, Function.comp_def, hf]
   simp [stripProgram, elabProgram, Function.comp_def, hf, hs]
 
 end MojoGrimoire.Elab

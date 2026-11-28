@@ -248,6 +248,7 @@ def inferExpr (prog : Program) (env : TyEnv) (exp : Ty) : Expr → Expr × Optio
   | .withDrops e pre post =>
     let (e', t) := inferExpr prog env exp e
     (.withDrops e' pre post, t)
+  | .temp x e => let (e', t) := inferExpr prog env exp e; (.temp x e', t)
   termination_by e => (sizeOf e, 0)
 
 /-- Infers inside the arguments `args` of a call, passed to the parameters

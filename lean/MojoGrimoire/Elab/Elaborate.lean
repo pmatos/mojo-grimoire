@@ -1,4 +1,5 @@
 import MojoGrimoire.Elab.Operations
+import MojoGrimoire.Elab.Temps
 
 /-!
 ASAP elaboration: the insertion of an explicit `drop` wherever Mojo destroys
@@ -21,6 +22,11 @@ destroyed:
 - right after a loop that uses it, since the next iteration might use it;
 - at the start of a function body, for a `var` parameter the body never
   uses.
+
+A temporary origin argument of a call that returns a reference, whose
+value is dropped, is a local variable of its own, declared where it is made
+(`MojoGrimoire.Elab.tempBlock`), so it dies as one, as the last declared:
+the compiler keeps it alive until the last use of the reference (#80).
 
 A value moved away with `^` is not destroyed: its new owner destroys it.
 Nor is one that `p^.m(…)` gives to a method that takes `var self`. A
@@ -94,13 +100,6 @@ def elabReturn (ctx : Ctx) (e : Expr) : Expr :=
     let e' := (elabExpr ctx false e keep).out
     if keep.isEmpty then e' else .withDrops (.withDrops e' [] []) keep []
 
-/-- The variable types after the statement `s`, from those before it. -/
-def envAfter (prog : Program) (sl : Slots) (env : TyEnv) (s : Stmt) : TyEnv :=
-  match s with
-  | .decl x t _ => (x, t) :: env
-  | .refDecl .. => (aliasStmt prog (sl, env) s).2
-  | _ => env
-
 mutual
 /-- Elaborates the statement `s`, given the slots live after it. What dies at
 it, given what its expressions destroy or consume, dies right after it. The
@@ -121,8 +120,8 @@ def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
       (drops ctx.owned (diff avail la) ++ elabBlock ctx a after)
       (drops ctx.owned (diff avail lb) ++ elabBlock ctx b after)]
   | .whileLoop c body =>
-    let head := liveStmt sl (.whileLoop c body) after
-    .whileLoop c (elabBlock ctx body head) ::
+    let head := diff (liveStmt sl (.whileLoop c body) after) (tempsIn c)
+    .whileLoop (elabExpr ctx false c head).out (elabBlock ctx body head) ::
       drops ctx.owned (diff head (after ++ consumedIn ctx c))
   | .ret value => [.ret (value.map (elabReturn ctx))]
   | .pass => [.pass]
@@ -146,12 +145,15 @@ def elabStmt (ctx : Ctx) (s : Stmt) (after : List Place) : List Stmt :=
     let args' := elabPrintArgs ctx args after
     rest (.print args') (droppedList args' ++ consumedList ctx args)
 
-/-- Elaborates the block `b`, given the slots live after it. -/
+/-- Elaborates the block `b`, given the slots live after it. A declaration
+with no value is its own elaboration, whatever is live after it, so the
+slots live after it are not computed, which the hidden variables of a
+statement's temporaries would otherwise do once each. -/
 def elabBlock (ctx : Ctx) (b : List Stmt) (after : List Place) : List Stmt :=
   match b with
   | [] => []
   | s :: rest =>
-    elabStmt ctx s (liveBlock ctx.sl rest after) ++
+    (if s matches .decl _ _ none then [s] else elabStmt ctx s (liveBlock ctx.sl rest after)) ++
       elabBlock { ctx with env := envAfter ctx.prog ctx.sl ctx.env s } rest after
 end
 
@@ -174,14 +176,16 @@ def paramEnv (params : List Param) : TyEnv := params.map fun prm => (prm.name, p
 /-- Elaborates a function, a method or an initializer of the program
 `prog`. -/
 def elabFun (prog : Program) (fd : FunDecl) : FunDecl :=
+  let body := (tempBlock prog (paramEnv fd.params) 0 fd.body).1
   { fd with
-    body := elabBody prog (slotsOf prog none fd.params fd.body) (paramEnv fd.params)
-      (ownedParams fd.params).reverse fd.body }
+    body := elabBody prog (slotsOf prog none fd.params body) (paramEnv fd.params)
+      (ownedParams fd.params).reverse body }
 
 /-- Elaborates the body of the `__deinit__` of the struct `sd`: each field
 is a slot of its own, and those whose values are dropped are owned. -/
 def elabDeinit (prog : Program) (sd : StructDecl) (body : List Stmt) : List Stmt :=
   let self : Param := ⟨.deinit, "self", .struct sd.name⟩
+  let body := (tempBlock prog (paramEnv [self]) 0 body).1
   elabBody prog (slotsOf prog (some (sd.fields.map (·.1))) [self] body) (paramEnv [self])
     ((sd.fields.filter (needsDrop ·.2)).map (.field (.var "self") ·.1)) body
 

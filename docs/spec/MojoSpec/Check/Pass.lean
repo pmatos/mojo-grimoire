@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14434490435072489856")
+:::moduleDocs (fingerprint := "9097091436670766555")
 :::
 
-:::readable MojoGrimoire.Check.Below (fingerprint := "14513104375151688470")
+:::readable MojoGrimoire.Check.Below (fingerprint := "14111869609950496686")
 *Definition: a check below a bound.* A check of the values of a type no
 larger than a list of expressions $`r`, each given with a proof of that
 bound. The modules outside the mutual block of the checker of expressions
@@ -63,7 +63,7 @@ that it declares, or else the destructor that the compiler synthesizes,
 (`MojoGrimoire.Check.checkInst`).
 :::
 
-:::readable MojoGrimoire.Check.refResult (fingerprint := "5271747420467440621")
+:::readable MojoGrimoire.Check.refResult (fingerprint := "3162427232764769313")
 *Definition: the result of a call.* A call or a method call that returns a
 reference, used as a value, gives the value it points to, which must be
 implicitly copyable, unless it is used as a reference, while copies are
@@ -73,7 +73,7 @@ origin names is $`\mathsf{notAList}`, as before #127: the element has no
 memory origin, and the model passes the $`\mathsf{Int}` itself (#222).
 :::
 
-:::readable MojoGrimoire.Check.misfitFirst (fingerprint := "14946229722819727180")
+:::readable MojoGrimoire.Check.misfitFirst (fingerprint := "8501705712298747820")
 *Rule: a misfit before a copy.* Where a value of a type is expected, as
 an argument, an initial value or a returned value, a call that returns a
 reference to a value that is not implicitly copyable reports a type that
@@ -85,7 +85,7 @@ of copies (`copyLast`, #96 part 11), so that its misfit comes first, and
 the copy only when it fits.
 :::
 
-:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "5728978429644797142")
+:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "11546737544796190254")
 *Rule: the element of an $`\mathsf{Int}` where the model cannot follow
 the compiler.* A place through the element of an $`\mathsf{Int}` is
 rejected there as $`\mathsf{notAList}`, as before #127, once its indices
@@ -107,7 +107,7 @@ implicitly. No argument may be passed `out` or `deinit`. A misfit is
 reported as the call's fit says.
 :::
 
-:::readable MojoGrimoire.Check.typeFirst (fingerprint := "2308275641646460755")
+:::readable MojoGrimoire.Check.typeFirst (fingerprint := "3074714042600590340")
 *Rule: what a call types first.* Before a call reads its first argument,
 a place, the receiver of an in-place method that inference made is typed,
 its indices included. A subscript of a struct, which inference makes a

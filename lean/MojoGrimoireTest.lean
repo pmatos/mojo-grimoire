@@ -6,6 +6,7 @@ import MojoGrimoireTest.Core.Syntax
 import MojoGrimoireTest.Check.Program
 import MojoGrimoireTest.Elab.Elaborate
 import MojoGrimoireTest.Elab.NewValue
+import MojoGrimoireTest.Elab.Temps
 import MojoGrimoireTest.Check.Lists
 import MojoGrimoireTest.Check.Refs
 import MojoGrimoireTest.Check.PartialMoves

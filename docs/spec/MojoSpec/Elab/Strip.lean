@@ -13,18 +13,19 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Elaboration only inserts drops: readable blocks" =>
 
-:::moduleDocs (fingerprint := "5115823877654479495")
+:::moduleDocs (fingerprint := "5884568760521945247")
 :::
 
-:::readable MojoGrimoire.Elab.stripPlace MojoGrimoire.Elab.stripExpr MojoGrimoire.Elab.stripExprs (fingerprint := "653050961833656016")
+:::readable MojoGrimoire.Elab.stripPlace MojoGrimoire.Elab.stripExpr MojoGrimoire.Elab.stripExprs (fingerprint := "11164421411142739363")
 *Definition: erasing drops from expressions.* A place or an expression with
-every $`\mathsf{drops}(e; p^*; q^*)` in it replaced by $`e`, at every
-depth.
+every $`\mathsf{drops}(e; p^*; q^*)` and every $`\mathsf{temp}~x := e` in
+it replaced by $`e`, at every depth.
 :::
 
-:::readable MojoGrimoire.Elab.stripStmt MojoGrimoire.Elab.stripBlock (fingerprint := "2099941355623106784")
+:::readable MojoGrimoire.Elab.stripStmt MojoGrimoire.Elab.stripBlock (fingerprint := "16697511624580475593")
 *Definition: erasing drops.* A statement or block with every `drop` in it
-removed, inside branches and loop bodies too, and the drops erased from
+removed, and every declaration of a hidden variable (`isTempName`), inside
+branches and loop bodies too, and the drops and temporaries erased from
 its expressions.
 :::
 
@@ -59,8 +60,19 @@ drops erased. The proof is by mutual induction on statements and blocks,
 using the lemmas on expressions.
 :::
 
+:::readable MojoGrimoire.Elab.isTempName_tempName MojoGrimoire.Elab.stripBlock_tempDecls MojoGrimoire.Elab.stripExpr_wrapTemp MojoGrimoire.Elab.stripExpr_tempExpr MojoGrimoire.Elab.stripExprs_tempArgs MojoGrimoire.Elab.stripBlock_withTemps MojoGrimoire.Elab.stripBlock_tempStmt MojoGrimoire.Elab.stripBlock_tempBlock (fingerprint := "14623661532255733941")
+*Lemma: temporaries.* The declarations of hidden variables erase to
+nothing, and so does a temporary in an argument. So naming the
+temporaries of an expression, a list of arguments, a statement or a block,
+and declaring their hidden variables, gives what it named once erased. The
+proof is by mutual induction on expressions and lists of them, then on
+statements and blocks.
+:::
+
 :::readable MojoGrimoire.Elab.stripProgram_elabProgram (fingerprint := "18027251158332834446")
 *Theorem: elaboration only inserts drops.* A program and its elaboration
-are the same once their drops are erased. Elaboration changes when values
-are destroyed, and nothing else.
+are the same once their drops, `withDrops`, temporaries and declarations
+of `%`-named variables are erased. That is all it says. A parsed program
+holds none of these, since no Mojo name starts with `%`, so for a parsed
+program elaboration changes only when values are destroyed.
 :::
