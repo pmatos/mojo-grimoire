@@ -170,6 +170,18 @@ class Containment(unittest.TestCase):
         self.assertEqual(reap.marked("no-such-marker"), [])
 
 
+class ContainmentWithoutPidfd(Containment):
+    """The same, on a Python built without os.pidfd_open, as some standalone
+    builds are: the kills fall back to the PID, checked again."""
+
+    def setUp(self):
+        self.had = reap.HAS_PIDFD
+        reap.HAS_PIDFD = False
+
+    def tearDown(self):
+        reap.HAS_PIDFD = self.had
+
+
 class TheGate(unittest.TestCase):
     def tearDown(self):
         proc.configure(4, 8)
