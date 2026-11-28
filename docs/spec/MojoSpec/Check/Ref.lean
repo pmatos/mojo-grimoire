@@ -13,17 +13,17 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "References: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13280904503640088750")
+:::moduleDocs (fingerprint := "1813348030870201024")
 :::
 
-:::readable MojoGrimoire.Check.refTarget (fingerprint := "16062519472296711204")
+:::readable MojoGrimoire.Check.refTarget (fingerprint := "13673967719855213269")
 *Rule: what a reference names.* $`\mathsf{ref}~x = e` needs $`e` to be a
 place, which must be initialized, or a call or a method call whose
 signature returns a reference. A place gives a reference to itself, or
 to the origins of the reference it goes through, and may be changed when
 its variable may be: through $`p\,\hat{}` too, as the compiler allows. A
-call gives its origins as a located operand, and is rejected when an
-origin argument is none. A call of a name that a variable in scope hides
+call gives its origins as a located operand, a temporary origin argument
+left out (#80). A call of a name that a variable in scope hides
 is checked as a call, which rejects it when the variable's type has no
 `__call__` (#176).
 Any other expression, a struct's construction included, is rejected.
@@ -33,7 +33,7 @@ once the place is typed, and in a return once its type is compared with
 the result type, before any later error (#127).
 :::
 
-:::readable MojoGrimoire.Check.refSubscripts (fingerprint := "11378039300623005978")
+:::readable MojoGrimoire.Check.refSubscripts (fingerprint := "17863825943508519616")
 *Rule: references that a subscript changes.* A reference bound with
 `ref` is subscripted as one that may change when it may be changed, as
 the rule above finds, with each `ref` parameter taken as one that may
@@ -54,7 +54,7 @@ one, or anything under one, is $`\mathsf{escapingReference}`; an element
 of an array, at any depth, stays within the array's origin.
 :::
 
-:::readable MojoGrimoire.Check.checkOrigin (fingerprint := "17322446482107442762")
+:::readable MojoGrimoire.Check.checkOrigin (fingerprint := "17796318642372607095")
 *Rule: declared origins.* A function that returns a reference has a result,
 and its origin names only parameters passed as locations: `read`, `mut`
 or `ref`. A `var` parameter dies with the call, so a reference into it

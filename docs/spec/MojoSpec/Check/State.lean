@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "The checker's state: readable blocks" =>
 
-:::moduleDocs (fingerprint := "15331300807562250412")
+:::moduleDocs (fingerprint := "995511335923686622")
 :::
 
-:::readable MojoGrimoire.Check.Access (fingerprint := "8079104089029179561")
+:::readable MojoGrimoire.Check.Access (fingerprint := "10407628009956681730")
 *Definition: access.* How a function holds a variable:
 
 ```grammar MojoGrimoire.Check.Access
@@ -27,7 +27,7 @@ mutable       \mathsf{mutable}
 readOnly      \mathsf{readOnly}
 refParam      \mathsf{refParam}
 dying         \mathsf{dying}
-alias         \mathsf{alias}(p^*, m, s)
+alias         \mathsf{alias}(p^*, m, s, t)
 ```
 
 A local variable or a `var` parameter is $`\mathsf{owned}`; the `self`
@@ -36,9 +36,10 @@ $`\mathsf{mutable}`; a `read` parameter is $`\mathsf{readOnly}`; a
 `ref` parameter is $`\mathsf{refParam}`, which may not be changed either,
 but which the compiler subscripts as one that may (#282); and the `self` of `__deinit__` is
 $`\mathsf{dying}`. A reference bound with `ref` is
-$`\mathsf{alias}(p^*, m, s)`: it may point into the places $`p^*`, its
-origins, may be changed when $`m` holds, and is subscripted as one that
-may change when $`s` holds (#282).
+$`\mathsf{alias}(p^*, m, s, t)`: it may point into the places $`p^*`, its
+origins, may be changed when $`m` holds, is subscripted as one that may
+change when $`s` holds (#282), and may point into a temporary, which
+$`p^*` leaves out, when $`t` holds (#80).
 :::
 
 :::readable MojoGrimoire.Check.ShapeStep MojoGrimoire.Check.Shape (fingerprint := "17175472047769601315")
@@ -58,7 +59,7 @@ element of an $`\mathsf{Int}` is a step of its own, since it is no
 location (#127).
 :::
 
-:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.Phase MojoGrimoire.Check.State MojoGrimoire.Check.CheckM MojoGrimoire.Check.Stage MojoGrimoire.Check.flowCheckAt MojoGrimoire.Check.flowCheck MojoGrimoire.Check.flowThrowAt MojoGrimoire.Check.flowThrow MojoGrimoire.Check.InstEvent MojoGrimoire.Check.restoreKeeping MojoGrimoire.Check.inTypePhase MojoGrimoire.Check.instCheck MojoGrimoire.Check.instThrow MojoGrimoire.Check.instRecord (fingerprint := "15439220357215939587")
+:::readable MojoGrimoire.Check.Path MojoGrimoire.Check.VarState MojoGrimoire.Check.Phase MojoGrimoire.Check.State MojoGrimoire.Check.CheckM MojoGrimoire.Check.Stage MojoGrimoire.Check.flowCheckAt MojoGrimoire.Check.flowCheck MojoGrimoire.Check.flowThrowAt MojoGrimoire.Check.flowThrow MojoGrimoire.Check.InstEvent MojoGrimoire.Check.restoreKeeping MojoGrimoire.Check.inTypePhase MojoGrimoire.Check.inIndex MojoGrimoire.Check.instCheck MojoGrimoire.Check.instThrow MojoGrimoire.Check.instRecord (fingerprint := "14143142095690001670")
 *Definition: the checker's state.* A path $`\pi = f_1 \dots f_n` names a
 part of a variable: the empty path $`\epsilon` is the variable itself, and
 $`f_1 \dots f_n` its field $`f_1.\dots.f_n`. For each variable in scope,
@@ -83,7 +84,9 @@ to an earlier one keeps (`restoreKeeping`). What the compiler types
 before it reads is checked in the type phase, whatever the phase
 (`inTypePhase`), even under a check with every check on. Another flag leaves out the checks of
 implicit copies while a call's arguments are matched again before their
-copies (`copyChecks`). The flow phase checks a function up to a
+copies (`copyChecks`), and another rejects every temporary origin
+argument (`strictOrigins`): in a place's index (`inIndex`), when the
+checker's strict pass sets a last flag (`strictIndices`, #377). The flow phase checks a function up to a
 stage (`Stage`), in the order in which the compiler reports them: the
 uses and what the function leaves at a return, then the values that may
 not end. A check of uses runs in both stages, one of ends only in the
@@ -145,13 +148,13 @@ uninitialized, assigning $`\rho` builds from their fields the parts from
 $`\pi` down to the part just above $`\rho`.
 :::
 
-:::readable MojoGrimoire.Check.findVar MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "3581404670778477707")
+:::readable MojoGrimoire.Check.findVar MojoGrimoire.Check.lookup MojoGrimoire.Check.setVar MojoGrimoire.Check.setVar.go (fingerprint := "17280970497357013654")
 *Definition: variables in scope.* A name refers to the innermost variable in
 scope with that name, if there is one, and updating a variable replaces
 the innermost variable with its name. An unknown name is rejected.
 :::
 
-:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.indexedOf MojoGrimoire.Check.fixedLength MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "5146492036544322968")
+:::readable MojoGrimoire.Check.elemOf MojoGrimoire.Check.indexedOf MojoGrimoire.Check.fixedLength MojoGrimoire.Check.placeTy MojoGrimoire.Check.placeTy.liftM MojoGrimoire.Check.rebase MojoGrimoire.Check.resolvePlace MojoGrimoire.Check.requireInit MojoGrimoire.Check.readPlace (fingerprint := "6960967078257288901")
 *Definition: reading a place.* The type of a place is the type of its
 variable, then of each field or element on the way; only a list or an
 array has elements, and $`p\,\hat{}` has the type of $`p`. An index

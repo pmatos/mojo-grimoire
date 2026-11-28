@@ -68,9 +68,10 @@ uninitialized and must be initialized when the function returns; `mutable` a
 parameter, which may not be changed either, but which the compiler
 subscripts as one that may (#282); and `dying` the
 `self` of `__deinit__`, which owns its value and may leave fields moved out.
-`alias os m s` is a reference bound with `ref`: it points into the places `os`,
-may be changed when `m` holds, and is subscripted as one that may change
-when `s` holds (#282). -/
+`alias os m s t` is a reference bound with `ref`: it points into the places
+`os`, may be changed when `m` holds, is subscripted as one that may change
+when `s` holds (#282), and may point into a temporary, which `os` leaves out,
+when `t` holds (#80). -/
 inductive Access where
   | owned
   | constructing
@@ -78,7 +79,7 @@ inductive Access where
   | readOnly
   | refParam
   | dying
-  | alias (origins : List Place) (mutable : Bool) (subscripts : Bool)
+  | alias (origins : List Place) (mutable : Bool) (subscripts : Bool) (temporary : Bool)
   deriving BEq
 
 /-- A path of field names, from a variable to one of its parts. -/
@@ -151,7 +152,9 @@ invalidated, those that only a subscript of an array invalidated
 statement, in order, the phase and the stage of the flow phase, whether
 every check runs, whatever the phase (`allChecks`), whether implicit
 copies are checked (`copyChecks`, cleared only while a value or a call's
-arguments are matched again before their copies, `copyLast`), and what the instantiation phase
+arguments are matched again before their copies, `copyLast`), whether a
+temporary origin argument is rejected (`strictOrigins`), whether it is in
+a place's index (`strictIndices`, #377), and what the instantiation phase
 records (`InstEvent`). After a
 `return`, the current point cannot be reached. -/
 structure State where
@@ -164,6 +167,8 @@ structure State where
   stage : Stage := .ends
   allChecks : Bool := false
   copyChecks : Bool := true
+  strictOrigins : Bool := false
+  strictIndices : Bool := false
   events : List InstEvent := []
   deriving BEq
 
@@ -202,6 +207,15 @@ def inTypePhase {α : Type} (x : CheckM α) : CheckM α := do
   modify ({ · with phase := .type, allChecks := false })
   let r ← x
   modify ({ · with phase := s.phase, allChecks := s.allChecks })
+  pure r
+
+/-- Runs `x`, the check of a place's index, in which a temporary origin
+argument is rejected when `strictIndices` holds. -/
+def inIndex {α : Type} (x : CheckM α) : CheckM α := do
+  let s := (← get).strictOrigins
+  modify fun st => { st with strictOrigins := st.strictIndices }
+  let r ← x
+  modify ({ · with strictOrigins := s })
   pure r
 
 /-- Runs `check`, a check of the instantiation phase, only in that phase. -/
@@ -376,7 +390,7 @@ place reached through a reference, the same place in each of its origins,
 or `p` itself. -/
 def resolvePlace (vars : List VarState) (p : Place) : List Place :=
   match vars.find? (·.name == (splitPlace p).1) with
-  | some ⟨_, _, .alias os _ _, _, _, _, _, _⟩ => os.map (rebase · p)
+  | some ⟨_, _, .alias os _ _ _, _, _, _, _, _⟩ => os.map (rebase · p)
   | _ => [p]
 
 /-- The shape of the place `p`. -/
@@ -424,7 +438,7 @@ def readPlace (prog : Program) (p : Place) : CheckM Ty := do
   let t ← placeTy prog p
   let v ← lookup (splitPlace p).1
   match v.access with
-  | .alias os _ _ =>
+  | .alias os _ _ _ =>
     let s ← get
     if s.stale.contains v.name || s.interior.contains v.name then
       flowThrow (CheckError.invalidatedReference p)

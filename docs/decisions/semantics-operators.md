@@ -98,12 +98,11 @@ is: `t < u` may give an `Int`.
   index the model still reports that copy after the other errors, until
   #356. With `T(Copyable)` and `__bool__(var self) -> Int`,
   `lT[pz((t1 and t2))].n` is `implicitCopy` on the pin and
-  `missingMethod` in the model. The model still copies the value of a
-  call that returns a reference into a temporary origin argument when
-  that value is passed on, as in `pz(same(T(1)))` or `same(same(T(1)))`,
-  which the pin passes by reference and accepts (#80):
-  `pz(same(same(T(1))) or t2)` is `implicitCopy` in the model, where the
-  pin reports the `mut self` receiver, `immutablePlace`.
+  `missingMethod` in the model. A call that returns a reference into a
+  temporary origin argument is passed by reference, as the pin passes
+  `pz(same(T(1)))` and `same(same(T(1)))` (#80), so
+  `pz(same(same(T(1))) or t2)` is the `mut self` receiver,
+  `immutablePlace`, on both.
 - A `var self` `__bool__` gets a copy of the left operand of `and` or
   `or`, on either path, even of a temporary or `p^`, since the left
   operand may be the result: a struct that is not `ImplicitlyCopyable`

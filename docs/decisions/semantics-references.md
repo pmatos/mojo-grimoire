@@ -12,8 +12,19 @@ choices (#18):
   bound to, or the arguments passed to the parameters a returned
   reference's origin names. For a `ref` binding, those arguments must be
   located operands: places, or calls that return a reference, whose
-  origins are those of their own origin arguments (#69). A temporary is
-  rejected (`notAPlace`), where the compiler accepts it (#80).
+  origins are those of their own origin arguments (#69). An origin
+  argument may be a temporary, as the compiler allows (#80): `ref r =
+  same(T(1))`, `ref r = first([1, 2])`. It is left out of the origins, and
+  the reference may not be changed through it: `r.v = 7` is
+  `immutablePlace`, as the compiler reports it ("expression must be
+  mutable in assignment"). The temporary lives until the reference's last
+  use, as the last bullet says. A `return` of a reference that may
+  point into a temporary, `return r` after `ref r = pick(T(1), x, True)`
+  or `return same(r)`, is `escapingReference`, as the compiler reports it
+  ("cannot return reference with incompatible origin"): the binding
+  remembers that it may (`MojoGrimoire.Check.tempOrigin`). A `return` of
+  the call itself, `return same(T(1))`, is still rejected as
+  `notAPlace`, where the compiler reports `escapingReference` (#366).
 - A use of a reference needs every origin initialized, so a value moved
   away cannot be used through a reference to it. A value cannot be
   transferred out through a reference: `t^`, `t.f^`, `t^.f` and
@@ -132,10 +143,11 @@ choices (#18):
   as it would a place. Its origins must still be initialized, and not
   invalidated, once the call's later arguments are evaluated. An `Int` or
   a `Bool` passed `read` is copied, and a `var` parameter copies it
-  implicitly. One with a temporary origin argument is checked as a value
-  (#80). The interpreter still passes the reference, and the temporary
-  dies once the call it is passed to is done, as in the compiler's output
-  for `show(id(P(1)))` with an implicitly copyable `P`.
+  implicitly. One with a temporary origin argument is passed so too, the
+  temporary left out of its origins, as the compiler accepts
+  `pz(same(T(1)))` for a `T` that cannot be copied (#80); passed `mut`,
+  it is `immutablePlace`. The temporary dies once the call it is passed to
+  is done.
 - Elaboration counts each use of a reference as a use of its origins, so
   their values live until the reference's last use. A call that returns a
   reference, passed by reference, keeps its origins alive until the
@@ -153,7 +165,8 @@ choices (#18):
   reference that points into it, and it dies then with the values that
   die there, as the one declared last. `print(vv(same(P(1))), f(2))`
   destroys it right after `vv`, `same(mk(1)) + same(mk(2))` destroys
-  both after `__add__`, the second first. Elaboration gives it a hidden variable,
+  both after `__add__`, the second first, and `ref r = same(T(1))` keeps
+  it until `r`'s last use. Elaboration gives it a hidden variable,
   declared with no value right before its statement, in the same block
   (`MojoGrimoire.Elab.tempBlock`); in a `while` condition, each run of
   the condition makes and destroys it. A temporary of another type is
@@ -162,4 +175,28 @@ choices (#18):
   index of a place, as `xs[vv(same(T(1)))]`, since elaboration does not
   look inside indices (#377), and a subscript that Mojo reads late
   (#191), as `same(s[1])`, which is read only once its call's arguments
-  are evaluated.
+  are evaluated (#378).
+- The checker accepts a temporary origin argument only where elaboration
+  keeps it alive. So it keeps these rejected as before #80, where the
+  compiler accepts them, until the issue named:
+  - a temporary in a place's index, as `print(xs[pz(same(mk(1)))])`, is
+    `implicitCopy` for a `T` that cannot be copied (#377). The checker
+    accepts it at first, so that a program with a later error gets the
+    compiler's class, as #356's programs do. A program that it then
+    accepts is checked again, rejecting it
+    (`MojoGrimoire.Check.checkProgram`);
+  - a late subscript as an origin argument of a `ref` binding, as
+    `ref r = rpick(s[1], P(5), True)`, or of a call that is one in turn,
+    as `ref r = psame(rpick(s[1], P(5), True))`, is `notAPlace` (#378);
+  - an expression statement that returns a reference through one bound
+    to a temporary, as `psame(r)` after `ref r = psame(pmk(1))`, is
+    `notAPlace` (#379).
+
+  A location passed to a `ref` parameter or a `ref self` receiver that
+  may be changed through it, and aliases another argument, is
+  `argumentExclusivity`, as the compiler reports it, when either may
+  point into a temporary: `vv(pick(r, y, False))` after
+  `ref r = pick(y, T(1), True)`, `m.cmp(mpick(M(1), m, False))`, and
+  `two(y, pick(T(1), y, False))` for a `ref` parameter `y`, whose
+  mutability is a parameter (#139). The compiler rejects the case with no
+  temporary too, which the model still runs (#381).

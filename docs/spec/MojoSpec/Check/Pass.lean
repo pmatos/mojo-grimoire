@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Checking helpers: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9097091436670766555")
+:::moduleDocs (fingerprint := "3685599112545028131")
 :::
 
 :::readable MojoGrimoire.Check.Below (fingerprint := "14111869609950496686")
@@ -85,7 +85,7 @@ of copies (`copyLast`, #96 part 11), so that its misfit comes first, and
 the copy only when it fits.
 :::
 
-:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "11546737544796190254")
+:::readable MojoGrimoire.Check.rejectIntElem MojoGrimoire.Check.rejectIntElemArg MojoGrimoire.Check.plainIndices (fingerprint := "3852440861333310310")
 *Rule: the element of an $`\mathsf{Int}` where the model cannot follow
 the compiler.* A place through the element of an $`\mathsf{Int}` is
 rejected there as $`\mathsf{notAList}`, as before #127, once its indices

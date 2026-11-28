@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "stdout": [],
+  "class": "escapingReference",
+  "diagnostic": "cannot return reference with incompatible origin: 'origin_of(__call_result_tmp__, x)' vs 'origin_of(x)'"
+}

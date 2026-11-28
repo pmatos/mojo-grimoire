@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Located operands: readable blocks" =>
 
-:::moduleDocs (fingerprint := "9052859064413456092")
+:::moduleDocs (fingerprint := "15054994443183033946")
 :::
 
-:::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable MojoGrimoire.Check.passedMutable (fingerprint := "18189763797751499533")
+:::readable MojoGrimoire.Check.Access.canChange MojoGrimoire.Check.placeMutable MojoGrimoire.Check.passedMutable (fingerprint := "4781551392938097025")
 *Definition: places that may change.* A function may change a place, by
 assigning to it or passing it `mut`, unless its variable is a `read` or
 `ref` parameter, or a reference that may not be changed; a `ref` binding
@@ -32,7 +32,7 @@ returns through a `mut` parameter may be changed; through a `ref`
 parameter, when its argument may be; through a `read` parameter, never.
 :::
 
-:::readable MojoGrimoire.Check.locOfAs MojoGrimoire.Check.originsOf MojoGrimoire.Check.locOf (fingerprint := "8948597143670477765")
+:::readable MojoGrimoire.Check.lateCall MojoGrimoire.Check.lateArgs MojoGrimoire.Check.locOfAs MojoGrimoire.Check.originsOf MojoGrimoire.Check.locOf (fingerprint := "3732083874106212796")
 *Rule: located operands.* A located operand names a location. A place is
 one: its origins are the place, or the same place in each origin of the
 reference it goes through, and it passes on a mutable reference when its
@@ -45,22 +45,34 @@ reference. A call of a name that a variable in scope hides is one, with
 no origins and immutable, so that checking it as a call rejects it
 (#176). Nothing else is one.
 
-Not strictly, an origin argument that is not a located operand, such as
-a temporary, is left out instead: the call's origins are those of its
-other origin arguments, and it may not be changed through. The checker
-uses this to re-check a reference read late.
+An origin argument that is not a located operand, a temporary, is left
+out instead: the call's origins are those of its other origin
+arguments, and it may not be changed through, as the compiler keeps the
+temporary alive as long as the reference (#80). This is how the checker
+reads a located operand (`locOf`). Strictly, for a `return`, such a call
+is no located operand. So it is too in a place's index, in the checker's
+strict pass (`strictOrigins`, `inIndex`), since elaboration does not name
+the temporary there, and it would die before it is read (#377). A subscript that Mojo reads late is never left
+out, nor a call that returns a reference with one among its origin
+arguments, at any depth (`lateCall`, #378), for the same reason.
 :::
 
-:::readable MojoGrimoire.Check.calleeOf MojoGrimoire.Check.locatedOrigins (fingerprint := "1093210673669858572")
-*Rule: a call bound as a reference.* A call or a method call whose
-signature returns a reference, bound with `ref`, must be a located
-operand: an argument passed to a parameter its origin names that is not
-one is rejected with $`\mathsf{notAPlace}`, since a temporary would not
-outlive the call. Passed to `len` or by reference, such a call is a
-location only when it is a located operand, and a value otherwise.
+:::readable MojoGrimoire.Check.calleeOf MojoGrimoire.Check.throughTemp MojoGrimoire.Check.tempOrigin MojoGrimoire.Check.tempArgs (fingerprint := "7124317059190285579")
+*Rule: references into temporaries.* A located operand may point into a
+temporary, which its origins leave out (#80). That is the case for a place
+reached through a reference bound to one, and for a call with an origin
+argument that is a temporary, or that may point into one in turn: only
+the latter when `direct` does not hold. A
+reference bound with `ref` remembers it, so that a `return` of one that
+may is $`\mathsf{escapingReference}`, as the compiler reports it. The
+check comes after the type comparison, with the origins that do not stay
+within the function's own. A `return` of a call whose origin argument is
+itself a temporary is $`\mathsf{notAPlace}`, where the compiler reports an
+escaping reference (#366). The name of the callee is what that error
+reports (`calleeOf`).
 :::
 
-:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.PassedLoc MojoGrimoire.Check.passedPlace MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "334350284564618373")
+:::readable MojoGrimoire.Check.overlaps MojoGrimoire.Check.PassedLoc MojoGrimoire.Check.mayChange MojoGrimoire.Check.passedPlace MojoGrimoire.Check.locationArgs MojoGrimoire.Check.checkExclusive MojoGrimoire.Check.checkExclusive.go (fingerprint := "12451465105163273593")
 *Rule: argument exclusivity.* Two places overlap when they have the same
 variable and one path is a prefix of the other. The arguments of a call
 that are passed as locations are the located operands whose parameters
@@ -70,6 +82,14 @@ consumes, which counts as $`q` passed `mut`; an $`\mathsf{Int}` or a $`\mathsf{B
 is copied instead. A call is rejected when a location passed `mut`, of
 any type, overlaps another location of the same call. A reference, and a
 call that returns one, overlaps what its origins overlap: `n(first(xs),
-xs)` is rejected when `n` takes its second argument `mut`. The error names
-the place passed, or a call's first origin.
+xs)` is rejected when `n` takes its second argument `mut`. So is a
+location passed to a `ref` parameter, a `ref self` receiver among them,
+that may be changed through it, and that overlaps another location, when
+either may point into a temporary (`lent`, `temp`): `pick(r, y, False)`
+after `ref r = pick(y, T(1), True)`, and `m.cmp(mpick(M(1), m, False))`.
+A place may be changed so when it passes on a mutable reference, or when
+its variable is a `ref` parameter, whose mutability is a parameter of its
+own (`mayChange`, #139). The compiler
+rejects this without a temporary too, which the model does not yet
+(#381). The error names the place passed, or a call's first origin.
 :::

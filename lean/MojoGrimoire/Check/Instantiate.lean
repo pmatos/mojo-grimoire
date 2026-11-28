@@ -136,8 +136,8 @@ def instantiate (bodies : List (Name × (Stage → Except CheckError BodyResult)
 /-- Checks a program in the instantiation phase, on a program that the
 type and flow phases accept: from `main`, then the bodies that it does not
 reach, in the order of the declarations (`instantiate`). -/
-def checkInst (prog : Program) : Except Rejection Unit := do
-  let bodies := declBodies (dropsProgram prog) .inst ++ synthesizedDestructors prog
+def checkInst (prog : Program) (strict : Bool) : Except Rejection Unit := do
+  let bodies := declBodies (dropsProgram prog) strict .inst ++ synthesizedDestructors prog
   let fuel := bodies.length + 1
   let mut seen ← instantiate bodies fuel "main" []
   for (w, _) in bodies do
@@ -146,9 +146,70 @@ def checkInst (prog : Program) : Except Rejection Unit := do
 /-- Checks a program: it is accepted, or rejected with the first error of
 the type phase, or else of the flow phase, or else of the instantiation
 phase, which the compiler reports in that order of tiers (`Phase`,
-ADR-2026-11-21-1941). -/
+ADR-2026-11-21-1941). When `strict` holds, a temporary origin argument in
+a place's index is rejected (`strictIndices`). -/
+def checkProgramAs (prog : Program) (strict : Bool) : Except Rejection Unit := do
+  checkFlow prog strict (← checkTypes prog strict)
+  checkInst prog strict
+
+mutual
+/-- Whether the expression `e` calls a function or a method in the index of
+a place, or anywhere when `inIndex` holds. -/
+def indexCallIn (inIndex : Bool) : Expr → Bool
+  | .int _ | .bool _ | .str _ => false
+  | .place p | .transfer p | .copy p => indexCallAt p
+  | .call _ args => inIndex || indexCallsIn inIndex args
+  | .method p _ args => inIndex || indexCallAt p || indexCallsIn inIndex args
+  | .unary _ a | .withDrops a _ _ | .temp _ a => indexCallIn inIndex a
+  | .binary _ a b => indexCallIn inIndex a || indexCallIn inIndex b
+  | .list _ es | .listInit _ es => indexCallsIn inIndex es
+
+/-- Whether the expressions `es` call one so (`indexCallIn`). -/
+def indexCallsIn (inIndex : Bool) : List Expr → Bool
+  | [] => false
+  | e :: es => indexCallIn inIndex e || indexCallsIn inIndex es
+
+/-- Whether an index of the place `p` calls a function or a method. -/
+def indexCallAt : Place → Bool
+  | .var _ => false
+  | .field p _ | .transferred p => indexCallAt p
+  | .index p i => indexCallAt p || indexCallIn true i
+end
+
+mutual
+/-- Whether the statement `s` calls a function or a method in the index of
+a place (`indexCallIn`). -/
+def indexCallStmt : Stmt → Bool
+  | .pass | .ret none | .decl _ _ none => false
+  | .decl _ _ (some e) | .refDecl _ e | .expr e | .ret (some e) => indexCallIn false e
+  | .assign p e => indexCallAt p || indexCallIn false e
+  | .print args => indexCallsIn false args
+  | .ifElse c a b => indexCallIn false c || indexCallBlock a || indexCallBlock b
+  | .whileLoop c body => indexCallIn false c || indexCallBlock body
+  | .drop p => indexCallAt p
+
+/-- Whether a statement of the block `b` does (`indexCallStmt`). -/
+def indexCallBlock : List Stmt → Bool
+  | [] => false
+  | s :: rest => indexCallStmt s || indexCallBlock rest
+end
+
+/-- Whether a body of the program `prog` calls a function or a method in
+the index of a place: only then can a temporary origin argument be in one. -/
+def indexedCalls (prog : Program) : Bool :=
+  let fn (fd : FunDecl) := indexCallBlock fd.body
+  prog.funs.any fn || prog.structs.any fun sd =>
+    sd.init.any fn || sd.deinit.any indexCallBlock || sd.methods.any fn
+
+/-- Checks a program as `checkProgramAs` does, twice. The first time, a
+temporary origin argument in a place's index is left out of the origins,
+as anywhere else, so that a rejected program gets the compiler's first
+error. A program that this accepts is checked again with every such
+argument rejected, as before #80, since elaboration does not keep it
+alive until it is read, and the model would read it destroyed (#377). The
+second time is needed only when an index holds a call (`indexedCalls`). -/
 def checkProgram (prog : Program) : Except Rejection Unit := do
-  checkFlow prog (← checkTypes prog)
-  checkInst prog
+  checkProgramAs prog false
+  if indexedCalls prog then checkProgramAs prog true
 
 end MojoGrimoire.Check

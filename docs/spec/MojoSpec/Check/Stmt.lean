@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Statements: readable blocks" =>
 
-:::moduleDocs (fingerprint := "10358350302449654775")
+:::moduleDocs (fingerprint := "5685521541703664326")
 :::
 
 :::readable MojoGrimoire.Check.checkExpr (fingerprint := "17693701935998565066")
@@ -74,7 +74,7 @@ function owns it, as Mojo does; any other returned expression is checked as
 an expression, so a place is copied implicitly.
 :::
 
-:::readable MojoGrimoire.Check.checkSimple (fingerprint := "3380492499622882732")
+:::readable MojoGrimoire.Check.checkSimple (fingerprint := "12038199506860350061")
 *Rule: statements.* A statement that holds no block is checked so; an
 `if` and a loop are checked by the rule of blocks, in the next section.
 
@@ -135,7 +135,10 @@ an expression, so a place is copied implicitly.
   into the element of an $`\mathsf{Int}` is $`\mathsf{notAList}`, as before
   #127, unless every index of $`p` is plain;
 * an expression statement checks its expression, once `checkSetter` has
-  checked what a setter call needs;
+  checked what a setter call needs. One that returns a reference through a
+  reference bound to a temporary is $`\mathsf{notAPlace}`, as the binding
+  was before #80. The compiler accepts it, but the model would destroy the
+  temporary twice (#379);
 * `print`, unless a variable in scope named `print` hides it, which
   `rejectCalledVar` rejects once the arguments are typed (#176), checks
   its arguments as above, each argument's own expression typed before an
@@ -146,7 +149,9 @@ an expression, so a place is copied implicitly.
   is not $`\mathsf{None}`, checks the state at a return, and makes what
   follows unreachable; a function that returns a reference returns a
   location whose origins are all within its own origin, as the previous
-  section says;
+  section says, and that points into no temporary (`tempOrigin`, #80): it
+  is $`\mathsf{escapingReference}` otherwise, and $`\mathsf{notAPlace}`
+  when it is a call whose origin argument is itself a temporary (#366);
 * `drop p` transfers $`p` away, and calls the destructor of its struct
   when it declares one (`dropCall`).
 That the old value may not end is a check of the flow phase's last

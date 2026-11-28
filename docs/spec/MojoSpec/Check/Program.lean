@@ -13,7 +13,7 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Programs: readable blocks" =>
 
-:::moduleDocs (fingerprint := "13689919375791567656")
+:::moduleDocs (fingerprint := "3975551171943317770")
 :::
 
 :::readable MojoGrimoire.Check.paramState (fingerprint := "17933977108324489146")
@@ -32,7 +32,7 @@ repeats. Only the `self` of `__init__` may be `out`, and only the
 `self` of `__deinit__` `deinit`.
 :::
 
-:::readable MojoGrimoire.Check.BodyResult MojoGrimoire.Check.checkSignature MojoGrimoire.Check.checkBody (fingerprint := "7336102420651066353")
+:::readable MojoGrimoire.Check.BodyResult MojoGrimoire.Check.checkSignature MojoGrimoire.Check.checkBody (fingerprint := "16105413271365492320")
 *Rule: function bodies.* The signature: the parameters have distinct names
 and declarable types, and the result type is declarable or $`\mathsf{None}`; a type in
 which a variable hides a name is `valueAsType`, in that order. An origin
@@ -48,7 +48,7 @@ return; the flow phase reports it first. The body also gives what the
 instantiation phase records in it (`InstEvent`).
 :::
 
-:::readable MojoGrimoire.Check.operatorArity MojoGrimoire.Check.checkFun MojoGrimoire.Check.checkMethod MojoGrimoire.Check.checkInit (fingerprint := "2547135469488102416")
+:::readable MojoGrimoire.Check.operatorArity MojoGrimoire.Check.checkFun MojoGrimoire.Check.checkMethod MojoGrimoire.Check.checkInit (fingerprint := "1184608070445364718")
 *Rule: functions, methods and initializers.* A function's body is checked.
 A method of the struct $`S` has a first parameter `self` of type $`S`,
 `read`, `mut`, `var` or `ref`. An operator method that inference calls
@@ -77,7 +77,7 @@ goes on only through a field of lists or arrays of lists or
 arrays, and is never rejected so. A field of a struct type leads nowhere.
 :::
 
-:::readable MojoGrimoire.Check.memberCheck MojoGrimoire.Check.checkStruct (fingerprint := "1901650206435973550")
+:::readable MojoGrimoire.Check.memberCheck MojoGrimoire.Check.checkStruct (fingerprint := "5715496458837014056")
 *Rule: structs.* A struct's members are checked once every free function
 and every struct's own declaration is: its initializer, its destructor,
 checked with the single parameter `deinit self`, and its methods, each with
@@ -103,7 +103,7 @@ is the error at its place too. The type phase locates the error of each
 body there, or gives its missing return (`located`).
 :::
 
-:::readable MojoGrimoire.Check.checkTypes MojoGrimoire.Check.declBodies MojoGrimoire.Check.checkFlow (fingerprint := "8176958443499083371")
+:::readable MojoGrimoire.Check.checkTypes MojoGrimoire.Check.declBodies MojoGrimoire.Check.checkFlow (fingerprint := "17385304710762577028")
 *Rule: programs.* A program is checked in three phases, the type phase,
 the flow phase and the instantiation phase
 (`MojoGrimoire.Check.checkProgram`), and is rejected with the first error

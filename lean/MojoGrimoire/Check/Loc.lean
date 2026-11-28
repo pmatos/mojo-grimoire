@@ -16,9 +16,12 @@ method among them. It may be changed through when its place may be, or,
 for a call, when each origin argument passes on a mutable reference. A
 place reached through `q^` passes on an immutable one: the compiler borrows
 it as a value that cannot be changed.
-A reference that a call returns and that is read late is re-checked
-through the origins of those of its origin arguments that are located
-operands, a temporary among them left out.
+An origin argument may be a temporary, which the compiler keeps alive as
+long as the reference (#80): it is left out of the origins, and the
+reference may not be changed through it. A `return` rejects it (#366),
+and so does a place's index in the checker's strict pass
+(`MojoGrimoire.Check.checkProgram`, #377); a subscript read late is never
+left out (#378).
 
 A `mut` argument may not alias another argument that is passed as a location,
 Mojo's argument exclusivity. An `Int` or a `Bool` passed to a `read`
@@ -34,7 +37,7 @@ open MojoGrimoire.Core
 `mut`. -/
 def Access.canChange : Access → Bool
   | .readOnly | .refParam => false
-  | .alias _ m _ => m
+  | .alias _ m _ _ => m
   | _ => true
 
 /-- Whether the variable of the place `p` may be changed through; a place
@@ -62,12 +65,41 @@ def passOn (c : Conv) (m : Bool) : Bool :=
   | _ => false
 
 mutual
+/-- Whether `e` is a subscript that Mojo reads late (`lateGetter`), which
+elaboration does not name as a temporary (#378), or a call that returns a
+reference with one among its origin arguments, at any depth. -/
+def lateCall (prog : Program) : Expr → CheckM Bool
+  | .call f args => do
+    if lateGetter prog f then return true
+    if (← findVar f).isSome then return false
+    match callSig prog f with
+    | .ok ⟨_, params, _, some os, _⟩ => lateArgs prog os params args
+    | _ => pure false
+  | .method p m args => do
+    let sig ← tryCatch (do pure (methodSig prog (← placeTy prog p) m args.length).toOption)
+      fun _ => pure none
+    let some ⟨_, params, _, some os, _⟩ := sig | pure false
+    lateArgs prog os params args
+  | .withDrops e _ _ => lateCall prog e
+  | _ => pure false
+
+/-- Whether an argument among `args` passed to a parameter among `params`
+that the names `os` of a callee's origin name is read late (`lateCall`). -/
+def lateArgs (prog : Program) (os : List Name) : List Param → List Expr → CheckM Bool
+  | prm :: prms, a :: args => do
+    if os.contains prm.name && (← lateCall prog a) then return true
+    lateArgs prog os prms args
+  | _, _ => pure false
+end
+
+mutual
 /-- The origins of the located operand `e`, and whether it may be changed
 through; `none` when `e` is not one, or is a call with an origin argument
 that is not one. A call of a name that a variable in scope hides is one,
-with no origins, so that checking it as a call rejects it (#176). Unless `strict` holds, such an argument, a temporary, is
-skipped instead: the call then gives the origins of its other origin
-arguments, and may not be changed through. -/
+with no origins, so that checking it as a call rejects it (#176). Unless
+`strict` holds, such an argument, a temporary, is skipped instead: the
+call then gives the origins of its other origin arguments, and may not be
+changed through. A subscript read late is not skipped (#378). -/
 def locOfAs (prog : Program) (strict : Bool) : Expr → CheckM (Option (List Place × Bool))
   | .place p => do pure (some (resolvePlace (← get).vars p, ← passedMutable p))
   | .call f args => do
@@ -98,15 +130,19 @@ def originsOf (prog : Program) (strict : Bool) (os : List Name) :
     let some (rest, m) ← originsOf prog strict os prms args | pure none
     if os.contains prm.name then
       let some (qs, mq) ← locOfAs prog strict a
-        | pure (if strict then none else some (rest, false))
+        | do pure (if strict || (← lateCall prog a) then none else some (rest, false))
       pure (some (qs ++ rest, m && passOn prm.conv mq))
     else pure (some (rest, m))
   | _, _ => pure (some ([], true))
 end
 
 /-- The origins of the located operand `e`, and whether it may be changed
-through, with `locOfAs` strict. -/
-def locOf (prog : Program) : Expr → CheckM (Option (List Place × Bool)) := locOfAs prog true
+through, a temporary origin argument left out (`locOfAs`): the compiler
+keeps the temporary alive while the reference is used, and it may not be
+changed through it (#80). In a place's index, the checker's strict pass
+rejects it (`inIndex`, #377). -/
+def locOf (prog : Program) (e : Expr) : CheckM (Option (List Place × Bool)) := do
+  locOfAs prog (← get).strictOrigins e
 
 /-- The name of the function or method that `e` calls; empty for an
 expression that is no call. -/
@@ -115,12 +151,42 @@ def calleeOf : Expr → Name
   | .withDrops e _ _ => calleeOf e
   | _ => ""
 
-/-- The origins of the call `e` that returns a reference, and whether it may
-be changed through. It rejects the call when an origin argument is not a
-located operand: a temporary would not outlive the call. -/
-def locatedOrigins (prog : Program) (e : Expr) : CheckM (List Place × Bool) := do
-  let some l ← locOf prog e | throw (CheckError.notAPlace (calleeOf e))
-  pure l
+/-- Whether the place `p` is reached through a reference that may point
+into a temporary. -/
+def throughTemp (p : Place) : CheckM Bool := do
+  pure (((← get).vars.find? (·.name == (splitPlace p).1)).any (·.access matches .alias _ _ _ true))
+
+mutual
+/-- Whether the located operand `e` may point into a temporary, which its
+origins leave out (#80): a reference bound to one, or a call with an origin
+argument that is a temporary, when `direct` holds, or that may point into
+one. -/
+def tempOrigin (prog : Program) (direct : Bool) : Expr → CheckM Bool
+  | .place p => throughTemp p
+  | .call f args => do
+    if (← findVar f).isSome then return false
+    match callSig prog f with
+    | .ok ⟨_, params, _, some os, _⟩ => tempArgs prog direct os params args
+    | _ => pure direct
+  | .method p m args => do
+    let sig ← tryCatch (do pure (methodSig prog (← placeTy prog p) m args.length).toOption)
+      fun _ => pure none
+    let some ⟨self, params, _, some os, _⟩ := sig | pure direct
+    if self.any (os.contains ·.name) && (← throughTemp p) then return true
+    tempArgs prog direct os params args
+  | .withDrops e _ _ => tempOrigin prog direct e
+  | _ => pure direct
+
+/-- Whether an argument among `args` passed to a parameter among `params`
+that the names `os` of a callee's origin name may point into a temporary
+(`tempOrigin`). -/
+def tempArgs (prog : Program) (direct : Bool) (os : List Name) :
+    List Param → List Expr → CheckM Bool
+  | prm :: prms, a :: args => do
+    if os.contains prm.name && (← tempOrigin prog direct a) then return true
+    tempArgs prog direct os prms args
+  | _, _ => pure false
+end
 
 /-- Whether two places may be the same location or overlap: one is the other
 or a field of it. -/
@@ -130,16 +196,30 @@ def overlaps (p q : Place) : Bool :=
   x == y && (a.isPrefixOf b || b.isPrefixOf a)
 
 /-- A location passed to a call: the convention it is passed by, the place
-reported when it is aliased, and the places it may be. -/
+reported when it is aliased, the places it may be, whether it is a
+location passed to a `ref` parameter that may be changed through it
+(`lent`, `mayChange`), and whether it may point into a temporary (`temp`,
+`tempOrigin`). -/
 structure PassedLoc where
   conv : Conv
   place : Place
   places : List Place
+  lent : Bool := false
+  temp : Bool := false
+
+/-- Whether the place `p` may be changed through when it is passed to a
+`ref` parameter: it passes on a mutable reference (`passedMutable`), or
+its variable is a `ref` parameter, whose mutability is a parameter of its
+own (#139). -/
+def mayChange (p : Place) : CheckM Bool := do
+  let v := (← get).vars.find? (·.name == (splitPlace p).1)
+  pure ((← passedMutable p) || v.any (·.access == .refParam))
 
 /-- The place `p` passed by the convention `c`. A reference counts as every
 place it may point into. -/
 def passedPlace (c : Conv) (p : Place) : CheckM PassedLoc := do
-  pure ⟨c, p, resolvePlace (← get).vars p⟩
+  pure { conv := c, place := p, places := resolvePlace (← get).vars p,
+         lent := c == .ref && (← mayChange p), temp := ← throughTemp p }
 
 /-- The arguments among `args` that are passed as locations: every located
 operand whose parameter is `read`, `mut` or `ref`, except an `Int` or a
@@ -151,11 +231,18 @@ def locationArgs (prog : Program) : List Param → List Expr → CheckM (List Pa
     if passedByValue prm then return rest
     match a, ← locOf prog a with
     | .place p, some _ => pure ((← passedPlace prm.conv p) :: rest)
-    | _, some (o :: os, _) => pure (⟨prm.conv, o, o :: os⟩ :: rest)
+    | _, some (o :: os, m) =>
+      let temp ← tempOrigin prog true a
+      let lent := prm.conv == .ref && (m || !temp && (← (o :: os).allM mayChange))
+      pure ({ conv := prm.conv, place := o, places := o :: os, lent, temp } :: rest)
     | _, _ => pure rest
   | _, _ => pure []
 
-/-- Rejects a `mut` location among `locs` that overlaps another one. -/
+/-- Rejects a `mut` location among `locs` that overlaps another one, and a
+mutable location passed to a `ref` parameter that overlaps another one
+when either may point into a temporary. The compiler rejects the latter
+when neither does too, but the model does not yet (#381), and so keeps
+the programs that reach it through a temporary rejected. -/
 def checkExclusive (locs : List PassedLoc) : CheckM Unit :=
   go locs []
 where
@@ -164,7 +251,8 @@ where
     | [], _ => pure ()
     | l :: rest, seen => do
       let clash (o : PassedLoc) := l.places.any fun a => o.places.any (overlaps a)
-      if l.conv == .mutable && (seen ++ rest).any clash then
+      let lentClash (o : PassedLoc) := (l.temp || o.temp) && clash o
+      if l.conv == .mutable && (seen ++ rest).any clash || l.lent && (seen ++ rest).any lentClash then
         throw (CheckError.argumentExclusivity l.place)
       go rest (l :: seen)
 

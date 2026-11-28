@@ -13,10 +13,10 @@ pins their fingerprint; the build fails when the Lean changes under it.
 
 #doc (Manual) "Blocks: readable blocks" =>
 
-:::moduleDocs (fingerprint := "14464387792394245613")
+:::moduleDocs (fingerprint := "304662169746679265")
 :::
 
-:::readable MojoGrimoire.Check.checkCond MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "11928397155301575573")
+:::readable MojoGrimoire.Check.checkCond MojoGrimoire.Check.checkStmt MojoGrimoire.Check.checkScope MojoGrimoire.Check.checkBlock (fingerprint := "6013654905548759369")
 *Rule: blocks.* A statement that holds no block is checked by the rule
 of statements, and a condition needs a $`\mathsf{Bool}`.
 
